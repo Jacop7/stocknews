@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "productionReady": false,
+  "observation": "Read-only host checks; shared installed tools only, no other product configurations. No product service started.",
+  "docker": {
+    "client": "29.8.0",
+    "server": "29.8.0",
+    "engine": "linux x86_64",
+    "status": "AVAILABLE",
+    "productResourcesCreated": false,
+    "observations": [
+      {
+        "command": [
+          "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe",
+          "version",
+          "--format",
+          "{{json .}}"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.617688+00:00",
+        "value": "{\"Client\":{\"Version\":\"29.8.0\",\"ApiVersion\":\"1.56\",\"DefaultAPIVersion\":\"1.56\",\"GitCommit\":\"88096ef\",\"GoVersion\":\"go1.26.8\",\"Os\":\"windows\",\"Arch\":\"amd64\",\"BuildTime\":\"Thu Sep  3 21:53:38 2026\",\"Context\":\"desktop-linux\"},\"Server\":{\"Platform\":{\"Name\":\"Docker Desktop 4.91.0 (239619)\"},\"Version\":\"29.8.0\",\"ApiVersion\":\"1.56\",\"MinAPIVersion\":\"1.40\",\"Os\":\"linux\",\"Arch\":\"amd64\",\"Components\":[{\"Name\":\"Engine\",\"Version\":\"29.8.0\",\"Details\":{\"ApiVersion\":\"1.56\",\"Arch\":\"amd64\",\"BuildTime\":\"Thu Sep  3 21:51:20 2026\",\"Experimental\":\"false\",\"GitCommit\":\"3ce5872\",\"GoVersion\":\"go1.26.8\",\"KernelVersion\":\"6.18.33.2-microsoft-standard-WSL2\",\"MinAPIVersion\":\"1.40\",\"Module\":\"github.com/moby/moby/v2\",\"ModuleVersion\":\"v2.0.0+unknown\",\"Os\":\"linux\"}},{\"Name\":\"containerd\",\"Version\":\"v2.3.4\",\"Details\":{\"GitCommit\":\"db8809540e1a7a9da5d518876894933ff55692ab\"}},{\"Name\":\"runc\",\"Version\":\"1.4.3\",\"Details\":{\"GitCommit\":\"v1.4.3-0-gbb14dabe\"}},{\"Name\":\"docker-init\",\"Version\":\"0.19.0\",\"Details\":{\"GitCommit\":\"de40ad0\"}}],\"GitCommit\":\"3ce5872\",\"GoVersion\":\"go1.26.8\",\"KernelVersion\":\"6.18.33.2-microsoft-standard-WSL2\",\"BuildTime\":\"2026-09-03T21:51:20.000000000+00:00\"}}"
+      }
+    ],
+    "pendingReason": "None for tool readiness; product containers remain uncreated.",
+    "userAction": "No action required for this readiness check.",
+    "affectedStages": [
+      4
+    ],
+    "preparationRefs": [
+      "hosting_account_region"
+    ]
+  },
+  "wsl": {
+    "version": "2.7.11.0",
+    "kernel": "6.18.33.2-2",
+    "status": "AVAILABLE",
+    "observations": [
+      {
+        "command": [
+          "C:\\WINDOWS\\system32\\wsl.exe",
+          "--version"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.735695+00:00",
+        "value": "WSL 버전: 2.7.11.0\r\n커널 버전: 6.18.33.2-2\r\nWSLg 버전: 1.0.73.2\r\nMSRDC 버전: 1.2.7214\r\nDirect3D 버전: 1.611.1-81528511\r\nDXCore 버전: 10.0.26100.1-240331-1435.ge-release\r\nWindows 버전: 10.0.26200.9974"
+      }
+    ],
+    "pendingReason": "No product distro or resources configured.",
+    "userAction": "No action required for this readiness check.",
+    "affectedStages": [
+      4
+    ],
+    "preparationRefs": [
+      "hosting_account_region"
+    ]
+  },
+  "android": {
+    "jdk": "17.0.20.1+1",
+    "platforms": [
+      35,
+      36
+    ],
+    "buildTools": [
+      "35.0.0",
+      "36.0.0"
+    ],
+    "adb": "1.0.41",
+    "platformTools": "37.0.1-15733141",
+    "emulator": "37.1.11.0",
+    "avdCount": 1,
+    "androidStudio": "AVAILABLE",
+    "buildTested": false,
+    "deviceTested": false,
+    "status": "AVAILABLE",
+    "observations": [
+      {
+        "command": [
+          "C:\\Users\\jacop\\Java\\jdk-17.0.20.1+1\\bin\\java.exe",
+          "-version"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.856615+00:00",
+        "value": "openjdk version \"17.0.20.1\" 2026-08-18\r\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\r\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)"
+      },
+      {
+        "command": [
+          "C:\\Users\\jacop\\Android\\Sdk\\platform-tools\\adb.exe",
+          "version"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.965280+00:00",
+        "value": "Android Debug Bridge version 1.0.41\r\nVersion 37.0.1-15733141\r\nInstalled as C:\\Users\\jacop\\Android\\Sdk\\platform-tools\\adb.exe\r\nRunning on Windows 10.0.26200"
+      },
+      {
+        "command": [
+          "C:\\Users\\jacop\\Android\\Sdk\\emulator\\emulator.exe",
+          "-version"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:49.005433+00:00",
+        "value": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)\r\nCopyright (C) 2006-2024 The Android Open Source Project and many others.\r\nThis program is a derivative of the QEMU CPU emulator (www.qemu.org).\r\n\r\n  This software is licensed under the terms of the GNU General Public\r\n  License version 2, as published by the Free Software Foundation, and\r\n  may be copied, distributed, and modified under those terms.\r\n\r\n  This program is distributed in the hope that it will be useful,\r\n  but WITHOUT ANY WARRANTY; without even the implied warranty of\r\n  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\r\n  GNU General Public License for more details.\r\n\r\nINFO         | Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)\r\nINFO         | Graphics backend: gfxstream"
+      },
+      {
+        "command": [
+          "C:\\Users\\jacop\\Android\\Sdk\\emulator\\emulator.exe",
+          "-list-avds"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.798336+00:00",
+        "value": {
+          "availableAvdCount": 1,
+          "identifiersRedacted": true
+        }
+      },
+      {
+        "command": [
+          "filesystem-read-only",
+          "C:\\Users\\jacop\\Android\\Sdk"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:48.856615+00:00",
+        "value": {
+          "platforms": [
+            "android-35",
+            "android-36"
+          ],
+          "buildTools": [
+            "35.0.0",
+            "36.0.0"
+          ],
+          "androidStudioExists": true
+        }
+      }
+    ],
+    "pendingReason": "Build and device tests not run; emulator exists as a later test route.",
+    "userAction": "Use dedicated app build on available emulator; real device test later.",
+    "affectedStages": [
+      2,
+      11,
+      12
+    ],
+    "preparationRefs": [
+      "test_devices",
+      "google_play_registration",
+      "closed_test_testers"
+    ]
+  },
+  "ios": {
+    "status": "PENDING",
+    "localBuild": "UNAVAILABLE_WINDOWS",
+    "route": "New Expo/EAS project and remote iOS build in later stage",
+    "easAccount": "NOT_VERIFIED",
+    "appleDeveloper": "NOT_VERIFIED",
+    "observations": [
+      {
+        "command": [
+          "executable-discovery",
+          "eas",
+          "expo"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:49.166019+00:00",
+        "value": {
+          "easFound": false,
+          "expoFound": false,
+          "accountsQueried": false
+        }
+      }
+    ],
+    "pendingReason": "Windows has no local iOS build; new EAS project/account authorization and iPhone route unverified.",
+    "userAction": "Authorize the new project EAS account when build setup is prepared; provide iPhone test route.",
+    "affectedStages": [
+      2,
+      11,
+      12
+    ],
+    "preparationRefs": [
+      "apple_developer_registration",
+      "test_devices",
+      "store_account_type"
+    ]
+  },
+  "ci": {
+    "status": "PENDING",
+    "workflowCreated": false,
+    "observations": [
+      {
+        "command": [
+          "filesystem-read-only",
+          ".github/workflows"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:49.173601+00:00",
+        "value": {
+          "exists": false,
+          "remoteExecuted": false
+        }
+      }
+    ],
+    "pendingReason": "Workflow and portable whole-checkout verification are stage 2; no hosted execution yet.",
+    "userAction": "Review new project-only workflow before first remote execution.",
+    "affectedStages": [
+      2
+    ],
+    "preparationRefs": [
+      "hosting_account_region"
+    ]
+  },
+  "externalAccountsConfigured": false,
+  "expo": {
+    "status": "PENDING",
+    "observations": [
+      {
+        "command": [
+          "executable-discovery",
+          "eas",
+          "expo"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:49.166019+00:00",
+        "value": {
+          "easFound": false,
+          "expoFound": false,
+          "accountsQueried": false
+        }
+      }
+    ],
+    "pendingReason": "App scaffold and project-local Expo/EAS tooling belong to stage 2; accounts not queried.",
+    "userAction": "Authorize new EAS project association after reviewable app setup; no inherited product identifiers.",
+    "affectedStages": [
+      2
+    ],
+    "preparationRefs": [
+      "store_account_type",
+      "apple_developer_registration",
+      "google_play_registration"
+    ]
+  },
+  "stores": {
+    "status": "PENDING",
+    "observations": [
+      {
+        "command": [
+          "read-file",
+          "docs/external-preparation.json"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-13T20:56:49.173601+00:00",
+        "value": "Existing explicit PENDING records retained; no provider login or registration queried."
+      }
+    ],
+    "pendingReason": "Store account type, enrollment and closed-test eligibility not verified.",
+    "userAction": "Confirm account type and register dedicated app when build/store preparation requires it.",
+    "affectedStages": [
+      2,
+      11,
+      12
+    ],
+    "preparationRefs": [
+      "store_account_type",
+      "apple_developer_registration",
+      "google_play_registration",
+      "closed_test_testers"
+    ]
+  }
+}

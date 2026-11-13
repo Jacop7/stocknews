@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "productId": "judoju-news",
-  "currentStage": 0,
+  "currentStage": 1,
   "state": "IMPLEMENTED_REVIEW_PENDING",
-  "externalReviewRecord": "../outputs/development-stages/reviews/stage00-implementation/index.html",
-  "nextStage": 1,
+  "externalReviewRecord": "../outputs/development-stages/reviews/stage01-implementation/index.html",
+  "nextStage": 2,
   "stages": [
     {
       "stage": 0,
-      "state": "IMPLEMENTED_REVIEW_PENDING"
+      "state": "COMPLETE"
     },
     {
       "stage": 1,
-      "state": "NOT_STARTED"
+      "state": "IMPLEMENTED_REVIEW_PENDING"
     },
     {
       "stage": 2,
@@ -64,5 +64,12 @@
     "No Supabase project or local DB",
     "No Docker worker or queue",
     "No cloud remote, secrets, delivery, news collection or AI API"
+  ],
+  "completedStages": [
+    {
+      "stage": 0,
+      "commit": "f7dce3a9e05c39580f23a210c3ac9d2514c38b74",
+      "evidence": "../outputs/development-stages/reviews/stage00-implementation/commit-evidence.json"
+    }
   ]
 }

@@ -6,8 +6,9 @@
     "status": "CREATED",
     "branch": "main",
     "historyOrigin": "NEW",
-    "remoteStatus": "PENDING",
-    "remote": null
+    "remoteStatus": "CONFIGURED",
+    "remote": "https://github.com/Jacop7/stocknews.git",
+    "initialCommit": "f7dce3a9e05c39580f23a210c3ac9d2514c38b74"
   },
   "resources": [
     {

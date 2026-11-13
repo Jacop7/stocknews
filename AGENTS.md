@@ -6,5 +6,5 @@
 - 기본 개발 root는 현재 저장소다. 다른 제품 경로 mutation 금지. 고유 Supabase 프로젝트/로컬 포트·Docker 자원·Expo 앱/EAS·키·배포를 새로 만든다.
 - PENDING/null 자원은 연결 승인이나 실제 생성 증거가 아니다. 미확인 endpoint에는 migration/seed/쓰기/발송을 하지 않는다.
 - 비밀키·실제 .env·인증서·원시 대화는 커밋/로그에 넣지 않는다. 미등록 외부 통신·계정 권한 확대·비용/약관 수락은 필요한 사용자 확인을 거친다.
-- 0단계 검사: node scripts/verify-foundation.mjs. 이후 단계에서 실제 코드에 맞는 시험을 추가한다. 검사 약화로 통과시키지 않는다.
+- 현재 필수 검사: pnpm verify. 0단계 계약 분기는 verify-foundation.mjs에 보존하며 현재 단계의 추가 검사를 함께 실행한다. 이후 단계에서 실제 코드에 맞는 시험을 추가한다. 검사 약화로 통과시키지 않는다.
 - 검수 원문·검사 출력·커밋 연결은 ../outputs/development-stages/reviews/에 둔다. 검수된 제품 바이트를 결과 기록 때문에 바꾸지 않는다.

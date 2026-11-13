@@ -56,6 +56,12 @@
       "copy": "docs/stages/stage-00-plan.md",
       "bytes": 9409,
       "sha256": "29c94397991ca576258465c584d351c643a3322f375fe2298c45b251b5520c7f"
+    },
+    {
+      "source": "C:/Users/jacop/주식/outputs/development-stages/stage-01-plan.md",
+      "copy": "docs/stages/stage-01-plan.md",
+      "bytes": 10449,
+      "sha256": "4e8d4fa91a78709a7093a51a6eeab166d79f71b16ef8fbc0290dfd3a1b616704"
     }
   ]
 }

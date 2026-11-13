@@ -1,0 +1,20 @@
+{
+  "name": "@judoju/news",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "24.15.0",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "check:foundation": "node scripts/verify-foundation.mjs",
+    "check:toolchain": "node scripts/verify-toolchain.mjs"
+  },
+  "devDependencies": {
+    "supabase": "3.1.0",
+    "typescript": "6.0.3"
+  }
+}
