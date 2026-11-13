@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "items": [
+    {
+      "id": "store_account_type",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        11,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm the new app publisher as an individual or organization before store enrollment.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "apple_developer_registration",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        2,
+        11,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm Apple enrollment owner, account access, agreements and fee before a new app registration.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "google_play_registration",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        2,
+        11,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm Google Play publisher account type, registration access and testing requirements for the new app.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "test_devices",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        2,
+        11
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm an Android device/emulator and an iOS device or authorized build/test route.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "closed_test_testers",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        11,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm applicable store closed-testing requirements and recruit participants if required.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "market_data_permission",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        3,
+        7
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Choose a market-data provider and confirm automated access, storage and app display rights before integration.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "news_source_permission",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        3,
+        8
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm each news/report source permission for discovery, AI input, retention and app summaries.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "hosting_account_region",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        4,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm owner access, regions and costs for new Supabase preview/production and worker/admin hosting.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    },
+    {
+      "id": "privacy_inventory_draft",
+      "ownerRole": "project_owner",
+      "relatedStages": [
+        1,
+        11,
+        12
+      ],
+      "status": "PENDING",
+      "requiresUserAction": true,
+      "userAction": "Confirm service operator/contact and SDK/data inventory for the new app privacy documentation.",
+      "costStatus": "UNCONFIRMED",
+      "estimatedAt": null,
+      "pendingReason": "Not yet confirmed; no account creation, request or purchase performed"
+    }
+  ]
+}

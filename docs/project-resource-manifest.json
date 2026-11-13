@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "productRoot": "C:/Users/jacop/주식/judoju-news",
+  "repository": {
+    "status": "CREATED",
+    "branch": "main",
+    "historyOrigin": "NEW",
+    "remoteStatus": "PENDING",
+    "remote": null
+  },
+  "resources": [
+    {
+      "id": "expo_eas",
+      "type": "app",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-expo-eas",
+      "actual": null
+    },
+    {
+      "id": "supabase_local",
+      "type": "backend",
+      "environment": "local",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-supabase-local",
+      "actual": null
+    },
+    {
+      "id": "supabase_preview",
+      "type": "backend",
+      "environment": "preview",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-supabase-preview",
+      "actual": null
+    },
+    {
+      "id": "supabase_production",
+      "type": "backend",
+      "environment": "production",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-supabase-production",
+      "actual": null
+    },
+    {
+      "id": "worker_local",
+      "type": "worker",
+      "environment": "local",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-worker-local",
+      "actual": null
+    },
+    {
+      "id": "worker_preview",
+      "type": "worker",
+      "environment": "preview",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-worker-preview",
+      "actual": null
+    },
+    {
+      "id": "worker_production",
+      "type": "worker",
+      "environment": "production",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-worker-production",
+      "actual": null
+    },
+    {
+      "id": "admin_hosting",
+      "type": "hosting",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-admin-hosting",
+      "actual": null
+    },
+    {
+      "id": "push_ads",
+      "type": "delivery",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-push-ads",
+      "actual": null
+    },
+    {
+      "id": "observability",
+      "type": "operations",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-observability",
+      "actual": null
+    },
+    {
+      "id": "backups",
+      "type": "operations",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-backups",
+      "actual": null
+    },
+    {
+      "id": "ci_cd",
+      "type": "operations",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-ci-cd",
+      "actual": null
+    },
+    {
+      "id": "environment_secrets",
+      "type": "security",
+      "environment": "all",
+      "status": "PENDING",
+      "plannedNamespace": "judoju-news-environment-secrets",
+      "actual": null
+    }
+  ]
+}

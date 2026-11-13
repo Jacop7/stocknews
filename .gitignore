@@ -1,0 +1,36 @@
+# Runtime and credentials
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.p8
+*.mobileprovision
+**/*.env
+**/id_rsa*
+**/id_ed25519*
+**/service-account*.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/*credentials*.json
+# Dependencies and build output
+node_modules/
+.pnpm-store/
+.expo/
+.next/
+dist/
+build/
+coverage/
+*.log
+# Local backend/container state
+supabase/.temp/
+supabase/.branches/
+.local-data/
+docker-data/
+# Agent runtime; product model plan is retained locally
+.codex/
+.claude/

@@ -1,0 +1,82 @@
+{
+  "revision": "2026-11-13-project-isolation-1",
+  "authority": "공통-운영계약-v1.0.md",
+  "review_status": "SEE_SEPARATE_REVIEW_RECORD",
+  "files": [
+    {
+      "path": "verify_bundle.py",
+      "bytes": 6268,
+      "sha256": "6c67c16d82cc730ae0f9363aaf116de5b9a7d64f95d5125ea9338ba02fe8613e"
+    },
+    {
+      "path": "공통-운영계약-v1.0.html",
+      "bytes": 57072,
+      "sha256": "0573d1cee9542b200de8b4814bb89a40bf97609d9f0958a956e154bafb508b94"
+    },
+    {
+      "path": "공통-운영계약-v1.0.md",
+      "bytes": 47730,
+      "sha256": "aa385e32241d6139394f750f8cf90f0023b593d6ac56e15e077b8aec224d17f6"
+    },
+    {
+      "path": "매체별-수집정책-부록.html",
+      "bytes": 138257,
+      "sha256": "cf5c17a7da584f000cb9aabd273d635124402c4bc10c7d61598249fb3f86abf7"
+    },
+    {
+      "path": "매체별-수집정책-부록.md",
+      "bytes": 118620,
+      "sha256": "c496639722942d087ba912ad0be03ba7a82de69d6f28ab0a8fd232d906660184"
+    },
+    {
+      "path": "변경-대응표.html",
+      "bytes": 15844,
+      "sha256": "89919ae9731350d356bae0eeb33b7caaf88676a9a82da5aacea3408b41db2b88"
+    },
+    {
+      "path": "변경-대응표.md",
+      "bytes": 9537,
+      "sha256": "1d1fd90f8b4ac06a32314dba0e05d75e9f5aad2ba9dedfbfa8c4d11e47640b29"
+    },
+    {
+      "path": "주도주뉴스-뉴스운영-상세로직-v1.1.html",
+      "bytes": 140128,
+      "sha256": "402417da3e60482d8e91b252d8d9148d941e5d344b4c5c83ea6b26aa3439e22b"
+    },
+    {
+      "path": "주도주뉴스-뉴스운영-상세로직-v1.1.md",
+      "bytes": 121523,
+      "sha256": "9cb0c4fb6449506a47406fc70a6364f38508dd38114280f19b8d2f86a0930a99"
+    },
+    {
+      "path": "주도주뉴스-서비스-기획안-v1.6.html",
+      "bytes": 134461,
+      "sha256": "3688f4b70ca822cb5b38543b6f48558a357f6170091aaa44ced4945deea19946"
+    },
+    {
+      "path": "주도주뉴스-서비스-기획안-v1.6.md",
+      "bytes": 117374,
+      "sha256": "142925add5cb34f619e57fd1b05aba8073e775abc3348d1e15c3d8531a9c869b"
+    },
+    {
+      "path": "주도주뉴스-어드민-기획안-v1.1.html",
+      "bytes": 67852,
+      "sha256": "8c8a628d2b49c9446b6f92f29f9318bd980226951f657eeedb1bf9682c69cb58"
+    },
+    {
+      "path": "주도주뉴스-어드민-기획안-v1.1.md",
+      "bytes": 57351,
+      "sha256": "c77c85f5c415ab341d0f1aa274653599ac6afd54aa7feb5d193875859c9f84a1"
+    },
+    {
+      "path": "주도주뉴스-제작-실행계획-v1.3.html",
+      "bytes": 111236,
+      "sha256": "d5b04d0291a1e738660224c76532aca0cd9b7f3020a00bb3b0e2b33fd46a20e5"
+    },
+    {
+      "path": "주도주뉴스-제작-실행계획-v1.3.md",
+      "bytes": 96245,
+      "sha256": "fae01cfb465901ec8bad6401cb0811f7377a519cc84d0343aea2812831173504"
+    }
+  ]
+}

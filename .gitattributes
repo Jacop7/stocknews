@@ -1,0 +1,7 @@
+* text=auto eol=lf
+# These are exact reviewed source snapshots, including original CRLF bytes.
+docs/reference/planning/** -text -filter -ident
+docs/stages/stage-00-plan.md -text -filter -ident
+*.png binary
+*.jpg binary
+*.woff2 binary
