@@ -25,7 +25,9 @@
     "test:m0-contracts": "node --experimental-strip-types --test tests/market-context.test.ts tests/local-bootstrap.test.mjs",
     "test:m0-runtime": "node scripts/test-m0-runtime.mjs && node scripts/test-m0-publication.mjs",
     "test:m1-contracts": "node --test tests/public-read-gateway.test.mjs tests/editor-state.test.mjs",
-    "test:m1-runtime": "node scripts/test-m1-auth.mjs && node scripts/test-m1-publication.mjs && node scripts/test-m1-http.mjs"
+    "test:m1-runtime": "node scripts/test-m1-auth.mjs && node scripts/test-m1-publication.mjs && node scripts/test-m1-http.mjs",
+    "test:catalog": "node --test tests/catalog-preparation.test.mjs",
+    "catalog:preview": "node scripts/catalog/preview-catalog.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",

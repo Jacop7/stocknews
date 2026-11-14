@@ -86,6 +86,12 @@
       "copy": "docs/stages/stage-05-plan.md",
       "bytes": 24003,
       "sha256": "1539efa3a309312b38b0329d31c9008edbb8462a61ef34618037485bfcab5381"
+    },
+    {
+      "source": "approved-news-snapshot/stage-06a-plan.md",
+      "copy": "docs/stages/stage-06a-plan.md",
+      "bytes": 23195,
+      "sha256": "1b485817c6e8c82aefbd405cea9da1c887e18c07e54d4f3b41472f5d0861cc73"
     }
   ]
 }

@@ -134,5 +134,15 @@
     "android": "AGENT_OBSERVED_HOME_DETAIL_PARTIAL",
     "ios": "PENDING_NEW_FLOW",
     "U05": "PENDING_STAGE6"
+  },
+  "catalogPreparation": {
+    "stage": "6A",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "planManifest": "1322727f755ea8da918dd8d04320e2bcef9cf8aadd4a05cd0ab3f353f5d56be7",
+    "sourceCategories": 56,
+    "sourceCompanies": 339,
+    "databaseApplied": false,
+    "appConnected": false,
+    "nativeGateDeferredByUser": true
   }
 }

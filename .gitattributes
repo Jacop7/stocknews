@@ -2,6 +2,7 @@
 # These are exact reviewed source snapshots, including original CRLF bytes.
 docs/reference/planning/** -text -filter -ident
 docs/stages/** -text -filter -ident
+tests/fixtures/catalog/source-20261114.json -text -filter -ident
 # Native release fingerprints bind exact bytes, including config line endings.
 apps/mobile/package.json -text -filter -ident
 apps/mobile/app.json -text -filter -ident

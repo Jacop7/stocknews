@@ -1,0 +1,2622 @@
+{
+  "schemaVersion": 1,
+  "namespace": "judoju-news-catalog-v1",
+  "sourceSha256": "5c86278ab12d16979a1f5fd7a100e15368db2450f1ebcf47e70aced66d84a5d2",
+  "parents": [
+    {
+      "id": "e4c17556-a4e1-4242-8d8c-3a53938b6456",
+      "name": "AI·반도체",
+      "categories": [
+        "파운드리",
+        "메모리 양산",
+        "반도체 디자인하우스",
+        "반도체 IP",
+        "반도체 팹리스",
+        "반도체 전공정",
+        "반도체 노광공정(EUV)",
+        "MLCC",
+        "반도체 기판",
+        "반도체 유리기판",
+        "반도체 OSAT",
+        "반도체 후공정/패키징",
+        "AI글래스",
+        "광통신",
+        "액침냉각"
+      ]
+    },
+    {
+      "id": "398a63bd-ed88-4386-b42a-f7aff6da417a",
+      "name": "에너지",
+      "categories": [
+        "전력",
+        "원자력 SMR",
+        "ESS 배터리",
+        "태양광",
+        "SOFC",
+        "해상풍력",
+        "피팅·밸브"
+      ]
+    },
+    {
+      "id": "620e4528-9f61-4894-a99b-d206f19c74e8",
+      "name": "로봇",
+      "categories": [
+        "휴머노이드 양산",
+        "휴머노이드 액추에이터·핸드",
+        "휴머노이드 비젼/카메라",
+        "스마트팩토리"
+      ]
+    },
+    {
+      "id": "8f6cce28-a399-4a74-bf68-82bbf9b79e25",
+      "name": "전기차·배터리",
+      "categories": [
+        "전기차",
+        "자율주행 sdv",
+        "전기차 배터리",
+        "실리콘 음극재",
+        "전고체 배터리",
+        "폐배터리",
+        "타이어"
+      ]
+    },
+    {
+      "id": "d2efe86c-6252-4949-8d9c-8a33bf78596a",
+      "name": "우주·방산",
+      "categories": [
+        "우주 · 위성",
+        "방산"
+      ]
+    },
+    {
+      "id": "72000403-275d-47cf-a3a5-e4fc54bb73b2",
+      "name": "조선·운송",
+      "categories": [
+        "조선",
+        "해운",
+        "항공"
+      ]
+    },
+    {
+      "id": "a8b2846e-6bfc-45bb-8a75-db0a81cd0d12",
+      "name": "바이오·의료",
+      "categories": [
+        "바이오",
+        "피부 미용",
+        "의료기기",
+        "의료 AI"
+      ]
+    },
+    {
+      "id": "adf6a6a8-7325-45ed-a835-938957ce2bea",
+      "name": "건설·산업재",
+      "categories": [
+        "건설",
+        "건설 기계",
+        "철강"
+      ]
+    },
+    {
+      "id": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d",
+      "name": "소비재",
+      "categories": [
+        "화장품",
+        "식품",
+        "레저/숙박",
+        "패션/의류",
+        "백화점"
+      ]
+    },
+    {
+      "id": "d7550313-1e1a-407e-9154-f26113e345b0",
+      "name": "통신 · 엔터 · 게임",
+      "categories": [
+        "통신",
+        "엔터",
+        "게임"
+      ]
+    },
+    {
+      "id": "1bcb4897-2105-48b9-a31b-bef867cfe18c",
+      "name": "금융",
+      "categories": [
+        "증권",
+        "보험",
+        "은행"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "eda3b194-b258-4bc3-be82-e0ae70e27999",
+      "sourceCell": "A2",
+      "name": "파운드리",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "34f59cc0-6e5e-4f13-8006-764e8953aa8c",
+      "sourceCell": "A3",
+      "name": "메모리 양산",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "71f00562-e557-4c9b-a32a-c80def1eb83b",
+      "sourceCell": "A4",
+      "name": "반도체 디자인하우스",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "9e5d766f-c1b6-48a4-a385-84154122499d",
+      "sourceCell": "A5",
+      "name": "반도체 IP",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "adf919f7-d603-48e4-a15b-2431caf62bab",
+      "sourceCell": "A6",
+      "name": "반도체 팹리스",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "5600ad2d-66e3-44c2-885b-516ef3f92532",
+      "sourceCell": "A7",
+      "name": "반도체 전공정",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb",
+      "sourceCell": "A8",
+      "name": "반도체 노광공정(EUV)",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a",
+      "sourceCell": "A9",
+      "name": "MLCC",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "6a5e5359-2e61-48af-ad6f-7914a39cd236",
+      "sourceCell": "A10",
+      "name": "반도체 기판",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "4197c534-1948-4117-907b-29312ee6e195",
+      "sourceCell": "A11",
+      "name": "반도체 유리기판",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "1c83dd0a-d862-461d-a942-eede63b8381b",
+      "sourceCell": "A12",
+      "name": "반도체 OSAT",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "42530660-caf8-406c-93fb-ccbba5d8fc3c",
+      "sourceCell": "A13",
+      "name": "반도체 후공정/패키징",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "ab431a79-1f0f-446c-9f46-bfc7442248c8",
+      "sourceCell": "A14",
+      "name": "광통신",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "b415b865-80a0-4f2f-9ff3-7532206d3942",
+      "sourceCell": "A15",
+      "name": "액침냉각",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "f4361070-beb7-4836-964d-f03a1015c6cf",
+      "sourceCell": "A16",
+      "name": "피팅·밸브",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "dadd2525-a51f-4933-9186-020f5fa441c7",
+      "sourceCell": "A17",
+      "name": "ESS 배터리",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "83b2d692-bc69-422f-a5be-6a62c46170fd",
+      "sourceCell": "A18",
+      "name": "전력",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df",
+      "sourceCell": "A19",
+      "name": "원자력 SMR",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "9f9a69ce-f932-4466-b1f3-5746e6364206",
+      "sourceCell": "A20",
+      "name": "SOFC",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "281578e0-01d6-4705-9e05-dfcf16f93851",
+      "sourceCell": "A21",
+      "name": "태양광",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "a21f87fb-70d9-4994-bc58-5a17f8bd455e",
+      "sourceCell": "A22",
+      "name": "해상풍력",
+      "parentId": "398a63bd-ed88-4386-b42a-f7aff6da417a"
+    },
+    {
+      "id": "d8ef2560-2219-4b71-a37d-156537833510",
+      "sourceCell": "A23",
+      "name": "AI글래스",
+      "parentId": "e4c17556-a4e1-4242-8d8c-3a53938b6456"
+    },
+    {
+      "id": "973e1638-6493-4399-8820-b54c697203bf",
+      "sourceCell": "A24",
+      "name": "휴머노이드 양산",
+      "parentId": "620e4528-9f61-4894-a99b-d206f19c74e8"
+    },
+    {
+      "id": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df",
+      "sourceCell": "A25",
+      "name": "휴머노이드 액추에이터·핸드",
+      "parentId": "620e4528-9f61-4894-a99b-d206f19c74e8"
+    },
+    {
+      "id": "b523eeae-3297-4b00-87d7-d09a5dadafcd",
+      "sourceCell": "A26",
+      "name": "휴머노이드 비젼/카메라",
+      "parentId": "620e4528-9f61-4894-a99b-d206f19c74e8"
+    },
+    {
+      "id": "9ebef0b9-5586-47cc-8329-600230883f85",
+      "sourceCell": "A27",
+      "name": "스마트팩토리",
+      "parentId": "620e4528-9f61-4894-a99b-d206f19c74e8"
+    },
+    {
+      "id": "01b46609-a6f7-4e56-991f-661270559631",
+      "sourceCell": "A28",
+      "name": "전기차",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "59c54553-9e0b-4732-8716-2a7f6d7e512b",
+      "sourceCell": "A29",
+      "name": "자율주행 sdv",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "4b19d710-98fa-4eb7-a92d-b7e977d7c383",
+      "sourceCell": "A30",
+      "name": "전기차 배터리",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "f9c7bd33-67f0-4ee2-85fd-703493149efc",
+      "sourceCell": "A31",
+      "name": "실리콘 음극재",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "2f0ad66c-1ae4-4a61-9787-3c1837714954",
+      "sourceCell": "A32",
+      "name": "전고체 배터리",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "439bad21-6907-4964-b31b-0baeb3cf7976",
+      "sourceCell": "A33",
+      "name": "폐배터리",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0",
+      "sourceCell": "A34",
+      "name": "타이어",
+      "parentId": "8f6cce28-a399-4a74-bf68-82bbf9b79e25"
+    },
+    {
+      "id": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3",
+      "sourceCell": "A35",
+      "name": "우주 · 위성",
+      "parentId": "d2efe86c-6252-4949-8d9c-8a33bf78596a"
+    },
+    {
+      "id": "dac67c42-2e8d-4d7d-9920-74df9868c1ad",
+      "sourceCell": "A36",
+      "name": "방산",
+      "parentId": "d2efe86c-6252-4949-8d9c-8a33bf78596a"
+    },
+    {
+      "id": "16d21442-b44a-4868-a9b7-96e930945683",
+      "sourceCell": "A37",
+      "name": "조선",
+      "parentId": "72000403-275d-47cf-a3a5-e4fc54bb73b2"
+    },
+    {
+      "id": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14",
+      "sourceCell": "A38",
+      "name": "바이오",
+      "parentId": "a8b2846e-6bfc-45bb-8a75-db0a81cd0d12"
+    },
+    {
+      "id": "98dfe4f3-0128-4713-b261-e11eb17bf7be",
+      "sourceCell": "A39",
+      "name": "피부 미용",
+      "parentId": "a8b2846e-6bfc-45bb-8a75-db0a81cd0d12"
+    },
+    {
+      "id": "e44ccfeb-885d-41f5-9def-0713de2aeb6e",
+      "sourceCell": "A40",
+      "name": "의료기기",
+      "parentId": "a8b2846e-6bfc-45bb-8a75-db0a81cd0d12"
+    },
+    {
+      "id": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc",
+      "sourceCell": "A41",
+      "name": "의료 AI",
+      "parentId": "a8b2846e-6bfc-45bb-8a75-db0a81cd0d12"
+    },
+    {
+      "id": "9f654d9c-e904-4374-b007-21ea1dfdab17",
+      "sourceCell": "A42",
+      "name": "화장품",
+      "parentId": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d"
+    },
+    {
+      "id": "18e0efdb-0523-4328-8293-a665e85ffba8",
+      "sourceCell": "A43",
+      "name": "건설",
+      "parentId": "adf6a6a8-7325-45ed-a835-938957ce2bea"
+    },
+    {
+      "id": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4",
+      "sourceCell": "A44",
+      "name": "건설 기계",
+      "parentId": "adf6a6a8-7325-45ed-a835-938957ce2bea"
+    },
+    {
+      "id": "18571085-b70a-46a7-b92b-23eb207c4bd2",
+      "sourceCell": "A45",
+      "name": "철강 ",
+      "parentId": "adf6a6a8-7325-45ed-a835-938957ce2bea"
+    },
+    {
+      "id": "320d553d-a47d-4dae-8123-bf9e18a24cfd",
+      "sourceCell": "A46",
+      "name": "해운",
+      "parentId": "72000403-275d-47cf-a3a5-e4fc54bb73b2"
+    },
+    {
+      "id": "0d83ab39-bae6-43da-ac37-03306c6c9523",
+      "sourceCell": "A47",
+      "name": "항공",
+      "parentId": "72000403-275d-47cf-a3a5-e4fc54bb73b2"
+    },
+    {
+      "id": "e1c79ca5-f361-429f-8929-80afeac52f0f",
+      "sourceCell": "A48",
+      "name": "레저/숙박",
+      "parentId": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d"
+    },
+    {
+      "id": "2f2d8094-6441-4728-a658-616e41e8da48",
+      "sourceCell": "A49",
+      "name": "식품",
+      "parentId": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d"
+    },
+    {
+      "id": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81",
+      "sourceCell": "A50",
+      "name": "엔터",
+      "parentId": "d7550313-1e1a-407e-9154-f26113e345b0"
+    },
+    {
+      "id": "94344449-46f8-4f72-ab25-90086a1def1f",
+      "sourceCell": "A51",
+      "name": "패션/의류",
+      "parentId": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d"
+    },
+    {
+      "id": "b4ad7add-a37d-4737-936f-40aaede153dd",
+      "sourceCell": "A52",
+      "name": "백화점",
+      "parentId": "d49a9b56-d5f2-4ba1-b5e9-5d921dc7516d"
+    },
+    {
+      "id": "49b33ad0-91a7-4e70-8c97-3670714e6440",
+      "sourceCell": "A53",
+      "name": "통신",
+      "parentId": "d7550313-1e1a-407e-9154-f26113e345b0"
+    },
+    {
+      "id": "ea661150-f49f-4dc2-9769-740e60ab63f0",
+      "sourceCell": "A54",
+      "name": "증권",
+      "parentId": "1bcb4897-2105-48b9-a31b-bef867cfe18c"
+    },
+    {
+      "id": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae",
+      "sourceCell": "A55",
+      "name": "보험",
+      "parentId": "1bcb4897-2105-48b9-a31b-bef867cfe18c"
+    },
+    {
+      "id": "354d75c4-c595-4393-a8d3-9ed02c4fae59",
+      "sourceCell": "A56",
+      "name": "은행",
+      "parentId": "1bcb4897-2105-48b9-a31b-bef867cfe18c"
+    },
+    {
+      "id": "da96c41b-5f44-404d-b74e-5786cbf9678d",
+      "sourceCell": "A57",
+      "name": "게임",
+      "parentId": "d7550313-1e1a-407e-9154-f26113e345b0"
+    }
+  ],
+  "companies": [
+    {
+      "id": "fd30d4a9-47a8-4197-a0b8-de6391348bce",
+      "sourceCell": "A62",
+      "name": "가온전선"
+    },
+    {
+      "id": "d2f956bb-889a-43bc-ac6f-2cdb88d55ad4",
+      "sourceCell": "A63",
+      "name": "가온칩스"
+    },
+    {
+      "id": "0487376d-85c9-474b-a9a5-67460e162319",
+      "sourceCell": "A64",
+      "name": "고영테크놀러지"
+    },
+    {
+      "id": "8bed9014-91d3-4598-b8f5-006e0bd9250b",
+      "sourceCell": "A65",
+      "name": "교보증권"
+    },
+    {
+      "id": "3460cd09-fd78-42cd-9750-71370fe88897",
+      "sourceCell": "A66",
+      "name": "금호타이어"
+    },
+    {
+      "id": "ce43e437-9359-446e-98d0-d6b130da2607",
+      "sourceCell": "A67",
+      "name": "기가비스"
+    },
+    {
+      "id": "4c47105a-8bf3-4773-b9dc-26106c804dc4",
+      "sourceCell": "A68",
+      "name": "기아"
+    },
+    {
+      "id": "2758de19-78f4-4c33-b375-43de9c358c82",
+      "sourceCell": "A69",
+      "name": "기업은행"
+    },
+    {
+      "id": "549c11a6-706e-4564-b189-60eeb43a2e7f",
+      "sourceCell": "A70",
+      "name": "나무가"
+    },
+    {
+      "id": "ac0011aa-dfbc-4ffd-a63d-72d0fc454be3",
+      "sourceCell": "A71",
+      "name": "나우로보틱스"
+    },
+    {
+      "id": "6958f6c4-c9c4-467f-a956-67f4b6ab6cf1",
+      "sourceCell": "A72",
+      "name": "네오셈"
+    },
+    {
+      "id": "10fad434-b0ff-49b9-8338-0f03ffed1d7e",
+      "sourceCell": "A73",
+      "name": "네패스"
+    },
+    {
+      "id": "affe0188-f570-4ed9-b0b2-b20a642904e3",
+      "sourceCell": "A74",
+      "name": "네패스아크"
+    },
+    {
+      "id": "a7bae5e5-cf9f-47d8-839d-65827623b876",
+      "sourceCell": "A75",
+      "name": "넥센타이어"
+    },
+    {
+      "id": "0be20414-b7cb-43b8-bcdb-75c9ae75d5d0",
+      "sourceCell": "A76",
+      "name": "넥스틴"
+    },
+    {
+      "id": "0b0491a7-dc75-4e24-b5ba-9bbb4d07e465",
+      "sourceCell": "A77",
+      "name": "넷마블"
+    },
+    {
+      "id": "4cca3c4b-97ac-4700-baeb-011030a8c110",
+      "sourceCell": "A78",
+      "name": "농심"
+    },
+    {
+      "id": "7baa8b7e-5432-4514-ac66-4a91bae2934f",
+      "sourceCell": "A79",
+      "name": "뉴로메카"
+    },
+    {
+      "id": "dbb4aa85-4375-4692-b7d1-b7a4be291af7",
+      "sourceCell": "A80",
+      "name": "달바글로벌"
+    },
+    {
+      "id": "6093e9e4-4890-4a1f-a7ac-f20129403b9d",
+      "sourceCell": "A81",
+      "name": "대덕전자"
+    },
+    {
+      "id": "46c29833-88c0-4998-9042-3efff8a2cfc6",
+      "sourceCell": "A82",
+      "name": "대상"
+    },
+    {
+      "id": "943d7022-ef68-442a-9c54-d94d6a5fcc60",
+      "sourceCell": "A83",
+      "name": "대신증권"
+    },
+    {
+      "id": "e9c8906e-7343-46c1-a911-bca9176f6fbb",
+      "sourceCell": "A84",
+      "name": "대우건설"
+    },
+    {
+      "id": "4271dd18-2575-479e-adc7-4787dcb74463",
+      "sourceCell": "A85",
+      "name": "대원전선"
+    },
+    {
+      "id": "19c71a07-3422-48a4-83ad-a17ee0033314",
+      "sourceCell": "A86",
+      "name": "대주전자재료"
+    },
+    {
+      "id": "c132681d-4a2c-4ba9-91df-458fc3cc1357",
+      "sourceCell": "A87",
+      "name": "대창단조"
+    },
+    {
+      "id": "2116aff6-6b62-43ad-b789-dfb883ee8ebc",
+      "sourceCell": "A88",
+      "name": "대한광통신"
+    },
+    {
+      "id": "b5da85b0-78b1-4330-b729-c5052f2a59d1",
+      "sourceCell": "A89",
+      "name": "대한전선"
+    },
+    {
+      "id": "0d051168-9b94-4a4a-bc7b-0c4a718ec502",
+      "sourceCell": "A90",
+      "name": "대한조선"
+    },
+    {
+      "id": "0034665c-a473-4302-862d-883a2da72456",
+      "sourceCell": "A91",
+      "name": "대한항공"
+    },
+    {
+      "id": "9b4c08ab-d7c2-4627-bd19-595b81c906dc",
+      "sourceCell": "A92",
+      "name": "대한해운"
+    },
+    {
+      "id": "b595114e-2334-4970-b36d-f4ebbe0be96f",
+      "sourceCell": "A93",
+      "name": "덕산테코피아"
+    },
+    {
+      "id": "fc7e18ee-c97f-4460-b9ca-d7d46da2c539",
+      "sourceCell": "A94",
+      "name": "덴티움"
+    },
+    {
+      "id": "dcf277a5-9a9d-4324-8beb-ba88849a3085",
+      "sourceCell": "A95",
+      "name": "동성화인텍"
+    },
+    {
+      "id": "07fbbd3b-ec61-455a-8a57-5fff6a17bd98",
+      "sourceCell": "A96",
+      "name": "동진쎄미켐"
+    },
+    {
+      "id": "25371b3a-3578-479e-8c5a-7e2d87519c03",
+      "sourceCell": "A97",
+      "name": "두산로보틱스"
+    },
+    {
+      "id": "c0028857-6791-4c8e-852a-01244276eea2",
+      "sourceCell": "A98",
+      "name": "두산밥캣"
+    },
+    {
+      "id": "5101e9d5-f1f4-4883-a749-7ffbc00d219a",
+      "sourceCell": "A99",
+      "name": "두산에너빌리티"
+    },
+    {
+      "id": "1c6d5802-7784-4b96-b7db-21fd247d8b43",
+      "sourceCell": "A100",
+      "name": "두산테스나"
+    },
+    {
+      "id": "89214042-7812-4f62-ab69-9ad3fb5f51f2",
+      "sourceCell": "A101",
+      "name": "두산퓨얼셀"
+    },
+    {
+      "id": "7c02aeb9-64fd-4a69-a289-82e73f6fcf5d",
+      "sourceCell": "A102",
+      "name": "디아이티"
+    },
+    {
+      "id": "1288628a-69d2-45c5-aeac-e6e4447b452c",
+      "sourceCell": "A103",
+      "name": "디앤디파마텍"
+    },
+    {
+      "id": "645a6351-75b7-4a71-a9cc-9e4689110328",
+      "sourceCell": "A104",
+      "name": "디와이파워"
+    },
+    {
+      "id": "0577cb43-72bb-4b2c-ab0f-a0fc6dd9ed75",
+      "sourceCell": "A105",
+      "name": "디케이락"
+    },
+    {
+      "id": "299664f5-0e38-4b82-869e-4c8791eca98d",
+      "sourceCell": "A106",
+      "name": "디케이티"
+    },
+    {
+      "id": "654c5ac1-9501-4bb3-8844-81fd30f3c5f8",
+      "sourceCell": "A107",
+      "name": "라온텍"
+    },
+    {
+      "id": "937b13b9-59a9-4434-b033-053cbb434dec",
+      "sourceCell": "A108",
+      "name": "레이크머티리얼즈"
+    },
+    {
+      "id": "be223d56-0cc7-4af3-aa6a-75b57ac07668",
+      "sourceCell": "A109",
+      "name": "레인보우로보틱스"
+    },
+    {
+      "id": "90fc69a8-dd5b-47c5-b048-205b4e7f7e5e",
+      "sourceCell": "A110",
+      "name": "로보스타"
+    },
+    {
+      "id": "ae5dd2fd-c86a-48e6-b94f-1d6d629e7c03",
+      "sourceCell": "A111",
+      "name": "로보티즈"
+    },
+    {
+      "id": "236e364c-e2ad-4d0a-8436-7b66f3109bde",
+      "sourceCell": "A112",
+      "name": "롯데관광개발"
+    },
+    {
+      "id": "f1fbc5b0-b3b8-47b4-b6e0-0da0db2fbe8b",
+      "sourceCell": "A113",
+      "name": "롯데손해보험"
+    },
+    {
+      "id": "da8c7e83-50b1-499d-97c0-0fdf6f7a6fd2",
+      "sourceCell": "A114",
+      "name": "롯데웰푸드"
+    },
+    {
+      "id": "85647535-24a3-4310-926e-a3921539b3a0",
+      "sourceCell": "A115",
+      "name": "롯데칠성음료"
+    },
+    {
+      "id": "bf00efcf-257e-4641-826d-26914ff8991d",
+      "sourceCell": "A116",
+      "name": "루닛"
+    },
+    {
+      "id": "7ec28f74-d42b-4c58-9168-bb1bffba9864",
+      "sourceCell": "A117",
+      "name": "루미르"
+    },
+    {
+      "id": "f5e2f052-9aa0-4611-a9d0-d38e52e9ee55",
+      "sourceCell": "A118",
+      "name": "리가켐바이오"
+    },
+    {
+      "id": "a73f9dea-a32e-4119-bcdd-eb5e9dc2ca7e",
+      "sourceCell": "A119",
+      "name": "리노공업"
+    },
+    {
+      "id": "315a78f1-416d-439a-b8f5-d590fd7db219",
+      "sourceCell": "A120",
+      "name": "리브스메드"
+    },
+    {
+      "id": "a4a79838-8f12-4a81-ab0d-c85fef72ec50",
+      "sourceCell": "A121",
+      "name": "미래산업"
+    },
+    {
+      "id": "64513249-7524-4471-b737-a060e0c0a3af",
+      "sourceCell": "A122",
+      "name": "미래에셋생명"
+    },
+    {
+      "id": "0867a195-1a46-44d2-8c45-e9597be4c23e",
+      "sourceCell": "A123",
+      "name": "미래에셋증권"
+    },
+    {
+      "id": "f0104318-8136-4e17-a7df-1f45cfd85cb9",
+      "sourceCell": "A124",
+      "name": "미스토홀딩스"
+    },
+    {
+      "id": "747711b4-236e-44fd-bb78-dcffa38bd9a7",
+      "sourceCell": "A125",
+      "name": "미코"
+    },
+    {
+      "id": "db1680b9-190a-4348-8ed5-0dd1ca28e845",
+      "sourceCell": "A126",
+      "name": "바이옵트로"
+    },
+    {
+      "id": "55e324bd-81a7-4b21-ae41-f7ea5772cab8",
+      "sourceCell": "A127",
+      "name": "보로노이"
+    },
+    {
+      "id": "b2ab9c43-8734-4835-bbaa-aab423ad750b",
+      "sourceCell": "A128",
+      "name": "뷰노"
+    },
+    {
+      "id": "607c91f1-cb1e-4970-8cde-e6f5bd16f3fe",
+      "sourceCell": "A129",
+      "name": "비나텍"
+    },
+    {
+      "id": "4a93f553-8315-4870-aca9-8417e3cc6892",
+      "sourceCell": "A130",
+      "name": "비에이치아이"
+    },
+    {
+      "id": "2da2a206-9976-449a-9087-a413e44adee2",
+      "sourceCell": "A131",
+      "name": "비엠티"
+    },
+    {
+      "id": "bee8ffac-2c4a-4b69-9a4c-3d95eff028dc",
+      "sourceCell": "A132",
+      "name": "비츠로테크"
+    },
+    {
+      "id": "dba7dfa3-e0ce-4c9c-81bd-51b1c5ed4e34",
+      "sourceCell": "A133",
+      "name": "빙그레"
+    },
+    {
+      "id": "16c92e59-8531-4021-b943-021f3f5902b1",
+      "sourceCell": "A134",
+      "name": "빛과전자"
+    },
+    {
+      "id": "15d86b6f-fdbe-4a2c-9dfb-aebd69dd11b3",
+      "sourceCell": "A135",
+      "name": "사피엔반도체"
+    },
+    {
+      "id": "faabe778-7da1-4f74-9318-7d14cce76934",
+      "sourceCell": "A136",
+      "name": "산일전기"
+    },
+    {
+      "id": "8fb95780-27fa-4f14-9cc9-0e8f45f93e58",
+      "sourceCell": "A137",
+      "name": "삼성물산"
+    },
+    {
+      "id": "4ed67ad8-85dd-47ec-80cc-94aee7c249e9",
+      "sourceCell": "A138",
+      "name": "삼성바이오로직스"
+    },
+    {
+      "id": "5a361941-b899-4fd9-b054-3d439206596b",
+      "sourceCell": "A139",
+      "name": "삼성생명"
+    },
+    {
+      "id": "3efbc7a4-549c-48c5-b12b-0ed8d06af72a",
+      "sourceCell": "A140",
+      "name": "삼성전기"
+    },
+    {
+      "id": "280e7801-0d97-45cd-a006-7f50e85cd223",
+      "sourceCell": "A141",
+      "name": "삼성전자"
+    },
+    {
+      "id": "6817295c-da04-4fb5-ae1c-3b08651b82ae",
+      "sourceCell": "A142",
+      "name": "삼성중공업"
+    },
+    {
+      "id": "313eaa21-bdf0-427a-9320-e1181600817c",
+      "sourceCell": "A143",
+      "name": "삼성증권"
+    },
+    {
+      "id": "d6dad3a4-f202-439d-ae5a-f7624b240fd1",
+      "sourceCell": "A144",
+      "name": "삼성화재"
+    },
+    {
+      "id": "3a464732-7876-47e0-ab70-f566b6f2fd48",
+      "sourceCell": "A145",
+      "name": "삼성SDI"
+    },
+    {
+      "id": "9d7074c4-1501-4a89-bc96-66c70e3ea7f8",
+      "sourceCell": "A146",
+      "name": "삼양식품"
+    },
+    {
+      "id": "45966da5-16c0-4012-86ad-327a2a668ff8",
+      "sourceCell": "A147",
+      "name": "삼양컴텍"
+    },
+    {
+      "id": "b099414b-fe98-483d-817b-dd277f88c7aa",
+      "sourceCell": "A148",
+      "name": "삼현"
+    },
+    {
+      "id": "34c0fb3c-c469-4467-a21e-e463bbe9a195",
+      "sourceCell": "A149",
+      "name": "삼화콘덴서"
+    },
+    {
+      "id": "beceb4c5-0334-4b88-ab29-3c2fdfa33c8b",
+      "sourceCell": "A150",
+      "name": "새빗켐"
+    },
+    {
+      "id": "a004dcdc-0dad-45b5-9b58-f518de88e38b",
+      "sourceCell": "A151",
+      "name": "샘씨엔에스"
+    },
+    {
+      "id": "24330750-1d5a-44c7-aa2a-b30197096b07",
+      "sourceCell": "A152",
+      "name": "서울바이오시스"
+    },
+    {
+      "id": "f02ce7d5-dd1b-40b1-9e7c-33b23df69362",
+      "sourceCell": "A153",
+      "name": "서울보증보험"
+    },
+    {
+      "id": "987872cd-5a22-438b-93ef-cb6a4dca5c21",
+      "sourceCell": "A154",
+      "name": "성일하이텍"
+    },
+    {
+      "id": "b3620902-553e-41fc-bb15-f0ab6cfc54ed",
+      "sourceCell": "A155",
+      "name": "세미파이브"
+    },
+    {
+      "id": "578aa775-69cb-477a-b7c3-a0aa6660f9f1",
+      "sourceCell": "A156",
+      "name": "세아베스틸지주"
+    },
+    {
+      "id": "7dc9aa5f-b78c-44de-a3ec-e805704cd169",
+      "sourceCell": "A157",
+      "name": "세아제강지주"
+    },
+    {
+      "id": "efa8aa35-f424-496e-a96e-a380c75fa8d2",
+      "sourceCell": "A158",
+      "name": "센서뷰"
+    },
+    {
+      "id": "398a8e96-585a-42e1-88f4-62d72e360d8a",
+      "sourceCell": "A159",
+      "name": "셀트리온"
+    },
+    {
+      "id": "a70cfa53-fbea-42ef-8672-582d24c32b91",
+      "sourceCell": "A160",
+      "name": "솔브레인"
+    },
+    {
+      "id": "c11d8a8e-02db-4f75-9519-7e042cc33a44",
+      "sourceCell": "A161",
+      "name": "시프트업"
+    },
+    {
+      "id": "591de1a9-8c7a-49dd-8e6f-4ee3425dae4f",
+      "sourceCell": "A162",
+      "name": "신세계"
+    },
+    {
+      "id": "71eb5ee1-76c4-42a7-bbaf-1200fca9fe95",
+      "sourceCell": "A163",
+      "name": "신세계인터내셔날"
+    },
+    {
+      "id": "768cdd39-613d-4045-b6c8-36cb5d341d15",
+      "sourceCell": "A164",
+      "name": "신영증권"
+    },
+    {
+      "id": "d3f13da4-4335-46a6-9f9c-f53a5e48ab46",
+      "sourceCell": "A165",
+      "name": "신한지주"
+    },
+    {
+      "id": "d1d662b8-9c0d-427e-808f-b5e9f23ae18b",
+      "sourceCell": "A166",
+      "name": "실리콘투"
+    },
+    {
+      "id": "29599bce-ee45-4eee-8d52-46b4b3e23f3e",
+      "sourceCell": "A167",
+      "name": "심텍"
+    },
+    {
+      "id": "bc618912-9efa-4653-b584-60d4bc36aa4e",
+      "sourceCell": "A168",
+      "name": "쎄트렉아이"
+    },
+    {
+      "id": "4dd7065d-9796-48fa-8467-dd7434048dfe",
+      "sourceCell": "A169",
+      "name": "쓰리빌리언"
+    },
+    {
+      "id": "22435feb-c484-4aa1-b474-e66e144c0e92",
+      "sourceCell": "A170",
+      "name": "씨에스베어링"
+    },
+    {
+      "id": "bc2e2f38-8c74-481d-b2e8-2347883da36b",
+      "sourceCell": "A171",
+      "name": "씨에스윈드"
+    },
+    {
+      "id": "5054d7dc-5a80-4794-a1f9-074ea09e131b",
+      "sourceCell": "A172",
+      "name": "아난티"
+    },
+    {
+      "id": "10fc25be-fc84-4339-865a-ba87afbc57a1",
+      "sourceCell": "A173",
+      "name": "아모레퍼시픽"
+    },
+    {
+      "id": "50eaa7b1-a039-4332-aaf0-acdf8ae516e4",
+      "sourceCell": "A174",
+      "name": "아모센스"
+    },
+    {
+      "id": "bd58b86d-395a-4dd4-bdfa-d7317cc9f45b",
+      "sourceCell": "A175",
+      "name": "아모텍"
+    },
+    {
+      "id": "8cb50aa5-16f8-4032-945c-65f0770b55d3",
+      "sourceCell": "A176",
+      "name": "아시아나항공"
+    },
+    {
+      "id": "a64de764-2b8b-4256-8956-464eadbf97a0",
+      "sourceCell": "A177",
+      "name": "아이쓰리시스템"
+    },
+    {
+      "id": "a8413573-44d1-47fe-aeb9-c5493449138d",
+      "sourceCell": "A178",
+      "name": "아진엑스텍"
+    },
+    {
+      "id": "0dd74c7e-fb5e-4383-b921-9e9febd67949",
+      "sourceCell": "A179",
+      "name": "알멕"
+    },
+    {
+      "id": "332367b2-7d34-445a-831d-a1d04c43a4dd",
+      "sourceCell": "A180",
+      "name": "알에스오토메이션"
+    },
+    {
+      "id": "232389ee-d4ac-4b79-b40a-d241d20fd84c",
+      "sourceCell": "A181",
+      "name": "알지노믹스"
+    },
+    {
+      "id": "81450277-0d62-4031-8d85-2a3c7e126309",
+      "sourceCell": "A182",
+      "name": "알테오젠"
+    },
+    {
+      "id": "f424d2b1-a224-4cd8-8772-7ff759d27548",
+      "sourceCell": "A183",
+      "name": "에스비비테크"
+    },
+    {
+      "id": "7febe3f6-9d11-4121-ad29-d6cca6f7702d",
+      "sourceCell": "A184",
+      "name": "에스앤에스텍"
+    },
+    {
+      "id": "07cb86dc-aa16-44c8-b9fd-15878740bb6d",
+      "sourceCell": "A185",
+      "name": "에스엠"
+    },
+    {
+      "id": "0ded824c-b5a5-4b26-8248-cce8f490c855",
+      "sourceCell": "A186",
+      "name": "에스티아이"
+    },
+    {
+      "id": "46e671ec-951b-4f7d-bd91-704c35691545",
+      "sourceCell": "A187",
+      "name": "에스티팜"
+    },
+    {
+      "id": "d85ce125-04d8-4a8c-a52d-b363f686ad2c",
+      "sourceCell": "A188",
+      "name": "에스피지"
+    },
+    {
+      "id": "a7e3c48b-073d-4e94-a0bf-551b8bb5f3a9",
+      "sourceCell": "A189",
+      "name": "에어부산"
+    },
+    {
+      "id": "70c45a91-6b7c-4018-ad1e-3ebac21af68c",
+      "sourceCell": "A190",
+      "name": "에이디테크놀로지"
+    },
+    {
+      "id": "f02f545c-58d7-44d1-8c39-e614b0d3f19b",
+      "sourceCell": "A191",
+      "name": "에이비엘바이오"
+    },
+    {
+      "id": "b4c7bf58-1578-45d8-982f-0fc8b716bdcd",
+      "sourceCell": "A192",
+      "name": "에이치브이엠"
+    },
+    {
+      "id": "4b2c3ceb-09a4-49e6-afd3-e2adea51d0a5",
+      "sourceCell": "A193",
+      "name": "에이피알"
+    },
+    {
+      "id": "2577c0e2-c374-41d2-9f51-4bcb4285c21a",
+      "sourceCell": "A194",
+      "name": "에코프로비엠"
+    },
+    {
+      "id": "43e50d0f-ecc8-4a30-bab7-93a030e69589",
+      "sourceCell": "A195",
+      "name": "에프에스티"
+    },
+    {
+      "id": "5b3d5662-d53c-4779-91b6-9635ed2bf452",
+      "sourceCell": "A196",
+      "name": "엑시콘"
+    },
+    {
+      "id": "2de31f87-de0b-4368-82d7-55efed5c0bce",
+      "sourceCell": "A197",
+      "name": "엔에프씨"
+    },
+    {
+      "id": "782c1151-9b54-4aa6-b5a9-b60cfbb69c2d",
+      "sourceCell": "A198",
+      "name": "엘앤씨바이오"
+    },
+    {
+      "id": "6d7e2e64-bbac-4f7f-9cb3-82ed05f2d96f",
+      "sourceCell": "A199",
+      "name": "엘앤에프"
+    },
+    {
+      "id": "ba95d4f7-2691-4e16-a495-7df8cb1a9f1d",
+      "sourceCell": "A200",
+      "name": "엠씨넥스"
+    },
+    {
+      "id": "65d56c19-5637-48ee-a88d-4ce893f2dbc2",
+      "sourceCell": "A201",
+      "name": "엠앤씨솔루션"
+    },
+    {
+      "id": "4df901ef-785e-4141-8fdd-584f7ce1617c",
+      "sourceCell": "A202",
+      "name": "영원무역"
+    },
+    {
+      "id": "d7d9fa7a-8ce6-4e58-86e6-564569aab008",
+      "sourceCell": "A203",
+      "name": "예스티"
+    },
+    {
+      "id": "b5fb1441-5e20-4db4-b831-f755f6cdb5e0",
+      "sourceCell": "A204",
+      "name": "오뚜기"
+    },
+    {
+      "id": "83e93a26-ccae-421c-abe6-9a4fbfe80905",
+      "sourceCell": "A205",
+      "name": "오로스테크놀로지"
+    },
+    {
+      "id": "68c11726-6953-47bc-8d30-27375ad58b9f",
+      "sourceCell": "A206",
+      "name": "오리온"
+    },
+    {
+      "id": "eb705a57-d420-44dd-a49f-ca012a309258",
+      "sourceCell": "A207",
+      "name": "오스코텍"
+    },
+    {
+      "id": "60f9caad-8251-4ac8-86cd-ddf5230dec98",
+      "sourceCell": "A208",
+      "name": "오이솔루션"
+    },
+    {
+      "id": "7bebb162-59ec-400e-8201-a8790511653d",
+      "sourceCell": "A209",
+      "name": "오킨스전자"
+    },
+    {
+      "id": "102cd746-f2e5-48f5-87ae-41467b186ee0",
+      "sourceCell": "A210",
+      "name": "오픈엣지테크놀로지"
+    },
+    {
+      "id": "b0555243-7599-4732-ae06-66885701b974",
+      "sourceCell": "A211",
+      "name": "올릭스"
+    },
+    {
+      "id": "f9ec5db1-6cf8-4e83-a562-41eb37d91431",
+      "sourceCell": "A212",
+      "name": "옵티코어"
+    },
+    {
+      "id": "4c639775-34cd-4152-ac60-65e826562c1f",
+      "sourceCell": "A213",
+      "name": "와이씨"
+    },
+    {
+      "id": "736ac657-2ce2-4bd8-97de-8aac9c5f9142",
+      "sourceCell": "A214",
+      "name": "와이씨켐"
+    },
+    {
+      "id": "5df854f5-cb53-4c2e-99ed-055980fd2b91",
+      "sourceCell": "A215",
+      "name": "와이엠티"
+    },
+    {
+      "id": "74a2679b-986e-4227-a843-78743f531017",
+      "sourceCell": "A216",
+      "name": "와이지엔터테인먼트"
+    },
+    {
+      "id": "3cfb9a95-cdea-4221-80c4-03b6126a2d1c",
+      "sourceCell": "A217",
+      "name": "우리금융지주"
+    },
+    {
+      "id": "edda2462-5e76-4c4a-bff4-1eac329c4cc2",
+      "sourceCell": "A218",
+      "name": "우리기술"
+    },
+    {
+      "id": "e9ad5d81-17d0-44e8-bb21-d5b69a18ca9d",
+      "sourceCell": "A219",
+      "name": "우리로"
+    },
+    {
+      "id": "1fe83335-e82a-4b7c-9797-c796d3f0e3ba",
+      "sourceCell": "A220",
+      "name": "우진"
+    },
+    {
+      "id": "96d60a49-73b5-4b3a-858f-bcf759555ee1",
+      "sourceCell": "A221",
+      "name": "원익머트리얼즈"
+    },
+    {
+      "id": "0c3fa7ef-23eb-4b96-8bd6-87e4dad91e46",
+      "sourceCell": "A222",
+      "name": "원익홀딩스"
+    },
+    {
+      "id": "48e5589d-8782-4319-a6a6-093a151f86c5",
+      "sourceCell": "A223",
+      "name": "원익IPS"
+    },
+    {
+      "id": "e73d2ec3-2e52-4b80-93cd-30346da444ec",
+      "sourceCell": "A224",
+      "name": "원익QnC"
+    },
+    {
+      "id": "ba38e60a-9e1f-4927-9768-1c47a77fda02",
+      "sourceCell": "A225",
+      "name": "월덱스"
+    },
+    {
+      "id": "efa67291-b445-475b-9ead-3106b8db6f31",
+      "sourceCell": "A226",
+      "name": "유니테스트"
+    },
+    {
+      "id": "ad2e2a2e-ddb4-42e0-b4a6-6cd9d770634b",
+      "sourceCell": "A227",
+      "name": "유안타증권"
+    },
+    {
+      "id": "f985f88d-8595-42ff-8512-74b45d7cd9bc",
+      "sourceCell": "A228",
+      "name": "유일로보틱스"
+    },
+    {
+      "id": "e8df985b-f193-4a6b-8a0d-0ab0e5144539",
+      "sourceCell": "A229",
+      "name": "유진로봇"
+    },
+    {
+      "id": "2903b3f4-ab0e-4b6f-8595-1f8b166decd7",
+      "sourceCell": "A230",
+      "name": "유진테크"
+    },
+    {
+      "id": "e4f6ad92-45c8-49ed-a860-e2c0aeb1977a",
+      "sourceCell": "A231",
+      "name": "유한양행"
+    },
+    {
+      "id": "ae22595d-a134-43b0-afe1-d23671d691e7",
+      "sourceCell": "A232",
+      "name": "이노스페이스"
+    },
+    {
+      "id": "fb50e2b2-a0ca-4092-b76c-ce7130d05c11",
+      "sourceCell": "A233",
+      "name": "이수스페셜티케미컬"
+    },
+    {
+      "id": "07e7255c-e849-4741-97a5-db9eaf845aa2",
+      "sourceCell": "A234",
+      "name": "이수페타시스"
+    },
+    {
+      "id": "9c1cfc81-6597-41da-aedd-d0ff49b17a2d",
+      "sourceCell": "A235",
+      "name": "이엔에프테크놀로지"
+    },
+    {
+      "id": "2726a412-3c25-4ad3-a7c2-b028b471c0c5",
+      "sourceCell": "A236",
+      "name": "이오테크닉스"
+    },
+    {
+      "id": "f7793b11-349a-44c2-bb8e-23a526f9a503",
+      "sourceCell": "A237",
+      "name": "인바디"
+    },
+    {
+      "id": "2220e81c-2347-4221-9c1d-ebe44a154ce6",
+      "sourceCell": "A238",
+      "name": "인카금융서비스"
+    },
+    {
+      "id": "6a329344-f039-43cb-8714-7e78ae7841c4",
+      "sourceCell": "A239",
+      "name": "인텍플러스"
+    },
+    {
+      "id": "b3acb78a-e624-4222-a66e-38e19ce1dca3",
+      "sourceCell": "A240",
+      "name": "인텔리안테크"
+    },
+    {
+      "id": "ea5146e2-8b4b-42dc-b23e-e00177b67aab",
+      "sourceCell": "A241",
+      "name": "일진전기"
+    },
+    {
+      "id": "cf3d803c-5b5e-4e43-9178-4551b60dfdf8",
+      "sourceCell": "A242",
+      "name": "제노코"
+    },
+    {
+      "id": "91113f6e-61d5-404a-be43-b2f145fda799",
+      "sourceCell": "A243",
+      "name": "제룡전기"
+    },
+    {
+      "id": "dc7eea20-7a18-434d-a294-35647689b630",
+      "sourceCell": "A244",
+      "name": "제우스"
+    },
+    {
+      "id": "8d59f220-a66c-4865-8ee3-b54d0332243a",
+      "sourceCell": "A245",
+      "name": "제이앤티씨"
+    },
+    {
+      "id": "b7626f7f-4122-44b1-a618-91b52f2942ef",
+      "sourceCell": "A246",
+      "name": "제주반도체"
+    },
+    {
+      "id": "09dcc205-8da9-45eb-9592-32e20850761d",
+      "sourceCell": "A247",
+      "name": "제주은행"
+    },
+    {
+      "id": "0e1dbba2-7c18-40ed-b20a-caebe1b3c321",
+      "sourceCell": "A248",
+      "name": "제주항공"
+    },
+    {
+      "id": "f24f2cf2-7183-4d71-ad64-6cb977c8f9f7",
+      "sourceCell": "A249",
+      "name": "주성엔지니어링"
+    },
+    {
+      "id": "1332563c-60fe-4a7a-a4e9-46d7e5f0505f",
+      "sourceCell": "A250",
+      "name": "지아이이노베이션"
+    },
+    {
+      "id": "c3206ebd-af3d-4f2b-b533-a5e2ce3f3273",
+      "sourceCell": "A251",
+      "name": "지투지바이오"
+    },
+    {
+      "id": "1b74b380-1d8d-4433-a59a-7489288d2628",
+      "sourceCell": "A252",
+      "name": "진성티이씨"
+    },
+    {
+      "id": "1f8d01f7-f436-407d-8ae7-8a25f2080566",
+      "sourceCell": "A253",
+      "name": "진에어"
+    },
+    {
+      "id": "146b544b-4f16-4266-9930-eeb0d62ed27f",
+      "sourceCell": "A254",
+      "name": "카카오뱅크"
+    },
+    {
+      "id": "fa4d9547-80fe-4f65-be26-dcbd36f1af17",
+      "sourceCell": "A255",
+      "name": "캠시스"
+    },
+    {
+      "id": "bddc914b-bf2e-4bcf-942c-4fe072cf13aa",
+      "sourceCell": "A256",
+      "name": "컨텍"
+    },
+    {
+      "id": "909c86f9-1557-4cad-8fa5-d7d8cc6951ba",
+      "sourceCell": "A257",
+      "name": "케어젠"
+    },
+    {
+      "id": "3fbab2ab-27bd-49bc-8b7b-f0253e902bf1",
+      "sourceCell": "A258",
+      "name": "케이뱅크"
+    },
+    {
+      "id": "71fbf5e1-2225-4bfd-a19a-7e98d338f208",
+      "sourceCell": "A259",
+      "name": "케이씨텍"
+    },
+    {
+      "id": "b7c5eee4-83e9-4c96-8d3e-f853bd668c6e",
+      "sourceCell": "A260",
+      "name": "케이엔솔"
+    },
+    {
+      "id": "3de1048f-c4ac-4f66-923f-cc22362a9ec0",
+      "sourceCell": "A261",
+      "name": "케이엔제이"
+    },
+    {
+      "id": "9f0261a5-4c86-47f2-a524-1f09321ca4c2",
+      "sourceCell": "A262",
+      "name": "켄코아에어로스페이스"
+    },
+    {
+      "id": "fd47e5b6-d6b3-452a-859d-c50fb1f33557",
+      "sourceCell": "A263",
+      "name": "켐트로닉스"
+    },
+    {
+      "id": "de807afb-50f7-495e-8439-6928cb469494",
+      "sourceCell": "A264",
+      "name": "코리아써키트"
+    },
+    {
+      "id": "1840e172-4d24-4bba-bf08-6c731b67bdfe",
+      "sourceCell": "A265",
+      "name": "코리안리"
+    },
+    {
+      "id": "29af2529-2e1a-473e-91d7-522ec3a1d2ec",
+      "sourceCell": "A266",
+      "name": "코미코"
+    },
+    {
+      "id": "98c9ba5b-a8d0-48dc-9efe-bcd602571cd3",
+      "sourceCell": "A267",
+      "name": "코스맥스"
+    },
+    {
+      "id": "9d2d86e7-626f-4178-8f9c-5a52310b3a4f",
+      "sourceCell": "A268",
+      "name": "코스메카코리아"
+    },
+    {
+      "id": "fbc9c7c7-8a38-4fb6-8ecb-6e6312f97e9f",
+      "sourceCell": "A269",
+      "name": "퀄리타스반도체"
+    },
+    {
+      "id": "5215a21a-4d6d-4b07-a05b-e0340ebe9cdd",
+      "sourceCell": "A270",
+      "name": "큐렉소"
+    },
+    {
+      "id": "b9401a9e-e400-4978-bf79-23460816750f",
+      "sourceCell": "A271",
+      "name": "큐리옥스바이오시스템즈"
+    },
+    {
+      "id": "805b6d71-5483-41c5-bdcc-02a36d3cfc17",
+      "sourceCell": "A272",
+      "name": "큐에스아이"
+    },
+    {
+      "id": "c075d5fd-73bd-422a-9154-b7d03c189973",
+      "sourceCell": "A273",
+      "name": "크래프톤"
+    },
+    {
+      "id": "d53807aa-3ee9-47d7-8722-8aec39a3322e",
+      "sourceCell": "A274",
+      "name": "클래시스"
+    },
+    {
+      "id": "c60ad97b-f288-4172-baac-c63d42df2fc0",
+      "sourceCell": "A275",
+      "name": "클로봇"
+    },
+    {
+      "id": "fea1d95a-0b95-4aa3-9ea4-291508dc66c8",
+      "sourceCell": "A276",
+      "name": "키움증권"
+    },
+    {
+      "id": "e5fdb098-4659-4e1e-97b5-de05fdaa9fd3",
+      "sourceCell": "A277",
+      "name": "타이거일렉"
+    },
+    {
+      "id": "ff328494-d8db-4d45-8f57-9bda63bfc457",
+      "sourceCell": "A278",
+      "name": "태성"
+    },
+    {
+      "id": "d049c5b4-db60-4f9c-834d-b62090b6a464",
+      "sourceCell": "A279",
+      "name": "테스"
+    },
+    {
+      "id": "4aa4e87a-d1b6-4ad6-8291-8d79fb7ce37d",
+      "sourceCell": "A280",
+      "name": "테크윙"
+    },
+    {
+      "id": "444b659c-fb51-4701-ae40-24160e61009b",
+      "sourceCell": "A281",
+      "name": "토모큐브"
+    },
+    {
+      "id": "6503c413-a668-4f1d-8eb4-09af84e3da8f",
+      "sourceCell": "A282",
+      "name": "트리니티항공"
+    },
+    {
+      "id": "2945e701-696e-46d1-9d12-769c3dd70dc9",
+      "sourceCell": "A283",
+      "name": "티로보틱스"
+    },
+    {
+      "id": "c2a48ef1-40ce-4a9b-ba2e-d11dc5a0e3a2",
+      "sourceCell": "A284",
+      "name": "티씨케이"
+    },
+    {
+      "id": "e2096f2c-4f46-4eaa-a9d2-e1b4db2d7d36",
+      "sourceCell": "A285",
+      "name": "티에스이"
+    },
+    {
+      "id": "2f49bcd3-4c37-46c5-8c06-8e1d2521510a",
+      "sourceCell": "A286",
+      "name": "티에프이"
+    },
+    {
+      "id": "4f0385f8-5b1a-4ddb-b599-04e8a1bc03bf",
+      "sourceCell": "A287",
+      "name": "티엑스알로보틱스"
+    },
+    {
+      "id": "342f37c0-9760-436c-8d9a-337bfc67d213",
+      "sourceCell": "A288",
+      "name": "티엘비"
+    },
+    {
+      "id": "e2705a19-5470-4530-8bcf-1900b9464c1d",
+      "sourceCell": "A289",
+      "name": "파두"
+    },
+    {
+      "id": "180785dd-83b6-4e08-814e-2b45cd78911a",
+      "sourceCell": "A290",
+      "name": "파라다이스"
+    },
+    {
+      "id": "b5289779-a473-4468-9f0a-824a896a64ef",
+      "sourceCell": "A291",
+      "name": "파마리서치"
+    },
+    {
+      "id": "5195829f-a42c-4393-b376-868056907c91",
+      "sourceCell": "A292",
+      "name": "파이버프로"
+    },
+    {
+      "id": "92beab8c-82db-4fed-a97a-3ee77f53ec4d",
+      "sourceCell": "A293",
+      "name": "파크시스템스"
+    },
+    {
+      "id": "4ac6a05e-0be8-4676-a2b8-d125669c4e0a",
+      "sourceCell": "A294",
+      "name": "팬오션"
+    },
+    {
+      "id": "17211c8f-69fa-4ed7-a4cd-3cd75b7b5634",
+      "sourceCell": "A295",
+      "name": "펄어비스"
+    },
+    {
+      "id": "54ee7392-edb3-43dd-9794-fb649eeb2365",
+      "sourceCell": "A296",
+      "name": "펌텍코리아"
+    },
+    {
+      "id": "b43daad9-656f-4f78-9888-9e199743853b",
+      "sourceCell": "A297",
+      "name": "펨트론"
+    },
+    {
+      "id": "35f0fa8a-7207-4e8a-b132-85e8dcb745bd",
+      "sourceCell": "A298",
+      "name": "포스코퓨처엠"
+    },
+    {
+      "id": "7f248df5-e58f-40ac-9547-00cc70d6ef57",
+      "sourceCell": "A299",
+      "name": "풀무원"
+    },
+    {
+      "id": "c8d482e5-d792-49e7-b56a-a11c35afe94b",
+      "sourceCell": "A300",
+      "name": "프로텍"
+    },
+    {
+      "id": "5546ee61-3fca-4391-8b3e-749c2f0d2a97",
+      "sourceCell": "A301",
+      "name": "프로티나"
+    },
+    {
+      "id": "a3cccf46-948b-4418-8e2a-bbefda0915cb",
+      "sourceCell": "A302",
+      "name": "피에스케이"
+    },
+    {
+      "id": "59ef4b43-7861-424b-a4ec-8b394d6825ec",
+      "sourceCell": "A303",
+      "name": "피에스케이홀딩스"
+    },
+    {
+      "id": "1b43ac35-9d76-4d75-84f4-7e0ff8651631",
+      "sourceCell": "A304",
+      "name": "필옵틱스"
+    },
+    {
+      "id": "fc619a4d-c965-4ce0-9caf-0360f94743eb",
+      "sourceCell": "A305",
+      "name": "하나금융지주"
+    },
+    {
+      "id": "7f134843-bd08-4091-a61e-403dd2ca2c01",
+      "sourceCell": "A306",
+      "name": "하나마이크론"
+    },
+    {
+      "id": "ec71cce7-05ab-498b-a7a5-8c644cbe6f53",
+      "sourceCell": "A307",
+      "name": "하나머티리얼즈"
+    },
+    {
+      "id": "0588b498-486d-47b9-85b1-09453f35f86b",
+      "sourceCell": "A308",
+      "name": "하이록코리아"
+    },
+    {
+      "id": "eb6a1a80-e82b-4504-9785-f90310dfb6fa",
+      "sourceCell": "A309",
+      "name": "하이브"
+    },
+    {
+      "id": "8a218161-b650-42c6-84a1-b440d667f357",
+      "sourceCell": "A310",
+      "name": "하이젠알앤엠"
+    },
+    {
+      "id": "d0d91149-e0e4-4743-a9f7-100cdab66e6b",
+      "sourceCell": "A311",
+      "name": "한국금융지주"
+    },
+    {
+      "id": "90ae845d-e1fb-4307-bdfe-5d8b24021d6b",
+      "sourceCell": "A312",
+      "name": "한국첨단소재"
+    },
+    {
+      "id": "72d1803a-6b3f-4f94-9846-9356f5ddd77b",
+      "sourceCell": "A313",
+      "name": "한국카본"
+    },
+    {
+      "id": "79aac576-99e1-41df-a352-a6765efecbec",
+      "sourceCell": "A314",
+      "name": "한국콜마"
+    },
+    {
+      "id": "a02354f2-33e5-4fb3-948a-6c6e265a9505",
+      "sourceCell": "A315",
+      "name": "한국타이어앤테크놀로지"
+    },
+    {
+      "id": "c30143e3-8e9d-4fe7-88fa-30d1d85fdccc",
+      "sourceCell": "A316",
+      "name": "한국피아이엠"
+    },
+    {
+      "id": "9583a6a6-2cca-4b51-be2a-60c160c5d183",
+      "sourceCell": "A317",
+      "name": "한국항공우주"
+    },
+    {
+      "id": "c36aeb90-43db-44d8-84a9-bb3dbaf7d76f",
+      "sourceCell": "A318",
+      "name": "한미반도체"
+    },
+    {
+      "id": "7e8966b5-b735-410c-a472-f28e52466e51",
+      "sourceCell": "A319",
+      "name": "한미약품"
+    },
+    {
+      "id": "1602bb73-136d-4db0-9da5-18da23af819a",
+      "sourceCell": "A320",
+      "name": "한선엔지니어링"
+    },
+    {
+      "id": "6f06b946-217d-4bcc-9cd8-2205c2e2140b",
+      "sourceCell": "A321",
+      "name": "한솔케미칼"
+    },
+    {
+      "id": "a629147b-f117-47fb-9e46-31c2d09594a6",
+      "sourceCell": "A322",
+      "name": "한스바이오메드"
+    },
+    {
+      "id": "0bcdb8e5-fd11-49ab-92d4-d85ddc27e3a1",
+      "sourceCell": "A323",
+      "name": "한올바이오파마"
+    },
+    {
+      "id": "2db58f1a-5389-43e2-8810-9f9313374163",
+      "sourceCell": "A324",
+      "name": "한화비전"
+    },
+    {
+      "id": "0b47c2ad-ae13-482f-8782-c631a98f0281",
+      "sourceCell": "A325",
+      "name": "한화생명"
+    },
+    {
+      "id": "a253501e-4f07-431b-a7c1-e4239889a7dc",
+      "sourceCell": "A326",
+      "name": "한화손해보험"
+    },
+    {
+      "id": "cde964f3-2966-49be-b2bb-82d22e073766",
+      "sourceCell": "A327",
+      "name": "한화솔루션"
+    },
+    {
+      "id": "1cc76857-640f-414c-9f75-59e140ac703e",
+      "sourceCell": "A328",
+      "name": "한화시스템"
+    },
+    {
+      "id": "912bac2c-bfc0-4427-9ffd-fb366a61eb34",
+      "sourceCell": "A329",
+      "name": "한화에어로스페이스"
+    },
+    {
+      "id": "250cc275-bee5-4919-a2b2-97e0b453f2a1",
+      "sourceCell": "A330",
+      "name": "한화엔진"
+    },
+    {
+      "id": "681a5707-9c4e-4015-a5b9-9ba1455967d9",
+      "sourceCell": "A331",
+      "name": "한화오션"
+    },
+    {
+      "id": "712152e0-5b0b-4129-b3f0-23cf7cc4a353",
+      "sourceCell": "A332",
+      "name": "한화투자증권"
+    },
+    {
+      "id": "8776caf2-3254-4326-a548-3a980a166459",
+      "sourceCell": "A333",
+      "name": "현대건설"
+    },
+    {
+      "id": "b507256f-0f2b-4cb2-992c-8ff12eb436b2",
+      "sourceCell": "A334",
+      "name": "현대로템"
+    },
+    {
+      "id": "d46ec43d-0dce-49af-a956-3a771bd5e955",
+      "sourceCell": "A335",
+      "name": "현대모비스"
+    },
+    {
+      "id": "5ab0152d-eac3-4b1d-8962-bb533bb82bcf",
+      "sourceCell": "A336",
+      "name": "현대무벡스"
+    },
+    {
+      "id": "25a931be-d84d-4dab-bfab-a16ffc4d1151",
+      "sourceCell": "A337",
+      "name": "현대백화점"
+    },
+    {
+      "id": "6718c143-94de-453d-b841-03ca4fd754a5",
+      "sourceCell": "A338",
+      "name": "현대오토에버"
+    },
+    {
+      "id": "7725ff87-068e-41a7-bf63-c712f075da02",
+      "sourceCell": "A339",
+      "name": "현대제철"
+    },
+    {
+      "id": "a11b4d8f-898c-4f8f-93ee-30aa862316b5",
+      "sourceCell": "A340",
+      "name": "현대차"
+    },
+    {
+      "id": "fb16b7e2-2fbd-45d0-9cab-31c32623b51a",
+      "sourceCell": "A341",
+      "name": "현대차증권"
+    },
+    {
+      "id": "5c61b088-12b7-4175-a149-aa439655fa27",
+      "sourceCell": "A342",
+      "name": "현대해상"
+    },
+    {
+      "id": "bcc02a18-714f-4634-8fec-c7245fe837be",
+      "sourceCell": "A343",
+      "name": "호텔신라"
+    },
+    {
+      "id": "8f088d30-ec36-406b-93f1-8f331b0f0df3",
+      "sourceCell": "A344",
+      "name": "효성중공업"
+    },
+    {
+      "id": "5962d9e6-e905-4844-bc8e-1c5f1456a387",
+      "sourceCell": "A345",
+      "name": "후성"
+    },
+    {
+      "id": "6acaecda-87b5-4ce9-9f97-c9b51f35a532",
+      "sourceCell": "A346",
+      "name": "휴림로봇"
+    },
+    {
+      "id": "06935514-9dde-4881-9f2f-480546f45cf0",
+      "sourceCell": "A347",
+      "name": "휴젤"
+    },
+    {
+      "id": "2bfa8346-2b77-4eee-8273-dad9360bdad5",
+      "sourceCell": "A348",
+      "name": "흥아해운"
+    },
+    {
+      "id": "837def83-f0fa-403b-9af3-3730afaae4ee",
+      "sourceCell": "A349",
+      "name": "AP시스템"
+    },
+    {
+      "id": "3118eaa7-a51e-45bc-ae2c-0a61c7d6579f",
+      "sourceCell": "A350",
+      "name": "AP위성"
+    },
+    {
+      "id": "d4198604-0d76-499f-b3db-537fce546391",
+      "sourceCell": "A351",
+      "name": "BNK금융지주"
+    },
+    {
+      "id": "77975a75-47b8-4b0b-8624-090404ce376a",
+      "sourceCell": "A352",
+      "name": "CJ제일제당"
+    },
+    {
+      "id": "33ca407f-b97a-49f4-9323-ace03f4e5fb9",
+      "sourceCell": "A353",
+      "name": "DB손해보험"
+    },
+    {
+      "id": "d7a2af4b-4d3d-47a1-8d58-80d9906d3162",
+      "sourceCell": "A354",
+      "name": "DL이앤씨"
+    },
+    {
+      "id": "4bd9473c-55a2-4dcc-bae2-d7fd45a98235",
+      "sourceCell": "A355",
+      "name": "F&F"
+    },
+    {
+      "id": "f01e4dd3-c750-49cc-868c-175840769e63",
+      "sourceCell": "A356",
+      "name": "GKL"
+    },
+    {
+      "id": "78435fb4-bf92-40c4-8d2c-971a623f16c0",
+      "sourceCell": "A357",
+      "name": "GS건설"
+    },
+    {
+      "id": "1c2c483a-b11b-495c-9bff-e6ac0a7853b8",
+      "sourceCell": "A358",
+      "name": "GS피앤엘"
+    },
+    {
+      "id": "5324e03c-6bd5-4881-a9da-682102cad83d",
+      "sourceCell": "A359",
+      "name": "GST"
+    },
+    {
+      "id": "2ea4c96b-5139-499d-8f80-c9b6d6efc5bc",
+      "sourceCell": "A360",
+      "name": "HB테크놀러지"
+    },
+    {
+      "id": "8a0a7060-584b-446d-b6f2-1327ed1feb67",
+      "sourceCell": "A361",
+      "name": "HD한국조선해양"
+    },
+    {
+      "id": "fea8f958-7858-4b64-bfef-2be90d373754",
+      "sourceCell": "A362",
+      "name": "HD현대건설기계"
+    },
+    {
+      "id": "ed1a21ff-260b-40df-a8e6-84a8d903afef",
+      "sourceCell": "A363",
+      "name": "HD현대마린엔진"
+    },
+    {
+      "id": "fb1580f2-37fa-4281-91c3-9b2651d97d34",
+      "sourceCell": "A364",
+      "name": "HD현대에너지솔루션"
+    },
+    {
+      "id": "189cbe91-e03a-44a6-8339-77818a315ea6",
+      "sourceCell": "A365",
+      "name": "HD현대일렉트릭"
+    },
+    {
+      "id": "c5bad818-3671-4bb3-a1ab-6a5d28a5d671",
+      "sourceCell": "A366",
+      "name": "HD현대중공업"
+    },
+    {
+      "id": "030f3832-6791-4569-9da6-0cb2f2877e61",
+      "sourceCell": "A367",
+      "name": "HJ중공업"
+    },
+    {
+      "id": "464d4096-6771-4e39-8bce-ed973ef085ba",
+      "sourceCell": "A368",
+      "name": "HMM"
+    },
+    {
+      "id": "362b9f1f-0b72-4670-9c01-d08d1217f232",
+      "sourceCell": "A369",
+      "name": "HPSP"
+    },
+    {
+      "id": "949c92a3-8609-4160-8b6a-9ef779b07bd0",
+      "sourceCell": "A370",
+      "name": "iM금융지주"
+    },
+    {
+      "id": "91fe95fe-c444-4b31-9fd1-b7aebea4291b",
+      "sourceCell": "A371",
+      "name": "ISC"
+    },
+    {
+      "id": "247e7ad0-1720-46fd-b66f-b8fb5ef614ed",
+      "sourceCell": "A372",
+      "name": "JB금융지주"
+    },
+    {
+      "id": "fcd3776b-242c-4d2b-b28c-95653996a74b",
+      "sourceCell": "A373",
+      "name": "JYP Ent."
+    },
+    {
+      "id": "fb21c3e3-7a25-49c1-8966-255c9918e532",
+      "sourceCell": "A374",
+      "name": "KB금융"
+    },
+    {
+      "id": "dfddc28c-e43b-48dd-b5a9-eacf7befa8b3",
+      "sourceCell": "A375",
+      "name": "KT"
+    },
+    {
+      "id": "5ca472e5-fab4-4c25-8d97-d9abaef06176",
+      "sourceCell": "A376",
+      "name": "LG생활건강"
+    },
+    {
+      "id": "e7f4a9dc-8f6a-4b6a-bfff-83505ab43e8e",
+      "sourceCell": "A377",
+      "name": "LG에너지솔루션"
+    },
+    {
+      "id": "f67e8a62-b790-4b8b-85d1-cdbdec8604a8",
+      "sourceCell": "A378",
+      "name": "LG유플러스"
+    },
+    {
+      "id": "385abd10-9c57-43fd-ba55-bbfd1fa5113d",
+      "sourceCell": "A379",
+      "name": "LG이노텍"
+    },
+    {
+      "id": "19d78646-559f-42b7-b1f1-f2cea6c7f61b",
+      "sourceCell": "A380",
+      "name": "LG전자"
+    },
+    {
+      "id": "4b0a1981-29ae-4ac8-9790-c69f50c8e8ec",
+      "sourceCell": "A381",
+      "name": "LIG디펜스앤에어로스페이스"
+    },
+    {
+      "id": "b4487952-67ba-4e5d-ad0d-80104f6d0b0c",
+      "sourceCell": "A382",
+      "name": "LS"
+    },
+    {
+      "id": "7629572f-ab2d-4113-be9e-17f4f278bac8",
+      "sourceCell": "A383",
+      "name": "LS ELECTRIC"
+    },
+    {
+      "id": "fa252c85-ec76-48f5-aa99-df648d38905f",
+      "sourceCell": "A384",
+      "name": "LS마린솔루션"
+    },
+    {
+      "id": "1e42c958-8af6-4f1b-a322-a73125cc9586",
+      "sourceCell": "A385",
+      "name": "LS에코에너지"
+    },
+    {
+      "id": "761e24a6-2526-44e7-9128-dbe56b04e711",
+      "sourceCell": "A386",
+      "name": "NC"
+    },
+    {
+      "id": "91b9ff7a-7109-41a0-ad5b-6b4e1e8aa98e",
+      "sourceCell": "A387",
+      "name": "NH투자증권"
+    },
+    {
+      "id": "35fe3e8d-aedd-4855-b7f2-b8d5bf715600",
+      "sourceCell": "A388",
+      "name": "OCI홀딩스"
+    },
+    {
+      "id": "4b660ea6-16d9-4574-94b0-4d23b0c33ffa",
+      "sourceCell": "A389",
+      "name": "POSCO홀딩스"
+    },
+    {
+      "id": "6a1eaa57-87df-46da-867d-a3a1e1d6a4fd",
+      "sourceCell": "A390",
+      "name": "RFHIC"
+    },
+    {
+      "id": "364d5f49-701a-415a-b73f-f3bb2bf99cae",
+      "sourceCell": "A391",
+      "name": "SFA반도체"
+    },
+    {
+      "id": "596bee1f-9be5-41a3-965c-6de7d942158d",
+      "sourceCell": "A392",
+      "name": "SK오션플랜트"
+    },
+    {
+      "id": "b5a9db74-d97e-4396-aa2b-8f2a186e346e",
+      "sourceCell": "A393",
+      "name": "SK이터닉스"
+    },
+    {
+      "id": "e81b4d2d-d0fb-4cb9-8e9f-ac7fd3cc9ac9",
+      "sourceCell": "A394",
+      "name": "SK증권"
+    },
+    {
+      "id": "f8569512-5302-4da8-b19c-f3f65c294237",
+      "sourceCell": "A395",
+      "name": "SK텔레콤"
+    },
+    {
+      "id": "d8c32e94-d5ef-480e-9012-ee4cdac5757d",
+      "sourceCell": "A396",
+      "name": "SK하이닉스"
+    },
+    {
+      "id": "5f1da9a9-41ee-4da0-b8fb-2eb6c3d3b81a",
+      "sourceCell": "A397",
+      "name": "SKC"
+    },
+    {
+      "id": "ae1ac35b-7a65-4b90-9e9b-5818be843a98",
+      "sourceCell": "A398",
+      "name": "SNT다이내믹스"
+    },
+    {
+      "id": "d448ac3e-d726-420d-b8ab-738d6471c140",
+      "sourceCell": "A399",
+      "name": "SNT에너지"
+    },
+    {
+      "id": "1595bee0-f3c0-46af-a381-b722132581ec",
+      "sourceCell": "A400",
+      "name": "STX엔진"
+    }
+  ],
+  "plainHeadings": [
+    {
+      "cell": "B10",
+      "cellSha256": "c18ffc657691adfd6a04bb95ad57038b2ce45e4067dd2cf2ed8e334c72e6a35b",
+      "titles": [
+        "FC-BGA",
+        "FC-BGA · MLB · SoCAMM",
+        "FC-BGA · SoCAMM",
+        "SoCAMM",
+        "MLB(고다층기판)",
+        "장비"
+      ]
+    },
+    {
+      "cell": "B37",
+      "cellSha256": "6a6e793e3b3ec012888646a22a0455feebd6780b46b97ae6790fe5be7a84b3c6",
+      "titles": [
+        "선박 건조",
+        "선박 엔진",
+        "LNG 보냉재"
+      ]
+    }
+  ],
+  "categoryLabels": [
+    {
+      "cell": "B5",
+      "cellSha256": "9016d31f80628b133579dd4d8e415a7f480b1fa9d92c7e719ed37cf1d65c97be",
+      "title": "반도체 IP",
+      "categoryName": "반도체 IP"
+    },
+    {
+      "cell": "B6",
+      "cellSha256": "ea03906815fb698b49a30d403c36331c767530b9404160271460d8fbecc2822e",
+      "title": "팹리스",
+      "categoryName": "반도체 팹리스"
+    }
+  ],
+  "corrections": [
+    {
+      "cell": "B5",
+      "cellSha256": "9016d31f80628b133579dd4d8e415a7f480b1fa9d92c7e719ed37cf1d65c97be",
+      "before": "HBM) IP 보유, 퀄리타스반도체",
+      "after": "HBM) IP 보유), 퀄리타스반도체"
+    },
+    {
+      "cell": "B36",
+      "cellSha256": "41482ebc2641031c4e0bcf17a1a5ea3d9862df00bb7a10b52eda62b98f8a57b5",
+      "before": "유도무기 적외선 영상센서\n전차 :",
+      "after": "유도무기 적외선 영상센서)\n전차 :"
+    }
+  ],
+  "subgroups": [
+    {
+      "id": "a9e38ba0-a94e-49ad-b361-5f30b0a0fe1f",
+      "sourceCell": "B7",
+      "title": "증착 공정"
+    },
+    {
+      "id": "c235ba48-cf19-416d-9843-e7414513b4cd",
+      "sourceCell": "B7",
+      "title": "식각 공정"
+    },
+    {
+      "id": "d8d3a015-afeb-4f75-a76a-c14c8454d7a9",
+      "sourceCell": "B7",
+      "title": "세정 공정"
+    },
+    {
+      "id": "c21a68ac-2bc8-4564-bffd-888baf1f830a",
+      "sourceCell": "B7",
+      "title": "증착 · 식각 · 세정 공정"
+    },
+    {
+      "id": "fa8d5775-a0e4-4c91-901f-c45852801099",
+      "sourceCell": "B7",
+      "title": "식각 · 세정 공정"
+    },
+    {
+      "id": "2d231a73-313a-49bb-8301-db2bf7530ac9",
+      "sourceCell": "B7",
+      "title": "박리 공정"
+    },
+    {
+      "id": "4ee68e4d-cccb-4395-ab31-c4ba32fea593",
+      "sourceCell": "B7",
+      "title": "식각 · 박리 공정"
+    },
+    {
+      "id": "905103bc-5781-4745-8a93-f13d1052ee9a",
+      "sourceCell": "B7",
+      "title": "열처리 공정"
+    },
+    {
+      "id": "a1af85df-4fa4-4649-80f7-ade0649ad37d",
+      "sourceCell": "B7",
+      "title": "검사 공정"
+    },
+    {
+      "id": "2d5345c7-e850-47d0-8922-0f39cdc65986",
+      "sourceCell": "B10",
+      "title": "FC-BGA"
+    },
+    {
+      "id": "2ba7cb0c-d92d-489f-af88-99ad34fadd22",
+      "sourceCell": "B10",
+      "title": "FC-BGA · MLB · SoCAMM"
+    },
+    {
+      "id": "3a1e03ed-96f0-4106-8a37-2dbe2af1e9a1",
+      "sourceCell": "B10",
+      "title": "FC-BGA · SoCAMM"
+    },
+    {
+      "id": "723b1516-dc9d-44e3-940c-03646e903f5f",
+      "sourceCell": "B10",
+      "title": "SoCAMM"
+    },
+    {
+      "id": "a7423cc0-ea44-4be3-b84c-17eb44ed3ce2",
+      "sourceCell": "B10",
+      "title": "MLB(고다층기판)"
+    },
+    {
+      "id": "f2d33690-3159-4f41-ad6e-bbebe46be84b",
+      "sourceCell": "B10",
+      "title": "장비"
+    },
+    {
+      "id": "d2d68327-aa17-488f-99e9-c209673d799e",
+      "sourceCell": "B11",
+      "title": "유리기판 양산"
+    },
+    {
+      "id": "e956de55-f3ff-46d7-8208-ba30dbf23457",
+      "sourceCell": "B11",
+      "title": "유리기판 가공"
+    },
+    {
+      "id": "d37a4c8d-6ae1-4410-8f02-96c0e737407c",
+      "sourceCell": "B11",
+      "title": "유리기판 소재/부품"
+    },
+    {
+      "id": "3bda75c4-d6a5-4f4f-a0a7-db0f223555b9",
+      "sourceCell": "B11",
+      "title": "유리기판 장비"
+    },
+    {
+      "id": "36e6f918-adc0-476f-960a-af0fbe680076",
+      "sourceCell": "B13",
+      "title": "TC 본더"
+    },
+    {
+      "id": "11787a7c-2fe4-4cdd-b83d-4861ce3ac895",
+      "sourceCell": "B13",
+      "title": "리플로우 장비"
+    },
+    {
+      "id": "8dda0b17-dfb8-425b-add9-b1a359f96e0c",
+      "sourceCell": "B13",
+      "title": "패키징 검사 장비"
+    },
+    {
+      "id": "505e2667-3dcf-40fd-867b-1270557a90c0",
+      "sourceCell": "B13",
+      "title": "프로브카드"
+    },
+    {
+      "id": "eedbb90d-54fa-45df-9914-f6190b6d9bfb",
+      "sourceCell": "B13",
+      "title": "패키징 테스트 부품"
+    },
+    {
+      "id": "d63af066-275a-4380-9ed1-ddc9ef3c30d0",
+      "sourceCell": "B13",
+      "title": "패키징 테스트 장비"
+    },
+    {
+      "id": "ea5655ec-5321-4709-be1e-19aec45f3595",
+      "sourceCell": "B13",
+      "title": "패키징 테스트 핸들러"
+    },
+    {
+      "id": "d2124420-2adf-4f00-ab8a-60b30bc31abe",
+      "sourceCell": "B14",
+      "title": "광트랜시버"
+    },
+    {
+      "id": "207e0b8d-ca18-4ef9-978a-057edf014cc8",
+      "sourceCell": "B14",
+      "title": "광트랜시버 부품"
+    },
+    {
+      "id": "704f4b04-cc53-40c9-a3e8-98c8bd3c6ad6",
+      "sourceCell": "B14",
+      "title": "광케이블"
+    },
+    {
+      "id": "bd1383a7-59ab-455c-ac11-26464471ee96",
+      "sourceCell": "B17",
+      "title": "ESS 셀"
+    },
+    {
+      "id": "da4014e3-4807-4cba-9515-82f4d9d1bd84",
+      "sourceCell": "B17",
+      "title": "ESS 양극재"
+    },
+    {
+      "id": "581d6fd8-e106-4c5e-88cf-610d398c74ca",
+      "sourceCell": "B18",
+      "title": "초고압 변압기"
+    },
+    {
+      "id": "875d1b6e-7fda-4c38-8981-1f0db7cf6ce4",
+      "sourceCell": "B18",
+      "title": "초고압 변압기, 케이블"
+    },
+    {
+      "id": "d03588cf-9810-4c87-8497-6981cd2f07e0",
+      "sourceCell": "B18",
+      "title": "초고압 케이블"
+    },
+    {
+      "id": "fb1f6570-4679-4a05-8c93-cc8d2c4303f6",
+      "sourceCell": "B18",
+      "title": "배전용 변압기"
+    },
+    {
+      "id": "83d2ada1-1ae1-4324-9bf6-b7f443dd6df7",
+      "sourceCell": "B18",
+      "title": "배전반"
+    },
+    {
+      "id": "58499a3b-3cc3-4bd5-b2cb-e689a4ff1ff4",
+      "sourceCell": "B18",
+      "title": "전력주 지주"
+    },
+    {
+      "id": "b0e99e96-7a88-4f0c-b3be-b9847064cfe0",
+      "sourceCell": "B18",
+      "title": "특수 케이블"
+    },
+    {
+      "id": "a49fb88e-7883-4aee-b6fb-871711a043c3",
+      "sourceCell": "B19",
+      "title": "기기·제작"
+    },
+    {
+      "id": "e7fb56a5-46cb-4003-93f1-0f02b93748ba",
+      "sourceCell": "B19",
+      "title": "설계·시공"
+    },
+    {
+      "id": "e9c9cb91-7f2e-49bb-8162-44092648b868",
+      "sourceCell": "B25",
+      "title": "액추에이터"
+    },
+    {
+      "id": "3bcf3bf2-9e4d-4aa6-8684-76881ca31a2e",
+      "sourceCell": "B25",
+      "title": "핸드"
+    },
+    {
+      "id": "d2e904ad-9be2-41c9-a1f5-681522b17f25",
+      "sourceCell": "B27",
+      "title": "협동로봇"
+    },
+    {
+      "id": "8d3ca7b0-ed65-41e9-b63f-a466d2f1cb8e",
+      "sourceCell": "B27",
+      "title": "산업용 로봇"
+    },
+    {
+      "id": "e79397e8-31c7-4d5a-ac8c-ac5c5795d514",
+      "sourceCell": "B27",
+      "title": "물류 로봇"
+    },
+    {
+      "id": "ada7d472-175c-4339-ac84-0faff1c5ea04",
+      "sourceCell": "B27",
+      "title": "제어기"
+    },
+    {
+      "id": "18fcdef4-18c1-46b6-a594-16ff052f17bc",
+      "sourceCell": "B27",
+      "title": "로봇 관제"
+    },
+    {
+      "id": "5dcfba0c-c079-4cd1-b5aa-b2c10cfc2e64",
+      "sourceCell": "B30",
+      "title": "배터리 셀"
+    },
+    {
+      "id": "5a06b345-c868-4583-9f45-76d4186b9376",
+      "sourceCell": "B30",
+      "title": "양극재"
+    },
+    {
+      "id": "64142e46-55d7-4ece-b84d-5c1d91b24491",
+      "sourceCell": "B35",
+      "title": "발사체"
+    },
+    {
+      "id": "b0d6084d-2770-44dc-9144-5ae1c9014aa9",
+      "sourceCell": "B35",
+      "title": "위성 제조"
+    },
+    {
+      "id": "be34eeb5-8135-4ceb-ab68-44396cc30099",
+      "sourceCell": "B35",
+      "title": "위성 부품"
+    },
+    {
+      "id": "1b0305d2-1a17-479a-a25b-67a526d6b7d0",
+      "sourceCell": "B35",
+      "title": "위성 통신"
+    },
+    {
+      "id": "02ec922c-882f-4d4c-9480-8a9f7eb422b3",
+      "sourceCell": "B35",
+      "title": "위성 서비스"
+    },
+    {
+      "id": "ae225bda-7740-4d60-af97-8cac7fe821f5",
+      "sourceCell": "B35",
+      "title": "우주 소재"
+    },
+    {
+      "id": "08d09740-7124-4053-89b0-cce352b9f9ac",
+      "sourceCell": "B36",
+      "title": "전투기"
+    },
+    {
+      "id": "c5b3a58f-42e2-4f06-827a-6258da06e428",
+      "sourceCell": "B36",
+      "title": "전차 · 전투기"
+    },
+    {
+      "id": "1da355dd-a780-4c64-9dd1-33eb1f1eaf42",
+      "sourceCell": "B36",
+      "title": "유도무기"
+    },
+    {
+      "id": "a9e0d35e-e590-40c3-b90c-1a0235aa46d8",
+      "sourceCell": "B36",
+      "title": "전차"
+    },
+    {
+      "id": "5cfab7c8-aa1c-43b5-98bc-c020ed997418",
+      "sourceCell": "B37",
+      "title": "선박 건조"
+    },
+    {
+      "id": "38049ff4-6d39-4e4b-8303-84dd321c8f40",
+      "sourceCell": "B37",
+      "title": "선박 엔진"
+    },
+    {
+      "id": "5cd506e5-31db-4f06-9b65-0f0f13a68fbd",
+      "sourceCell": "B37",
+      "title": "LNG 보냉재"
+    },
+    {
+      "id": "23fc53cb-35f8-4678-a0a8-419a6b632f67",
+      "sourceCell": "B38",
+      "title": "CDMO"
+    },
+    {
+      "id": "228836ec-7a94-4c47-af86-4bce2411eb77",
+      "sourceCell": "B38",
+      "title": "RNA"
+    },
+    {
+      "id": "de36485b-d4fe-40ac-8d12-69bf8ddab811",
+      "sourceCell": "B38",
+      "title": "SC제형"
+    },
+    {
+      "id": "c414533f-2dab-4b27-87d1-9aeaaec0a6f4",
+      "sourceCell": "B38",
+      "title": "항암"
+    },
+    {
+      "id": "bb06321e-12e5-4d70-b6f1-ecc054d23a21",
+      "sourceCell": "B38",
+      "title": "GLP-1"
+    },
+    {
+      "id": "c57106e6-3ead-4920-8ce5-d87a77927f17",
+      "sourceCell": "B42",
+      "title": "브랜드"
+    },
+    {
+      "id": "308e51f0-95af-4ef1-82ec-f58b6dac3d7a",
+      "sourceCell": "B42",
+      "title": "제조/생산"
+    },
+    {
+      "id": "34369d19-fca7-4674-9272-4eae186925ac",
+      "sourceCell": "B42",
+      "title": "기타"
+    },
+    {
+      "id": "3277826e-ca29-423f-a97d-ea9c1fbcf45d",
+      "sourceCell": "B44",
+      "title": "중장비"
+    },
+    {
+      "id": "642e2277-4091-4b25-a537-7e27cdc06f5b",
+      "sourceCell": "B44",
+      "title": "중장비 부품"
+    },
+    {
+      "id": "4ba3ada7-a76f-4bb8-a9b7-7e03d1616df2",
+      "sourceCell": "B47",
+      "title": "대형 항공사 (FSC)"
+    },
+    {
+      "id": "4ffd87c5-763c-4f93-937c-7d2ab91f69b5",
+      "sourceCell": "B47",
+      "title": "저가 항공사 (LCC)"
+    },
+    {
+      "id": "df24be9d-76bb-4a1f-b7f2-1b4568be7451",
+      "sourceCell": "B49",
+      "title": "라면"
+    },
+    {
+      "id": "1b7a5809-9a13-4c0f-94eb-869b59861d32",
+      "sourceCell": "B49",
+      "title": "HMR"
+    },
+    {
+      "id": "1dfa15ee-4c48-4a71-9e8e-e5bef5afd6b0",
+      "sourceCell": "B49",
+      "title": "스낵"
+    },
+    {
+      "id": "41f65456-c4e6-4098-a5fe-9b84417545f8",
+      "sourceCell": "B49",
+      "title": "기타"
+    },
+    {
+      "id": "7da6a2d5-bf3d-4e15-b0e5-aae9dddf6337",
+      "sourceCell": "B55",
+      "title": "손해보험"
+    },
+    {
+      "id": "d1159378-46fd-4c6f-9759-863596daafcb",
+      "sourceCell": "B55",
+      "title": "생명보험"
+    },
+    {
+      "id": "891f44c9-62ae-48bf-8f80-65093a24aa0e",
+      "sourceCell": "B55",
+      "title": "기타"
+    }
+  ]
+}
