@@ -1,0 +1,156 @@
+// 6E continuation. Historical validators and migrations1–45 remain byte-frozen; the additional base freeze below is stricter than the historical6D mutable set.
+import assert from 'node:assert/strict';
+import { readFileSync,realpathSync,lstatSync,existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse } from 'smol-toml';
+import { allowedHostedPullRef } from './native-release-policy.mjs';
+const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
+const read=p=>readFileSync(path.join(root,p)),json=p=>JSON.parse(read(p)),hash=b=>createHash('sha256').update(b).digest('hex');
+const base='c844fe14e62e427d280b58ac023b2c9f1935ed75',initial='f7dce3a9e05c39580f23a210c3ac9d2514c38b74';let checks=0;
+const check=(condition,message)=>{assert.ok(condition,message);checks++;};
+const objectTrees=new Map();
+function rawGit(args,input){const r=spawnSync('git',['-c','core.quotepath=false','-C',root,...args],{input,windowsHide:true,maxBuffer:64*1024*1024});assert.ifError(r.error);return {code:r.status,text:r.stdout.toString('utf8').trim(),bytes:r.stdout};}
+function git(args,input){
+ const match=args.length===2&&args[0]==='show'&&/^([0-9a-f]{40}):(.+)$/.exec(args[1]);
+ if(!match||input!==undefined)return rawGit(args,input);
+ const [,commit,file]=match;
+ if(!objectTrees.has(commit)){
+  const tree=rawGit(['ls-tree','-r','-z',commit]);assert.equal(tree.code,0,'Frozen baseline tree readable');
+  const entries=tree.bytes.toString('utf8').split('\0').filter(Boolean).map(line=>{const m=/^[0-7]{6} blob ([0-9a-f]{40})\t([\s\S]+)$/.exec(line);assert.ok(m,'Only baseline blobs');return {oid:m[1],file:m[2]};});
+  const batch=rawGit(['cat-file','--batch'],entries.map(e=>e.oid).join('\n')+'\n');assert.equal(batch.code,0,'All baseline blobs readable');
+  const files=new Map();let at=0;
+  for(const entry of entries){const end=batch.bytes.indexOf(10,at);assert.ok(end>=at);const h=/^([0-9a-f]{40}) blob ([0-9]+)$/.exec(batch.bytes.subarray(at,end).toString('ascii'));assert.ok(h);assert.equal(h[1],entry.oid);const size=Number(h[2]);assert.ok(Number.isSafeInteger(size)&&size>=0);at=end+1;const bytes=batch.bytes.subarray(at,at+size);assert.equal(bytes.length,size);assert.equal(batch.bytes[at+size],10);files.set(entry.file,bytes);at+=size+1;}
+  assert.equal(at,batch.bytes.length);objectTrees.set(commit,files);
+ }
+ const bytes=objectTrees.get(commit).get(file);return bytes?{code:0,text:bytes.toString('utf8').trim(),bytes}:rawGit(args,input);
+}
+check(realpathSync(git(['rev-parse','--show-toplevel']).text)===root,'Independent product root');
+check(lstatSync(path.join(root,'.git')).isDirectory()&&!lstatSync(path.join(root,'.git')).isSymbolicLink(),'Own Git directory');
+check(realpathSync(path.resolve(root,git(['rev-parse','--git-common-dir']).text))===path.join(root,'.git'),'No shared Git dir');
+check(!existsSync(path.join(root,'.git/objects/info/alternates'))&&!existsSync(path.join(root,'.gitmodules')),'No borrowed objects/submodules');
+check(git(['config','--local','--name-only','--get-regexp','^(include\\.|includeif\\.|core\\.hookspath$)']).code===1,'No inherited hooks/includes');
+for(const name of ['GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES'])check(!process.env[name],'No Git routing '+name);
+check(git(['remote']).text==='origin','One remote');
+for(const args of [['remote','get-url','--all','origin'],['remote','get-url','--push','--all','origin']])check(git(args).text==='https://github.com/Jacop7/stocknews.git','Authorized remote');
+const head=git(['rev-parse','HEAD']).text,branch=git(['branch','--show-current']).text,hosted=process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='Jacop7/stocknews';
+check(['main','feat/06e-reservation-maintenance'].includes(branch)||hosted&&!branch&&head===process.env.GITHUB_SHA,'Stage5 branch or verified hosted commit');
+check(git(['rev-list','--max-parents=0','HEAD']).text===initial&&git(['merge-base','--is-ancestor',base,'HEAD']).code===0,'Reviewed independent ancestry');
+const count=Number(git(['rev-list','--count','HEAD']).text);check(count>=10&&count<=11||hosted&&count===12&&git(['rev-list','--parents','-n','1','HEAD']).text.split(/\s+/).length===3,'Bounded stage4 history');
+const allowed=new Set(['main','feat/01-workspace','feat/02-app-admin-shell','spike/03-data-providers','feat/04-db-queue','feat/05-manual-publishing','feat/06a-catalog-preparation','feat/06b-catalog-settings','feat/06c-search-bookmarks','feat/06d-installation-analytics','feat/06e-reservation-maintenance'].flatMap(x=>['refs/heads/'+x,'refs/remotes/origin/'+x]));allowed.add('refs/remotes/origin/HEAD');
+const pullRef=allowedHostedPullRef(process.env,head,ref=>{const r=git(['rev-parse','--verify',ref]);return r.code===0?r.text:null;});if(pullRef)allowed.add(pullRef);
+check(git(['for-each-ref','--format=%(refname)']).text.split(/\r?\n/).every(ref=>allowed.has(ref)),'Allowed exact refs');
+for(const name of git(['ls-files','--cached','--others','--exclude-standard','-z']).bytes.toString('utf8').split('\0').filter(Boolean)){
+  let current=root;for(const part of name.split('/')){current=path.join(current,part);check(!lstatSync(current).isSymbolicLink(),'No source symlink '+name);}check(!path.relative(root,realpathSync(current)).startsWith('..'),'Internal source');
+}
+function validateStatus(s){
+ assert.equal(s.currentStage,6);assert.ok(['IMPLEMENTING_RESERVATION_MAINTENANCE','IMPLEMENTED_REVIEW_PENDING'].includes(s.state));
+ assert.equal(s.stages.length,13);for(let n=0;n<13;n++){assert.equal(s.stages[n].stage,n);if(n===6)assert.equal(s.stages[n].state,s.state);else if(n===5)assert.equal(s.stages[n].state,'IMPLEMENTED_REVIEW_PENDING');else assert.equal(s.stages[n].state,n<3||n===4?'COMPLETE':n===3?'IMPLEMENTED_SUPPLY_PENDING':'NOT_STARTED');}
+ assert.deepEqual(s.completedStages.map(x=>x.stage),[0,1,2,4]);assert.equal(s.completedStages.find(x=>x.stage===4).commit,base);
+ assert.equal(s.supplyTrack.state,'IMPLEMENTED_SUPPLY_PENDING');assert.equal(s.supplyTrack.realRequestsExecuted,0);assert.equal(s.supplyTrack.liveGate7,'CLOSED');assert.equal(s.supplyTrack.liveGate8,'CLOSED');
+ assert.equal(s.m1.mode,'LOCAL_SYNTHETIC_MANUAL');assert.notEqual(s.m1.P03b,'COMPLETE');assert.equal(s.m1.ios,'PENDING_NEW_FLOW');assert.equal(s.m1.U05,'VERIFIED_LOCAL_RESERVATION');
+ assert.equal(s.catalogPreparation.commit,'7718693c7c6add5e9019b1c365f67a72c174f3ea');assert.equal(s.catalogPreparation.state,'VERIFIED_LOCAL_OFFLINE');
+ assert.equal(s.catalogConnection.stage,'6B');assert.equal(s.catalogConnection.state,'VERIFIED_LOCAL_REFERENCE');assert.equal(s.catalogConnection.realPublicationEnabled,false);assert.equal(s.catalogConnection.nativeGateDeferredByUser,true);
+ assert.equal(s.catalogConnection.planManifest,'c1026d481625755c43cbabdd6cd92b6cfbb62e2f53a4231ba2873235ae8c6636');
+}
+const status=json('docs/development-status.json');validateStatus(status);checks++;
+check(status.searchBookmarks?.stage==='6C'&&status.searchBookmarks.realPublicationEnabled===false&&status.searchBookmarks.serverBookmarkSync===false,'Read-only search and device-only storage');
+check(status.searchBookmarks.planManifest==='f3d0271b2c5263fc4661e4e247b1c51f533c09d8ba2a29144ba9a14805265d8e','Exact approved6C plan manifest');
+check(hash(read('docs/stages/stage-06c-plan.md'))==='f189a8e934e8eb42e60a51d42cc7d87ea1cfdd97b02c1df136801abe60e4aaf2','Approved 6C bytes');
+check(hash(read('docs/stages/stage-06d-plan.md'))==='9da4a327c4bab6a67382710b350c9caf4c43c2269da89914ac302bab3cb39a4b','Approved r4 plan bytes');
+const approval=json('docs/stages/stage-06d-approval.json');
+check(approval.state==='APPROVED_DUAL_R4'&&approval.reviewManifest==='24f44f7323078f5d66d5a57de582a266f93cead7f42f2239b868d93d5f837d52','Real plan approval receipt');
+check(status.installationAnalytics?.stage==='6D'&&status.installationAnalytics.planManifest===approval.reviewManifest&&status.installationAnalytics.mode==='LOCAL_SYNTHETIC_QA_ONLY','Installation scope and approved plan');
+for(const flag of ['realPublicationEnabled','realPushEnabled','operationalAnalyticsEnabled','productionIdentityConfigured'])check(status.installationAnalytics[flag]===false,'Closed installation gate '+flag);
+check(status.searchBookmarks.state==='VERIFIED_LOCAL_DEVICE_STORE'&&status.searchBookmarks.commit==='00bebe1d573353a68ceb39c952f360ab5cabbda4','Verified 6C dependency');
+const beforeApp=JSON.parse(git(['show','00bebe1d573353a68ceb39c952f360ab5cabbda4:apps/mobile/package.json']).text),nowApp=json('apps/mobile/package.json');
+check(nowApp.dependencies['expo-secure-store']==='58.0.3'&&nowApp.dependencies['expo-crypto']==='58.0.8','Exactly two approved SDK versions');
+const withoutNewSDKs=structuredClone(nowApp);delete withoutNewSDKs.dependencies['expo-secure-store'];delete withoutNewSDKs.dependencies['expo-crypto'];assert.deepEqual(withoutNewSDKs,beforeApp);checks++;
+const mobile=json('apps/mobile/app.json').expo;
+for(const key of ['android','ios'])check(mobile[key].runtimeVersion===key+'-native-0006','New native runtime '+key);
+assert.deepEqual(mobile.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-secure-store'),['expo-secure-store',{configureAndroidBackup:true,faceIDPermission:false}]);checks++;
+const native=json('docs/native-release.json');
+check(native.actualBuilds.android.buildId==='1a233a82-a75c-4850-915f-324bf07acf74'&&native.actualBuilds.android.binaryStatus==='FINISHED'&&native.actualBuilds.android.deviceStatus==='AGENT_OBSERVED_EMULATOR','New Android build and observation');
+check(native.actualBuilds.ios.buildId==='2126bfff-1b3e-4414-bdbb-58bb4b35fcc9'&&native.actualBuilds.ios.binaryStatus==='FINISHED'&&native.actualBuilds.ios.deviceStatus==='PENDING_NATIVE_CONFIRMATION','New iOS build without inherited physical evidence');
+
+for(const mutate of [s=>s.stages[3].state='COMPLETE',s=>s.completedStages.push({stage:3}),s=>s.supplyTrack.liveGate7='OPEN',s=>s.supplyTrack.liveGate8='OPEN',s=>s.m1.P03b='COMPLETE',s=>s.catalogConnection.realPublicationEnabled=true,s=>s.catalogConnection.nativeGateDeferredByUser=false]){const bad=structuredClone(status);mutate(bad);assert.throws(()=>validateStatus(bad));checks++;}
+const completion=json('docs/stages/stage-04-completion.json');check(completion.complete===true&&completion.caseVerdict==='DUAL_READY'&&completion.postCommitFullVerify==='PASS','Verified stage4 prerequisite');
+const provenance=json('docs/reference/provenance.json');assert.equal(provenance.files.length,18);checks++;
+const prior=JSON.parse(git(['show','dd2f97dcbd589760311277f65d72d44f581d7222:docs/reference/provenance.json']).text);
+for(const old of prior.files){assert.deepEqual(provenance.files.find(f=>f.copy===old.copy),old);check(hash(git(['show','dd2f97dcbd589760311277f65d72d44f581d7222:'+old.copy]).bytes)===old.sha256,'Previous approved bytes');}
+for(const f of provenance.files){const bytes=read(f.copy);check(bytes.length===f.bytes&&hash(bytes)===f.sha256,'Snapshot byte integrity');check(git(['hash-object','--no-filters','--stdin'],bytes).text===git(['hash-object','--path='+f.copy,'--stdin'],bytes).text,'No Git snapshot transformation');}
+const resource=json('docs/project-resource-manifest.json'),cfg=parse(read('supabase/config.toml').toString());
+const readiness=json('docs/environment-readiness.json');
+const priorReadiness=JSON.parse(git(['show','00bebe1d573353a68ceb39c952f360ab5cabbda4:docs/environment-readiness.json']).text);
+for(const platform of ['android','ios']){
+ const build=native.actualBuilds[platform];
+ check(readiness[platform].buildId===build.buildId&&readiness[platform].deviceStatus===build.deviceStatus,'Current native readiness '+platform);
+ assert.deepEqual(readiness[platform].observations.slice(0,priorReadiness[platform].observations.length),priorReadiness[platform].observations);checks++;
+ check(resource.appIdentity.nativeBuilds[platform]===build.deviceStatus&&resource.appIdentity.runtimeVersions[platform]===build.runtimeVersion,'Current native resource summary '+platform);
+}
+check(resource.appIdentity.nativeInputDigest===native.digest&&resource.appIdentity.nativeEvidence==='docs/native-release.json','Resource native digest linkage');
+check(resource.schemaVersion===2&&resource.productId==='judoju-news'&&resource.productRoot==='.'&&resource.repository.initialCommit===initial,'Portable product resources');
+assert.deepEqual(resource.resources.map(r=>r.id).sort(),['expo_eas','supabase_local','supabase_preview','supabase_production','worker_local','worker_preview','worker_production','admin_hosting','push_ads','observability','backups','ci_cd','environment_secrets'].sort());checks++;
+check(cfg.project_id==='judoju-news-local'&&resource.plannedLocalConfig.sha256===hash(read('supabase/config.toml')),'Config digest/identity');
+assert.deepEqual(resource.plannedLocalConfig.ports,{api:cfg.api.port,db:cfg.db.port,'db.shadow':cfg.db.shadow_port,studio:cfg.studio.port,local_smtp:cfg.local_smtp.port,'local_smtp.smtp':cfg.local_smtp.smtp_port,'local_smtp.pop3':cfg.local_smtp.pop3_port});checks++;
+for(const r of resource.resources){
+  check(r.plannedNamespace==='judoju-news-'+r.id.replaceAll('_','-'),'Product namespace');
+  if(r.id==='expo_eas'){check(r.status==='CREATED'&&r.actual.projectId==='133b3e36-2bcc-4e98-86f5-3f029e37500c','Own EAS');}
+  else if(['supabase_local','worker_local'].includes(r.id)){
+    check(r.status==='CREATED_LOCAL_MOCK'&&r.environment==='local'&&r.actual.createdNewForProduct===true&&r.actual.productId==='judoju-news'&&r.actual.environment==='local'&&r.actual.sampleKind==='SYNTHETIC','New local synthetic resources');
+    if(r.id==='supabase_local')check(r.actual.apiUrl==='http://127.0.0.1:62321'&&r.actual.projectId==='judoju-news-local'&&r.actual.publishedBindings==='127.0.0.1'&&r.actual.networkName==='judoju-news-local-net','Exact loopback product DB');
+    else check(r.actual.composeProject==='judoju-news-worker-local'&&r.actual.workers===2&&r.actual.mockSinks===1&&r.actual.hostPorts===0,'Exact internal mock worker');
+  }
+  else check(r.status==='PENDING'&&r.actual===null,'No fabricated cloud/resource success');
+}
+for(const file of ['.local-data/runtime/credentials.json','.local-data/runtime/worker.env','supabase/.temp/project-ref','secrets/key.pem','.env','apps/mobile/.env.production','.local-data/runtime/admin-server.json','.local-data/runtime/m1-auth-fixtures.json','.local-data/runtime/public-read.json','apps/admin/.env.local','.codex/runtime.json'])check(git(['check-ignore','--no-index',file]).code===0,'Secret ignore '+file);
+check(json('docs/native-release.json').digest==='f6de4b3bce492b89c5fe47ab80ee4394cea471ee4a68cd476c5e9b7ce80d3fa4','Exact new native0006 input digest, separately verified by unchanged native guard');
+check(!existsSync(path.join(root,'workers/common/package.json')),'No new worker npm package');
+
+const catalogBase='00bebe1d573353a68ceb39c952f360ab5cabbda4';
+check(git(['merge-base','--is-ancestor',catalogBase,'HEAD']).code===0,'6D reviewed6C ancestry');
+check(git(['rev-parse','main']).text==='10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34'||branch==='main'&&git(['rev-parse','main']).text===head,'Main reviewed base or committed6D');
+check(hash(read('docs/stages/stage-06b-plan.md'))==='c4e7b9d385e14da554a25c1780cf57b9036023428991928e9c31f5d1e13a3931','Exact DUAL reviewed6B plan');
+check(hash(read('tests/fixtures/catalog/source-20261114.json'))==='5c86278ab12d16979a1f5fd7a100e15368db2450f1ebcf47e70aced66d84a5d2','Exact frozen source');
+check(hash(read('tests/fixtures/catalog/registry-v1.json'))==='160a969756bfd291c81dda390a3490f46ac60bc12eed262e1818e5ba40a03dc6','Exact immutable registry');
+const mutable=new Set([".gitattributes","docs/environment-readiness.json", "package.json", "apps/mobile/app.json", "apps/mobile/package.json", "pnpm-lock.yaml", "docs/native-release.json", "docs/project-resource-manifest.json", "scripts/verify.mjs", "scripts/verify-foundation.mjs", "docs/development-status.json", "docs/reference/provenance.json", "apps/admin/components/AdminConsole.tsx", "apps/mobile/src/app/_layout.tsx", "apps/mobile/src/app/article/[id].tsx", "apps/mobile/src/app/notifications.tsx", "apps/mobile/src/app/settings.tsx"]);
+for(const file of git(['ls-tree','-r','--name-only',catalogBase]).text.split('\n'))if(!mutable.has(file))check(hash(read(file))===hash(git(['show',catalogBase+':'+file]).bytes),'Unchanged reviewed source/native/lock/old migrations/worker '+file);
+for(const file of ['scripts/catalog/parse-catalog.mjs','scripts/catalog/preview-catalog.mjs']){
+ const source=read(file).toString();check(!/node:(http|https|net|tls|child_process)|process\.env|fetch\(|supabase|from ['"]\.\.\/\.\.\/apps/.test(source),'6A offline CLI stays network-free');
+}
+check(git(['check-ignore','--no-index','.local-data/catalog-previews/result.json']).code===0,'Private previews ignored');
+for(const file of ['apps/admin/app/api/catalog/[...action]/route.ts','scripts/catalog/public-route.mjs','scripts/test-catalog-operations.mjs','scripts/test-catalog-cursor.mjs','tests/catalog-connection.test.mjs'])check(existsSync(path.join(root,file)),'6B contract verification source '+file);
+check(!read('apps/mobile/src/data/public-read.ts').toString().includes('serviceKey'),'Public app has no server capability');
+check(read('scripts/verify-stage3-providers.mjs').equals(git(['show',catalogBase+':scripts/verify-stage3-providers.mjs']).bytes),'Provider supply guard unchanged');
+
+
+
+// These negative assertions keep prior auth/public/native validators byte-frozen.
+for(const file of ['scripts/verify-stage6c-foundation.mjs','scripts/verify-native-release.mjs','scripts/native-release-policy.mjs','apps/admin/lib/runtime.mjs','apps/admin/next.config.ts','apps/admin/app/api/editor/[...action]/route.ts','apps/admin/app/api/catalog/[...action]/route.ts','scripts/public-read-gateway.mjs'])check(read(file).equals(git(['show',catalogBase+':'+file]).bytes),'Prior guard unchanged '+file);
+for(const file of ['.local-data/runtime/installation-server.json','.local-data/backups/before-stage06d.dump'])check(git(['check-ignore','--no-index',file]).code===0,'Installation secret/backup excluded '+file);
+// These were applied before implementation r1. Corrections are migration45+.
+for(const [name,sha] of [
+ ['20261115000041_installation_settings_revision.sql','eccfd454d30e90eed5a970f51e9b750bd80d15f347c4a71f5efdca067aff2763'],
+ ['20261115000042_installation_operations.sql','4fb80793ec81c098afcc4cb7c128356783873a85277bbcf612f61de1fe893cea'],
+ ['20261115000043_installation_qa_views.sql','bea8f06513b09b292a2de583c38d8790adfe4814e0a4fe20f98bf57d783b4486'],
+ ['20261115000044_installation_catalog_and_seals.sql','56662d2cf0d4095519ac0ab4ad78bcac6b6bf8fc9f088cc17918306ddc3a2b3f']
+])check(hash(read('supabase/migrations/'+name))===sha,'Applied 6D migration byte freeze '+name);
+
+const reservationBase='10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34';
+check(read('.gitattributes').subarray(0,git(['show',reservationBase+':.gitattributes']).bytes.length).equals(git(['show',reservationBase+':.gitattributes']).bytes),'Historical Git attributes unchanged; only exact6E SQL byte freezes appended');
+check(git(['merge-base','--is-ancestor',reservationBase,'HEAD']).code===0,'Reviewed6D dependency');
+const changedFor6E=new Set(['.gitattributes','apps/admin/components/AdminConsole.tsx','package.json','scripts/verify.mjs','scripts/verify-foundation.mjs','docs/development-status.json']);
+for(const file of git(['ls-tree','-r','--name-only',reservationBase]).text.split('\n'))if(!changedFor6E.has(file))check(read(file).equals(git(['show',reservationBase+':'+file]).bytes),'Frozen6D source/schema/auth/native/worker '+file);
+const plan6e=json('docs/stages/stage-06e-approval.json');
+check(plan6e.state==='APPROVED_DUAL_R2'&&plan6e.reviewManifest==='5baf320c018729e3d67e4bb47e75c2951f3a7f628ee9bc4fa4a75000e3a910c3','Approved6E plan manifest');
+check(hash(read('docs/stages/stage-06e-plan.md'))==='096bd0c9d560249fa8b92ae55de3552573742bbeea3ec69d0f59e1ffedac74cd','Exact6E plan bytes');
+const maintenance=status.reservationMaintenance;
+check(maintenance?.stage==='6E'&&maintenance.planManifest===plan6e.reviewManifest&&maintenance.mode==='LOCAL_SYNTHETIC_MANUAL_RESERVATIONS','6E bounded scope');
+check(maintenance.realPublicationEnabled===false&&maintenance.realPushEnabled===false&&maintenance.iPhone==='USER_DEFERRED','Closed6E live/native gates');
+check(status.installationAnalytics.state==='VERIFIED_LOCAL_QA'&&status.installationAnalytics.commit===reservationBase,'6D completion linkage');
+const sixd=json('docs/stages/stage-06d-completion.json');check(sixd.state==='VERIFIED_AND_BACKED_UP_LOCAL_QA'&&sixd.commit===reservationBase,'Real6D completion evidence');
+for(const [file,sha] of [['20261115000046_reservation_foundation.sql','7a51dd640be803daf44ea7b72de03b050261ed34a8a2f7518fa02ab892595db7'],['20261115000047_reservation_operations.sql','75c1746d60dad93ac22989671f39f2de312e4470f67cbb9fea483fbbffc84561'],['20261115000048_maintenance_cron.sql','a6a439878ac999ecda57d0b46d8b8817430a72a1351ef5bdb02b0249fa404fbb'],['20261115000049_maintenance_observation_guards.sql','abb6865aa594ef0c0c019f18b432a070367b8d87db2fef1c2a67872925d0562f'],['20261115000050_reservation_review_guards.sql','f1a61549ede5b3ebc976b67677e4dba7290d6225152840eb968f9b05e51ba055']])check(hash(read('supabase/migrations/'+file))===sha,'Applied6E migrations immutable '+file);
+for(const f of ['apps/admin/app/api/reservations/[...action]/route.ts','apps/admin/components/ReservationManager.tsx','scripts/test-reservation-schema.mjs','scripts/test-maintenance-retention.mjs','scripts/test-maintenance-live-cron.mjs','scripts/test-reservation-review-guards.mjs'])check(existsSync(path.join(root,f)),'6E implementation '+f);
+console.log(JSON.stringify({status:'PASS',stage:'6E_RESERVATION_MAINTENANCE',checks,limitations:'Source isolation/frozen input gates only. Actual cron, runtime races, browser and DUAL are separate evidence; native SDK unchanged, iPhone deferred.'}));

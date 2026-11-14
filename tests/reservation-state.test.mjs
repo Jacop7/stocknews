@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {reservationInput,parseReservationIntent,kstReservationInput} from '../apps/admin/lib/reservation-state.mjs';
+const id='12000000-0000-4000-8000-000000000001',owner='a'.repeat(64);
+const args={p_issue:id,p_draft_revision:1,p_issue_revision:0,p_policy:2,p_catalog:2,p_due_at:'2026-11-15T09:10:00+09:00',p_request:id};
+test('KST input is explicit and independent of workstation timezone',()=>{assert.equal(kstReservationInput('2026-11-15T09:10'),'2026-11-15T09:10:00+09:00');assert.equal(new Date(kstReservationInput('2026-11-15T09:10')).toISOString(),'2026-11-15T00:10:00.000Z');});
+test('invalid calendar dates and native-local parsing are rejected',()=>{for(const x of ['2026-02-30T12:00','2026-11-15 12:00','2026-11-15T25:00','',null])assert.throws(()=>kstReservationInput(x));});
+test('only exact reservation RPC shapes are accepted',()=>{assert.equal(reservationInput('create',args),true);for(const bad of [{...args,role:'service_role'},{...args,p_catalog:null},{...args,p_due_at:'2026-11-15T09:10:00'},{...args,p_issue:'x'.repeat(36)},{...args,p_request:null}])assert.equal(!!reservationInput('create',bad),false);assert.equal(!!reservationInput('arbitrary',args),false);});
+test('pending intent preserves exact UUID, timestamp and owner but carries no article content',()=>{const value={action:'create',args,owner};assert.deepEqual(parseReservationIntent(JSON.stringify(value)),value);for(const bad of [{...value,owner:''},{...value,secret:'token'},{...value,args:{...args,title:'untrusted content'}}])assert.throws(()=>parseReservationIntent(JSON.stringify(bad)));assert.equal(parseReservationIntent('null'),null);});
+test('cancel and job configuration cannot select SQL, names or destinations',()=>{assert.equal(reservationInput('cancel',{p_schedule:id,p_revision:1,p_request:id}),true);assert.equal(reservationInput('configure',{p_enabled:false}),true);for(const bad of [{p_enabled:1},{p_enabled:true,command:'DELETE'},{p_enabled:true,job:7}])assert.equal(!!reservationInput('configure',bad),false);});

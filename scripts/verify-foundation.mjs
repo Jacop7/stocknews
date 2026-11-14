@@ -8,7 +8,10 @@ import { spawnSync } from 'node:child_process';
 const root = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const status = JSON.parse(readFileSync(path.join(root, 'docs/development-status.json'), 'utf8'));
 const stage = status.currentStage;
-if(status.installationAnalytics?.stage==='6D'){
+if(status.reservationMaintenance?.stage==='6E'){
+  await import('./verify-stage6e-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.installationAnalytics?.stage==='6D'){
   await import('./verify-stage6d-foundation.mjs');
   await import('./verify-stage3-providers.mjs');
 } else if(status.searchBookmarks?.stage==='6C'){

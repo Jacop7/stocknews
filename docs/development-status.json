@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "productId": "judoju-news",
   "currentStage": 6,
-  "state": "IMPLEMENTING_INSTALLATION_ANALYTICS",
+  "state": "IMPLEMENTED_REVIEW_PENDING",
   "externalReviewRecord": "../outputs/development-stages/reviews/stage06d-plan/index.html",
   "nextStage": 6,
   "stages": [
@@ -32,7 +32,7 @@
     },
     {
       "stage": 6,
-      "state": "IMPLEMENTING_INSTALLATION_ANALYTICS"
+      "state": "IMPLEMENTED_REVIEW_PENDING"
     },
     {
       "stage": 7,
@@ -133,7 +133,7 @@
     "P03b": "PARTIAL_API_NATIVE_PENDING",
     "android": "AGENT_OBSERVED_HOME_DETAIL_PARTIAL",
     "ios": "PENDING_NEW_FLOW",
-    "U05": "PENDING_STAGE6"
+    "U05": "VERIFIED_LOCAL_RESERVATION"
   },
   "catalogPreparation": {
     "stage": "6A",
@@ -186,7 +186,7 @@
   },
   "installationAnalytics": {
     "stage": "6D",
-    "state": "IMPLEMENTING",
+    "state": "VERIFIED_LOCAL_QA",
     "planState": "APPROVED_DUAL_R4",
     "planManifest": "24f44f7323078f5d66d5a57de582a266f93cead7f42f2239b868d93d5f837d52",
     "planSha256": "9da4a327c4bab6a67382710b350c9caf4c43c2269da89914ac302bab3cb39a4b",
@@ -196,7 +196,8 @@
     "realPushEnabled": false,
     "operationalAnalyticsEnabled": false,
     "productionIdentityConfigured": false,
-    "nativeGate": "NEW_0006_BUILDS_FINISHED_ANDROID_SECURESTORE_SETTINGS_RESTART_ROTATION_OBSERVED_IOS_USER_DEFERRED"
+    "nativeGate": "NEW_0006_BUILDS_FINISHED_ANDROID_SECURESTORE_SETTINGS_RESTART_ROTATION_OBSERVED_IOS_USER_DEFERRED",
+    "commit": "10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34"
   },
   "repositoryBackup": {
     "forcePush": false,
@@ -204,5 +205,16 @@
     "receipt": "../outputs/development-stages/backups/main-00bebe1d5733.json",
     "authorization": "USER_APPROVED_REVIEWED_COMMITS",
     "unreviewedChangesPushed": false
+  },
+  "reservationMaintenance": {
+    "stage": "6E",
+    "mode": "LOCAL_SYNTHETIC_MANUAL_RESERVATIONS",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "planManifest": "5baf320c018729e3d67e4bb47e75c2951f3a7f628ee9bc4fa4a75000e3a910c3",
+    "realPublicationEnabled": false,
+    "realPushEnabled": false,
+    "iPhone": "USER_DEFERRED",
+    "nativeSdkChanges": 0,
+    "evidence": "docs/stages/stage-06e-runtime.json"
   }
 }

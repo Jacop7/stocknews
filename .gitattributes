@@ -18,3 +18,7 @@ apps/admin/next-env.d.ts -text -filter -ident
 *.png binary
 *.jpg binary
 *.woff2 binary
+# Applied6E SQL fingerprints bind the exact bytes used by the local DDL receipt.
+supabase/migrations/20261115000046_reservation_foundation.sql -text -filter -ident
+supabase/migrations/20261115000047_reservation_operations.sql -text -filter -ident
+supabase/migrations/20261115000048_maintenance_cron.sql -text -filter -ident

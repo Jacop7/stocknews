@@ -1,0 +1,64 @@
+{
+  "stage": "6D",
+  "state": "VERIFIED_AND_BACKED_UP_LOCAL_QA",
+  "implementationComplete": true,
+  "fullStage6Complete": false,
+  "nativeP03bComplete": false,
+  "commit": "10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34",
+  "reviewManifest": "c02d708df1c5ba141cd877762356b5218dc44565db49f188cc2b543f15faca1b",
+  "caseId": "0c74d1447a7f254406f180dcfa546bf7",
+  "roles": {
+    "claude": {
+      "key": "454b1b35ba49e7f0acffec94c111118e241aade3e324509dcc3f8afdefc9ca17",
+      "verdict": "READY",
+      "inputAssurance": "SCOPED_PROJECTION",
+      "modelAssurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "95d992194d82b6e183cc8fbcc024007018f25d4cf1ba7e660fce29a306ae9158",
+      "verdict": "READY",
+      "inputAssurance": "SCOPED_PROJECTION",
+      "modelAssurance": "HOST_ACCEPTED"
+    }
+  },
+  "verification": {
+    "localFinalGroups": 15,
+    "freshFinalGroups": 15,
+    "postCommitGroups": 15,
+    "sourceFiles": 292,
+    "sourceBytesEqual": true,
+    "runtimeChecks": 61,
+    "pureInstallationTests": 13
+  },
+  "backup": {
+    "state": "REMOTE_SHA_CONFIRMED",
+    "remoteCommit": "10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34",
+    "historyBlobsScanned": 409,
+    "force": false
+  },
+  "android": "NEW_0006_PERSISTENCE_ROTATION_DISCONNECT_RESTART_OBSERVED",
+  "ios": "USER_DEFERRED_PHYSICAL_CONFIRMATION",
+  "operational": {
+    "realNews": false,
+    "AI": false,
+    "quotes": false,
+    "push": false,
+    "ads": false,
+    "rankingAnalytics": false
+  },
+  "next": "6E_PLAN_RESERVATION_AND_LOCAL_MAINTENANCE",
+  "nonblockingFollowups": [
+    {
+      "id": "S6DI-03",
+      "severity": "P3",
+      "description": "권고(비차단, r1에서 이어짐): packet 서술대로 해결로 표시하지 않고 후속 권고로 남깁니다. (1) 서버 BOOTSTRAP은 다른 generation의 유효 session cookie가 있어도 허용됩니다. 지금은 클라이언트 probe와 명시적 새 연결 선택이 이를 대신합니다. (2) 인증 없는 start-seal tombstone에 보관 상한이나 정리 기준이 없습니다. (3) useArticleView가 영구 오류에도 5초마다 재시도하고, 같은 ticket이 cooldown EXCLUDED 뒤 새 event_key로 수락될 수 있습니다. 새 권고도 하나 더합니다. (4) SQL45의 gap_since는 한 번 기록되면 해제·전진 수단이 없습니다. 판정식(gap_since<p_end)이 p_start와 무관하므로, gap을 한 번 기록하면 이후 모든 기간(gap 이후에 시작하는 기간 포함)이 영구히 PARTIAL·UV null이 됩니다. 현재는 mark_gap을 호출하는 reconciler가 없어 실제 영향은 없습니다. 다만 reconciler를 연결할 때는 gap 구간(시작·끝)이나 복구 후 새 started_at을 기록하는 방식으로, gap 이후 구간의 완전성을 다시 판정할 수 있게 하길 권합니다.",
+      "location": "apps/admin/lib/installation-runtime.mjs start 분기; supabase/migrations/20261115000042·43(START_SEAL, purge, ACCEPT); supabase/migrations/20261115000045_installation_review_recovery.sql installation_qa_mark_gap·installation_admin_stats quality; apps/mobile/src/data/useArticleView.ts"
+    }
+  ],
+  "limitations": [
+    "Independent reviews are static scoped projections, not independent execution certification.",
+    "Product development-status fields remain the reviewed candidate history; this external completion receipt records final review, commit and backup without mutating reviewed source.",
+    "Source permissions and live7/8 remain closed; full privacy deletion, production policy/store consent and backup restoration remain separate gates."
+  ],
+  "verifiedAt": "2026-11-14T20:17:02.121377+00:00"
+}

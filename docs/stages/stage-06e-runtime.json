@@ -1,0 +1,44 @@
+{
+  "state": "LOCAL_RUNTIME_VERIFIED_IMPLEMENTATION_REVIEW_PENDING",
+  "observedAt": "2026-11-14T20:59:33.036317+00:00",
+  "productId": "judoju-news",
+  "environment": "local",
+  "sampleKind": "SYNTHETIC",
+  "databaseEngine": "PostgreSQL17.11",
+  "cronExtension": "1.6.4",
+  "cronLogRun": true,
+  "cronBackgroundWorkers": false,
+  "timeoutRollback": {
+    "status": "PASS",
+    "actualRunId": 14,
+    "durationSeconds": 5.002908,
+    "versionCount": 0,
+    "outboxCount": 0,
+    "pendingCount": 2
+  },
+  "normalPublication": {
+    "status": "PASS",
+    "articles": 2,
+    "versionsPerIssue": 1,
+    "outboxPerSchedule": 1,
+    "anonymousRead": "PUBLISHED",
+    "repeatPublished": 0
+  },
+  "nativeInputDigest": "f6de4b3bce492b89c5fe47ab80ee4394cea471ee4a68cd476c5e9b7ce80d3fa4",
+  "nativeSdkChanges": 0,
+  "iPhone": "USER_DEFERRED",
+  "fullStage6Complete": false,
+  "realNewsRequests": 0,
+  "aiRequests": 0,
+  "priceRequests": 0,
+  "realPushSent": 0,
+  "adRequests": 0,
+  "rightsHoldEndpoints": 112,
+  "liveGate7": "CLOSED",
+  "liveGate8": "CLOSED",
+  "limitations": [
+    "Own local synthetic cron, no hosted24hoperation or iPhone verification.",
+    "Actual timeout and next-tick publication were observed once; later test invocations reuse this exact observation rather than claim a fresh probe.",
+    "Retention cron is hourly and initially pending first firing; its bounded SQL function was exercised with rollback fixtures."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "state": "APPROVED_DUAL_R2",
+  "caseId": "7a97fce0895dbc88ad8fdf5ba012a869",
+  "reviewManifest": "5baf320c018729e3d67e4bb47e75c2951f3a7f628ee9bc4fa4a75000e3a910c3",
+  "planSha256": "096bd0c9d560249fa8b92ae55de3552573742bbeea3ec69d0f59e1ffedac74cd",
+  "baseCommit": "10cdfefb1f5eed7ffbeac76f8dbfb17f018a6b34",
+  "roles": {
+    "claude": {
+      "key": "0f31849eb6ea5ab878735e6f5cdb1d528a0a18171c4d2373e39b3fd8794357bd",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "86d9f14ab4ed86d273910422803c4ec99f091b4c65f801f2c97d612ed3fdfa06",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "scope": "PLAN_ONLY_NOT_IMPLEMENTATION",
+  "remainingP3": [
+    "S6EP-03: tick lock wait/cancel/save/catalog interleavings must have retry guidance and no mixed state; test in implementation"
+  ],
+  "fullStage6Complete": false,
+  "nativeP03bComplete": false
+}
