@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "policy_version": "source-policy-v1",
+  "status": "PROPOSAL_DISABLED_UNTIL_CONTRACT",
+  "contract_id": null,
+  "currency": null,
+  "cost_limit": null,
+  "live_request_limit": 0,
+  "probe_defaults": {"concurrency": 2, "host_concurrency": 1, "requests": 1, "timeout_ms": 5000, "max_response_bytes": 262144, "max_redirect_hops": 2},
+  "queue_shares": {"BASE_DISCOVERY": 0.4, "SECTOR_MOVERS": 0.25, "HOLD_CORRECTION": 0.2, "LATE_RECOVERY": 0.15},
+  "minimum_service": "PENDING_DISTRIBUTED_SCHEDULER_STAGE_4_8",
+  "units": ["LIST_REQUEST", "ORIGINAL_REQUEST", "PDF_REQUEST", "SEARCH_QUERY", "LLM_TOKEN"],
+  "notice": "Provider/domain limits override proposal. Unconfirmed quotas or prices never enable a request. Shared in-memory probe budget is not a distributed worker quota."
+}

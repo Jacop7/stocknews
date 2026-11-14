@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "IMPLEMENTED_SUPPLY_PENDING",
+  "original_rows": 106,
+  "original_urls": 112,
+  "live_approved_routes": 0,
+  "real_requests_executed": 0,
+  "real_supply_status": "NOT_MEASURED",
+  "quote_status": "EXTERNAL_PENDING",
+  "calendar_status": "EXTERNAL_PENDING",
+  "stage7_live_gate": "CLOSED",
+  "stage8_live_gate": "CLOSED",
+  "m1_stages_4_6": "INDEPENDENT_MANUAL_OR_EXPLICIT_FIXTURE_ONLY",
+  "search_api_decision": "UNCONFIRMED_DISABLED"
+}

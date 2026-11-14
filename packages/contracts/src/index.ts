@@ -17,7 +17,12 @@ export interface RankingContext {snapshot_context_id:string; market_basis:Select
 export interface RankingSnapshot {id:string; context:RankingContext; as_of:string; issueIds:string[];}
 export interface ApiCompatibilityPolicy {policy_version:string; api_contract_version:number; min_supported_app_version:{android:string;ios:string};}
 export interface ApiCompatibilityResponse {policy:ApiCompatibilityPolicy; platform:'android'|'ios'; client_app_version:string; action:'NONE'|'UPDATE_REQUIRED'; store_url:string|null;}
-export interface PriceSnapshot {companyId:string; price:number|null; percentChange:number|null; as_of:string; quality:'VERIFIED'|'MISSING'|'STALE';}
+export interface PriceSnapshot {companyId:string; price:number|null; percentChange:number|null; as_of:string; quality:'VERIFIED'|'MISSING'|'STALE'|'UNAVAILABLE';}
 export type SourceStatus = 'CANDIDATE' | 'RIGHTS_HOLD' | 'TECH_TEST' | 'SHADOW' | 'ACTIVE' | 'PAUSED_RATE_LIMIT' | 'PAUSED_ACCESS' | 'PAUSED_ERROR' | 'DISABLED';
 export interface NewsSource {id:string; canonicalUrl:string; originId:string; status:SourceStatus; permissionProfileId:string; permissionProfileVersion:string;}
 export interface JobEnvelope {id:string; job_schema_version:number; effect_key:string; environment:Environment; payload:unknown;}
+export type SupplySampleKind = 'SYNTHETIC' | 'PERMITTED_REAL';
+export type PermissionPurpose = 'DISCOVERY' | 'LINK_EXTRACTION' | 'QUERY_TERMS' | 'ORIGINAL_ACCESS' | 'STORAGE' | 'ANALYSIS' | 'DISPLAY' | 'MACHINE_ACCESS';
+export interface ProviderPermission {id:string; version:string; endpoint_id:string; status:'UNVERIFIED'|'VERIFIED'|'DENIED'; purposes:Record<PermissionPurpose,'UNKNOWN'|'ALLOW'|'DENY'>; subject:string|null; evidence:string[]; verified_at:string|null; expires_at:string|null; revoked_at:string|null; allowed_hosts:string[]; methods:string[]; max_requests:number; max_bytes:number; timeout_ms:number; retention_days:number|null; contract_id:string|null; credential_status:string;}
+export interface VerifiedQuote {instrumentId:string; venue:'KRX'|'NYSE'|'NASDAQ'; currency:'KRW'|'USD'; sessionId:string; priceType:'LAST'|'CLOSE'; adjustment:'RAW'|'SPLIT'|'TOTAL_RETURN'; price:number|null; referencePrice:number|null; asOf:string; receivedAt:string; sampleKind:SupplySampleKind; permissionVerified:boolean;}
+export interface CalendarSupply {market:'KRX'|'NYSE'|'NASDAQ'; timezone:'Asia/Seoul'|'America/New_York'; coverageStart:string; coverageEnd:string; version:string; validUntil:string; evidenceId:string; sampleKind:SupplySampleKind; permissionVerified:boolean; days:Array<{date:string;closed:boolean;session:{tradingDayId:string;opensAt:string;closesAt:string}|null}>;}

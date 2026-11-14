@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "basis": "뉴스운영 상세로직-v1.1",
+  "cases": [
+    {
+      "id": "A34",
+      "local_evidence": "tests/providers.test.mjs#A34",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A35",
+      "local_evidence": "tests/providers.test.mjs#A35",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A36",
+      "local_evidence": "tests/providers.test.mjs#A36",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A37",
+      "local_evidence": "tests/providers.test.mjs#A37",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        7
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A38",
+      "local_evidence": "tests/providers.test.mjs#A38",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A43",
+      "local_evidence": "tests/providers.test.mjs#A43",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A48",
+      "local_evidence": "tests/providers.test.mjs#A48",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A52",
+      "local_evidence": "tests/providers.test.mjs#A52",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A53",
+      "local_evidence": "tests/providers.test.mjs#A53",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        6,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "A54",
+      "local_evidence": "tests/providers.test.mjs#A54",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    },
+    {
+      "id": "U06",
+      "local_evidence": "tests/providers.test.mjs#U06",
+      "sample_kind": "SYNTHETIC",
+      "external_status": "EXTERNAL_PENDING",
+      "runtime_owner_stages": [
+        4,
+        5,
+        8
+      ],
+      "reason": "Permissions, executable provider adapter and/or real quote/calendar coverage unverified"
+    }
+  ]
+}

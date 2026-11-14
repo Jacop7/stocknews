@@ -275,7 +275,7 @@
         }
       }
     ],
-    "pendingReason": "Workflow and portable whole-checkout verification are stage 2; no hosted execution yet.",
+    "pendingReason": "New workflow and local portable full checks verified in stage2; hosted CI has not run.",
     "userAction": "Review new project-only workflow before first remote execution.",
     "affectedStages": [
       2
@@ -287,7 +287,7 @@
   },
   "externalAccountsConfigured": false,
   "expo": {
-    "status": "PENDING",
+    "status": "AVAILABLE",
     "observations": [
       {
         "command": [
@@ -304,8 +304,8 @@
         }
       }
     ],
-    "pendingReason": "Native builds/device validation and deployment setup are pending; new project link verified.",
-    "userAction": "Authorize new EAS project association after reviewable app setup; no inherited product identifiers.",
+    "pendingReason": "New native development builds finished. Android agent-observed emulator, iOS user-confirmed physical native app; production signing/store release pending.",
+    "userAction": "No further device action needed for stage2 development verification. Production release remains a later gate.",
     "affectedStages": [
       2
     ],
@@ -315,7 +315,8 @@
       "google_play_registration"
     ],
     "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
-    "projectStatus": "LINK_VERIFIED_CLI"
+    "projectStatus": "LINK_VERIFIED_CLI",
+    "nativeEvidence": "docs/native-release.json"
   },
   "stores": {
     "status": "PENDING",

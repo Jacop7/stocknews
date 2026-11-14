@@ -1,0 +1,4979 @@
+{
+  "schema_version": 1,
+  "policy_version": "source-policy-v1",
+  "routes": [
+    {
+      "source_id": "S002",
+      "original_row": 2,
+      "endpoint_ids": [
+        "Ef87d143db1a01911"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S003",
+      "original_row": 3,
+      "endpoint_ids": [
+        "E5f65b431066669fe"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S004",
+      "original_row": 4,
+      "endpoint_ids": [
+        "E4c356ba78a43c717"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S005",
+      "original_row": 5,
+      "endpoint_ids": [
+        "E3655841e4ee57569"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S006",
+      "original_row": 6,
+      "endpoint_ids": [
+        "E3bd5d0c1733540ef"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S007",
+      "original_row": 7,
+      "endpoint_ids": [
+        "Eb7ce365b1c97fbb7"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S008",
+      "original_row": 8,
+      "endpoint_ids": [
+        "E77dfb1493bd26516"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S009",
+      "original_row": 9,
+      "endpoint_ids": [
+        "Eb8fd4bb97131f9ca"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S010",
+      "original_row": 10,
+      "endpoint_ids": [
+        "Ea32b8b24442bdada"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S011",
+      "original_row": 11,
+      "endpoint_ids": [
+        "E28732a9cf0090b00"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S012",
+      "original_row": 12,
+      "endpoint_ids": [
+        "Edb7129dbbd356c7c"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S013",
+      "original_row": 13,
+      "endpoint_ids": [
+        "E5ab67fe952264996"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S014",
+      "original_row": 14,
+      "endpoint_ids": [
+        "E9072b517572861c8"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S015",
+      "original_row": 15,
+      "endpoint_ids": [
+        "E8dddb9129ced5f52"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S016",
+      "original_row": 16,
+      "endpoint_ids": [
+        "Eced32d9a14377ae2"
+      ],
+      "schedule_class": "REPORT_BOT",
+      "origin_resolution_rule": "BOT_REPORT",
+      "effective_kind": "REPORT_BOT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S017",
+      "original_row": 17,
+      "endpoint_ids": [
+        "Ed2ae4a78c257aff2"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S018",
+      "original_row": 18,
+      "endpoint_ids": [
+        "Eacbea1a3673281be"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S019",
+      "original_row": 19,
+      "endpoint_ids": [
+        "E0b791f013abd4499"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S020",
+      "original_row": 20,
+      "endpoint_ids": [
+        "Ebb12b87f1437a6bc"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S021",
+      "original_row": 21,
+      "endpoint_ids": [
+        "E6a6a28dfa34b836a"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S022",
+      "original_row": 22,
+      "endpoint_ids": [
+        "Eabab9336b1673a37"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S023",
+      "original_row": 23,
+      "endpoint_ids": [
+        "E11b46897258b8fff"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S024",
+      "original_row": 24,
+      "endpoint_ids": [
+        "E91685320dd4aa18d"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S025",
+      "original_row": 25,
+      "endpoint_ids": [
+        "Ea7b087ca144536eb"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S026",
+      "original_row": 26,
+      "endpoint_ids": [
+        "E539561fe43e6555c"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S027",
+      "original_row": 27,
+      "endpoint_ids": [
+        "E216e65f9fe05bd70"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S028",
+      "original_row": 28,
+      "endpoint_ids": [
+        "E06a7e119ed7a926d"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S029",
+      "original_row": 29,
+      "endpoint_ids": [
+        "E0bef23e88d4b4516"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S030",
+      "original_row": 30,
+      "endpoint_ids": [
+        "E41bbab7fe43ed539"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S031",
+      "original_row": 31,
+      "endpoint_ids": [
+        "E5b644dc29e23c115"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S032",
+      "original_row": 32,
+      "endpoint_ids": [
+        "E9ad8ceaee8a9eec6"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S033",
+      "original_row": 33,
+      "endpoint_ids": [
+        "E550c1e980dfbd841"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S034",
+      "original_row": 34,
+      "endpoint_ids": [
+        "Ed8fc343b9608e1de"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S035",
+      "original_row": 35,
+      "endpoint_ids": [
+        "E9cc46610fe0fd5bf"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S036",
+      "original_row": 36,
+      "endpoint_ids": [
+        "E3de324983c2bc2d9"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S037",
+      "original_row": 37,
+      "endpoint_ids": [
+        "E8a0f647e0cb6fc2d"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S038",
+      "original_row": 38,
+      "endpoint_ids": [
+        "Ebde6646c95b9cec7"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S039",
+      "original_row": 39,
+      "endpoint_ids": [
+        "Ef11e35b18b671e9a"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S040",
+      "original_row": 40,
+      "endpoint_ids": [
+        "Ea5792196a6d7e4a1"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S041",
+      "original_row": 41,
+      "endpoint_ids": [
+        "E47bab06f426e41c1"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S042",
+      "original_row": 42,
+      "endpoint_ids": [
+        "Ea8c6cbed68446017"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S043",
+      "original_row": 43,
+      "endpoint_ids": [
+        "Ed821956fa4acabf0"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S044",
+      "original_row": 44,
+      "endpoint_ids": [
+        "E9310ca695ebea699"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S045",
+      "original_row": 45,
+      "endpoint_ids": [
+        "E017cbb086ae7c45b"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S046",
+      "original_row": 46,
+      "endpoint_ids": [
+        "E56389d60a724e945"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S047",
+      "original_row": 47,
+      "endpoint_ids": [
+        "Eb42d5757a87af22a"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S048",
+      "original_row": 48,
+      "endpoint_ids": [
+        "E8626c2650bf659b5"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S049",
+      "original_row": 49,
+      "endpoint_ids": [
+        "E8b8a6e8c538dfde8"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S050",
+      "original_row": 50,
+      "endpoint_ids": [
+        "E2d563fd245d7383f"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S051",
+      "original_row": 51,
+      "endpoint_ids": [
+        "E7e01dc18396d6d48"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "미국주식"
+    },
+    {
+      "source_id": "S052",
+      "original_row": 52,
+      "endpoint_ids": [
+        "E3bfdd124789f126b"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "미국주식"
+    },
+    {
+      "source_id": "S053",
+      "original_row": 53,
+      "endpoint_ids": [
+        "Eb6da77c514305bc6"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "중국주식"
+    },
+    {
+      "source_id": "S054",
+      "original_row": 54,
+      "endpoint_ids": [
+        "E9e5aeaa2a156bc4b"
+      ],
+      "schedule_class": "TELEGRAM_EVENT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "TELEGRAM",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "텔레그램",
+      "market": "중국주식"
+    },
+    {
+      "source_id": "S055",
+      "original_row": 55,
+      "endpoint_ids": [
+        "Eb27779708efaf464",
+        "Efc1ae514dfd536c8"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S056",
+      "original_row": 56,
+      "endpoint_ids": [
+        "E54786506b0667b12",
+        "E17227a4911f50bad"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S057",
+      "original_row": 57,
+      "endpoint_ids": [
+        "E8217a7ec7f74fe13"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S058",
+      "original_row": 58,
+      "endpoint_ids": [
+        "Ec444584f6871b7b7"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S059",
+      "original_row": 59,
+      "endpoint_ids": [
+        "E7cabecafa7994325"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S060",
+      "original_row": 60,
+      "endpoint_ids": [
+        "E7533127d987e0b80"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S061",
+      "original_row": 61,
+      "endpoint_ids": [
+        "Ea1dd6da3dada8dee"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S062",
+      "original_row": 62,
+      "endpoint_ids": [
+        "Ed2a964a715f25270",
+        "Ea706a5aefd10b0cf"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S063",
+      "original_row": 63,
+      "endpoint_ids": [
+        "E379361cd83ca27e0"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S064",
+      "original_row": 64,
+      "endpoint_ids": [
+        "E8907d636bceceb90"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "COMPANY_AND_INDUSTRY",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S065",
+      "original_row": 65,
+      "endpoint_ids": [
+        "E315c03e1a2e69163",
+        "Eefb6b4c8e86d9737"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S066",
+      "original_row": 66,
+      "endpoint_ids": [
+        "Edf9d37b4a82ff01e",
+        "Ec0edcbc7d1e6fed8"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S067",
+      "original_row": 67,
+      "endpoint_ids": [
+        "E359419d26185d865"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "COMPANY_ONLY",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S068",
+      "original_row": 68,
+      "endpoint_ids": [
+        "E7458965db2f801ba",
+        "E63c7a10fac641c0a"
+      ],
+      "schedule_class": "REPORT",
+      "origin_resolution_rule": "RESEARCH_ORIGIN",
+      "effective_kind": "REPORT",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "리포트",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S069",
+      "original_row": 69,
+      "endpoint_ids": [
+        "E03aa1a289c31837b"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S070",
+      "original_row": 70,
+      "endpoint_ids": [
+        "E81c8c8c2f211db5d"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S071",
+      "original_row": 71,
+      "endpoint_ids": [
+        "E57e007fb19d83a96"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S072",
+      "original_row": 72,
+      "endpoint_ids": [
+        "E294ac6a76e412281"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S073",
+      "original_row": 73,
+      "endpoint_ids": [
+        "E52a7718ff0386ac5"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S074",
+      "original_row": 74,
+      "endpoint_ids": [
+        "E81064321c7edf338"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S075",
+      "original_row": 75,
+      "endpoint_ids": [
+        "E9840c353e96dd370"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S076",
+      "original_row": 76,
+      "endpoint_ids": [
+        "E5f4d8f1a5465d4d1"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S077",
+      "original_row": 77,
+      "endpoint_ids": [
+        "Ecec2fea4ff89f318"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S078",
+      "original_row": 78,
+      "endpoint_ids": [
+        "E05ad8c54e511554a"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S079",
+      "original_row": 79,
+      "endpoint_ids": [
+        "E2691b422ed560073"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "PLATFORM_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S080",
+      "original_row": 80,
+      "endpoint_ids": [
+        "E19b0d2dc572ff7a1"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S081",
+      "original_row": 81,
+      "endpoint_ids": [
+        "E97008e81c10e70cf"
+      ],
+      "schedule_class": "N_STOCK",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S082",
+      "original_row": 82,
+      "endpoint_ids": [
+        "Ea310326b90c39634"
+      ],
+      "schedule_class": "N_MACRO",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S083",
+      "original_row": 83,
+      "endpoint_ids": [
+        "Eda8816bf4c28231a"
+      ],
+      "schedule_class": "N_MACRO",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S084",
+      "original_row": 84,
+      "endpoint_ids": [
+        "E00be02b904743b60"
+      ],
+      "schedule_class": "N_MACRO",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S085",
+      "original_row": 85,
+      "endpoint_ids": [
+        "E0cbaa69b9193386f"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "PLATFORM_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S086",
+      "original_row": 86,
+      "endpoint_ids": [
+        "E7e47d8524584d5de"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "PLATFORM_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S087",
+      "original_row": 87,
+      "endpoint_ids": [
+        "E42d5759bbd0a9460"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S088",
+      "original_row": 88,
+      "endpoint_ids": [
+        "E77f0ba172f1f7f47"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S089",
+      "original_row": 89,
+      "endpoint_ids": [
+        "E6fed475fd1519a79"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "PLATFORM_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S090",
+      "original_row": 90,
+      "endpoint_ids": [
+        "E557eca449099a818"
+      ],
+      "schedule_class": "N_DISCOVERY",
+      "origin_resolution_rule": "PLATFORM_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "한국주식"
+    },
+    {
+      "source_id": "S091",
+      "original_row": 91,
+      "endpoint_ids": [
+        "E7a49a6015e60c353"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S092",
+      "original_row": 92,
+      "endpoint_ids": [
+        "Ea2e76713da7c84a7"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S093",
+      "original_row": 93,
+      "endpoint_ids": [
+        "Eca0f832fdb9e5486"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S094",
+      "original_row": 94,
+      "endpoint_ids": [
+        "Ebb9d1f9b75a219b4"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S095",
+      "original_row": 95,
+      "endpoint_ids": [
+        "Efc040451b28809eb"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S096",
+      "original_row": 96,
+      "endpoint_ids": [
+        "Ed9562e8b3d8b8e78"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S097",
+      "original_row": 97,
+      "endpoint_ids": [
+        "E7b20ef885657c7c7"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S098",
+      "original_row": 98,
+      "endpoint_ids": [
+        "E1df78160c81d9540"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S099",
+      "original_row": 99,
+      "endpoint_ids": [
+        "Ec16ef58b0a2cc21e"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S100",
+      "original_row": 100,
+      "endpoint_ids": [
+        "E887edbc1eae5f677"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S101",
+      "original_row": 101,
+      "endpoint_ids": [
+        "E6b70405e06ee726c"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "SYNDICATION_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S102",
+      "original_row": 102,
+      "endpoint_ids": [
+        "E1cc204a9eb1efd4a"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "SYNDICATION_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S103",
+      "original_row": 103,
+      "endpoint_ids": [
+        "Eb58e40ac6d3be50d"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "SYNDICATION_RESOLVE",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S104",
+      "original_row": 104,
+      "endpoint_ids": [
+        "E2a466ddcc4a3b675"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S105",
+      "original_row": 105,
+      "endpoint_ids": [
+        "E1ab2031b2f922f39"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S106",
+      "original_row": 106,
+      "endpoint_ids": [
+        "Eb06d587876a5de24"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    },
+    {
+      "source_id": "S107",
+      "original_row": 107,
+      "endpoint_ids": [
+        "E00955f6cf1ac8941"
+      ],
+      "schedule_class": "GLOBAL",
+      "origin_resolution_rule": "NEWSROOM_VERIFY",
+      "effective_kind": "NEWS",
+      "content_filter": "AS_REGISTERED",
+      "independence_status": "UNRESOLVED",
+      "source_type": "뉴스",
+      "market": "해외주식"
+    }
+  ],
+  "endpoints": [
+    {
+      "endpoint_id": "Ef87d143db1a01911",
+      "url": "https://t.me/s/KiwoomResearch",
+      "source_ids": [
+        "S002"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pf87d143db1a01911",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E5f65b431066669fe",
+      "url": "https://t.me/s/shinhanresearch",
+      "source_ids": [
+        "S003"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P5f65b431066669fe",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E4c356ba78a43c717",
+      "url": "https://t.me/s/HanaResearch",
+      "source_ids": [
+        "S004"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P4c356ba78a43c717",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E3655841e4ee57569",
+      "url": "https://t.me/s/meritz_research",
+      "source_ids": [
+        "S005"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P3655841e4ee57569",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E3bd5d0c1733540ef",
+      "url": "https://t.me/s/dsrsc",
+      "source_ids": [
+        "S006"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P3bd5d0c1733540ef",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb7ce365b1c97fbb7",
+      "url": "https://t.me/s/daolresearch",
+      "source_ids": [
+        "S007"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb7ce365b1c97fbb7",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E77dfb1493bd26516",
+      "url": "https://t.me/s/yuantaresearch",
+      "source_ids": [
+        "S008"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P77dfb1493bd26516",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb8fd4bb97131f9ca",
+      "url": "https://t.me/s/ssi_research",
+      "source_ids": [
+        "S009"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb8fd4bb97131f9ca",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea32b8b24442bdada",
+      "url": "https://t.me/s/sksresearch",
+      "source_ids": [
+        "S010"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa32b8b24442bdada",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E28732a9cf0090b00",
+      "url": "https://t.me/s/lssec_official",
+      "source_ids": [
+        "S011"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P28732a9cf0090b00",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Edb7129dbbd356c7c",
+      "url": "https://t.me/s/lovequant",
+      "source_ids": [
+        "S012"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pdb7129dbbd356c7c",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E5ab67fe952264996",
+      "url": "https://t.me/s/leadingr",
+      "source_ids": [
+        "S013"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P5ab67fe952264996",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9072b517572861c8",
+      "url": "https://t.me/s/hmsecresearch",
+      "source_ids": [
+        "S014"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9072b517572861c8",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8dddb9129ced5f52",
+      "url": "https://t.me/s/KyoboRSC",
+      "source_ids": [
+        "S015"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8dddb9129ced5f52",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eced32d9a14377ae2",
+      "url": "https://t.me/kbrcbot",
+      "source_ids": [
+        "S016"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pced32d9a14377ae2",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "BOT_ADAPTER_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ed2ae4a78c257aff2",
+      "url": "https://t.me/s/jw_tech",
+      "source_ids": [
+        "S017"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pd2ae4a78c257aff2",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eacbea1a3673281be",
+      "url": "https://t.me/s/meritz_tech",
+      "source_ids": [
+        "S018"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pacbea1a3673281be",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E0b791f013abd4499",
+      "url": "https://t.me/joinchat/AAAAAEzdnv5WVVG1tB00ng",
+      "source_ids": [
+        "S019"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P0b791f013abd4499",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ebb12b87f1437a6bc",
+      "url": "https://t.me/s/kisemicon",
+      "source_ids": [
+        "S020"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pbb12b87f1437a6bc",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E6a6a28dfa34b836a",
+      "url": "https://t.me/s/eugene2team",
+      "source_ids": [
+        "S021"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P6a6a28dfa34b836a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eabab9336b1673a37",
+      "url": "https://t.me/s/kiwoom_semibat",
+      "source_ids": [
+        "S022"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pabab9336b1673a37",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E11b46897258b8fff",
+      "url": "https://t.me/s/semirae",
+      "source_ids": [
+        "S023"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P11b46897258b8fff",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E91685320dd4aa18d",
+      "url": "https://t.me/s/hyungkeunryu",
+      "source_ids": [
+        "S024"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P91685320dd4aa18d",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea7b087ca144536eb",
+      "url": "https://t.me/s/kiwoomdisplay",
+      "source_ids": [
+        "S025"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa7b087ca144536eb",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E539561fe43e6555c",
+      "url": "https://t.me/s/itforyoufromhana",
+      "source_ids": [
+        "S026"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P539561fe43e6555c",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E216e65f9fe05bd70",
+      "url": "https://t.me/s/skitteam",
+      "source_ids": [
+        "S027"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P216e65f9fe05bd70",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E06a7e119ed7a926d",
+      "url": "https://t.me/s/kis_robotics",
+      "source_ids": [
+        "S028"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P06a7e119ed7a926d",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E0bef23e88d4b4516",
+      "url": "https://t.me/s/anna7673",
+      "source_ids": [
+        "S029"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P0bef23e88d4b4516",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E41bbab7fe43ed539",
+      "url": "https://t.me/s/s_esthermobility",
+      "source_ids": [
+        "S030"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P41bbab7fe43ed539",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E5b644dc29e23c115",
+      "url": "https://t.me/s/joonsungkim",
+      "source_ids": [
+        "S031"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P5b644dc29e23c115",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9ad8ceaee8a9eec6",
+      "url": "https://t.me/joinchat/AAAAAEdgBvdyWhiwr6bp0A",
+      "source_ids": [
+        "S032"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9ad8ceaee8a9eec6",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E550c1e980dfbd841",
+      "url": "https://t.me/s/hanhwasmall",
+      "source_ids": [
+        "S033"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P550c1e980dfbd841",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ed8fc343b9608e1de",
+      "url": "https://t.me/s/meritzbae",
+      "source_ids": [
+        "S034"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pd8fc343b9608e1de",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9cc46610fe0fd5bf",
+      "url": "https://t.me/s/skscyclical",
+      "source_ids": [
+        "S035"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9cc46610fe0fd5bf",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E3de324983c2bc2d9",
+      "url": "https://t.me/joinchat/AAAAAFUmx2eqwD3Ir-9tow",
+      "source_ids": [
+        "S036"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P3de324983c2bc2d9",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8a0f647e0cb6fc2d",
+      "url": "https://t.me/s/thetransport",
+      "source_ids": [
+        "S037"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8a0f647e0cb6fc2d",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ebde6646c95b9cec7",
+      "url": "https://t.me/s/kb_epc_mj",
+      "source_ids": [
+        "S038"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pbde6646c95b9cec7",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ef11e35b18b671e9a",
+      "url": "https://t.me/s/huhpharm",
+      "source_ids": [
+        "S039"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pf11e35b18b671e9a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea5792196a6d7e4a1",
+      "url": "https://t.me/s/kis_healthcare",
+      "source_ids": [
+        "S040"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa5792196a6d7e4a1",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E47bab06f426e41c1",
+      "url": "https://t.me/s/nhis_bio",
+      "source_ids": [
+        "S041"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P47bab06f426e41c1",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea8c6cbed68446017",
+      "url": "https://t.me/s/dh_finance",
+      "source_ids": [
+        "S042"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa8c6cbed68446017",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ed821956fa4acabf0",
+      "url": "https://t.me/joinchat/AAAAAFQ64qwp_9oen6L1rQ",
+      "source_ids": [
+        "S043"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pd821956fa4acabf0",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9310ca695ebea699",
+      "url": "https://t.me/s/alexppark",
+      "source_ids": [
+        "S044"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9310ca695ebea699",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E017cbb086ae7c45b",
+      "url": "https://t.me/s/thisisoritel",
+      "source_ids": [
+        "S045"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P017cbb086ae7c45b",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E56389d60a724e945",
+      "url": "https://t.me/s/kmj_retailcosmetics",
+      "source_ids": [
+        "S046"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P56389d60a724e945",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb42d5757a87af22a",
+      "url": "https://t.me/s/meritz_fnb",
+      "source_ids": [
+        "S047"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb42d5757a87af22a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8626c2650bf659b5",
+      "url": "https://t.me/joinchat/AAAAAFMSA8MfUbhOmXgdDw",
+      "source_ids": [
+        "S048"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8626c2650bf659b5",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8b8a6e8c538dfde8",
+      "url": "https://t.me/s/airswimmy",
+      "source_ids": [
+        "S049"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8b8a6e8c538dfde8",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E2d563fd245d7383f",
+      "url": "https://t.me/s/internetgameljh",
+      "source_ids": [
+        "S050"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P2d563fd245d7383f",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7e01dc18396d6d48",
+      "url": "https://t.me/s/kwusa",
+      "source_ids": [
+        "S051"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7e01dc18396d6d48",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E3bfdd124789f126b",
+      "url": "https://t.me/s/hana_us_stock",
+      "source_ids": [
+        "S052"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P3bfdd124789f126b",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb6da77c514305bc6",
+      "url": "https://t.me/s/hanachina",
+      "source_ids": [
+        "S053"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb6da77c514305bc6",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9e5aeaa2a156bc4b",
+      "url": "https://t.me/s/jkc123",
+      "source_ids": [
+        "S054"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9e5aeaa2a156bc4b",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb27779708efaf464",
+      "url": "https://www.kiwoom.com/h/invest/research/VAnalCRView",
+      "source_ids": [
+        "S055"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb27779708efaf464",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Efc1ae514dfd536c8",
+      "url": "https://www.kiwoom.com/h/invest/research/VAnalCIView?dummyVal=0",
+      "source_ids": [
+        "S055"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pfc1ae514dfd536c8",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E54786506b0667b12",
+      "url": "https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800",
+      "source_ids": [
+        "S056"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P54786506b0667b12",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E17227a4911f50bad",
+      "url": "https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1525",
+      "source_ids": [
+        "S056"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P17227a4911f50bad",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8217a7ec7f74fe13",
+      "url": "https://m.shinhansec.com/mweb/invt/shrh/ishrh1001?tabIdx=1",
+      "source_ids": [
+        "S057"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8217a7ec7f74fe13",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ec444584f6871b7b7",
+      "url": "http://money2.daishin.co.kr/E5/ResearchCenter/Work/Research_BasicList.aspx?pr_code=4",
+      "source_ids": [
+        "S058"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pc444584f6871b7b7",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7cabecafa7994325",
+      "url": "http://www.leading.co.kr/board/EquityResearch/list",
+      "source_ids": [
+        "S059"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7cabecafa7994325",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7533127d987e0b80",
+      "url": "https://www.heungkuksec.co.kr/research/company/list.do",
+      "source_ids": [
+        "S060"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7533127d987e0b80",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea1dd6da3dada8dee",
+      "url": "https://sangsanginib.com/research/enterpriseReport/enterpriseReportView",
+      "source_ids": [
+        "S061"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa1dd6da3dada8dee",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ed2a964a715f25270",
+      "url": "https://www.myasset.com/myasset/research/rs_list/rs_list.cmd?cd006=&cd007=RE01&cd008=&1768336068001",
+      "source_ids": [
+        "S062"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pd2a964a715f25270",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea706a5aefd10b0cf",
+      "url": "https://www.myasset.com/myasset/research/rs_list/rs_list.cmd?cd006=&cd007=RE02&cd008=",
+      "source_ids": [
+        "S062"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa706a5aefd10b0cf",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E379361cd83ca27e0",
+      "url": "https://mprod.hmsec.com/m/trade/research/list?tabMenu=new&sortType=type02&haveStock=N&keyword=&viewName=",
+      "source_ids": [
+        "S063"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P379361cd83ca27e0",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E8907d636bceceb90",
+      "url": "https://www.hanaw.com/main/research/researchReform/RC_000100_T3.cmd?ctgr_cd=CTGY_CD_002",
+      "source_ids": [
+        "S064"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P8907d636bceceb90",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E315c03e1a2e69163",
+      "url": "https://www.iprovest.com/weblogic/RSReportServlet?scr_id=34&mode=list&menuCode=3&pageNum=1&DT1&DT2&srch_db=0",
+      "source_ids": [
+        "S065"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P315c03e1a2e69163",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eefb6b4c8e86d9737",
+      "url": "https://www.iprovest.com/weblogic/RSReportServlet?scr_id=40&menuCode=9&srch_db=0&QU=&DT1=&DT2=&provestz=&pageNum=2",
+      "source_ids": [
+        "S065"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pefb6b4c8e86d9737",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED",
+        "ENDPOINT_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Edf9d37b4a82ff01e",
+      "url": "https://m.ibks.com/iko/IKO010201.do",
+      "source_ids": [
+        "S066"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pdf9d37b4a82ff01e",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ec0edcbc7d1e6fed8",
+      "url": "https://m.ibks.com/iko/IKO010301.do",
+      "source_ids": [
+        "S066"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pc0edcbc7d1e6fed8",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E359419d26185d865",
+      "url": "https://www.daolsecurities.com/research/article/common.jspx?rGubun=I01&sctrGubun=I02&web=0",
+      "source_ids": [
+        "S067"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P359419d26185d865",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7458965db2f801ba",
+      "url": "https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls1",
+      "source_ids": [
+        "S068"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7458965db2f801ba",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E63c7a10fac641c0a",
+      "url": "https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls2&viewclass=",
+      "source_ids": [
+        "S068"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P63c7a10fac641c0a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E03aa1a289c31837b",
+      "url": "https://www.ksdaily.co.kr/news/articleList.html?sc_section_code=S1N1&view_type=sm",
+      "source_ids": [
+        "S069"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P03aa1a289c31837b",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E81c8c8c2f211db5d",
+      "url": "https://www.g-enews.com/list.php?ct=g120100",
+      "source_ids": [
+        "S070"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P81c8c8c2f211db5d",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E57e007fb19d83a96",
+      "url": "https://www.hankyung.com/koreamarket/1114",
+      "source_ids": [
+        "S071"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P57e007fb19d83a96",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E294ac6a76e412281",
+      "url": "https://www.mt.co.kr/stock/stocknews",
+      "source_ids": [
+        "S072"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P294ac6a76e412281",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E52a7718ff0386ac5",
+      "url": "https://www.etoday.co.kr/market/hot-stock",
+      "source_ids": [
+        "S073"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P52a7718ff0386ac5",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E81064321c7edf338",
+      "url": "https://www.asiae.co.kr/list/stock-disclosure",
+      "source_ids": [
+        "S074"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P81064321c7edf338",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E9840c353e96dd370",
+      "url": "https://www.hansbiz.co.kr/news/articleList.html?sc_section_code=S1N54&view_type=sm",
+      "source_ids": [
+        "S075"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P9840c353e96dd370",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E5f4d8f1a5465d4d1",
+      "url": "https://www.infostockdaily.co.kr/news/articleList.html?sc_section_code=S1N17&view_type=sm",
+      "source_ids": [
+        "S076"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P5f4d8f1a5465d4d1",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ecec2fea4ff89f318",
+      "url": "https://www.ekn.kr/web/section.php?ncid=N03_01",
+      "source_ids": [
+        "S077"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pcec2fea4ff89f318",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E05ad8c54e511554a",
+      "url": "https://www.sedaily.com/market/domesticStock",
+      "source_ids": [
+        "S078"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P05ad8c54e511554a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E2691b422ed560073",
+      "url": "https://www.thinkpool.com/analysis/news?newsTabCode=1",
+      "source_ids": [
+        "S079"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P2691b422ed560073",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E19b0d2dc572ff7a1",
+      "url": "https://www.wowtv.co.kr/NewsCenter/News/NewsList?subMenu=stock&menuSeq=460",
+      "source_ids": [
+        "S080"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P19b0d2dc572ff7a1",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E97008e81c10e70cf",
+      "url": "https://www.newspim.com/news/lists/?category_cd=105060",
+      "source_ids": [
+        "S081"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P97008e81c10e70cf",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea310326b90c39634",
+      "url": "https://mbnmoney.mbn.co.kr/stock/news?news_service_id=10011",
+      "source_ids": [
+        "S082"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa310326b90c39634",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eda8816bf4c28231a",
+      "url": "https://www.hankyung.com/koreamarket/1113",
+      "source_ids": [
+        "S083"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pda8816bf4c28231a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E00be02b904743b60",
+      "url": "https://www.asiae.co.kr/list/market-overview",
+      "source_ids": [
+        "S084"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P00be02b904743b60",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E0cbaa69b9193386f",
+      "url": "https://www.tossinvest.com/feed/news",
+      "source_ids": [
+        "S085"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P0cbaa69b9193386f",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7e47d8524584d5de",
+      "url": "https://www.moneytoring.ai/mv/new",
+      "source_ids": [
+        "S086"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7e47d8524584d5de",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E42d5759bbd0a9460",
+      "url": "https://biz.heraldcorp.com/stock",
+      "source_ids": [
+        "S087"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P42d5759bbd0a9460",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E77f0ba172f1f7f47",
+      "url": "https://www.mediapen.com/news/lists/?menu=m1&cate_cd2=40019",
+      "source_ids": [
+        "S088"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P77f0ba172f1f7f47",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E6fed475fd1519a79",
+      "url": "https://www.moneytoring.ai/mv",
+      "source_ids": [
+        "S089"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P6fed475fd1519a79",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E557eca449099a818",
+      "url": "https://oneshotstock.com/",
+      "source_ids": [
+        "S090"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P557eca449099a818",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7a49a6015e60c353",
+      "url": "https://www.g-enews.com/list.php?ct=g121000",
+      "source_ids": [
+        "S091"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7a49a6015e60c353",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ea2e76713da7c84a7",
+      "url": "https://www.g-enews.com/list.php?ct=g121100",
+      "source_ids": [
+        "S092"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pa2e76713da7c84a7",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eca0f832fdb9e5486",
+      "url": "https://www.g-enews.com/list.php?ct=g121200",
+      "source_ids": [
+        "S093"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pca0f832fdb9e5486",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ebb9d1f9b75a219b4",
+      "url": "https://www.fnnews.com/series/5819",
+      "source_ids": [
+        "S094"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pbb9d1f9b75a219b4",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Efc040451b28809eb",
+      "url": "https://www.edaily.co.kr/articles/global/economy",
+      "source_ids": [
+        "S095"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pfc040451b28809eb",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ed9562e8b3d8b8e78",
+      "url": "https://www.edaily.co.kr/articles/global/enterprise",
+      "source_ids": [
+        "S096"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pd9562e8b3d8b8e78",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E7b20ef885657c7c7",
+      "url": "https://www.edaily.co.kr/globalmarket",
+      "source_ids": [
+        "S097"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P7b20ef885657c7c7",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E1df78160c81d9540",
+      "url": "https://www.yna.co.kr/market-plus/global-market",
+      "source_ids": [
+        "S098"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P1df78160c81d9540",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Ec16ef58b0a2cc21e",
+      "url": "https://www.cnbc.com/markets/",
+      "source_ids": [
+        "S099"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pc16ef58b0a2cc21e",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E887edbc1eae5f677",
+      "url": "https://www.cnbc.com/earnings/",
+      "source_ids": [
+        "S100"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P887edbc1eae5f677",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E6b70405e06ee726c",
+      "url": "https://finance.yahoo.com/topic/latest-news/",
+      "source_ids": [
+        "S101"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P6b70405e06ee726c",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E1cc204a9eb1efd4a",
+      "url": "https://www.investing.com/news/stock-market-news",
+      "source_ids": [
+        "S102"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P1cc204a9eb1efd4a",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb58e40ac6d3be50d",
+      "url": "https://www.benzinga.com/news",
+      "source_ids": [
+        "S103"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb58e40ac6d3be50d",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E2a466ddcc4a3b675",
+      "url": "https://apnews.com/hub/financial-markets",
+      "source_ids": [
+        "S104"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P2a466ddcc4a3b675",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E1ab2031b2f922f39",
+      "url": "https://focustaiwan.tw/business",
+      "source_ids": [
+        "S105"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P1ab2031b2f922f39",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "Eb06d587876a5de24",
+      "url": "https://www.channelnewsasia.com/business",
+      "source_ids": [
+        "S106"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "Pb06d587876a5de24",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    },
+    {
+      "endpoint_id": "E00955f6cf1ac8941",
+      "url": "https://www.datacenterdynamics.com/en/news/",
+      "source_ids": [
+        "S107"
+      ],
+      "publisher_id": null,
+      "owner_group_id": null,
+      "origin_group_id": null,
+      "navigation_path": null,
+      "tab_recipe": null,
+      "adapter_version": null,
+      "enabled_scopes": [],
+      "checkpoint": null,
+      "overlap_window_minutes": 30,
+      "correction_watch": {
+        "status": "PENDING",
+        "reason": "NOT_IMPLEMENTED_STAGE_8"
+      },
+      "max_rps": null,
+      "timeout_ms": null,
+      "concurrency": null,
+      "health_state": "NOT_TESTED",
+      "permission_profile_id": "P00955f6cf1ac8941",
+      "permission_profile_version": "1",
+      "status": "RIGHTS_HOLD",
+      "blocked_reasons": [
+        "RIGHTS_UNVERIFIED"
+      ],
+      "config_version": "1"
+    }
+  ]
+}

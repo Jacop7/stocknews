@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "sample_kind": "SYNTHETIC",
+  "publishable": false,
+  "frozen_release_dataset": false,
+  "cases": [
+    {
+      "id": "SYN_1",
+      "title": "기업 A HBM 신규 투자 확정",
+      "expected": "SECTOR_EVENT",
+      "basis": "Official investment and verified KR supply link required"
+    },
+    {
+      "id": "SYN_2",
+      "title": "금리 인상 확정 및 한국 자금조달 경로",
+      "expected": "SYSTEMIC_MACRO",
+      "basis": "official original or independent3 and KR path"
+    },
+    {
+      "id": "SYN_3",
+      "title": "계좌 신규 개설 이벤트",
+      "expected": "PROMOTION",
+      "basis": "Account/financial product promotion excluded"
+    },
+    {
+      "id": "SYN_4",
+      "title": "주가지수 약보합 마감 숫자 나열",
+      "expected": "OUT_OF_SCOPE",
+      "basis": "No causal new market event"
+    },
+    {
+      "id": "SYN_5",
+      "title": "기존 수주 기사 문장 순서 변경",
+      "expected": "DUPLICATE",
+      "basis": "No material change"
+    },
+    {
+      "id": "SYN_6",
+      "title": "기존 수주의 계약금액 정정 공시",
+      "expected": "UPDATE",
+      "basis": "Correction produces version on existing Issue"
+    },
+    {
+      "id": "SYN_7",
+      "title": "기존 투자와 별개 수출규제 확정",
+      "expected": "NEW_ANGLE",
+      "basis": "Independent new fact and direction; common Issue gates apply"
+    },
+    {
+      "id": "SYN_8",
+      "title": "익명 관계자 발언만으로 피해 주장",
+      "expected": "HOLD",
+      "basis": "Unverified claim and causal link"
+    }
+  ]
+}

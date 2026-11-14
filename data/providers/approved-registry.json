@@ -1,0 +1,1076 @@
+{
+  "schema_version": 1,
+  "product_id": "judoju-news",
+  "source_locator": "approved-source-registry/2026-11-13",
+  "original_sha256": "e3c73be287b9a4eedf11218da402eef6346979cee3e22d3f87a338c6fea407fa",
+  "original_bytes": 25821,
+  "rows_canonical_sha256": "56892655472db18bbd8dcabca018df9fc8a28a30a38449e74e6ef93f9f60ee41",
+  "sources": [
+    {
+      "row": 2,
+      "market": "한국주식",
+      "name": "키움증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/KiwoomResearch"
+      ]
+    },
+    {
+      "row": 3,
+      "market": "한국주식",
+      "name": "신한투자증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/shinhanresearch"
+      ]
+    },
+    {
+      "row": 4,
+      "market": "한국주식",
+      "name": "하나증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/HanaResearch"
+      ]
+    },
+    {
+      "row": 5,
+      "market": "한국주식",
+      "name": "메리츠증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/meritz_research"
+      ]
+    },
+    {
+      "row": 6,
+      "market": "한국주식",
+      "name": "대신증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/dsrsc"
+      ]
+    },
+    {
+      "row": 7,
+      "market": "한국주식",
+      "name": "다올투자증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/daolresearch"
+      ]
+    },
+    {
+      "row": 8,
+      "market": "한국주식",
+      "name": "유안타증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/yuantaresearch"
+      ]
+    },
+    {
+      "row": 9,
+      "market": "한국주식",
+      "name": "상상인증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/ssi_research"
+      ]
+    },
+    {
+      "row": 10,
+      "market": "한국주식",
+      "name": "SK증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/sksresearch"
+      ]
+    },
+    {
+      "row": 11,
+      "market": "한국주식",
+      "name": "LS증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/lssec_official"
+      ]
+    },
+    {
+      "row": 12,
+      "market": "한국주식",
+      "name": "흥국증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/lovequant"
+      ]
+    },
+    {
+      "row": 13,
+      "market": "한국주식",
+      "name": "리딩투자증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/leadingr"
+      ]
+    },
+    {
+      "row": 14,
+      "market": "한국주식",
+      "name": "현대차증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/hmsecresearch"
+      ]
+    },
+    {
+      "row": 15,
+      "market": "한국주식",
+      "name": "교보증권",
+      "type": "텔레그램",
+      "category": "리서치센터 통합",
+      "urls": [
+        "https://t.me/s/KyoboRSC"
+      ]
+    },
+    {
+      "row": 16,
+      "market": "한국주식",
+      "name": "KB증권",
+      "type": "텔레그램",
+      "category": "리서치봇(리포트만)",
+      "urls": [
+        "https://t.me/kbrcbot"
+      ]
+    },
+    {
+      "row": 17,
+      "market": "한국주식",
+      "name": "삼성증권",
+      "type": "텔레그램",
+      "category": "테크",
+      "urls": [
+        "https://t.me/s/jw_tech"
+      ]
+    },
+    {
+      "row": 18,
+      "market": "한국주식",
+      "name": "메리츠증권",
+      "type": "텔레그램",
+      "category": "테크",
+      "urls": [
+        "https://t.me/s/meritz_tech"
+      ]
+    },
+    {
+      "row": 19,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "테크",
+      "urls": [
+        "https://t.me/joinchat/AAAAAEzdnv5WVVG1tB00ng"
+      ]
+    },
+    {
+      "row": 20,
+      "market": "한국주식",
+      "name": "한국투자증권",
+      "type": "텔레그램",
+      "category": "테크",
+      "urls": [
+        "https://t.me/s/kisemicon"
+      ]
+    },
+    {
+      "row": 21,
+      "market": "한국주식",
+      "name": "유진투자증권",
+      "type": "텔레그램",
+      "category": "테크 · 인프라",
+      "urls": [
+        "https://t.me/s/eugene2team"
+      ]
+    },
+    {
+      "row": 22,
+      "market": "한국주식",
+      "name": "키움증권",
+      "type": "텔레그램",
+      "category": "반도체 · 이차전지",
+      "urls": [
+        "https://t.me/s/kiwoom_semibat"
+      ]
+    },
+    {
+      "row": 23,
+      "market": "한국주식",
+      "name": "미래에셋증권",
+      "type": "텔레그램",
+      "category": "반도체",
+      "urls": [
+        "https://t.me/s/semirae"
+      ]
+    },
+    {
+      "row": 24,
+      "market": "한국주식",
+      "name": "대신증권",
+      "type": "텔레그램",
+      "category": "반도체",
+      "urls": [
+        "https://t.me/s/hyungkeunryu"
+      ]
+    },
+    {
+      "row": 25,
+      "market": "한국주식",
+      "name": "키움증권",
+      "type": "텔레그램",
+      "category": "전기전자 · 디스플레이",
+      "urls": [
+        "https://t.me/s/kiwoomdisplay"
+      ]
+    },
+    {
+      "row": 26,
+      "market": "한국주식",
+      "name": "하나증권",
+      "type": "텔레그램",
+      "category": "IT",
+      "urls": [
+        "https://t.me/s/itforyoufromhana"
+      ]
+    },
+    {
+      "row": 27,
+      "market": "한국주식",
+      "name": "SK증권",
+      "type": "텔레그램",
+      "category": "IT",
+      "urls": [
+        "https://t.me/s/skitteam"
+      ]
+    },
+    {
+      "row": 28,
+      "market": "한국주식",
+      "name": "한국투자증권",
+      "type": "텔레그램",
+      "category": "로보틱스",
+      "urls": [
+        "https://t.me/s/kis_robotics"
+      ]
+    },
+    {
+      "row": 29,
+      "market": "한국주식",
+      "name": "유안타증권",
+      "type": "텔레그램",
+      "category": "이차전지 · 신재생",
+      "urls": [
+        "https://t.me/s/anna7673"
+      ]
+    },
+    {
+      "row": 30,
+      "market": "한국주식",
+      "name": "삼성증권",
+      "type": "텔레그램",
+      "category": "모빌리티 · 자동차",
+      "urls": [
+        "https://t.me/s/s_esthermobility"
+      ]
+    },
+    {
+      "row": 31,
+      "market": "한국주식",
+      "name": "메리츠증권",
+      "type": "텔레그램",
+      "category": "모빌리티",
+      "urls": [
+        "https://t.me/s/joonsungkim"
+      ]
+    },
+    {
+      "row": 32,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "자동차 · 미디어 · 게임 · 인터넷 · 통신",
+      "urls": [
+        "https://t.me/joinchat/AAAAAEdgBvdyWhiwr6bp0A"
+      ]
+    },
+    {
+      "row": 33,
+      "market": "한국주식",
+      "name": "한화투자증권",
+      "type": "텔레그램",
+      "category": "조선 · 방산 · 기계 · 우주",
+      "urls": [
+        "https://t.me/s/hanhwasmall"
+      ]
+    },
+    {
+      "row": 34,
+      "market": "한국주식",
+      "name": "메리츠증권",
+      "type": "텔레그램",
+      "category": "조선 · 방산",
+      "urls": [
+        "https://t.me/s/meritzbae"
+      ]
+    },
+    {
+      "row": 35,
+      "market": "한국주식",
+      "name": "SK증권",
+      "type": "텔레그램",
+      "category": "조선 · 방산",
+      "urls": [
+        "https://t.me/s/skscyclical"
+      ]
+    },
+    {
+      "row": 36,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "조선 · 방산 · 항공 · 기계 · 건설 · 신재생 · 운송",
+      "urls": [
+        "https://t.me/joinchat/AAAAAFUmx2eqwD3Ir-9tow"
+      ]
+    },
+    {
+      "row": 37,
+      "market": "한국주식",
+      "name": "한국투자증권",
+      "type": "텔레그램",
+      "category": "운송",
+      "urls": [
+        "https://t.me/s/thetransport"
+      ]
+    },
+    {
+      "row": 38,
+      "market": "한국주식",
+      "name": "KB증권",
+      "type": "텔레그램",
+      "category": "건설",
+      "urls": [
+        "https://t.me/s/kb_epc_mj"
+      ]
+    },
+    {
+      "row": 39,
+      "market": "한국주식",
+      "name": "키움증권",
+      "type": "텔레그램",
+      "category": "바이오",
+      "urls": [
+        "https://t.me/s/huhpharm"
+      ]
+    },
+    {
+      "row": 40,
+      "market": "한국주식",
+      "name": "한국투자증권",
+      "type": "텔레그램",
+      "category": "바이오",
+      "urls": [
+        "https://t.me/s/kis_healthcare"
+      ]
+    },
+    {
+      "row": 41,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "바이오",
+      "urls": [
+        "https://t.me/s/nhis_bio"
+      ]
+    },
+    {
+      "row": 42,
+      "market": "한국주식",
+      "name": "한화투자증권",
+      "type": "텔레그램",
+      "category": "금융",
+      "urls": [
+        "https://t.me/s/dh_finance"
+      ]
+    },
+    {
+      "row": 43,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "금융 · 지주 · 상사",
+      "urls": [
+        "https://t.me/joinchat/AAAAAFQ64qwp_9oen6L1rQ"
+      ]
+    },
+    {
+      "row": 44,
+      "market": "한국주식",
+      "name": "다올투자증권",
+      "type": "텔레그램",
+      "category": "화장품 · 의료기기",
+      "urls": [
+        "https://t.me/s/alexppark"
+      ]
+    },
+    {
+      "row": 45,
+      "market": "한국주식",
+      "name": "LS증권",
+      "type": "텔레그램",
+      "category": "화장품 · 유통",
+      "urls": [
+        "https://t.me/s/thisisoritel"
+      ]
+    },
+    {
+      "row": 46,
+      "market": "한국주식",
+      "name": "한국투자증권",
+      "type": "텔레그램",
+      "category": "화장품 · 유통",
+      "urls": [
+        "https://t.me/s/kmj_retailcosmetics"
+      ]
+    },
+    {
+      "row": 47,
+      "market": "한국주식",
+      "name": "메리츠증권",
+      "type": "텔레그램",
+      "category": "음식료 · 유통",
+      "urls": [
+        "https://t.me/s/meritz_fnb"
+      ]
+    },
+    {
+      "row": 48,
+      "market": "한국주식",
+      "name": "NH투자증권",
+      "type": "텔레그램",
+      "category": "소비재",
+      "urls": [
+        "https://t.me/joinchat/AAAAAFMSA8MfUbhOmXgdDw"
+      ]
+    },
+    {
+      "row": 49,
+      "market": "한국주식",
+      "name": "한화투자증권",
+      "type": "텔레그램",
+      "category": "엔터 · 레저 · 운송",
+      "urls": [
+        "https://t.me/s/airswimmy"
+      ]
+    },
+    {
+      "row": 50,
+      "market": "한국주식",
+      "name": "하나증권",
+      "type": "텔레그램",
+      "category": "AI · 인터넷 · 게임",
+      "urls": [
+        "https://t.me/s/internetgameljh"
+      ]
+    },
+    {
+      "row": 51,
+      "market": "미국주식",
+      "name": "키움증권",
+      "type": "텔레그램",
+      "category": "미국",
+      "urls": [
+        "https://t.me/s/kwusa"
+      ]
+    },
+    {
+      "row": 52,
+      "market": "미국주식",
+      "name": "하나증권",
+      "type": "텔레그램",
+      "category": "미국",
+      "urls": [
+        "https://t.me/s/hana_us_stock"
+      ]
+    },
+    {
+      "row": 53,
+      "market": "중국주식",
+      "name": "하나증권",
+      "type": "텔레그램",
+      "category": "중국",
+      "urls": [
+        "https://t.me/s/hanachina"
+      ]
+    },
+    {
+      "row": 54,
+      "market": "중국주식",
+      "name": "삼성증권",
+      "type": "텔레그램",
+      "category": "중국",
+      "urls": [
+        "https://t.me/s/jkc123"
+      ]
+    },
+    {
+      "row": 55,
+      "market": "한국주식",
+      "name": "키움증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://www.kiwoom.com/h/invest/research/VAnalCRView",
+        "https://www.kiwoom.com/h/invest/research/VAnalCIView?dummyVal=0"
+      ]
+    },
+    {
+      "row": 56,
+      "market": "한국주식",
+      "name": "미래에셋",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1800",
+        "https://securities.miraeasset.com/bbs/board/message/list.do?categoryId=1525"
+      ]
+    },
+    {
+      "row": 57,
+      "market": "한국주식",
+      "name": "신한투자증권",
+      "type": "리포트",
+      "category": "기업, 산업 1페이지 구성",
+      "urls": [
+        "https://m.shinhansec.com/mweb/invt/shrh/ishrh1001?tabIdx=1"
+      ]
+    },
+    {
+      "row": 58,
+      "market": "한국주식",
+      "name": "대신증권",
+      "type": "리포트",
+      "category": "기업, 산업 1페이지 구성",
+      "urls": [
+        "http://money2.daishin.co.kr/E5/ResearchCenter/Work/Research_BasicList.aspx?pr_code=4"
+      ]
+    },
+    {
+      "row": 59,
+      "market": "한국주식",
+      "name": "리딩투자증권",
+      "type": "리포트",
+      "category": "기업(산업 없음)",
+      "urls": [
+        "http://www.leading.co.kr/board/EquityResearch/list"
+      ]
+    },
+    {
+      "row": 60,
+      "market": "한국주식",
+      "name": "흥국증권",
+      "type": "리포트",
+      "category": "기업, 산업 1페이지 구성",
+      "urls": [
+        "https://www.heungkuksec.co.kr/research/company/list.do"
+      ]
+    },
+    {
+      "row": 61,
+      "market": "한국주식",
+      "name": "상상인증권",
+      "type": "리포트",
+      "category": "기업, 산업 1페이지 구성",
+      "urls": [
+        "https://sangsanginib.com/research/enterpriseReport/enterpriseReportView"
+      ]
+    },
+    {
+      "row": 62,
+      "market": "한국주식",
+      "name": "유안타증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://www.myasset.com/myasset/research/rs_list/rs_list.cmd?cd006=&cd007=RE01&cd008=&1768336068001",
+        "https://www.myasset.com/myasset/research/rs_list/rs_list.cmd?cd006=&cd007=RE02&cd008="
+      ]
+    },
+    {
+      "row": 63,
+      "market": "한국주식",
+      "name": "현대차증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://mprod.hmsec.com/m/trade/research/list?tabMenu=new&sortType=type02&haveStock=N&keyword=&viewName="
+      ]
+    },
+    {
+      "row": 64,
+      "market": "한국주식",
+      "name": "하나증권",
+      "type": "리포트",
+      "category": "기업, 산업 1페이지 구성",
+      "urls": [
+        "https://www.hanaw.com/main/research/researchReform/RC_000100_T3.cmd?ctgr_cd=CTGY_CD_002"
+      ]
+    },
+    {
+      "row": 65,
+      "market": "한국주식",
+      "name": "교보증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://www.iprovest.com/weblogic/RSReportServlet?scr_id=34&mode=list&menuCode=3&pageNum=1&DT1&DT2&srch_db=0",
+        "https://www.iprovest.com/weblogic/RSReportServlet?scr_id=40&menuCode=9&srch_db=0&QU=&DT1=&DT2=&provestz=&pageNum=2"
+      ]
+    },
+    {
+      "row": 66,
+      "market": "한국주식",
+      "name": "IBK투자증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://m.ibks.com/iko/IKO010201.do",
+        "https://m.ibks.com/iko/IKO010301.do"
+      ]
+    },
+    {
+      "row": 67,
+      "market": "한국주식",
+      "name": "다올투자증권",
+      "type": "리포트",
+      "category": "기업분석만",
+      "urls": [
+        "https://www.daolsecurities.com/research/article/common.jspx?rGubun=I01&sctrGubun=I02&web=0"
+      ]
+    },
+    {
+      "row": 68,
+      "market": "한국주식",
+      "name": "한화투자증권",
+      "type": "리포트",
+      "category": "기업, 산업 별도 페이지",
+      "urls": [
+        "https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls1",
+        "https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls2&viewclass="
+      ]
+    },
+    {
+      "row": 69,
+      "market": "한국주식",
+      "name": "한국증권신문",
+      "type": "뉴스",
+      "category": " 종목",
+      "urls": [
+        "https://www.ksdaily.co.kr/news/articleList.html?sc_section_code=S1N1&view_type=sm"
+      ]
+    },
+    {
+      "row": 70,
+      "market": "한국주식",
+      "name": "글로벌이코노믹",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.g-enews.com/list.php?ct=g120100"
+      ]
+    },
+    {
+      "row": 71,
+      "market": "한국주식",
+      "name": "한경코리아마켓",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.hankyung.com/koreamarket/1114"
+      ]
+    },
+    {
+      "row": 72,
+      "market": "한국주식",
+      "name": "머니투데이",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.mt.co.kr/stock/stocknews"
+      ]
+    },
+    {
+      "row": 73,
+      "market": "한국주식",
+      "name": "이투데이",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.etoday.co.kr/market/hot-stock"
+      ]
+    },
+    {
+      "row": 74,
+      "market": "한국주식",
+      "name": "아시아경제",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.asiae.co.kr/list/stock-disclosure"
+      ]
+    },
+    {
+      "row": 75,
+      "market": "한국주식",
+      "name": "한스경제 공시",
+      "type": "뉴스",
+      "category": "종목",
+      "urls": [
+        "https://www.hansbiz.co.kr/news/articleList.html?sc_section_code=S1N54&view_type=sm"
+      ]
+    },
+    {
+      "row": 76,
+      "market": "한국주식",
+      "name": "인포스탁데일리",
+      "type": "뉴스",
+      "category": "시황+종목",
+      "urls": [
+        "https://www.infostockdaily.co.kr/news/articleList.html?sc_section_code=S1N17&view_type=sm"
+      ]
+    },
+    {
+      "row": 77,
+      "market": "한국주식",
+      "name": "에너지경제신문",
+      "type": "뉴스",
+      "category": "시황+종목",
+      "urls": [
+        "https://www.ekn.kr/web/section.php?ncid=N03_01"
+      ]
+    },
+    {
+      "row": 78,
+      "market": "한국주식",
+      "name": "서울경제 마켓시그널",
+      "type": "뉴스",
+      "category": "시황+종목",
+      "urls": [
+        "https://www.sedaily.com/market/domesticStock"
+      ]
+    },
+    {
+      "row": 79,
+      "market": "한국주식",
+      "name": "씽크풀",
+      "type": "뉴스",
+      "category": "종목+시황",
+      "urls": [
+        "https://www.thinkpool.com/analysis/news?newsTabCode=1"
+      ]
+    },
+    {
+      "row": 80,
+      "market": "한국주식",
+      "name": "한국경제TV",
+      "type": "뉴스",
+      "category": "시황+종목",
+      "urls": [
+        "https://www.wowtv.co.kr/NewsCenter/News/NewsList?subMenu=stock&menuSeq=460"
+      ]
+    },
+    {
+      "row": 81,
+      "market": "한국주식",
+      "name": "뉴스핌 주식",
+      "type": "뉴스",
+      "category": "시황+종목",
+      "urls": [
+        "https://www.newspim.com/news/lists/?category_cd=105060"
+      ]
+    },
+    {
+      "row": 82,
+      "market": "한국주식",
+      "name": "매일경제TV",
+      "type": "뉴스",
+      "category": "시황",
+      "urls": [
+        "https://mbnmoney.mbn.co.kr/stock/news?news_service_id=10011"
+      ]
+    },
+    {
+      "row": 83,
+      "market": "한국주식",
+      "name": "한경코리아마켓",
+      "type": "뉴스",
+      "category": "시황",
+      "urls": [
+        "https://www.hankyung.com/koreamarket/1113"
+      ]
+    },
+    {
+      "row": 84,
+      "market": "한국주식",
+      "name": "아시아경제",
+      "type": "뉴스",
+      "category": "시황",
+      "urls": [
+        "https://www.asiae.co.kr/list/market-overview"
+      ]
+    },
+    {
+      "row": 85,
+      "market": "한국주식",
+      "name": "토스증권 > 주요뉴스 클릭",
+      "type": "뉴스",
+      "category": "시황",
+      "urls": [
+        "https://www.tossinvest.com/feed/news"
+      ]
+    },
+    {
+      "row": 86,
+      "market": "한국주식",
+      "name": "머니터링 마켓보이스",
+      "type": "뉴스",
+      "category": "시황",
+      "urls": [
+        "https://www.moneytoring.ai/mv/new"
+      ]
+    },
+    {
+      "row": 87,
+      "market": "한국주식",
+      "name": "헤럴드경제",
+      "type": "뉴스",
+      "category": "홈",
+      "urls": [
+        "https://biz.heraldcorp.com/stock"
+      ]
+    },
+    {
+      "row": 88,
+      "market": "한국주식",
+      "name": "미디어펜",
+      "type": "뉴스",
+      "category": "홈",
+      "urls": [
+        "https://www.mediapen.com/news/lists/?menu=m1&cate_cd2=40019"
+      ]
+    },
+    {
+      "row": 89,
+      "market": "한국주식",
+      "name": "머니터링 마켓보이스",
+      "type": "뉴스",
+      "category": "홈",
+      "urls": [
+        "https://www.moneytoring.ai/mv"
+      ]
+    },
+    {
+      "row": 90,
+      "market": "한국주식",
+      "name": "OneShotStock",
+      "type": "뉴스",
+      "category": "홈",
+      "urls": [
+        "https://oneshotstock.com/"
+      ]
+    },
+    {
+      "row": 91,
+      "market": "해외주식",
+      "name": "글로벌이코노믹",
+      "type": "뉴스",
+      "category": "해외 시황+종목",
+      "urls": [
+        "https://www.g-enews.com/list.php?ct=g121000"
+      ]
+    },
+    {
+      "row": 92,
+      "market": "해외주식",
+      "name": "글로벌이코노믹",
+      "type": "뉴스",
+      "category": "해외 종목",
+      "urls": [
+        "https://www.g-enews.com/list.php?ct=g121100"
+      ]
+    },
+    {
+      "row": 93,
+      "market": "해외주식",
+      "name": "글로벌이코노믹",
+      "type": "뉴스",
+      "category": "해외 시황",
+      "urls": [
+        "https://www.g-enews.com/list.php?ct=g121200"
+      ]
+    },
+    {
+      "row": 94,
+      "market": "해외주식",
+      "name": "파이낸셜뉴스",
+      "type": "뉴스",
+      "category": "미국 시황",
+      "urls": [
+        "https://www.fnnews.com/series/5819"
+      ]
+    },
+    {
+      "row": 95,
+      "market": "해외주식",
+      "name": "이데일리",
+      "type": "뉴스",
+      "category": "해외 경제",
+      "urls": [
+        "https://www.edaily.co.kr/articles/global/economy"
+      ]
+    },
+    {
+      "row": 96,
+      "market": "해외주식",
+      "name": "이데일리",
+      "type": "뉴스",
+      "category": "해외 종목",
+      "urls": [
+        "https://www.edaily.co.kr/articles/global/enterprise"
+      ]
+    },
+    {
+      "row": 97,
+      "market": "해외주식",
+      "name": "이데일리",
+      "type": "뉴스",
+      "category": "해외 시황+종목",
+      "urls": [
+        "https://www.edaily.co.kr/globalmarket"
+      ]
+    },
+    {
+      "row": 98,
+      "market": "해외주식",
+      "name": "연합뉴스",
+      "type": "뉴스",
+      "category": "해외 시황",
+      "urls": [
+        "https://www.yna.co.kr/market-plus/global-market"
+      ]
+    },
+    {
+      "row": 99,
+      "market": "해외주식",
+      "name": "CNBC",
+      "type": "뉴스",
+      "category": "미국 시황+종목",
+      "urls": [
+        "https://www.cnbc.com/markets/"
+      ]
+    },
+    {
+      "row": 100,
+      "market": "해외주식",
+      "name": "CNBC",
+      "type": "뉴스",
+      "category": "기업 실적",
+      "urls": [
+        "https://www.cnbc.com/earnings/"
+      ]
+    },
+    {
+      "row": 101,
+      "market": "해외주식",
+      "name": "Yahoo Finance",
+      "type": "뉴스",
+      "category": "해외 시황+종목",
+      "urls": [
+        "https://finance.yahoo.com/topic/latest-news/"
+      ]
+    },
+    {
+      "row": 102,
+      "market": "해외주식",
+      "name": "Investing.com",
+      "type": "뉴스",
+      "category": "해외 시황+종목",
+      "urls": [
+        "https://www.investing.com/news/stock-market-news"
+      ]
+    },
+    {
+      "row": 103,
+      "market": "해외주식",
+      "name": "Benzinga",
+      "type": "뉴스",
+      "category": "해외 종목",
+      "urls": [
+        "https://www.benzinga.com/news"
+      ]
+    },
+    {
+      "row": 104,
+      "market": "해외주식",
+      "name": "AP News",
+      "type": "뉴스",
+      "category": "해외 시황·매크로",
+      "urls": [
+        "https://apnews.com/hub/financial-markets"
+      ]
+    },
+    {
+      "row": 105,
+      "market": "해외주식",
+      "name": "Focus Taiwan",
+      "type": "뉴스",
+      "category": "대만 기업·반도체",
+      "urls": [
+        "https://focustaiwan.tw/business"
+      ]
+    },
+    {
+      "row": 106,
+      "market": "해외주식",
+      "name": "CNA (Channel NewsAsia)",
+      "type": "뉴스",
+      "category": "아시아 경제·기업",
+      "urls": [
+        "https://www.channelnewsasia.com/business"
+      ]
+    },
+    {
+      "row": 107,
+      "market": "해외주식",
+      "name": "Data Center Dynamics",
+      "type": "뉴스",
+      "category": "AI 데이터센터·전력·냉각",
+      "urls": [
+        "https://www.datacenterdynamics.com/en/news/"
+      ]
+    }
+  ]
+}

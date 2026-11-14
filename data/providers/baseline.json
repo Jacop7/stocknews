@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "sample_kind": "PERMITTED_REAL",
+  "measurement_period": null,
+  "status": "NOT_MEASURED",
+  "attempts": 0,
+  "successes": null,
+  "partial": null,
+  "success_rate": null,
+  "latency_samples": 0,
+  "latency_p50_ms": null,
+  "latency_p95_ms": null,
+  "latency_max_ms": null,
+  "cost_currency": null,
+  "unit_price": null,
+  "contract_id": null,
+  "total_cost": null,
+  "per_discovery_cost": null,
+  "per_published_cost": null,
+  "reason": "No permitted live request or connected publication pipeline; synthetic test timings are not provider performance"
+}

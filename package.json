@@ -19,7 +19,9 @@
     "export:android": "corepack pnpm --filter @judoju/mobile export:android",
     "export:ios": "corepack pnpm --filter @judoju/mobile export:ios",
     "test:domain": "node --experimental-strip-types --test tests/domain.test.ts tests/native-release.test.mjs",
-    "eas": "node scripts/eas.mjs"
+    "eas": "node scripts/eas.mjs",
+    "test:providers": "node --test tests/providers.test.mjs",
+    "check:providers": "node scripts/verify-stage3-providers.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
