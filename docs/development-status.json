@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "judoju-news",
-  "currentStage": 3,
-  "state": "IMPLEMENTED_SUPPLY_PENDING",
-  "externalReviewRecord": "../outputs/development-stages/reviews/stage03-implementation/index.html",
-  "nextStage": 4,
+  "currentStage": 4,
+  "state": "IMPLEMENTED_REVIEW_PENDING",
+  "externalReviewRecord": "../outputs/development-stages/reviews/stage04-implementation/index.html",
+  "nextStage": 5,
   "stages": [
     {
       "stage": 0,
@@ -24,7 +24,7 @@
     },
     {
       "stage": 4,
-      "state": "NOT_STARTED"
+      "state": "IMPLEMENTED_REVIEW_PENDING"
     },
     {
       "stage": 5,
@@ -60,10 +60,10 @@
     }
   ],
   "implementationLimits": [
-    "Stage3 registration, permission/discovery/recovery/schedule policy and probe scaffold; no operating parser/worker",
-    "New Android build observed in dedicated emulator; iOS build installed and opened in native app confirmed by user with iOS Metro bundle observed",
-    "No Supabase project/DB or worker/cloud started; no live provider request, AI publication, push or ads",
-    "Stage3 real quote/calendar/permission coverage EXTERNAL_PENDING; stage4-6 independent manual/explicit fixture M1 may proceed, stage7/8 live gates remain closed"
+    "Stage3 registration/policy implementation verified; real permission/quote/calendar supply pending; live7/8 closed",
+    "Stage4 local DB/queue/mock worker executed; implementation DUAL and exact-byte commit pending; stage5 gate closed",
+    "Native0004 inputs preserved; no new SDK/lock or native build",
+    "No production/preview DB or cloud worker, real news collection, AI publishing, push or ads"
   ],
   "completedStages": [
     {
@@ -84,7 +84,7 @@
   ],
   "supplyTrack": {
     "state": "IMPLEMENTED_SUPPLY_PENDING",
-    "implementationReview": "PENDING",
+    "implementationReview": "VERIFIED",
     "realRequestsExecuted": 0,
     "liveGate7": "CLOSED",
     "liveGate8": "CLOSED",
@@ -92,6 +92,26 @@
       4,
       5,
       6
-    ]
+    ],
+    "stage": 3
+  },
+  "implementationStages": [
+    {
+      "stage": 3,
+      "state": "VERIFIED",
+      "commit": "3c4a03447e4e0d275eb33941c25c875947766987",
+      "reviewManifest": "0eaad28310de23d0df1d725f1da804e185040c904b20f3489af451630ce00e22",
+      "evidence": "../outputs/development-stages/reviews/stage03-implementation/status.json",
+      "supplyState": "IMPLEMENTED_SUPPLY_PENDING"
+    }
+  ],
+  "m0": {
+    "status": "LOCAL_SYNTHETIC_TESTS_PASSED_REVIEW_PENDING",
+    "P01": "LOCAL_SYNTHETIC_PASS",
+    "P02a": "LOCAL_SYNTHETIC_PASS",
+    "P03a": "LOCAL_SYNTHETIC_PASS",
+    "P04a": "SYNTHETIC_CONTRACT_PASS",
+    "databasePermissions": "LOCAL_SYNTHETIC_PASS",
+    "stage5Gate": "CLOSED"
   }
 }

@@ -30,9 +30,19 @@
       "id": "supabase_local",
       "type": "backend",
       "environment": "local",
-      "status": "PENDING",
+      "status": "CREATED_LOCAL_MOCK",
       "plannedNamespace": "judoju-news-supabase-local",
-      "actual": null
+      "actual": {
+        "productId": "judoju-news",
+        "projectId": "judoju-news-local",
+        "createdNewForProduct": true,
+        "environment": "local",
+        "networkName": "judoju-news-local-net",
+        "apiUrl": "http://127.0.0.1:62321",
+        "publishedBindings": "127.0.0.1",
+        "sampleKind": "SYNTHETIC",
+        "evidence": "../outputs/development-stages/reviews/stage04-implementation/local-runtime.json"
+      }
     },
     {
       "id": "supabase_preview",
@@ -54,9 +64,19 @@
       "id": "worker_local",
       "type": "worker",
       "environment": "local",
-      "status": "PENDING",
+      "status": "CREATED_LOCAL_MOCK",
       "plannedNamespace": "judoju-news-worker-local",
-      "actual": null
+      "actual": {
+        "productId": "judoju-news",
+        "createdNewForProduct": true,
+        "environment": "local",
+        "composeProject": "judoju-news-worker-local",
+        "workers": 2,
+        "mockSinks": 1,
+        "hostPorts": 0,
+        "sampleKind": "SYNTHETIC",
+        "evidence": "../outputs/development-stages/reviews/stage04-implementation/local-runtime.json"
+      }
     },
     {
       "id": "worker_preview",
@@ -126,16 +146,16 @@
   "bootstrapSource": "Original isolated repository; stage0/1 receipts retained locally outside this repo.",
   "plannedLocalConfig": {
     "file": "supabase/config.toml",
-    "sha256": "1047ee21faa202e52408c9e18f2ff7cc04466a9c7f485427293c84c7be52d1ff",
+    "sha256": "0432adb313ee51c6ac695f9378e5a038da3a75df81b1ebe99e88b8890216739b",
     "project_id": "judoju-news-local",
     "ports": {
       "api": 62321,
       "db": 62322,
       "db.shadow": 62320,
       "studio": 62323,
-      "inbucket": 62324,
-      "inbucket.smtp": 62325,
-      "inbucket.pop3": 62326
+      "local_smtp": 62324,
+      "local_smtp.smtp": 62325,
+      "local_smtp.pop3": 62326
     },
     "disabledPorts": {
       "db.pooler": 62329,
@@ -146,8 +166,8 @@
     "plannedWorkerNamespace": "judoju-news-worker-local"
   },
   "configValidation": {
-    "status": "CONFIG_VALIDATED",
-    "observedAt": "2026-11-14T00:06:08.340975+00:00",
+    "status": "RUNTIME_LOOPBACK_VERIFIED",
+    "observedAt": "2026-11-14T06:10:40.988Z",
     "portConflictCheck": {
       "status": "PASS",
       "checkedPorts": [
@@ -171,8 +191,8 @@
       "conflicts": [],
       "method": "docker ps -a --format names; only new namespace matches retained; no env/mount/DB inspection"
     },
-    "actualContainerVolumeProductResponse": "PENDING_STAGE_4",
-    "limitations": "Point-in-time configuration readiness only; no containers, volumes, DB endpoints created or contacted."
+    "actualContainerVolumeProductResponse": "VERIFIED_LOCAL_SYNTHETIC_ONLY",
+    "limitations": "Current new local stack verified loopback with synthetic fixtures only. Initial wildcard binding incident and recovery preserved in stage04-local-runtime.md. Preview/production uncreated; implementation review pending."
   },
   "environments": {
     "local": {

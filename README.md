@@ -3,7 +3,7 @@
 Android·iOS 주식 뉴스 앱, 어드민, 신규 Supabase, 독립 Docker worker를 만드는 **신규 프로젝트**입니다.
 식자재 관리앱 코드·설정·저장소·DB·인증·키·컨테이너·배포를 사용하지 않습니다.
 
-0~1단계 검수와 커밋을 마쳤고, 현재 2단계 Expo 앱·어드민·공통 계약의 골격을 구현 중입니다. 앱/어드민은 개발 샘플이며 Supabase·worker·운영 데이터는 미연결입니다.
+0~2단계 검수와 커밋을 마쳤고, 3단계 등록·정책 구현은 검수됐으나 실제 공급은 대기 중입니다. 현재 4단계 신규 로컬 Supabase·공통 작업 큐·Docker 모의 worker를 구현·검증하고 있습니다. 앱/어드민 화면은 개발 샘플이며 운영 데이터는 미연결입니다.
 실제 자원 상태는 [자원 목록](docs/project-resource-manifest.json), 외부 준비는 [준비표](docs/external-preparation.json)를 봅니다.
 실제·대기 상태는 [개발 상태](docs/development-status.json)에 있습니다. 검수/커밋 영수증은 제품 밖 `../outputs/development-stages/reviews/`에 보존합니다.
 
@@ -19,6 +19,7 @@ corepack pnpm verify
 ```
 
 전체 검사는 저장소·의존성·native 입력 계약·domain 시험·타입·어드민 빌드·Expo Android/iOS Hermes export를 실행합니다. DB/Docker 자원에 연결하지 않습니다. native 빌드/기기 실행 및 실제 원격 CI 성공은 별도 게이트입니다. 의존성 설치는 공식 npm registry에서 수행합니다.
+실제 로컬 DB/Docker 시험은 별도 `corepack pnpm test:m0-runtime`이며, [4단계 실행 범위와 한계](docs/stage04-local-runtime.md)를 먼저 확인합니다. 새 합성 fixture와 자기 worker만 사용하며 운영/실수집 성공을 뜻하지 않습니다.
 기획 검사는 사본과 저장소 안 provenance의 해시를 비교해 다른 위치로 clone해도 원본 폴더가 필요 없습니다.
 최초 원본/사본 비교 결과는 저장소 밖 영수증으로 보존합니다.
 

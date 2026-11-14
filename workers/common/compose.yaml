@@ -1,0 +1,57 @@
+name: judoju-news-worker-local
+services:
+  mock:
+    image: judoju-news-worker-local:stage04-m0
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        JUDOJU_BOOTSTRAP: ${JUDOJU_M0_BOOTSTRAP:?Owned bootstrap required}
+    command: ["node", "mock.mjs"]
+    environment:
+      JUDOJU_ENV: local
+      M0_MOCK_KEY: ${JUDOJU_M0_MOCK_KEY:?Create owned local runtime credentials first}
+    volumes:
+      - mock_receipts:/data/receipts
+    labels:
+      com.judoju.product: judoju-news
+      com.judoju.environment: local
+      com.judoju.bootstrap: ${JUDOJU_M0_BOOTSTRAP:?Owned bootstrap required}
+    networks: [local]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:7070/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+  worker:
+    image: judoju-news-worker-local:stage04-m0
+    depends_on:
+      mock:
+        condition: service_healthy
+    environment:
+      JUDOJU_ENV: local
+      M0_RPC_URL: ${JUDOJU_M0_RPC_URL:?Owned API endpoint required}
+      M0_SERVICE_KEY: ${JUDOJU_M0_SERVICE_KEY:?Owned local server credential required}
+      M0_MOCK_KEY: ${JUDOJU_M0_MOCK_KEY:?Owned local mock credential required}
+      M0_MOCK_URL: http://mock:7070/
+      M0_LEASE_SECONDS: "4"
+    labels:
+      com.judoju.product: judoju-news
+      com.judoju.environment: local
+      com.judoju.bootstrap: ${JUDOJU_M0_BOOTSTRAP:?Owned bootstrap required}
+    networks: [local]
+    healthcheck:
+      test: ["CMD", "node", "-e", "const f=require('fs');if(Date.now()-f.statSync('/tmp/judoju-worker-heartbeat').mtimeMs>45000)process.exit(1)"]
+      interval: 5s
+      timeout: 2s
+      retries: 4
+    stop_grace_period: 12s
+networks:
+  local:
+    external: true
+    name: judoju-news-local-net
+volumes:
+  mock_receipts:
+    labels:
+      com.judoju.product: judoju-news
+      com.judoju.bootstrap: ${JUDOJU_M0_BOOTSTRAP:?Owned bootstrap required}
