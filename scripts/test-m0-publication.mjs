@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { localClient } from './m0-test-client.mjs';
 import { writePrivate } from './local-runtime.mjs';
 const {sql,rpc,request,jwt,quote:q}=localClient(),run=randomUUID(),cases=[],sector=randomUUID(),other=randomUUID(),issues=[];
-const admin=jwt({role:'authenticated',sub:randomUUID(),app_metadata:{app_role:'admin'}});
+// Legacy M0 publication is now a local service-fixture endpoint; real editor authorization is exercised by M1 tests.
+const admin=undefined,activePolicy=Number(sql('select version from private.policies where active;'));
 async function test(name,fn){const t=Date.now();try{await fn();cases.push({name,status:'PASS',durationMs:Date.now()-t});console.log(JSON.stringify(cases.at(-1)));}catch(e){cases.push({name,status:'FAIL',error:e.message});throw e;}}
 async function ok(name,args={},opts={}){const r=await rpc(name,args,opts);assert.equal(r.status,200,name+' failed ('+(r.body?.message??r.body?.code??'unknown')+')');return r.body;}
 async function denied(name,args,pattern,opts={}){const r=await rpc(name,args,opts);assert.ok(r.status>=400,name+' must fail');if(pattern)assert.match(r.body?.message??'',pattern);return r;}
@@ -16,7 +17,7 @@ function fixture({macro=false,official=true,real=false}={}){
 const pos={direction:'POSITIVE',title:'합성 긍정 조건',expected_result:'합성 결과',checks:['합성 확인']},neg={...pos,direction:'NEGATIVE'};
 const base={key_issues:['SYNTHETIC 검증용'],issue_analysis:'실제 기사 아님',sources:[{url:'https://example.invalid/synthetic',name:'SYNTHETIC'}],schedule:[{event_at:'2099-01-01T00:00:00Z',title:'future'},{event_at:'2000-01-01T00:00:00Z',title:'expired'}],visible_sections:['SECRET_CLIENT_OVERRIDE'],view_count:99999,source_market:'US',selection_market_basis:'FOREIGN_US'};
 const profiles={POSITIVE_ONLY:{scenarios:[pos],benefit_sector_ids:[sector]},POSITIVE_NEGATIVE:{scenarios:[pos,neg],benefit_sector_ids:[sector],damage_sector_ids:[other]},DAMAGE_ONLY:{scenarios:[],damage_sector_ids:[other],risks:['SYNTHETIC 주의']},RELATED_CONDITIONAL:{scenarios:[pos],related_sector_ids:[sector]}};
-const args=(issue,profile,body,extra={})=>({p_issue:issue,p_expected_revision:0,p_title:'SYNTHETIC M0 '+run,p_summary:'실제 기사 아님',p_body:{...base,...body},p_profile:profile,p_policy:1,p_catalog:1,p_effect_key:run+':publish:'+issue,...extra});
+const args=(issue,profile,body,extra={})=>({p_issue:issue,p_expected_revision:0,p_title:'SYNTHETIC M0 '+run,p_summary:'실제 기사 아님',p_body:{...base,...body},p_profile:profile,p_policy:activePolicy,p_catalog:1,p_effect_key:run+':publish:'+issue,...extra});
 let failed,published;
 try{
   for(const [profile,body] of Object.entries(profiles))await test('P03a: server visibility '+profile,async()=>{

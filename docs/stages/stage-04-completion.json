@@ -1,0 +1,64 @@
+{
+  "observedAt": "2026-11-14T07:01:49.458701+00:00",
+  "product": "judoju-news",
+  "stage": 4,
+  "complete": true,
+  "implementationComplete": true,
+  "state": "VERIFIED_LOCAL_M0",
+  "sourceCommit": "c844fe14e62e427d280b58ac023b2c9f1935ed75",
+  "reviewManifest": "e37fa04024051c6ca003e4ff213112f0396448229a69c07704665dcc2a55f9fb",
+  "caseVerdict": "DUAL_READY",
+  "reviewers": {
+    "claude": {
+      "key": "23afea52c2f30342b35e2cbf3998feeee1dc67032af6bec8f4e446996e15f4b0",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "16239a7877a799cd47c779ef8850be1565516e19cf8c9355801545071215736f",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "sourceFileCount": 155,
+  "reviewIndexCommitCloneBytesEqual": true,
+  "postCommitFullVerify": "PASS",
+  "runtimeGroups": 26,
+  "contractTests": 18,
+  "domainNativeTests": 24,
+  "providerTests": 20,
+  "appliedMigrations": 10,
+  "stage5M0Precondition": "PASSED",
+  "stage5Implementation": "PLAN_REVIEW_REQUIRED",
+  "stage3Supply": "IMPLEMENTED_SUPPLY_PENDING",
+  "stage7LiveGate": "CLOSED",
+  "stage8LiveGate": "CLOSED",
+  "actualNewsRequests": 0,
+  "actualExternalEffects": 0,
+  "remotePush": "NOT_DONE",
+  "hostedCI": "NOT_RUN",
+  "remaining": [
+    {
+      "id": "S4I-04",
+      "severity": "P3",
+      "owner": "Before first preview/production DB creation/apply",
+      "work": "Separate/remove local fixture RPCs and local identity seed through reviewed nonlocal contract migration; never copy local credentials."
+    },
+    {
+      "id": "S4I-05",
+      "severity": "P3",
+      "owner": "Stage5 and every future extension/public RPC",
+      "work": "Explicit required GRANT with application-role regression after global postgres default function EXECUTE deny."
+    },
+    {
+      "id": "FULL_FRESH_BOOTSTRAP",
+      "owner": "Next newly owned local stack creation",
+      "work": "Full fresh CLI start via final capability transport not rerun over existing healthy stack; actual Docker create rewrite and installed CLI status passed."
+    }
+  ],
+  "metadataNote": "Committed source status records precommit review-pending/CLOSED gate; this external immutable receipt supplies actual final completion. Update phase metadata only in next reviewed phase, preserving source bytes."
+}

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "productId": "judoju-news",
-  "currentStage": 4,
+  "currentStage": 5,
   "state": "IMPLEMENTED_REVIEW_PENDING",
-  "externalReviewRecord": "../outputs/development-stages/reviews/stage04-implementation/index.html",
-  "nextStage": 5,
+  "externalReviewRecord": "../outputs/development-stages/reviews/stage05-implementation/index.html",
+  "nextStage": 6,
   "stages": [
     {
       "stage": 0,
@@ -24,11 +24,11 @@
     },
     {
       "stage": 4,
-      "state": "IMPLEMENTED_REVIEW_PENDING"
+      "state": "COMPLETE"
     },
     {
       "stage": 5,
-      "state": "NOT_STARTED"
+      "state": "IMPLEMENTED_REVIEW_PENDING"
     },
     {
       "stage": 6,
@@ -60,10 +60,10 @@
     }
   ],
   "implementationLimits": [
-    "Stage3 registration/policy implementation verified; real permission/quote/calendar supply pending; live7/8 closed",
-    "Stage4 local DB/queue/mock worker executed; implementation DUAL and exact-byte commit pending; stage5 gate closed",
-    "Native0004 inputs preserved; no new SDK/lock or native build",
-    "No production/preview DB or cloud worker, real news collection, AI publishing, push or ads"
+    "Stage3 real permissions/quote/calendar supply pending; all112 RIGHTS_HOLD and live7/8 closed",
+    "Stage4 c844fe1 local M0 verified; stage5 implementation/Auth/API/worker source checks passed, DUAL implementation and full device matrix pending",
+    "Native0004 inputs and lock preserved; no new SDK/native build",
+    "No remote push, real collection, AI, prices, push/ads or preview/production resources"
   ],
   "completedStages": [
     {
@@ -80,6 +80,11 @@
       "stage": 2,
       "commit": "0c81416de798a4923ebdcf4dee2ead0f1955f416",
       "evidence": "../outputs/development-stages/reviews/stage02-implementation/commit-evidence.json"
+    },
+    {
+      "stage": 4,
+      "commit": "c844fe14e62e427d280b58ac023b2c9f1935ed75",
+      "evidence": "docs/stages/stage-04-completion.json"
     }
   ],
   "supplyTrack": {
@@ -103,15 +108,31 @@
       "reviewManifest": "0eaad28310de23d0df1d725f1da804e185040c904b20f3489af451630ce00e22",
       "evidence": "../outputs/development-stages/reviews/stage03-implementation/status.json",
       "supplyState": "IMPLEMENTED_SUPPLY_PENDING"
+    },
+    {
+      "stage": 4,
+      "state": "VERIFIED_LOCAL_M0",
+      "commit": "c844fe14e62e427d280b58ac023b2c9f1935ed75",
+      "reviewManifest": "e37fa04024051c6ca003e4ff213112f0396448229a69c07704665dcc2a55f9fb",
+      "evidence": "docs/stages/stage-04-completion.json"
     }
   ],
   "m0": {
-    "status": "LOCAL_SYNTHETIC_TESTS_PASSED_REVIEW_PENDING",
+    "status": "VERIFIED_LOCAL_M0",
     "P01": "LOCAL_SYNTHETIC_PASS",
     "P02a": "LOCAL_SYNTHETIC_PASS",
     "P03a": "LOCAL_SYNTHETIC_PASS",
     "P04a": "SYNTHETIC_CONTRACT_PASS",
     "databasePermissions": "LOCAL_SYNTHETIC_PASS",
-    "stage5Gate": "CLOSED"
+    "stage5Gate": "PLAN_DUAL_READY"
+  },
+  "m1": {
+    "mode": "LOCAL_SYNTHETIC_MANUAL",
+    "planManifest": "0e69bef02ad49c63bc4ca4da1aabbb3975ebc32088ec1c0a0851892f21734794",
+    "P02b": "LOCAL_SYNTHETIC_HTTP_WORKER_PASS",
+    "P03b": "PARTIAL_API_NATIVE_PENDING",
+    "android": "AGENT_OBSERVED_HOME_DETAIL_PARTIAL",
+    "ios": "PENDING_NEW_FLOW",
+    "U05": "PENDING_STAGE6"
   }
 }
