@@ -1,0 +1,27 @@
+import {localClient} from './m0-test-client.mjs';
+import {writePrivate} from './local-runtime.mjs';
+const f=localClient();
+f.sql(`begin;do $$declare h bigint;leaf uuid;other uuid;installation uuid;preview jsonb;article uuid;before_dates text;after_dates text;begin
+ select version into h from private.catalog_head;
+ select s.id,i.id into leaf,article from private.sectors s join private.issues i on i.primary_sector_id=s.id where s.metadata_kind='USER_REFERENCE_UNVERIFIED' and private.m1_current_evidence(i.id) order by i.id limit 1;
+ if leaf is null then raise exception 'CURRENT_REFERENCE_ARTICLE_REQUIRED';end if;
+ select id into other from private.sectors where metadata_kind='USER_REFERENCE_UNVERIFIED' and catalog_kind='LEAF' and active and id<>leaf order by id limit 1;
+ select md5(coalesce(first_published_at::text,'')||coalesce(material_change_at::text,'')||coalesce(current_version_id::text,'')) into before_dates from private.issues where id=article;
+ preview:=private.catalog_impact(leaf);installation:=gen_random_uuid();
+ insert into private.installations(id,secret_hash,expires_at) values(installation,extensions.digest(installation::text,'sha256'),now()+interval '1 hour');
+ insert into private.installation_settings(installation_id,morning_issue,closing_issue,favorite_sector_issue,sector_ids) values(installation,true,false,true,array[other,leaf]);
+ begin perform private.catalog_edit_sector('SECTOR_DEACTIVATE',leaf,jsonb_build_object('impact_sha256',preview->>'impact_sha256'),h);raise exception 'EXPECTED_IMPACT_CONFLICT';exception when raise_exception then if sqlerrm<>'CATALOG_IMPACT_CHANGED' then raise;end if;end;
+ if not (select active from private.sectors where id=leaf) then raise exception 'CONFLICT_MUTATED_CATALOG';end if;
+ preview:=private.catalog_impact(leaf);
+ if (preview->>'interest_settings_count')::integer<1 or preview::text like '%'||installation::text||'%' then raise exception 'IMPACT_PRIVACY_OR_COUNT_FAILED';end if;
+ perform private.catalog_edit_sector('SECTOR_DEACTIVATE',leaf,jsonb_build_object('impact_sha256',preview->>'impact_sha256'),h);h:=private.catalog_finish_version(h);
+ if private.m1_current_evidence(article) or (public.m1_public_article(article)->>'state')<>'CORRECTION_PENDING' then raise exception 'DELETED_SECTOR_BODY_VISIBLE';end if;
+ if not exists(select 1 from private.installation_settings where installation_id=installation and sector_ids=array[other] and morning_issue and not closing_issue and favorite_sector_issue) then raise exception 'INTEREST_SETTINGS_CASCADE_FAILED';end if;
+ perform private.catalog_edit_sector('SECTOR_RESTORE',leaf,'{}',h);h:=private.catalog_finish_version(h);
+ if private.m1_current_evidence(article) or (select publication_state from private.issues where id=article)<>'CORRECTION_PENDING' then raise exception 'AUTOMATIC_REPUBLICATION';end if;
+ if exists(select 1 from private.catalog_memberships where sector_id=leaf and active) then raise exception 'AUTOMATIC_MEMBERSHIP_RESTORATION';end if;
+ select md5(coalesce(first_published_at::text,'')||coalesce(material_change_at::text,'')||coalesce(current_version_id::text,'')) into after_dates from private.issues where id=article;
+ if before_dates<>after_dates then raise exception 'IMMUTABLE_ARTICLE_DATES_OR_BODY_CHANGED';end if;
+ end$$;rollback;`);
+const checks=['Impact digest changes when an interest setting is added','Impact preview returns aggregate counts without installation identity','Sector deactivation atomically blocks published bodies and clears selected interest IDs','Restoration does not republish articles or reactivate memberships','First publication, material-change date and body version remain unchanged','All fixture mutations roll back'].map(name=>({name,status:'PASS'}));
+writePrivate('catalog-deactivation-tests.json',{status:'PASS',checks,fixtureTransactionRolledBack:true,realRequestsExecuted:0});console.log(JSON.stringify({status:'PASS',checks}));

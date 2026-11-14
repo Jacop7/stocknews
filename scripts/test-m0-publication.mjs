@@ -4,11 +4,11 @@ import { localClient } from './m0-test-client.mjs';
 import { writePrivate } from './local-runtime.mjs';
 const {sql,rpc,request,jwt,quote:q}=localClient(),run=randomUUID(),cases=[],sector=randomUUID(),other=randomUUID(),issues=[];
 // Legacy M0 publication is now a local service-fixture endpoint; real editor authorization is exercised by M1 tests.
-const admin=undefined,activePolicy=Number(sql('select version from private.policies where active;'));
+const admin=undefined,activePolicy=Number(sql('select version from private.policies where active;')),activeCatalog=Number(sql('select version from private.catalog_versions where active;'));
 async function test(name,fn){const t=Date.now();try{await fn();cases.push({name,status:'PASS',durationMs:Date.now()-t});console.log(JSON.stringify(cases.at(-1)));}catch(e){cases.push({name,status:'FAIL',error:e.message});throw e;}}
 async function ok(name,args={},opts={}){const r=await rpc(name,args,opts);assert.equal(r.status,200,name+' failed ('+(r.body?.message??r.body?.code??'unknown')+')');return r.body;}
 async function denied(name,args,pattern,opts={}){const r=await rpc(name,args,opts);assert.ok(r.status>=400,name+' must fail');if(pattern)assert.match(r.body?.message??'',pattern);return r;}
-sql('insert into private.sectors(id,name,catalog_version,sample_kind) values ('+q(sector)+',\'SYNTHETIC M0 '+run+"',1,'SYNTHETIC'),("+q(other)+",'SYNTHETIC M0 other',1,'SYNTHETIC');");
+sql('insert into private.sectors(id,name,catalog_version,sample_kind) values ('+q(sector)+',\'SYNTHETIC M0 '+run+"',"+activeCatalog+",'SYNTHETIC'),("+q(other)+",'SYNTHETIC M0 other',"+activeCatalog+",'SYNTHETIC');");
 function fixture({macro=false,official=true,real=false}={}){
   const issue=randomUUID(),story=randomUUID(),claim=randomUUID();issues.push(issue);
   sql('insert into private.stories(id,event_key) values ('+q(story)+','+q(run+':'+story)+'); insert into private.issues(id,story_id,angle_key,primary_sector_id,sample_kind) values ('+q(issue)+','+q(story)+",'SYNTHETIC',"+q(sector)+','+q(real?'PERMITTED_REAL':'SYNTHETIC')+'); insert into private.claims(id,issue_id,claim_type,korea_path_verified,fact_current,official_original,verified,sample_kind) values ('+q(claim)+','+q(issue)+','+q(macro?'SYSTEMIC_MACRO':'ORDINARY_FACT')+',true,true,'+official+",true,'SYNTHETIC');");
@@ -17,7 +17,7 @@ function fixture({macro=false,official=true,real=false}={}){
 const pos={direction:'POSITIVE',title:'합성 긍정 조건',expected_result:'합성 결과',checks:['합성 확인']},neg={...pos,direction:'NEGATIVE'};
 const base={key_issues:['SYNTHETIC 검증용'],issue_analysis:'실제 기사 아님',sources:[{url:'https://example.invalid/synthetic',name:'SYNTHETIC'}],schedule:[{event_at:'2099-01-01T00:00:00Z',title:'future'},{event_at:'2000-01-01T00:00:00Z',title:'expired'}],visible_sections:['SECRET_CLIENT_OVERRIDE'],view_count:99999,source_market:'US',selection_market_basis:'FOREIGN_US'};
 const profiles={POSITIVE_ONLY:{scenarios:[pos],benefit_sector_ids:[sector]},POSITIVE_NEGATIVE:{scenarios:[pos,neg],benefit_sector_ids:[sector],damage_sector_ids:[other]},DAMAGE_ONLY:{scenarios:[],damage_sector_ids:[other],risks:['SYNTHETIC 주의']},RELATED_CONDITIONAL:{scenarios:[pos],related_sector_ids:[sector]}};
-const args=(issue,profile,body,extra={})=>({p_issue:issue,p_expected_revision:0,p_title:'SYNTHETIC M0 '+run,p_summary:'실제 기사 아님',p_body:{...base,...body},p_profile:profile,p_policy:activePolicy,p_catalog:1,p_effect_key:run+':publish:'+issue,...extra});
+const args=(issue,profile,body,extra={})=>({p_issue:issue,p_expected_revision:0,p_title:'SYNTHETIC M0 '+run,p_summary:'실제 기사 아님',p_body:{...base,...body},p_profile:profile,p_policy:activePolicy,p_catalog:activeCatalog,p_effect_key:run+':publish:'+issue,...extra});
 let failed,published;
 try{
   for(const [profile,body] of Object.entries(profiles))await test('P03a: server visibility '+profile,async()=>{
@@ -68,7 +68,7 @@ try{
     const capability=x=>({p_install:x.installation_id,p_secret:x.secret,p_version:x.secret_version});
     await denied('m0_get_settings',{...capability(b),p_secret:a.secret},/INSTALLATION_UNAUTHORIZED/);
     await ok('m0_update_settings',{...capability(a),p_morning:true,p_closing:false,p_favorite:true,p_sector_ids:[sector]});
-    const inactive=randomUUID();sql('insert into private.sectors(id,name,catalog_version,sample_kind,active) values ('+q(inactive)+",'SYNTHETIC inactive',1,'SYNTHETIC',false);");
+    const inactive=randomUUID();sql('insert into private.sectors(id,name,catalog_version,sample_kind,active) values ('+q(inactive)+",'SYNTHETIC inactive',"+activeCatalog+",'SYNTHETIC',false);");
     const before=await ok('m0_get_settings',capability(a));
     for(const [ids,pattern] of [[[inactive],/INACTIVE_SECTOR/],[[randomUUID()],/INACTIVE_SECTOR/],[[sector,sector],/DUPLICATE_OR_NULL_SECTOR/],[[null],/DUPLICATE_OR_NULL_SECTOR/]]){
       await denied('m0_update_settings',{...capability(a),p_morning:false,p_closing:true,p_favorite:false,p_sector_ids:ids},pattern);

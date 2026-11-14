@@ -3,15 +3,17 @@ import { readFileSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath,pathToFileURL } from 'node:url';
+import {catalogRoute,catalogResponse,CatalogReadError} from './catalog/public-route.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 class ReadError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 export function publicConfig(){const c=JSON.parse(readFileSync(path.join(root,'.local-data/runtime/public-read.json'),'utf8'));if(c.productId!=='judoju-news'||c.environment!=='local'||c.sampleKind!=='SYNTHETIC'||c.apiUrl!=='http://127.0.0.1:62321'||typeof c.anonKey!=='string'||'serviceKey'in c)throw new ReadError('PUBLIC_CONFIG_REJECTED',503);return c;}
 export function readRoute(raw){
-  if(raw.length>2048||!raw.startsWith('/')||raw.startsWith('//'))throw new ReadError('INVALID_URL');
+  if(raw.length>(raw.startsWith('/v2/')?8192:2048)||!raw.startsWith('/')||raw.startsWith('//'))throw new ReadError('INVALID_URL');
   const u=new URL(raw,'http://127.0.0.1');
   if(u.hash||u.username||u.password||/%2f|%5c/i.test(u.pathname))throw new ReadError('INVALID_URL');
   const params=[...u.searchParams.keys()];if(new Set(params).size!==params.length)throw new ReadError('DUPLICATE_PARAMETER');
+  if(u.pathname.startsWith('/v2/'))return catalogRoute(u);
   if(u.pathname==='/sectors'&&!params.length)return {name:'m1_public_catalog',args:{}};
   const match=u.pathname.match(/^\/articles\/([0-9a-f-]+)$/);
   if(match&&UUID.test(match[1])&&!params.length)return {name:'m1_public_article',args:{p_issue:match[1]}};
@@ -26,8 +28,8 @@ export async function upstream(c,name,args){
   const response=await fetch(c.apiUrl+'/rest/v1/rpc/'+name,{method:'POST',redirect:'error',cache:'no-store',headers:{apikey:c.anonKey,Authorization:'Bearer '+c.anonKey,'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(7000)});
   const chunks=[];let total=0;
   for await(const chunk of response.body??[]){total+=chunk.length;if(total>262144)throw new ReadError('RESPONSE_TOO_LARGE',502);chunks.push(chunk);}
-  if(!response.ok)throw new ReadError('PUBLIC_READ_UNAVAILABLE',503);
   let value;try{value=JSON.parse(Buffer.concat(chunks).toString());}catch{throw new ReadError('INVALID_BACKEND_RESPONSE',502);}
+  if(!response.ok){if(name.startsWith('catalog_public_')&&value.code==='P0001'&&['STALE_CATALOG','INVALID_CURSOR_CONTEXT'].includes(value.message))throw new ReadError(value.message,409);throw new ReadError('PUBLIC_READ_UNAVAILABLE',503);}
   return value;
 }
 const ipv4=x=>x.split('.').reduce((n,v)=>(n<<8)|Number(v),0)>>>0;
@@ -61,11 +63,11 @@ export async function createPublicGateway(c,{lan=false,port=62330,transport=upst
       bucket.tokens=Math.min(12,bucket.tokens+(now-bucket.updated)/1000);bucket.updated=now;bucket.times=bucket.times.filter(t=>now-t<60000);globalTimes=globalTimes.filter(t=>now-t<60000);
       if(bucket.tokens<1||bucket.times.length>=60||globalTimes.length>=240||bucket.active>=3||active>=8)throw new ReadError('RATE_LIMITED',429);
       bucket.tokens--;bucket.times.push(now);globalTimes.push(now);bucket.active++;active++;acquired=true;
-      const value=await transport(c,route.name,route.args);
+      const value=catalogResponse(route,await transport(c,route.name,route.args));
       if(route.name==='m1_public_catalog'&&(!Array.isArray(value)||value.length>100)||route.name==='m1_public_articles'&&(!Array.isArray(value)||value.length>50||value.some(x=>x.sample_kind!=='SYNTHETIC'))||route.name==='m1_public_article'&&value?.state==='PUBLISHED'&&value.sample_kind!=='SYNTHETIC')throw new ReadError('SYNTHETIC_DTO_REQUIRED',502);
       if(Buffer.byteLength(JSON.stringify(value))>262144)throw new ReadError('RESPONSE_TOO_LARGE',502);
       send(200,{productId:'judoju-news',mode:'LOCAL_SYNTHETIC',data:value});
-    }catch(e){send(e instanceof ReadError?e.status:503,{error:e instanceof ReadError?e.message:'PUBLIC_READ_UNAVAILABLE'},e instanceof ReadError&&e.status===429?{'Retry-After':'1'}:{});}
+    }catch(e){const known=e instanceof ReadError||e instanceof CatalogReadError;send(known?e.status:503,{error:known?e.message:'PUBLIC_READ_UNAVAILABLE'},known&&e.status===429?{'Retry-After':'1'}:{});}
     finally{if(acquired){active--;bucket.active--;}}
   });
   server.requestTimeout=10000;server.headersTimeout=5000;server.maxHeadersCount=30;

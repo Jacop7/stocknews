@@ -1,4 +1,8 @@
-import { Link } from 'expo-router';
-import { Text } from 'react-native';
+import {useRouter} from 'expo-router';
+import {Text} from 'react-native';
+import type {PublicCatalog} from '@judoju/contracts';
 import { Screen,s } from '../components/Screen';
-export default function Page() {return <Screen title='필터'><Link href='/'>‹ 홈으로</Link><Text style={[s.title,{marginTop:24}]}>필터</Text><Text style={s.body}>섹터와 하위 섹터를 하나의 화면에서 선택하는 흐름을 연결할 예정입니다.</Text></Screen>;}
+import {SectorFilter} from '../components/SectorFilter';
+import {usePublicRead} from '../data/public-read';
+import {useCatalogFilter} from '../data/CatalogContext';
+export default function Page(){const router=useRouter(),catalog=usePublicRead<PublicCatalog>('/v2/catalog'),{selected,setSelected}=useCatalogFilter();return <Screen title='필터'>{Boolean(catalog.error)&&<Text style={s.body}>{catalog.error}</Text>}{catalog.data&&<SectorFilter visible catalog={catalog.data} selected={selected} onApply={setSelected} onClose={()=>router.canGoBack()?router.back():router.replace('/')}/>}</Screen>;}

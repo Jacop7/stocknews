@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "productId": "judoju-news",
-  "currentStage": 5,
+  "currentStage": 6,
   "state": "IMPLEMENTED_REVIEW_PENDING",
-  "externalReviewRecord": "../outputs/development-stages/reviews/stage05-implementation/index.html",
+  "externalReviewRecord": "../outputs/development-stages/reviews/stage06b-implementation/index.html",
   "nextStage": 6,
   "stages": [
     {
@@ -32,7 +32,7 @@
     },
     {
       "stage": 6,
-      "state": "NOT_STARTED"
+      "state": "IMPLEMENTED_REVIEW_PENDING"
     },
     {
       "stage": 7,
@@ -137,12 +137,33 @@
   },
   "catalogPreparation": {
     "stage": "6A",
-    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "state": "VERIFIED_LOCAL_OFFLINE",
     "planManifest": "1322727f755ea8da918dd8d04320e2bcef9cf8aadd4a05cd0ab3f353f5d56be7",
     "sourceCategories": 56,
     "sourceCompanies": 339,
     "databaseApplied": false,
     "appConnected": false,
-    "nativeGateDeferredByUser": true
-  }
+    "nativeGateDeferredByUser": true,
+    "commit": "7718693c7c6add5e9019b1c365f67a72c174f3ea"
+  },
+  "catalogConnection": {
+    "stage": "6B",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "planManifest": "c1026d481625755c43cbabdd6cd92b6cfbb62e2f53a4231ba2873235ae8c6636",
+    "nativeGateDeferredByUser": true,
+    "realPublicationEnabled": false,
+    "databaseApplied": true,
+    "appConnected": true,
+    "usageScope": "LOCAL_REFERENCE",
+    "stockIdentityState": "UNRESOLVED",
+    "sourceCategories": 56,
+    "sourceCompanyRecords": 339,
+    "structuralHolds": 2,
+    "remainingSubstages": [
+      "6C_SEARCH_BOOKMARKS",
+      "6D_OWNERSHIP_VIEWS_ALERTS",
+      "6E_SCHEDULING"
+    ]
+  },
+  "stage6Scope": "PARTIAL_6B_LOCAL_REFERENCE"
 }

@@ -23,6 +23,13 @@ export interface NewsSource {id:string; canonicalUrl:string; originId:string; st
 export interface JobEnvelope {id:string; job_schema_version:number; effect_key:string; environment:Environment; payload:unknown;}
 export type SupplySampleKind = 'SYNTHETIC' | 'PERMITTED_REAL';
 export interface PublicSector {id:string;name:string;description:string;}
+export interface CatalogLeaf {id:string;name:string;parent_id:string;order:number;}
+export interface CatalogParent {id:string;name:string;order:number;sectors:CatalogLeaf[];}
+export interface PublicCatalog {catalog_version:string;metadata_kind:'USER_REFERENCE_UNVERIFIED';parents:CatalogParent[];}
+export interface ReferenceCompany {membership_id:string;source_company_ref:string;name:string;description:string;stock_identity_state:'UNRESOLVED';stock_code:null;price:null;change_percent:null;stock_url:null;}
+export type PublicReferenceSector={state:'NOT_FOUND';catalog_version:string}|{state:'AVAILABLE';catalog_version:string;id:string;name:string;description:string;parent_id:string;metadata_kind:'USER_REFERENCE_UNVERIFIED';groups:Array<{id:string;name:string;order:number;members:ReferenceCompany[]}>;ungrouped_members:ReferenceCompany[];offset:number;total_memberships:number;next_offset:number|null};
+export type CalendarPeriod='TODAY'|'YESTERDAY'|'THIS_WEEK'|'LAST_WEEK'|'THIS_MONTH'|'LAST_MONTH';
+export interface CatalogNewsPage {catalog_version:string;as_of:string;period:CalendarPeriod;range_start:string;range_end:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 export interface PublicNewsSummary {issue_id:string;version_id:string;title:string;summary:string;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC';article_kind:'SECTOR'|'MACRO';sector_name:string|null;}
 export interface PublicImpact {sector_id:string;sector_name:string;path_id:string;direction:ImpactDirection;conditional_direction:'NONE'|'POSITIVE'|'NEGATIVE';description:string;conditions:string[];}
 export interface PublicScenario {direction:'POSITIVE'|'NEGATIVE';title:string;expected_result:string;checks:string[];path_ids:string[];}

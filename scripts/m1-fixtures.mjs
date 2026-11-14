@@ -9,7 +9,13 @@ export const fixtureSectors=[
 ];
 export async function m1FixtureClient(){
   const f=await authFixtures();
-  for(const [n,s]of fixtureSectors.entries()){
+  const referenceHead=f.sql("select s.usage_scope from private.catalog_head h join private.catalog_snapshots s on s.version=h.version;");
+  if(referenceHead==='LOCAL_REFERENCE'){
+    // Synthetic article paths use explicitly selectable current reference IDs, never guessed aliases of legacy IDs.
+    const selected=JSON.parse(f.sql("select jsonb_agg(row_to_json(t)) from(select s.id,s.name,s.description from private.sectors s join private.catalog_head h on h.version=s.catalog_version where private.catalog_sector_selectable(s.id,h.version,'SYNTHETIC') order by s.display_order,s.id limit 3)t;"));
+    assert.equal(selected?.length,3,'Three current selectable sectors required for explicit synthetic path tests');
+    fixtureSectors.splice(0,fixtureSectors.length,...selected);
+  }else for(const [n,s]of fixtureSectors.entries()){
     const existing=f.sql('select name||\'|\'||sample_kind::text from private.sectors where id='+f.quote(s.id)+';');
     assert.ok(!existing||existing===s.name+'|SYNTHETIC','Do not adopt unknown catalog identity');
     f.sql('insert into private.sectors(id,name,description,display_order,catalog_version,sample_kind) values ('+f.quote(s.id)+','+f.quote(s.name)+','+f.quote(s.description)+','+n+",1,'SYNTHETIC') on conflict(id) do nothing;");

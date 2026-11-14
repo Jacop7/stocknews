@@ -41,7 +41,7 @@ export function sourcePreflight(){
   assert.equal(process.versions.node,'24.15.0');config();
   assert.equal(must(command('git',['rev-parse','--show-toplevel']),'Git root').replaceAll('\\','/').toLowerCase(),root.replaceAll('\\','/').toLowerCase());
   const status=JSON.parse(readFileSync(path.join(root,'docs/development-status.json'),'utf8'));
-  assert.ok([4,5].includes(status.currentStage));assert.equal(status.stages[3].state,'IMPLEMENTED_SUPPLY_PENDING');
+  assert.ok([4,5].includes(status.currentStage)||status.currentStage===6&&status.catalogConnection?.stage==='6B'&&status.catalogConnection.realPublicationEnabled===false);assert.equal(status.stages[3].state,'IMPLEMENTED_SUPPLY_PENDING');
   const endpoint=must(docker(['context','inspect',dockerContext,'--format','{{(index .Endpoints "docker").Host}}']),'Local Docker context');
   assert.equal(endpoint,process.platform==='win32'?'npipe:////./pipe/dockerDesktopLinuxEngine':'unix:///var/run/docker.sock','Only explicit local Docker engine');
   const engine=must(docker(['info','--format','{{.ServerVersion}} {{.OSType}}']),'Docker engine');assert.ok(engine.endsWith(' linux'));
