@@ -31,6 +31,13 @@ export type PublicReferenceSector={state:'NOT_FOUND';catalog_version:string}|{st
 export type CalendarPeriod='TODAY'|'YESTERDAY'|'THIS_WEEK'|'LAST_WEEK'|'THIS_MONTH'|'LAST_MONTH';
 export interface CatalogNewsPage {catalog_version:string;as_of:string;period:CalendarPeriod;range_start:string;range_end:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 export interface PublicNewsSummary {issue_id:string;version_id:string;title:string;summary:string;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC';article_kind:'SECTOR'|'MACRO';sector_name:string|null;}
+export interface SearchNewsPage {catalog_version:string;as_of:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
+export interface CompanySectorLink {id:string;name:string;display_order:number;}
+export interface SearchCompany {source_company_ref:string;name:string;search_description:string;metadata_kind:'USER_REFERENCE_UNVERIFIED';stock_identity_state:'UNRESOLVED';stock_code:null;price:null;change_percent:null;stock_url:null;related_sectors:CompanySectorLink[];has_more_sectors:boolean;}
+export interface SearchCompanyPage {catalog_version:string;items:SearchCompany[];next_cursor:string|null;}
+export interface CompanySectorPage {catalog_version:string;state:'AVAILABLE'|'NOT_FOUND';items:CompanySectorLink[];next_offset:number|null;}
+export type SavedResolution={requested_issue_id:string;state:'PUBLISHED';canonical_issue_id:string;card:SearchNewsPage['items'][number]}|{requested_issue_id:string;state:'NOT_FOUND'|'HIDDEN'|'WITHDRAWN'|'CORRECTION_PENDING';canonical_issue_id?:string;message:string};
+export interface SavedPage {catalog_version:string;items:SavedResolution[];}
 export interface PublicImpact {sector_id:string;sector_name:string;path_id:string;direction:ImpactDirection;conditional_direction:'NONE'|'POSITIVE'|'NEGATIVE';description:string;conditions:string[];}
 export interface PublicScenario {direction:'POSITIVE'|'NEGATIVE';title:string;expected_result:string;checks:string[];path_ids:string[];}
 export interface PublicSchedule {kind:'EXACT'|'PERIOD';title:string;timezone:string;event_at?:string;period_label?:string;date_note?:string;}

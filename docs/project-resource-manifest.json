@@ -219,7 +219,7 @@
     "easStatus": "LINKED",
     "nativeBuilds": {
       "android": "AGENT_OBSERVED_EMULATOR",
-      "ios": "USER_CONFIRMED_PHYSICAL"
+      "ios": "PENDING_NATIVE_CONFIRMATION"
     }
   }
 }

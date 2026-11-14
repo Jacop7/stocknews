@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "state": "DEVELOPMENT_VERIFIED",
-  "digest": "efab6f95527ab648fd2d02076be55231c6d920f474f8e4a01273edeaf836df26",
+  "state": "NATIVE_BUILDS_COMPILED",
+  "digest": "9c86c77dd9194b4677e470c5d8545f14702dcec773c7fa47f2ac54af740b3dc6",
   "inputs": [
     {
       "path": "apps/mobile/app.config.ts",
@@ -11,7 +11,7 @@
     {
       "path": "apps/mobile/app.json",
       "bytes": 1340,
-      "sha256": "c772059ba732698c657a40fb03a3497d5965ed388d27a25f3af97e823af68654"
+      "sha256": "82ea2de13e02ff49c5a13c505bee5a066a1dd2ca41a74880fca5cf7f2378da02"
     },
     {
       "path": "apps/mobile/eas.json",
@@ -20,31 +20,31 @@
     },
     {
       "path": "apps/mobile/package.json",
-      "bytes": 1062,
-      "sha256": "4efb60f7bebf44ca58748cb93ed9da4faba90a85f39abf6f441a2bc7a3338bc3"
+      "bytes": 1120,
+      "sha256": "1e9e8a1d8c0131788710db49b6b6b7ce371a848df2889dec1d38406776ecd00f"
     },
     {
       "path": "pnpm-lock.yaml",
-      "bytes": 375257,
-      "sha256": "74785666a77c287c8625cdc4a3a6fdd715c111a4505afd3f83d70372c2b3304d"
+      "bytes": 376815,
+      "sha256": "10bfef870671f7ee3cbf5afe7355417dba1e3b9f0af0cd308c3ada8f054ee2a3"
     }
   ],
   "runtimeVersions": {
-    "android": "android-native-0004",
-    "ios": "ios-native-0004"
+    "android": "android-native-0005",
+    "ios": "ios-native-0005"
   },
   "actualBuilds": {
     "android": {
-      "buildId": "b75f88fa-09a3-4241-9d81-66b9bbadeac3",
+      "buildId": "5fa9f2ef-abe1-4cda-bd92-405290d2d319",
       "binaryStatus": "FINISHED",
-      "runtimeVersion": "android-native-0004",
+      "runtimeVersion": "android-native-0005",
       "deviceStatus": "AGENT_OBSERVED_EMULATOR"
     },
     "ios": {
-      "buildId": "e3c5fee2-aa0e-4216-ad27-4c8c717afab4",
+      "buildId": "e9982851-1df3-49e0-a54f-80d0276fa7a0",
       "binaryStatus": "FINISHED",
-      "runtimeVersion": "ios-native-0004",
-      "deviceStatus": "USER_CONFIRMED_PHYSICAL"
+      "runtimeVersion": "ios-native-0005",
+      "deviceStatus": "PENDING_NATIVE_CONFIRMATION"
     }
   },
   "introducedAfterCommit": "fa928e987a792cb99536b7e0fc4461e7575ba8d6"

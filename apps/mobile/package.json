@@ -27,7 +27,8 @@
     "@judoju/domain": "workspace:*",
     "expo-notifications": "58.1.9",
     "react-native-google-mobile-ads": "17.4.0",
-    "expo-dev-client": "58.0.20"
+    "expo-dev-client": "58.0.20",
+    "@react-native-async-storage/async-storage": "2.2.0"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

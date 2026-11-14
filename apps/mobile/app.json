@@ -9,7 +9,7 @@
     "ios": {
       "bundleIdentifier": "com.jacop.stocknews",
       "buildNumber": "1",
-      "runtimeVersion": "ios-native-0004",
+      "runtimeVersion": "ios-native-0005",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.jacop.stocknews",
       "versionCode": 1,
-      "runtimeVersion": "android-native-0004"
+      "runtimeVersion": "android-native-0005"
     },
     "web": {
       "bundler": "metro",

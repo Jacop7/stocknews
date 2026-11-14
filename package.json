@@ -29,7 +29,9 @@
     "test:catalog": "node --test tests/catalog-preparation.test.mjs",
     "test:catalog-connection": "node --test tests/catalog-connection.test.mjs",
     "test:catalog-runtime": "node scripts/test-catalog-runtime.mjs && node scripts/test-catalog-import.mjs && node scripts/test-catalog-public.mjs && node scripts/test-catalog-editor-read.mjs && node scripts/test-catalog-versioning.mjs && node scripts/test-catalog-sector-mutations.mjs && node scripts/test-catalog-operations.mjs && node scripts/test-catalog-cursor.mjs && node scripts/test-catalog-deactivation.mjs && node scripts/test-catalog-http.mjs && node scripts/test-catalog-recovery.mjs",
-    "catalog:preview": "node scripts/catalog/preview-catalog.mjs"
+    "catalog:preview": "node scripts/catalog/preview-catalog.mjs",
+    "test:search-bookmarks": "node --test tests/search-bookmarks.test.mjs",
+    "test:search-runtime": "node scripts/test-search-bookmarks-runtime.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",

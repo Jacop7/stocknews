@@ -61,9 +61,9 @@
   ],
   "implementationLimits": [
     "Stage3 real permissions/quote/calendar supply pending; all112 RIGHTS_HOLD and live7/8 closed",
-    "Stage4 c844fe1 local M0 verified; stage5 implementation/Auth/API/worker source checks passed, DUAL implementation and full device matrix pending",
-    "Native0004 inputs and lock preserved; no new SDK/native build",
-    "No remote push, real collection, AI, prices, push/ads or preview/production resources"
+    "Stage4 c844fe1 and stage5 manual publishing verified locally; 6B73ab521 catalog verified; 6C implementation re-review pending; full device/P03b matrix pending",
+    "Native0005 adds only AsyncStorage2.2.0 with two new FINISHED builds and Android observation. Current iOS0005 physical validation is user-deferred; prior0004 phone confirmation is historical only",
+    "No remote git push, real collection, AI, prices, push/ads or preview/production provisioning. Two free development EAS builds use the existing new-product project"
   ],
   "completedStages": [
     {
@@ -148,7 +148,7 @@
   },
   "catalogConnection": {
     "stage": "6B",
-    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "state": "VERIFIED_LOCAL_REFERENCE",
     "planManifest": "c1026d481625755c43cbabdd6cd92b6cfbb62e2f53a4231ba2873235ae8c6636",
     "nativeGateDeferredByUser": true,
     "realPublicationEnabled": false,
@@ -163,7 +163,24 @@
       "6C_SEARCH_BOOKMARKS",
       "6D_OWNERSHIP_VIEWS_ALERTS",
       "6E_SCHEDULING"
-    ]
+    ],
+    "commit": "73ab52121d6afac6e51a6f26bb181b5bf03f40b3",
+    "reviewManifest": "72656cf764774558f8ef86c49d201a01e93c1b0c4c782ce55464b997a6104f33"
   },
-  "stage6Scope": "PARTIAL_6B_LOCAL_REFERENCE"
+  "stage6Scope": "PARTIAL_6C_SEARCH_DEVICE_BOOKMARKS",
+  "searchBookmarks": {
+    "stage": "6C",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "planManifest": "f3d0271b2c5263fc4661e4e247b1c51f533c09d8ba2a29144ba9a14805265d8e",
+    "realPublicationEnabled": false,
+    "nativeGate": "NEW_0005_BUILDS_FINISHED_ANDROID_OBSERVED_IOS_PHYSICAL_PENDING",
+    "iosPhysical": "USER_DEFERRED",
+    "searchCapabilities": {
+      "company_name": "LOCAL_REFERENCE_VERIFIED",
+      "direct_keyword": "LOCAL_REFERENCE_VERIFIED",
+      "verified_alias": "DEFERRED_TO_STAGE7",
+      "stock_code": "DEFERRED_TO_STAGE7"
+    },
+    "serverBookmarkSync": false
+  }
 }

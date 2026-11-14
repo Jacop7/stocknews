@@ -7,6 +7,7 @@ import {useCatalogFilter} from '../data/CatalogContext';
 import {calendarPeriods,periodRange,selectionLabels,validSelection} from '../data/catalog-filter.mjs';
 import {SectorFilter} from './SectorFilter';
 import {s} from './Screen';
+import {NewsCard} from './NewsCard';
 export function NewsFeed({sectorId,filters=true}:{sectorId?:string;filters?:boolean}){
  const catalog=usePublicRead<PublicCatalog>('/v2/catalog'),{selected,setSelected,period,setPeriod}=useCatalogFilter(),[popup,setPopup]=useState(false),[cursor,setCursor]=useState('');
  const version=catalog.data?.catalog_version??'',query=sectorId?[sectorId]:selected,context=version+'|'+query.join(',')+'|'+period;
@@ -19,6 +20,6 @@ export function NewsFeed({sectorId,filters=true}:{sectorId?:string;filters?:bool
  <Text style={[s.date,{marginBottom:4}]}>{periodRange(period,feed.data?new Date(feed.data.as_of):new Date())}</Text>
  {(feed.loading||catalog.loading)&&<Text style={s.body}>기사 확인 중…</Text>}{Boolean(feed.error||catalog.error)&&<View><Text style={s.body}>{feed.error||catalog.error}</Text><Pressable onPress={()=>{setCursor('');setCursorContext('');catalog.retry();feed.retry();}} accessibilityRole='button'><Text style={s.badge}>첫 페이지 다시 확인</Text></Pressable></View>}
  {!feed.loading&&!feed.error&&feed.data?.items.length===0&&<Text style={s.body}>선택한 기간·섹터의 게시 글이 없습니다.</Text>}
- {feed.data?.items.map(n=><View style={s.card} key={n.issue_id}>{n.sector_id&&!n.legacy_sector?<Link href={{pathname:'/sector/[id]',params:{id:n.sector_id}}}><Text style={s.badge}>{n.sector_name}</Text></Link>:<Text style={s.badge}>{n.article_kind==='MACRO'?'매크로':n.sector_name}{n.legacy_sector?' · 이전 분류':''}</Text>}<Link href={{pathname:'/article/[id]',params:{id:n.issue_id}}} asChild><Pressable accessibilityRole='button'><Text style={s.headline}>{n.title}</Text><Text style={s.body}>{n.summary}</Text><Text style={s.date}>{new Date(n.first_published_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</Text></Pressable></Link></View>)}
+ {feed.data?.items.map(n=><NewsCard article={n} key={n.issue_id}/>)}
  <View style={[s.row,{marginTop:18}]}>{Boolean(currentCursor)&&<Pressable style={s.chip} onPress={()=>setCursor('')}><Text style={s.chipText}>첫 페이지</Text></Pressable>}{Boolean(feed.data?.next_cursor)&&<Pressable style={s.chip} onPress={()=>{setCursor(feed.data?.next_cursor??'');setCursorContext(context);}}><Text style={s.chipText}>다음 기사</Text></Pressable>}</View></>;
 }

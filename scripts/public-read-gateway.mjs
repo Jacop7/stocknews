@@ -4,6 +4,7 @@ import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath,pathToFileURL } from 'node:url';
 import {catalogRoute,catalogResponse,CatalogReadError} from './catalog/public-route.mjs';
+import {searchRoute,searchResponse} from './catalog/search-route.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 class ReadError extends Error{constructor(message,status=400){super(message);this.status=status;}}
@@ -13,6 +14,7 @@ export function readRoute(raw){
   const u=new URL(raw,'http://127.0.0.1');
   if(u.hash||u.username||u.password||/%2f|%5c/i.test(u.pathname))throw new ReadError('INVALID_URL');
   const params=[...u.searchParams.keys()];if(new Set(params).size!==params.length)throw new ReadError('DUPLICATE_PARAMETER');
+  if(u.pathname.startsWith('/v2/search/')||u.pathname==='/v2/saved'||u.pathname.startsWith('/v2/companies/')){const route=searchRoute(u);if(route)return route;throw new ReadError('ROUTE_NOT_FOUND',404);}
   if(u.pathname.startsWith('/v2/'))return catalogRoute(u);
   if(u.pathname==='/sectors'&&!params.length)return {name:'m1_public_catalog',args:{}};
   const match=u.pathname.match(/^\/articles\/([0-9a-f-]+)$/);
@@ -63,7 +65,7 @@ export async function createPublicGateway(c,{lan=false,port=62330,transport=upst
       bucket.tokens=Math.min(12,bucket.tokens+(now-bucket.updated)/1000);bucket.updated=now;bucket.times=bucket.times.filter(t=>now-t<60000);globalTimes=globalTimes.filter(t=>now-t<60000);
       if(bucket.tokens<1||bucket.times.length>=60||globalTimes.length>=240||bucket.active>=3||active>=8)throw new ReadError('RATE_LIMITED',429);
       bucket.tokens--;bucket.times.push(now);globalTimes.push(now);bucket.active++;active++;acquired=true;
-      const value=catalogResponse(route,await transport(c,route.name,route.args));
+      const raw=await transport(c,route.name,route.args),value=route.search?searchResponse(route,raw):catalogResponse(route,raw);
       if(route.name==='m1_public_catalog'&&(!Array.isArray(value)||value.length>100)||route.name==='m1_public_articles'&&(!Array.isArray(value)||value.length>50||value.some(x=>x.sample_kind!=='SYNTHETIC'))||route.name==='m1_public_article'&&value?.state==='PUBLISHED'&&value.sample_kind!=='SYNTHETIC')throw new ReadError('SYNTHETIC_DTO_REQUIRED',502);
       if(Buffer.byteLength(JSON.stringify(value))>262144)throw new ReadError('RESPONSE_TOO_LARGE',502);
       send(200,{productId:'judoju-news',mode:'LOCAL_SYNTHETIC',data:value});
