@@ -35,3 +35,5 @@ docker-data/
 # Agent runtime; product model plan is retained locally
 .codex/
 .claude/
+
+*.tsbuildinfo

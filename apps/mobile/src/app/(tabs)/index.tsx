@@ -1,0 +1,5 @@
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Screen,s } from '../../components/Screen';
+const news=[{id:'sample-ai',sector:'반도체 후공정/패키징',title:'AI 반도체 투자 확대, 후공정 수요 주목',description:'샘플 데이터입니다. 운영에서는 확인한 원문과 한국 기업 영향 근거를 바탕으로 기사를 제공합니다.'},{id:'sample-power',sector:'전력',title:'데이터센터 전력 수요, 공급망 변화 점검',description:'연결되지 않은 시세나 검증되지 않은 수혜를 실제 정보처럼 표시하지 않습니다.'}];
+export default function Home() { return <Screen title='홈'><View style={s.row}>{['오늘','어제','이번주','지난주','이번달','지난달'].map(x=><View key={x} style={s.chip}><Text style={s.chipText}>{x}</Text></View>)}</View><Link href='/filters' asChild><Pressable style={StyleSheet.flatten([s.chip,{alignSelf:'flex-start'}])}><Text style={s.chipText}>☷ 필터 · 섹터 선택</Text></Pressable></Link>{news.map(n=><Link key={n.id} href={{pathname:'/article/[id]',params:{id:n.id}}} asChild><Pressable style={s.card}><Text style={s.badge}>{n.sector}</Text><Text style={s.headline}>{n.title}</Text><Text style={s.body}>{n.description}</Text><Text style={s.date}>샘플 · 시장 데이터 연결 대기</Text></Pressable></Link>)}</Screen> }

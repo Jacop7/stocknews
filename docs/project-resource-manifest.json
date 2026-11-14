@@ -1,23 +1,30 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "judoju-news",
-  "productRoot": "C:/Users/jacop/주식/judoju-news",
+  "productRoot": ".",
   "repository": {
     "status": "CREATED",
     "branch": "main",
     "historyOrigin": "NEW",
     "remoteStatus": "CONFIGURED",
     "remote": "https://github.com/Jacop7/stocknews.git",
-    "initialCommit": "f7dce3a9e05c39580f23a210c3ac9d2514c38b74"
+    "initialCommit": "f7dce3a9e05c39580f23a210c3ac9d2514c38b74",
+    "stage1Commit": "fa928e987a792cb99536b7e0fc4461e7575ba8d6"
   },
   "resources": [
     {
       "id": "expo_eas",
       "type": "app",
       "environment": "all",
-      "status": "PENDING",
+      "status": "CREATED",
       "plannedNamespace": "judoju-news-expo-eas",
-      "actual": null
+      "actual": {
+        "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
+        "owner": "jacop7223",
+        "slug": "judoju-news",
+        "dashboardUrl": "https://expo.dev/accounts/jacop7223/projects/judoju-news",
+        "createdNewForProduct": true
+      }
     },
     {
       "id": "supabase_local",
@@ -115,5 +122,84 @@
       "plannedNamespace": "judoju-news-environment-secrets",
       "actual": null
     }
-  ]
+  ],
+  "bootstrapSource": "Original isolated repository; stage0/1 receipts retained locally outside this repo.",
+  "plannedLocalConfig": {
+    "file": "supabase/config.toml",
+    "sha256": "1047ee21faa202e52408c9e18f2ff7cc04466a9c7f485427293c84c7be52d1ff",
+    "project_id": "judoju-news-local",
+    "ports": {
+      "api": 62321,
+      "db": 62322,
+      "db.shadow": 62320,
+      "studio": 62323,
+      "inbucket": 62324,
+      "inbucket.smtp": 62325,
+      "inbucket.pop3": 62326
+    },
+    "disabledPorts": {
+      "db.pooler": 62329,
+      "edge_runtime.inspector": 62328,
+      "analytics": 62327
+    },
+    "plannedContainerNamespace": "supabase_*_judoju-news-local",
+    "plannedWorkerNamespace": "judoju-news-worker-local"
+  },
+  "configValidation": {
+    "status": "CONFIG_VALIDATED",
+    "observedAt": "2026-11-14T00:06:08.340975+00:00",
+    "portConflictCheck": {
+      "status": "PASS",
+      "checkedPorts": [
+        62320,
+        62321,
+        62322,
+        62323,
+        62324,
+        62325,
+        62326,
+        62327,
+        62328,
+        62329
+      ],
+      "conflicts": [],
+      "method": "Get-NetTCPConnection -State Listen; read-only; only candidate intersection retained"
+    },
+    "dockerNameConflictCheck": {
+      "status": "PASS",
+      "namespace": "judoju-news-local",
+      "conflicts": [],
+      "method": "docker ps -a --format names; only new namespace matches retained; no env/mount/DB inspection"
+    },
+    "actualContainerVolumeProductResponse": "PENDING_STAGE_4",
+    "limitations": "Point-in-time configuration readiness only; no containers, volumes, DB endpoints created or contacted."
+  },
+  "environments": {
+    "local": {
+      "supabase": "supabase_local",
+      "worker": "worker_local",
+      "appBuildProfile": "development"
+    },
+    "preview": {
+      "supabase": "supabase_preview",
+      "worker": "worker_preview",
+      "appBuildProfile": "preview"
+    },
+    "production": {
+      "supabase": "supabase_production",
+      "worker": "worker_production",
+      "appBuildProfile": "production"
+    }
+  },
+  "appIdentity": {
+    "slug": "judoju-news",
+    "androidPackage": "com.jacop.stocknews",
+    "iosBundleIdentifier": "com.jacop.stocknews",
+    "easProjectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
+    "easStatus": "LINKED",
+    "nativeBuilds": {
+      "android": "AGENT_OBSERVED_EMULATOR",
+      "ios": "USER_CONFIRMED_PHYSICAL"
+    }
+  }
 }

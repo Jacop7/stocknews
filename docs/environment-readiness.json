@@ -70,13 +70,13 @@
     "emulator": "37.1.11.0",
     "avdCount": 1,
     "androidStudio": "AVAILABLE",
-    "buildTested": false,
+    "buildTested": true,
     "deviceTested": false,
     "status": "AVAILABLE",
     "observations": [
       {
         "command": [
-          "C:\\Users\\jacop\\Java\\jdk-17.0.20.1+1\\bin\\java.exe",
+          "<HOME>\\Java\\jdk-17.0.20.1+1\\bin\\java.exe",
           "-version"
         ],
         "exitCode": 0,
@@ -85,16 +85,16 @@
       },
       {
         "command": [
-          "C:\\Users\\jacop\\Android\\Sdk\\platform-tools\\adb.exe",
+          "<HOME>\\Android\\Sdk\\platform-tools\\adb.exe",
           "version"
         ],
         "exitCode": 0,
         "observedAt": "2026-11-13T20:56:48.965280+00:00",
-        "value": "Android Debug Bridge version 1.0.41\r\nVersion 37.0.1-15733141\r\nInstalled as C:\\Users\\jacop\\Android\\Sdk\\platform-tools\\adb.exe\r\nRunning on Windows 10.0.26200"
+        "value": "Android Debug Bridge version 1.0.41\r\nVersion 37.0.1-15733141\r\nInstalled as <HOME>\\Android\\Sdk\\platform-tools\\adb.exe\r\nRunning on Windows 10.0.26200"
       },
       {
         "command": [
-          "C:\\Users\\jacop\\Android\\Sdk\\emulator\\emulator.exe",
+          "<HOME>\\Android\\Sdk\\emulator\\emulator.exe",
           "-version"
         ],
         "exitCode": 0,
@@ -103,7 +103,7 @@
       },
       {
         "command": [
-          "C:\\Users\\jacop\\Android\\Sdk\\emulator\\emulator.exe",
+          "<HOME>\\Android\\Sdk\\emulator\\emulator.exe",
           "-list-avds"
         ],
         "exitCode": 0,
@@ -116,7 +116,7 @@
       {
         "command": [
           "filesystem-read-only",
-          "C:\\Users\\jacop\\Android\\Sdk"
+          "<HOME>\\Android\\Sdk"
         ],
         "exitCode": 0,
         "observedAt": "2026-11-13T20:56:48.856615+00:00",
@@ -131,10 +131,28 @@
           ],
           "androidStudioExists": true
         }
+      },
+      {
+        "command": [
+          "node",
+          "scripts/eas.mjs",
+          "build:list",
+          "--json",
+          "--non-interactive"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T02:35:35.059300+00:00",
+        "value": {
+          "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
+          "buildId": "b75f88fa-09a3-4241-9d81-66b9bbadeac3",
+          "platform": "android",
+          "binaryStatus": "FINISHED",
+          "deviceStatus": "AGENT_OBSERVED_EMULATOR"
+        }
       }
     ],
-    "pendingReason": "Build and device tests not run; emulator exists as a later test route.",
-    "userAction": "Use dedicated app build on available emulator; real device test later.",
+    "pendingReason": "Development binary compiled; production ads/push/store gates remain unverified. Device evidence is recorded separately.",
+    "userAction": "No action for the current Android emulator check; store gates remain separate.",
     "affectedStages": [
       2,
       11,
@@ -144,14 +162,16 @@
       "test_devices",
       "google_play_registration",
       "closed_test_testers"
-    ]
+    ],
+    "buildId": "b75f88fa-09a3-4241-9d81-66b9bbadeac3",
+    "deviceStatus": "AGENT_OBSERVED_EMULATOR"
   },
   "ios": {
-    "status": "PENDING",
+    "status": "AVAILABLE",
     "localBuild": "UNAVAILABLE_WINDOWS",
-    "route": "New Expo/EAS project and remote iOS build in later stage",
-    "easAccount": "NOT_VERIFIED",
-    "appleDeveloper": "NOT_VERIFIED",
+    "route": "New product EAS iOS development build and user-confirmed registered iPhone",
+    "easAccount": "VERIFIED_NEW_PROJECT",
+    "appleDeveloper": "VERIFIED_NEW_APP_SIGNING",
     "observations": [
       {
         "command": [
@@ -166,10 +186,43 @@
           "expoFound": false,
           "accountsQueried": false
         }
+      },
+      {
+        "command": [
+          "node",
+          "scripts/eas.mjs",
+          "build:list",
+          "--json",
+          "--non-interactive"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T02:35:35.059300+00:00",
+        "value": {
+          "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
+          "buildId": "e3c5fee2-aa0e-4216-ad27-4c8c717afab4",
+          "platform": "ios",
+          "binaryStatus": "FINISHED",
+          "deviceStatus": "PENDING_NATIVE_CONFIRMATION"
+        }
+      },
+      {
+        "command": [
+          "user-device-confirmation",
+          "new-app-native-scheme-qr",
+          "Metro-ios-bundle-observation"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T02:49:50.568142+00:00",
+        "value": {
+          "deviceStatus": "USER_CONFIRMED_PHYSICAL",
+          "userReport": "Installed and opened app, reported home/tabs; after native-scheme QR confirmed app opens.",
+          "serverObservation": "iOS Bundled 6213ms, 1295 modules; iOS Bundled 34ms, 1 module.",
+          "screenEvidenceKind": "User report plus agent-observed native platform bundling, not an agent-viewed iPhone screenshot"
+        }
       }
     ],
-    "pendingReason": "Windows has no local iOS build; new EAS project/account authorization and iPhone route unverified.",
-    "userAction": "Authorize the new project EAS account when build setup is prepared; provide iPhone test route.",
+    "pendingReason": "Development binary compiled; production ads/push/store gates remain unverified. Device evidence is recorded separately.",
+    "userAction": "No action for the current iPhone first-screen gate; production store/ads/push gates remain separate.",
     "affectedStages": [
       2,
       11,
@@ -179,11 +232,22 @@
       "apple_developer_registration",
       "test_devices",
       "store_account_type"
-    ]
+    ],
+    "userAvailability": {
+      "expoAccount": "CONFIRMED_BY_USER",
+      "iPhone": "CONFIRMED_BY_USER",
+      "tested": true,
+      "source": "User direct answer during stage2 implementation",
+      "observedAt": "2026-11-14T00:39:07.633950+00:00",
+      "appleDeveloperMembership": "CONFIRMED_BY_USER"
+    },
+    "buildTested": true,
+    "buildId": "e3c5fee2-aa0e-4216-ad27-4c8c717afab4",
+    "deviceStatus": "USER_CONFIRMED_PHYSICAL"
   },
   "ci": {
     "status": "PENDING",
-    "workflowCreated": false,
+    "workflowCreated": true,
     "observations": [
       {
         "command": [
@@ -196,6 +260,19 @@
           "exists": false,
           "remoteExecuted": false
         }
+      },
+      {
+        "command": [
+          "filesystem-read",
+          ".github/workflows/verify.yml"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T02:35:35.059300+00:00",
+        "value": {
+          "workflowCreated": true,
+          "sha256": "ccf839ecf3ddd0b35640bce696c43d30d47c10af86b58d37a26b94b1870cd098",
+          "hostedRun": "NOT_RUN"
+        }
       }
     ],
     "pendingReason": "Workflow and portable whole-checkout verification are stage 2; no hosted execution yet.",
@@ -205,7 +282,8 @@
     ],
     "preparationRefs": [
       "hosting_account_region"
-    ]
+    ],
+    "hostedRun": "NOT_RUN"
   },
   "externalAccountsConfigured": false,
   "expo": {
@@ -226,7 +304,7 @@
         }
       }
     ],
-    "pendingReason": "App scaffold and project-local Expo/EAS tooling belong to stage 2; accounts not queried.",
+    "pendingReason": "Native builds/device validation and deployment setup are pending; new project link verified.",
     "userAction": "Authorize new EAS project association after reviewable app setup; no inherited product identifiers.",
     "affectedStages": [
       2
@@ -235,7 +313,9 @@
       "store_account_type",
       "apple_developer_registration",
       "google_play_registration"
-    ]
+    ],
+    "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c",
+    "projectStatus": "LINK_VERIFIED_CLI"
   },
   "stores": {
     "status": "PENDING",
@@ -263,5 +343,6 @@
       "google_play_registration",
       "closed_test_testers"
     ]
-  }
+  },
+  "statusMeaning": "AVAILABLE means the observed development tool/build route is available, not production readiness or device proof. buildTested and deviceStatus are separate."
 }

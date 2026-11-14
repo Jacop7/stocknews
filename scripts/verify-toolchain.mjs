@@ -40,7 +40,8 @@ const pkg = json('package.json'), workspace = json('pnpm-workspace.yaml');
 check(process.versions.node === '24.15.0', 'Exact Node version');
 check(pkg.private === true && pkg.name === '@judoju/news', 'Private product workspace');
 assert.deepEqual(pkg.engines, {node:'24.15.0',pnpm:'11.25.0'}); checks++;
-assert.deepEqual(pkg.devDependencies, {supabase:'3.1.0',typescript:'6.0.3'}); checks++;
+const stage = json('docs/development-status.json').currentStage;
+assert.deepEqual(pkg.devDependencies, stage < 2 ? {supabase:'3.1.0',typescript:'6.0.3'} : {supabase:'3.1.0',typescript:'6.0.3',yaml:'2.9.1','smol-toml':'1.9.1'}); checks++;
 check(pkg.packageManager === 'pnpm@11.25.0', 'Pinned package manager');
 check(/^pnpm\/11\.25\.0(?: |$)/.test(process.env.npm_config_user_agent || ''), 'Run through exact pnpm');
 assert.deepEqual(workspace.packages,['apps/*','packages/*','workers/*']); checks++;
@@ -71,14 +72,26 @@ for (const name of ['supabase','typescript']) {
 }
 const integrity = [...lock.matchAll(/resolution: \{([^}]+)\}/g)];
 check(integrity.length > 0 && integrity.every(m => /^integrity: sha512-[A-Za-z0-9+/]+=*$/.test(m[1])), 'Every package uses registry integrity');
-check(!/(?:^|[\s'{])(?:https?:|file:|git\+|link:)/m.test(lock), 'No alternate source URLs in tooling lock');
+if (stage < 2) check(!/(?:^|[\s'{])(?:https?:|file:|git\+|link:)/m.test(lock), 'No alternate source URLs in tooling lock');
+else {
+  const {parse}=await import('yaml');const data=parse(lock);
+  for(const item of Object.values(data.packages)){check(/^sha512-[A-Za-z0-9+/]+=*$/.test(item.resolution?.integrity??'')&&!item.resolution.tarball,'Registry integrity only');}
+  for(const [importer,record] of Object.entries(data.importers)) for(const group of ['dependencies','devDependencies','optionalDependencies']) for(const entry of Object.values(record[group]??{})) {if(entry.version.startsWith('link:')) internal(path.resolve(root,importer,entry.version.slice(5)));}
+  const modules=parse(readFileSync(path.join(root,'node_modules/.modules.yaml'),'utf8'));internal(modules.storeDir);
+}
 const editor = readFileSync(path.join(root,'.editorconfig'),'utf8');
 for (const section of ['docs/reference/planning/**','docs/stages/**']) {
   check(editor.includes('['+section+']\ncharset = unset\nend_of_line = unset\ninsert_final_newline = unset'), 'Immutable EditorConfig '+section);
 }
 const readiness = json('docs/environment-readiness.json');
 check(readiness.productId === 'judoju-news' && readiness.productionReady === false, 'Readiness not deployment approval');
-check(readiness.ios.status === 'PENDING' && readiness.android.buildTested === false, 'No untested build claims');
+if(stage<2)check(readiness.ios.status === 'PENDING' && readiness.android.buildTested === false, 'No untested build claims');
+else {
+  const native=json('docs/native-release.json');
+  check(readiness.android.buildTested===true&&readiness.ios.buildTested===true,'Native build observations present');
+  for(const platform of ['android','ios'])check(readiness[platform].buildId===native.actualBuilds[platform].buildId&&readiness[platform].deviceStatus===native.actualBuilds[platform].deviceStatus,'Matching observed build/device identity '+platform);
+  check(readiness.ci.workflowCreated===true&&readiness.ci.hostedRun==='NOT_RUN','CI definition is not a hosted run');
+}
 const preparationIds = new Set(json('docs/external-preparation.json').items.map(i=>i.id));
 function validateObservation(section) {
   assert.ok(['AVAILABLE','PENDING'].includes(section.status));
@@ -104,4 +117,4 @@ assert.throws(()=>validateObservation(missingObservation)); checks++;
 const wrongReference = structuredClone(readiness.ios);
 wrongReference.preparationRefs = ['not-a-preparation-id'];
 assert.throws(()=>validateObservation(wrongReference)); checks++;
-console.log(JSON.stringify({status:'PASS',stage:1,checks,node:process.versions.node,pnpm:'11.25.0',typescript:'6.0.3',supabase:'3.1.0',limitations:'Version and integrity checks only; no app build or Supabase initialization.'},null,2));
+console.log(JSON.stringify({status:'PASS',stage,checks,node:process.versions.node,pnpm:'11.25.0',typescript:'6.0.3',supabase:'3.1.0',limitations:'Version and integrity checks only; no native build or Supabase initialization.'},null,2));

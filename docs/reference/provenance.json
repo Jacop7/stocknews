@@ -4,64 +4,70 @@
   "verificationPolicy": "Internal copies versus this manifest; original-copy equality captured once outside product",
   "files": [
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/공통-운영계약-v1.0.md",
+      "source": "approved-news-snapshot/공통-운영계약-v1.0.md",
       "copy": "docs/reference/planning/공통-운영계약-v1.0.md",
       "bytes": 47730,
       "sha256": "aa385e32241d6139394f750f8cf90f0023b593d6ac56e15e077b8aec224d17f6"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/주도주뉴스-서비스-기획안-v1.6.md",
+      "source": "approved-news-snapshot/주도주뉴스-서비스-기획안-v1.6.md",
       "copy": "docs/reference/planning/주도주뉴스-서비스-기획안-v1.6.md",
       "bytes": 117374,
       "sha256": "142925add5cb34f619e57fd1b05aba8073e775abc3348d1e15c3d8531a9c869b"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/주도주뉴스-어드민-기획안-v1.1.md",
+      "source": "approved-news-snapshot/주도주뉴스-어드민-기획안-v1.1.md",
       "copy": "docs/reference/planning/주도주뉴스-어드민-기획안-v1.1.md",
       "bytes": 57351,
       "sha256": "c77c85f5c415ab341d0f1aa274653599ac6afd54aa7feb5d193875859c9f84a1"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/주도주뉴스-제작-실행계획-v1.3.md",
+      "source": "approved-news-snapshot/주도주뉴스-제작-실행계획-v1.3.md",
       "copy": "docs/reference/planning/주도주뉴스-제작-실행계획-v1.3.md",
       "bytes": 96245,
       "sha256": "fae01cfb465901ec8bad6401cb0811f7377a519cc84d0343aea2812831173504"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/주도주뉴스-뉴스운영-상세로직-v1.1.md",
+      "source": "approved-news-snapshot/주도주뉴스-뉴스운영-상세로직-v1.1.md",
       "copy": "docs/reference/planning/주도주뉴스-뉴스운영-상세로직-v1.1.md",
       "bytes": 121523,
       "sha256": "9cb0c4fb6449506a47406fc70a6364f38508dd38114280f19b8d2f86a0930a99"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/매체별-수집정책-부록.md",
+      "source": "approved-news-snapshot/매체별-수집정책-부록.md",
       "copy": "docs/reference/planning/매체별-수집정책-부록.md",
       "bytes": 118620,
       "sha256": "c496639722942d087ba912ad0be03ba7a82de69d6f28ab0a8fd232d906660184"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/변경-대응표.md",
+      "source": "approved-news-snapshot/변경-대응표.md",
       "copy": "docs/reference/planning/변경-대응표.md",
       "bytes": 9537,
       "sha256": "1d1fd90f8b4ac06a32314dba0e05d75e9f5aad2ba9dedfbfa8c4d11e47640b29"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/plan-unified-20261113/bundle-manifest.json",
+      "source": "approved-news-snapshot/bundle-manifest.json",
       "copy": "docs/reference/planning/bundle-manifest.json",
       "bytes": 2832,
       "sha256": "0bda2b031f47cef1ae916452114d15a43bc704a15b7052f3cb41acd3dbbb3635"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/development-stages/stage-00-plan.md",
+      "source": "approved-news-snapshot/stage-00-plan.md",
       "copy": "docs/stages/stage-00-plan.md",
       "bytes": 9409,
       "sha256": "29c94397991ca576258465c584d351c643a3322f375fe2298c45b251b5520c7f"
     },
     {
-      "source": "C:/Users/jacop/주식/outputs/development-stages/stage-01-plan.md",
+      "source": "approved-news-snapshot/stage-01-plan.md",
       "copy": "docs/stages/stage-01-plan.md",
       "bytes": 10449,
       "sha256": "4e8d4fa91a78709a7093a51a6eeab166d79f71b16ef8fbc0290dfd3a1b616704"
+    },
+    {
+      "source": "approved-news-snapshot/stage-02-plan.md",
+      "copy": "docs/stages/stage-02-plan.md",
+      "bytes": 16628,
+      "sha256": "4589ae31fae0c97ee8371b37a5ac1e08869e97258bd150046eae1da9b5cd318b"
     }
   ]
 }

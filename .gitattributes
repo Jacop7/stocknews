@@ -2,6 +2,18 @@
 # These are exact reviewed source snapshots, including original CRLF bytes.
 docs/reference/planning/** -text -filter -ident
 docs/stages/** -text -filter -ident
+# Native release fingerprints bind exact bytes, including config line endings.
+apps/mobile/package.json -text -filter -ident
+apps/mobile/app.json -text -filter -ident
+apps/mobile/app.config.ts -text -filter -ident
+apps/mobile/eas.json -text -filter -ident
+pnpm-lock.yaml -text -filter -ident
+apps/mobile/android/** -text -filter -ident
+apps/mobile/ios/** -text -filter -ident
+apps/mobile/plugins/** -text -filter -ident
+apps/mobile/patches/** -text -filter -ident
+# Next regenerates this declaration with host line endings.
+apps/admin/next-env.d.ts -text -filter -ident
 *.png binary
 *.jpg binary
 *.woff2 binary

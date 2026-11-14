@@ -1,0 +1,23 @@
+export type Environment = 'local' | 'preview' | 'production';
+export type SelectionMarketBasis = 'KR' | 'FOREIGN_US';
+export type AnalysisPerspective = 'KR_EQUITY';
+export type ImpactDirection = 'BENEFIT' | 'DAMAGE' | 'RELATED';
+export interface Company { id:string; name:string; stockCode:string; market:'KRX'; description:string; }
+export interface Sector { id:string; name:string; description:string; parentId:string|null; order:number; }
+export interface SectorImpact {sectorId:string; direction:ImpactDirection; pathId:string; conditions:string[]; companyIds:string[]; evidenceIds:string[];}
+export type DetailSection = 'KEY_ISSUES' | 'ISSUE_ANALYSIS' | 'SCENARIOS' | 'BENEFIT_SECTORS' | 'DAMAGE_SECTORS' | 'RELATED_SECTORS' | 'RISKS' | 'SCHEDULE' | 'SOURCES';
+export type ImpactProfile = 'POSITIVE_ONLY' | 'POSITIVE_NEGATIVE' | 'DAMAGE_ONLY' | 'RELATED_CONDITIONAL';
+export interface Story {id:string; canonicalEventKey:string;}
+export type PublicationState = 'DRAFT' | 'PUBLISHED' | 'CORRECTION_PENDING' | 'WITHDRAWN' | 'HIDDEN';
+export interface Issue {id:string; storyId:string; publication_state:PublicationState; scheduled_publish_at:string|null; first_published_at:string|null; material_change_at:string|null; currentVersionId:string|null;}
+export interface ArticleVersion {id:string; issueId:string; title:string; summary:string; source_market:string; selection_market_basis:SelectionMarketBasis; analysis_perspective:AnalysisPerspective; evidence_as_of:string; impact_profile:ImpactProfile; visibility_policy_version:string; impacts:SectorImpact[]; visible_sections:DetailSection[]; sourceIds:string[];}
+export interface Article {issue:Issue; version:ArticleVersion;}
+export type EffectiveSort = 'MIXED' | 'RETURN_DESC' | 'VIEWS_DESC';
+export interface RankingContext {snapshot_context_id:string; market_basis:SelectionMarketBasis; target_D:string; candidate_window_start:string; cutoff:string; effective_sort:EffectiveSort; rank_epoch:string; ranking_policy_version:string; catalog_version:string; benchmark_version:string; price_session_id:string;}
+export interface RankingSnapshot {id:string; context:RankingContext; as_of:string; issueIds:string[];}
+export interface ApiCompatibilityPolicy {policy_version:string; api_contract_version:number; min_supported_app_version:{android:string;ios:string};}
+export interface ApiCompatibilityResponse {policy:ApiCompatibilityPolicy; platform:'android'|'ios'; client_app_version:string; action:'NONE'|'UPDATE_REQUIRED'; store_url:string|null;}
+export interface PriceSnapshot {companyId:string; price:number|null; percentChange:number|null; as_of:string; quality:'VERIFIED'|'MISSING'|'STALE';}
+export type SourceStatus = 'CANDIDATE' | 'RIGHTS_HOLD' | 'TECH_TEST' | 'SHADOW' | 'ACTIVE' | 'PAUSED_RATE_LIMIT' | 'PAUSED_ACCESS' | 'PAUSED_ERROR' | 'DISABLED';
+export interface NewsSource {id:string; canonicalUrl:string; originId:string; status:SourceStatus; permissionProfileId:string; permissionProfileVersion:string;}
+export interface JobEnvelope {id:string; job_schema_version:number; effect_key:string; environment:Environment; payload:unknown;}

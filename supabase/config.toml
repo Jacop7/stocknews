@@ -1,0 +1,46 @@
+# New Judoju News local configuration only. No start/link/migration performed.
+project_id = "judoju-news-local"
+
+[api]
+enabled = true
+port = 62321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 62322
+shadow_port = 62320
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 62329
+
+[studio]
+enabled = true
+port = 62323
+
+[inbucket]
+enabled = true
+port = 62324
+smtp_port = 62325
+pop3_port = 62326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3100"
+additional_redirect_urls = []
+enable_signup = false
+
+[edge_runtime]
+enabled = false
+inspector_port = 62328
+
+[analytics]
+enabled = false
+port = 62327

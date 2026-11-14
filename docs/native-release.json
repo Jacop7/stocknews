@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "state": "DEVELOPMENT_VERIFIED",
+  "digest": "efab6f95527ab648fd2d02076be55231c6d920f474f8e4a01273edeaf836df26",
+  "inputs": [
+    {
+      "path": "apps/mobile/app.config.ts",
+      "bytes": 405,
+      "sha256": "157dd2d670c72b39e19ab140b454317c596308e63743eab53971c3a409bf9411"
+    },
+    {
+      "path": "apps/mobile/app.json",
+      "bytes": 1340,
+      "sha256": "c772059ba732698c657a40fb03a3497d5965ed388d27a25f3af97e823af68654"
+    },
+    {
+      "path": "apps/mobile/eas.json",
+      "bytes": 707,
+      "sha256": "59cda8ec68919d2793a75ee14b7af4539758843e2abc2c9253c9c71464485f0b"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "bytes": 1062,
+      "sha256": "4efb60f7bebf44ca58748cb93ed9da4faba90a85f39abf6f441a2bc7a3338bc3"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "bytes": 375257,
+      "sha256": "74785666a77c287c8625cdc4a3a6fdd715c111a4505afd3f83d70372c2b3304d"
+    }
+  ],
+  "runtimeVersions": {
+    "android": "android-native-0004",
+    "ios": "ios-native-0004"
+  },
+  "actualBuilds": {
+    "android": {
+      "buildId": "b75f88fa-09a3-4241-9d81-66b9bbadeac3",
+      "binaryStatus": "FINISHED",
+      "runtimeVersion": "android-native-0004",
+      "deviceStatus": "AGENT_OBSERVED_EMULATOR"
+    },
+    "ios": {
+      "buildId": "e3c5fee2-aa0e-4216-ad27-4c8c717afab4",
+      "binaryStatus": "FINISHED",
+      "runtimeVersion": "ios-native-0004",
+      "deviceStatus": "USER_CONFIRMED_PHYSICAL"
+    }
+  },
+  "introducedAfterCommit": "fa928e987a792cb99536b7e0fc4461e7575ba8d6"
+}

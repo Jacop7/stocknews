@@ -8,7 +8,10 @@ import { spawnSync } from 'node:child_process';
 const root = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const status = JSON.parse(readFileSync(path.join(root, 'docs/development-status.json'), 'utf8'));
 const stage = status.currentStage;
-assert.ok(stage === 0 || stage === 1, 'Supported stage');
+if (stage === 2) {
+  await import('./verify-stage2-foundation.mjs');
+} else {
+assert.ok(stage === 0 || stage === 1, 'Supported historical stage');
 const initialCommit = 'f7dce3a9e05c39580f23a210c3ac9d2514c38b74';
 let checks = 0;
 const check = (ok, message) => { assert.ok(ok, message); checks++; };
@@ -187,3 +190,5 @@ for (const file of provenance.files.filter(f => f.copy.endsWith('.md') && f.copy
 }
 console.log(JSON.stringify({ status: 'PASS', stage, checks, productRoot: root,
   limitations: 'Repository foundation only. No app, Supabase, Docker worker or cloud resources created.' }, null, 2));
+
+}

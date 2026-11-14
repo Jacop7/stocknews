@@ -1,7 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
 const results = [];
-for (const script of ['verify-foundation.mjs', 'verify-toolchain.mjs']) {
+for (const script of ['verify-toolchain.mjs', 'verify-foundation.mjs', 'verify-native-release.mjs']) {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL(script, import.meta.url))], {encoding:'utf8', windowsHide:true});
   if (result.error || result.status !== 0) {
     process.stderr.write(result.stderr || String(result.error));
@@ -10,4 +13,12 @@ for (const script of ['verify-foundation.mjs', 'verify-toolchain.mjs']) {
   }
   results.push(JSON.parse(result.stdout));
 }
-console.log(JSON.stringify({status:'PASS', stage:1, results, limitations:'Tooling only. No app builds, database, worker or hosted CI tested.'}, null, 2));
+const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
+const manager=realpathSync(process.env.npm_execpath || '');
+assert.ok(!path.relative(root,manager).startsWith('..'),'Use product-local Corepack/pnpm cache');
+for (const script of ['test:domain','check:types','build:admin','export:android','export:ios']) {
+  const result=spawnSync(process.execPath,[manager,'run',script],{cwd:root,encoding:'utf8',windowsHide:true,env:{...process.env,EXPO_NO_TELEMETRY:'1',NEXT_TELEMETRY_DISABLED:'1',CI:'1'},maxBuffer:16*1024*1024});
+  if(result.error||result.status!==0){process.stderr.write(result.stderr||String(result.error));process.stdout.write(result.stdout||'');process.exit(result.status||1);}
+  results.push({name:script,status:'PASS',exitCode:result.status,stdout:result.stdout,stderr:result.stderr});
+}
+console.log(JSON.stringify({status:'PASS', stage:2, results, limitations:'Local checks, web production build and platform JS/Hermes exports only. No Android/iOS native binaries or cloud operation certified.'}, null, 2));

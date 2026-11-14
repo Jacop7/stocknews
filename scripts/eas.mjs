@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { readFileSync, realpathSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { assertBuildProfileAllowed } from './build-profile-policy.mjs';
+const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
+assert.equal(process.versions.node,'24.15.0','EAS must use the project Node version');
+const pkg=JSON.parse(readFileSync(path.join(root,'packages/build-tools/node_modules/eas-cli/package.json'),'utf8'));
+assert.equal(pkg.version,'27.9.0');
+const cli=realpathSync(path.join(root,'packages/build-tools/node_modules/eas-cli/bin/run'));
+assert.ok(!path.relative(root,cli).startsWith('..'));
+const app=JSON.parse(readFileSync(path.join(root,'apps/mobile/app.json'),'utf8')).expo;
+assert.equal(app.extra.eas.projectId,'133b3e36-2bcc-4e98-86f5-3f029e37500c');
+assertBuildProfileAllowed(process.argv.slice(2),app);
+const env={...process.env};
+for(const key of Object.keys(env)) if(key.toLowerCase()==='path'||key.toLowerCase()==='corepack_home') delete env[key];
+env[process.platform==='win32'?'Path':'PATH']=[path.join(root,'.local-tools/bin'),path.dirname(process.execPath),process.env.Path||process.env.PATH||''].join(path.delimiter);
+env.COREPACK_HOME=path.join(root,'.local-tools/corepack');
+env.COREPACK_ENABLE_DOWNLOAD_PROMPT='0';
+env.EXPO_NO_TELEMETRY='1';
+if(process.argv[2]==='--check-toolchain') {
+  const shell=process.platform==='win32'?path.join(process.env.SystemRoot,'System32/cmd.exe'):'/bin/sh';
+  const args=process.platform==='win32'?['/d','/c']:['-c'];
+  const run=command=>{const result=spawnSync(shell,[...args,command],{cwd:root,encoding:'utf8',windowsHide:true,env});assert.equal(result.status,0,result.stderr);return result.stdout.trim();};
+  const pnpm=run('pnpm --version'),node=run('pnpm exec node --version');
+  assert.equal(pnpm,'11.25.0');assert.equal(node,'v24.15.0');
+  console.log(JSON.stringify({status:'PASS',node,pnpm,eas:pkg.version,scope:'Project-local PATH; no global Node/pnpm settings changed.'},null,2));
+  process.exit(0);
+}
+const q=spawnSync(process.execPath,[cli,...process.argv.slice(2)],{cwd:path.join(root,'apps/mobile'),stdio:'inherit',windowsHide:true,env});
+if(q.error)throw q.error;
+process.exit(q.status??1);

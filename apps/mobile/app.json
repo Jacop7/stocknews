@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "주도주뉴스",
+    "slug": "judoju-news",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "judojunews",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.jacop.stocknews",
+      "buildNumber": "1",
+      "runtimeVersion": "ios-native-0004",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.jacop.stocknews",
+      "versionCode": 1,
+      "runtimeVersion": "android-native-0004"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "environment": "local",
+      "connectionStatus": "NOT_CONFIGURED",
+      "fixtureMode": true,
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "133b3e36-2bcc-4e98-86f5-3f029e37500c"
+      }
+    },
+    "owner": "jacop7223"
+  }
+}

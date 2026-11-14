@@ -11,10 +11,20 @@
   "scripts": {
     "verify": "node scripts/verify.mjs",
     "check:foundation": "node scripts/verify-foundation.mjs",
-    "check:toolchain": "node scripts/verify-toolchain.mjs"
+    "check:toolchain": "node scripts/verify-toolchain.mjs",
+    "dev:mobile": "corepack pnpm --filter @judoju/mobile dev",
+    "dev:admin": "corepack pnpm --filter @judoju/admin dev",
+    "check:types": "corepack pnpm -r --if-present check",
+    "build:admin": "corepack pnpm --filter @judoju/admin build",
+    "export:android": "corepack pnpm --filter @judoju/mobile export:android",
+    "export:ios": "corepack pnpm --filter @judoju/mobile export:ios",
+    "test:domain": "node --experimental-strip-types --test tests/domain.test.ts tests/native-release.test.mjs",
+    "eas": "node scripts/eas.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "yaml": "2.9.1",
+    "smol-toml": "1.9.1"
   }
 }
