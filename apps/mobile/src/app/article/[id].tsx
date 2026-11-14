@@ -6,7 +6,9 @@ import { Screen,s } from '../../components/Screen';
 import {useCurrentRead} from '../../data/useCurrentRead';
 import { ArticleBody } from '../../components/ArticleBody';
 import {SaveButton} from '../../components/SaveButton';
+import {useArticleView} from '../../data/useArticleView';
 export default function Article(){const {id}=useLocalSearchParams<{id:string}>(),result=useCurrentRead<PublicArticleDetail>('/articles/'+encodeURIComponent(id??'')),article=result.data;
+ useArticleView(id??'',article,result.loading);
  // Retain dimensions only, never an earlier article/body. A pending status read
  // must remove the old text without collapsing the ScrollView's scroll range.
  const layout=useRef({id,height:0});if(layout.current.id!==id)layout.current={id,height:0};

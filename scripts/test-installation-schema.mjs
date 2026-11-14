@@ -1,0 +1,61 @@
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import {localClient} from './m0-test-client.mjs';
+import {root,writePrivate,docker} from './local-runtime.mjs';
+const f=localClient(),compile=process.argv.includes('--proposed');
+const ddl=compile?['20261115000041_installation_settings_revision.sql','20261115000042_installation_operations.sql'].map(n=>readFileSync(path.join(root,'supabase/migrations',n),'utf8').replace(/^begin;\s*$/m,'').replace(/^commit;\s*$/m,'')).join('\n'):'';
+const query=`begin;${ddl}
+do $$declare
+ a uuid:=gen_random_uuid();b uuid:=gen_random_uuid();g uuid:=gen_random_uuid();rotate uuid:=gen_random_uuid();rev uuid:=gen_random_uuid();sealed uuid:=gen_random_uuid();
+ nonce text:=encode(extensions.gen_random_bytes(32),'hex');secret text:=encode(extensions.gen_random_bytes(32),'hex');other text:=encode(extensions.gen_random_bytes(32),'hex');
+ ph text:=encode(extensions.gen_random_bytes(32),'hex');r jsonb;args jsonb;h bigint;s uuid;revision bigint;preview jsonb;
+begin
+ args:=jsonb_build_object('kind','BOOTSTRAP','transport','WEB','pending',nonce,'payload_hash',ph);
+ r:=public.installation_operation('START',g,args);
+ if r->>'state'<>'STARTED' or exists(select 1 from private.installations where id=a) then raise exception 'START_CREATED_INSTALLATION';end if;
+ begin perform public.installation_operation('START',g,args);raise exception 'EXPECTED_DUPLICATE';exception when raise_exception then if sqlerrm<>'GENERATION_ALREADY_EXISTS' then raise;end if;end;
+ begin perform public.installation_operation('COMMIT',g,args||jsonb_build_object('pending',repeat('0',64)));raise exception 'EXPECTED_NONCE_REJECTION';exception when insufficient_privilege then null;end;
+ r:=public.installation_operation('COMMIT',g,args||jsonb_build_object('new_id',a,'new_secret',secret,'receipt_ciphertext','synthetic-receipt-A'));
+ if r->>'receipt_ciphertext'<>'synthetic-receipt-A' or not private.installation_active(a,secret,1) then raise exception 'BOOTSTRAP_FAILED';end if;
+ r:=public.installation_operation('COMMIT',g,args||jsonb_build_object('new_id',b,'new_secret',other,'receipt_ciphertext','must-not-replace'));
+ if r->>'receipt_ciphertext'<>'synthetic-receipt-A' or exists(select 1 from private.installations where id=b) then raise exception 'REPLAY_NEW_INSTALLATION';end if;
+ perform public.installation_operation('ACK',g,args||jsonb_build_object('installation_id',a,'secret',secret,'version',1));
+ begin perform public.installation_operation('COMMIT',g,args);raise exception 'EXPECTED_TERMINAL';exception when raise_exception then if sqlerrm<>'OPERATION_TERMINAL' then raise;end if;end;
+ select version into h from private.catalog_head;
+ select id into s from private.sectors where metadata_kind='USER_REFERENCE_UNVERIFIED' and catalog_kind='LEAF' and active order by id limit 1;
+ r:=public.installation_settings_save(a,secret,1,h,1,true,false,true,array[s]);
+ if r->>'settings_revision'<>'2' then raise exception 'SETTINGS_REVISION_FAILED';end if;
+ begin perform public.installation_settings_save(a,secret,1,h,1,false,false,false,'{}');raise exception 'EXPECTED_CAS';exception when raise_exception then if sqlerrm<>'SETTINGS_CONFLICT' then raise;end if;end;
+ begin perform public.installation_settings_read(b,secret,1);raise exception 'EXPECTED_OWNER_REJECTION';exception when insufficient_privilege then null;end;
+ preview:=private.catalog_impact(s);
+ perform private.catalog_edit_sector('SECTOR_DEACTIVATE',s,jsonb_build_object('impact_sha256',preview->>'impact_sha256'),h);
+ if not exists(select 1 from private.installation_settings where installation_id=a and settings_revision=3 and sector_ids='{}')
+ or not exists(select 1 from private.installation_setting_changes where installation_id=a and reason='INACTIVE_SECTOR_REMOVED' and removed_sectors->0->>'id'=s::text) then raise exception 'AUTOMATIC_REMOVAL_REVISION_FAILED';end if;
+ args:=jsonb_build_object('kind','ROTATE','transport','WEB','pending',nonce,'payload_hash',ph,'installation_id',a,'secret',secret,'version',1,'prior_generation',g);
+ perform public.installation_operation('START',rotate,args);
+ perform public.installation_operation('COMMIT',rotate,args||jsonb_build_object('new_secret',other,'receipt_ciphertext','synthetic-receipt-rotate'));
+ if private.installation_active(a,secret,1) or not private.installation_active(a,other,2) then raise exception 'OLD_SECRET_ACCEPTED';end if;
+ r:=public.installation_operation('COMMIT',rotate,args);
+ if r->>'receipt_ciphertext'<>'synthetic-receipt-rotate' then raise exception 'OLD_SECRET_RESULT_RECOVERY_FAILED';end if;
+ perform public.installation_operation('ACK',rotate,args||jsonb_build_object('secret',other,'version',2));
+ args:=jsonb_build_object('kind','REVOKE','transport','WEB','pending',nonce,'payload_hash',ph,'installation_id',a,'secret',other,'version',2,'prior_generation',rotate);
+ perform public.installation_operation('START',rev,args);perform public.installation_operation('COMMIT',rev,args);
+ if private.installation_active(a,other,2) then raise exception 'REVOKED_SECRET_ACCEPTED';end if;
+ if not exists(select 1 from private.installation_settings where installation_id=a and not morning_issue and not closing_issue and not favorite_sector_issue and sector_ids='{}') then raise exception 'REVOKE_SETTINGS_NOT_CLEARED';end if;
+ if (public.installation_operation('STATE',rev,args)->>'state')<>'COMMITTED' then raise exception 'REVOKE_RESULT_RECOVERY_FAILED';end if;
+ perform public.installation_operation('ACK',rev,args);
+ if not exists(select 1 from private.installation_lifecycle_ledger where generation=rev and action='CAPABILITY_REVOKE') then raise exception 'REVOKE_LEDGER_MISSING';end if;
+ r:=public.installation_operation('START_SEAL',sealed,'{}');if r->>'state'<>'SEALED_START' then raise exception 'SEAL_FAILED';end if;
+ begin perform public.installation_operation('START',sealed,jsonb_build_object('kind','BOOTSTRAP','transport','WEB','pending',nonce,'payload_hash',ph));raise exception 'EXPECTED_SEALED_START';exception when raise_exception then if sqlerrm<>'GENERATION_ALREADY_EXISTS' then raise;end if;end;
+ begin perform public.installation_operation('COMMIT',sealed,args);raise exception 'EXPECTED_SEALED_COMMIT';exception when raise_exception then if sqlerrm<>'GENERATION_SEALED' then raise;end if;end;
+ if (public.installation_operation('START_SEAL',g,'{}')->>'state')<>'ACKNOWLEDGED' then raise exception 'FALSE_START_SEAL';end if;
+ begin perform public.installation_operation('GENERATION_FORGET',g,'{"confirmed":true}');raise exception 'EXPECTED_DEADLINE';exception when raise_exception then if sqlerrm<>'FORGET_NOT_READY' then raise;end if;end;
+ update private.installation_operations set deadline=clock_timestamp()-interval '1 second' where generation=g;
+ r:=public.installation_operation('GENERATION_FORGET',g,'{"confirmed":true}');if r->>'state'<>'SEALED_FORGOTTEN' then raise exception 'FORGET_FAILED';end if;
+ if has_function_privilege('anon','public.installation_operation(text,uuid,jsonb)','execute')
+ or has_function_privilege('authenticated','public.installation_settings_save(uuid,text,integer,bigint,bigint,boolean,boolean,boolean,uuid[])','execute') then raise exception 'PRIVATE_RPC_GRANT';end if;
+end$$;rollback;`;
+const execution=docker(['exec','-i','supabase_db_judoju-news-local','psql','-X','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-Atq'],{input:query});
+if(execution.code!==0)throw new Error('INSTALLATION_SCHEMA_TEST_FAILED: '+execution.stderr.split('\n')[0].replace(/[0-9a-f]{32,}/gi,'[redacted]'));
+const result={status:'PASS',phase:compile?'PROPOSED_ROLLBACK':'APPLIED_ROLLBACK',checks:['Start creates no installation; duplicate start cannot reissue a nonce','Wrong nonce and owner reject','Commit replay returns original receipt and creates no duplicate installation','ACK terminates receipt recovery','Settings expected revision and catalog CAS','Catalog deletion bumps revision and records removed sector atomically','Rotation revokes old general authentication but exact result recovery works','Revoke clears preferences and has capability-revoke ledger, not data-purge claim','Unknown-start seal blocks late start and commit','Committed generation cannot be falsely start-sealed','Generation forget requires server deadline then terminates recovery','Anon and ordinary authenticated roles cannot call private RPCs'],fixtureTransactionsRolledBack:true,realRequestsExecuted:0};
+writePrivate('installation-schema-tests.json',result);console.log(JSON.stringify(result));

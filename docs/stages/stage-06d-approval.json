@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "state": "APPROVED_DUAL_R4",
+  "plan": "docs/stages/stage-06d-plan.md",
+  "planSha256": "9da4a327c4bab6a67382710b350c9caf4c43c2269da89914ac302bab3cb39a4b",
+  "reviewManifest": "24f44f7323078f5d66d5a57de582a266f93cead7f42f2239b868d93d5f837d52",
+  "grantSha256": "2d9570152c0ba18eed04eb6f7e96b492d076b5ad13e69ed98e358ef946f2db9e",
+  "authorizationEvidence": "adbed19ea45a1875297e0611a6cc96a470daafd36ac7d911820e916c24ac68df",
+  "userApproval": "Exact same case one additional fixed version, two existing roles once each; consumed.",
+  "evidence": "../outputs/development-stages/reviews/stage06d-plan/status.json",
+  "historicalSourceNotice": "Approval-waiting text in immutable plan records its proposal time. This is current execution approval status.",
+  "implementationComplete": false,
+  "nativePhysicalComplete": false
+}

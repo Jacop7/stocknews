@@ -168,6 +168,25 @@
           "deviceStatus": "AGENT_OBSERVED_EMULATOR",
           "scope": "6C native0005. Build read-back; Android CUA home/save/current saved card observation recorded separately. iOS physical pending."
         }
+      },
+      {
+        "command": [
+          "node",
+          "scripts/eas.mjs",
+          "build:view",
+          "1a233a82-a75c-4850-915f-324bf07acf74",
+          "--json"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T19:22:36.667435+00:00",
+        "value": {
+          "buildId": "1a233a82-a75c-4850-915f-324bf07acf74",
+          "status": "FINISHED",
+          "runtimeVersion": "android-native-0006",
+          "nativeInputDigest": "f6de4b3bce492b89c5fe47ab80ee4394cea471ee4a68cd476c5e9b7ce80d3fa4",
+          "deviceStatus": "AGENT_OBSERVED_EMULATOR",
+          "scope": "6D SecureStore/Crypto new native0006. Android actual saved preferences, cold restart, rotation and second cold restart observed; iOS physical remains user-deferred."
+        }
       }
     ],
     "pendingReason": "Development binary compiled; production ads/push/store gates remain unverified. Device evidence is recorded separately.",
@@ -182,13 +201,13 @@
       "google_play_registration",
       "closed_test_testers"
     ],
-    "buildId": "5fa9f2ef-abe1-4cda-bd92-405290d2d319",
+    "buildId": "1a233a82-a75c-4850-915f-324bf07acf74",
     "deviceStatus": "AGENT_OBSERVED_EMULATOR"
   },
   "ios": {
     "status": "AVAILABLE",
     "localBuild": "UNAVAILABLE_WINDOWS",
-    "route": "New product EAS iOS native0005 build; physical iPhone validation deferred by user",
+    "route": "New product EAS iOS native0006; physical iPhone testing user-deferred",
     "easAccount": "VERIFIED_NEW_PROJECT",
     "appleDeveloper": "VERIFIED_NEW_APP_SIGNING",
     "observations": [
@@ -257,10 +276,29 @@
           "deviceStatus": "PENDING_NATIVE_CONFIRMATION",
           "scope": "6C native0005. Build read-back; Android CUA home/save/current saved card observation recorded separately. iOS physical pending."
         }
+      },
+      {
+        "command": [
+          "node",
+          "scripts/eas.mjs",
+          "build:view",
+          "2126bfff-1b3e-4414-bdbb-58bb4b35fcc9",
+          "--json"
+        ],
+        "exitCode": 0,
+        "observedAt": "2026-11-14T19:22:36.667435+00:00",
+        "value": {
+          "buildId": "2126bfff-1b3e-4414-bdbb-58bb4b35fcc9",
+          "status": "FINISHED",
+          "runtimeVersion": "ios-native-0006",
+          "nativeInputDigest": "f6de4b3bce492b89c5fe47ab80ee4394cea471ee4a68cd476c5e9b7ce80d3fa4",
+          "deviceStatus": "PENDING_NATIVE_CONFIRMATION",
+          "scope": "6D SecureStore/Crypto new native0006. Android actual saved preferences, cold restart, rotation and second cold restart observed; iOS physical remains user-deferred."
+        }
       }
     ],
-    "pendingReason": "native0005 compiled; current binary has no physical iPhone confirmation. Prior native0004 device confirmation is historical only.",
-    "userAction": "User deferred iPhone testing; install and check native0005 when the device returns. No current action requested.",
+    "pendingReason": "native0006 compiled; physical iPhone confirmation pending. Prior versions remain historical.",
+    "userAction": "No current user action requested; test native0006 when iPhone returns.",
     "affectedStages": [
       2,
       11,
@@ -280,7 +318,7 @@
       "appleDeveloperMembership": "CONFIRMED_BY_USER"
     },
     "buildTested": true,
-    "buildId": "e9982851-1df3-49e0-a54f-80d0276fa7a0",
+    "buildId": "2126bfff-1b3e-4414-bdbb-58bb4b35fcc9",
     "deviceStatus": "PENDING_NATIVE_CONFIRMATION"
   },
   "ci": {
@@ -342,8 +380,8 @@
         }
       }
     ],
-    "pendingReason": "native0005 Android and iOS development builds FINISHED; only Android0005 observed on emulator. iOS0005 physical validation is pending; native0004 user confirmation is historical. Production signing/store release gates remain pending.",
-    "userAction": "iPhone testing is deferred by the user. Do not inherit0004 confirmation for0005; test the new binary when the device returns. No current user action requested.",
+    "pendingReason": "native0006 Android and iOS builds FINISHED; Android SecureStore/settings/restart/rotation observed. iOS physical and production release gates pending.",
+    "userAction": "iPhone testing remains deferred; do not inherit earlier runtime confirmation.",
     "affectedStages": [
       2,
       6,

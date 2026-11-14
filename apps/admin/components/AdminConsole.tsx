@@ -6,12 +6,13 @@ import type { PublicSector,PublicScenario } from '@judoju/contracts';
 import type { Draft,EditorContent,EditorImpact,Preview } from '../lib/editor-types';
 import { ArticlePreview } from './ArticlePreview';
 import CatalogManager from './CatalogManager';
+import NewsAnalytics from './NewsAnalytics';
 import { alignedScenarios,EditorApiError,parsePendingIntent,pendingResolution,stateRecoveryDraft } from '../lib/editor-state.mjs';
 type CurrentCatalog={catalog_version:string;sectors:PublicSector[]};
 type PendingIntent={action:'create'|'publish'|'state';args:Record<string,unknown>};
 const pendingStorage='judoju.editor.pending.v1';
 import './editor.css';
-const menus=[['articles','기사 관리'],['sectors','섹터 관리'],['keywords','키워드 설정'],['ranking','홈 순위 관리'],['sources','수집 상태'],['settings','설정']];
+const menus=[['articles','기사 관리'],['sectors','섹터 관리'],['keywords','키워드 설정'],['analytics','뉴스 조회 통계'],['ranking','홈 순위 관리'],['sources','수집 상태'],['settings','설정']];
 const lines=(x:string)=>x.split('\n');
 const clean=(x:string[])=>x.map(s=>s.trim()).filter(Boolean);
 async function api<T>(action:string,data?:unknown,csrf?:string):Promise<T>{
@@ -73,6 +74,7 @@ export default function AdminConsole({initialPath}:{initialPath:string}){
  {csrf&&recoveryDraft&&<div className='panel'><p>현재 입력을 자동으로 덮어쓰지 않았습니다. 최신 초안을 불러오면 현재 입력이 교체됩니다.</p><button disabled={busy} onClick={()=>run(()=>load(recoveryDraft))}>최신 초안 불러오기</button></div>}
  {!ready?<p>인증 상태 확인 중…</p>:!csrf?<form className='panel login' onSubmit={e=>{e.preventDefault();run(async()=>{const s=await api<{csrf:string}>('login',{email,password});setPassword('');setCsrf(s.csrf);setArticles(await api<typeof articles>('articles'));setSectors(await api<PublicSector[]>('catalog'));if(pendingRef.current?.action!=='create'&&pendingRef.current?.args.p_issue)await load(String(pendingRef.current.args.p_issue));router.replace('/articles');});}}><label>이메일<input type='email' required autoComplete='username' value={email} onChange={e=>setEmail(e.target.value)}/></label><label>비밀번호<input type='password' required autoComplete='current-password' value={password} onChange={e=>setPassword(e.target.value)}/></label><button className='primary' disabled={busy}>로그인</button><p>소비자 앱에는 로그인이 없습니다.</p></form>
  :['sectors','keywords'].includes(initialPath)?<CatalogManager csrf={csrf}/>
+ :initialPath==='analytics'?<NewsAnalytics csrf={csrf} articles={articles}/>
  :initialPath&&!['articles','login'].includes(initialPath)?<section className='panel'><p>이 메뉴의 편집 기능은 후속 단계에서 연결합니다.</p></section>
  :!draft?<section className='panel'><div className='toolbar'><button className='primary' disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(async()=>{await mutate({action:'create',args:{p_request:crypto.randomUUID()}});})}>새 글 작성</button><button disabled={busy} onClick={()=>run(refresh)}>새로고침</button></div>{articles.length===0?<p>작성한 글이 없습니다.</p>:articles.map(x=><button className='article-row' key={x.id} disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(()=>load(x.id))}><strong>{x.title||'제목 없는 초안'}</strong><span>{x.publication_state} · 초안 {x.draft_revision}</span></button>)}</section>
  :content&&<><div className='toolbar'><button disabled={busy||!!pending||!!recoveryDraft} onClick={()=>{setDraft(null);setPreview(null);run(refresh);}}>‹ 목록</button><span>{draft.state} · 초안 {draft.draft_revision}</span></div><div className='editor-grid'><form className='panel' onSubmit={e=>e.preventDefault()}><fieldset disabled={busy||!!pending||!!recoveryDraft}>

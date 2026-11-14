@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "productId": "judoju-news",
   "currentStage": 6,
-  "state": "IMPLEMENTED_REVIEW_PENDING",
-  "externalReviewRecord": "../outputs/development-stages/reviews/stage06b-implementation/index.html",
+  "state": "IMPLEMENTING_INSTALLATION_ANALYTICS",
+  "externalReviewRecord": "../outputs/development-stages/reviews/stage06d-plan/index.html",
   "nextStage": 6,
   "stages": [
     {
@@ -32,7 +32,7 @@
     },
     {
       "stage": 6,
-      "state": "IMPLEMENTED_REVIEW_PENDING"
+      "state": "IMPLEMENTING_INSTALLATION_ANALYTICS"
     },
     {
       "stage": 7,
@@ -60,10 +60,10 @@
     }
   ],
   "implementationLimits": [
-    "Stage3 real permissions/quote/calendar supply pending; all112 RIGHTS_HOLD and live7/8 closed",
-    "Stage4 c844fe1 and stage5 manual publishing verified locally; 6B73ab521 catalog verified; 6C implementation re-review pending; full device/P03b matrix pending",
-    "Native0005 adds only AsyncStorage2.2.0 with two new FINISHED builds and Android observation. Current iOS0005 physical validation is user-deferred; prior0004 phone confirmation is historical only",
-    "No remote git push, real collection, AI, prices, push/ads or preview/production provisioning. Two free development EAS builds use the existing new-product project"
+    "6C search/bookmarks source257 and local commit00bebe1 verified;6D only implementing, not independently verified.",
+    "New0006 Android/iOS binaries are FINISHED. Android SecureStore/settings/restart/rotation observed; physical iPhone remains user-deferred and prior runtime evidence stays historical.",
+    "iPhone/P03b physical test deferred by user. Fullstage6 remains partial;6E schedule,7prices/ranking,8collectors,9AI,11push/ads are separate.",
+    "Local QA views only; no operational PV/UV or public analytics values, no real collection/AI/prices/push/ads/cloud deployment."
   ],
   "completedStages": [
     {
@@ -160,17 +160,16 @@
     "sourceCompanyRecords": 339,
     "structuralHolds": 2,
     "remainingSubstages": [
-      "6C_SEARCH_BOOKMARKS",
       "6D_OWNERSHIP_VIEWS_ALERTS",
       "6E_SCHEDULING"
     ],
     "commit": "73ab52121d6afac6e51a6f26bb181b5bf03f40b3",
     "reviewManifest": "72656cf764774558f8ef86c49d201a01e93c1b0c4c782ce55464b997a6104f33"
   },
-  "stage6Scope": "PARTIAL_6C_SEARCH_DEVICE_BOOKMARKS",
+  "stage6Scope": "PARTIAL_6D_INSTALLATION_SETTINGS_QA_ANALYTICS",
   "searchBookmarks": {
     "stage": "6C",
-    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "state": "VERIFIED_LOCAL_DEVICE_STORE",
     "planManifest": "f3d0271b2c5263fc4661e4e247b1c51f533c09d8ba2a29144ba9a14805265d8e",
     "realPublicationEnabled": false,
     "nativeGate": "NEW_0005_BUILDS_FINISHED_ANDROID_OBSERVED_IOS_PHYSICAL_PENDING",
@@ -181,6 +180,29 @@
       "verified_alias": "DEFERRED_TO_STAGE7",
       "stock_code": "DEFERRED_TO_STAGE7"
     },
-    "serverBookmarkSync": false
+    "serverBookmarkSync": false,
+    "commit": "00bebe1d573353a68ceb39c952f360ab5cabbda4",
+    "reviewManifest": "8533e9647255ccd18e8e1132fe5a26b10efb98303c2d6d2f4d39fdefc38303ae"
+  },
+  "installationAnalytics": {
+    "stage": "6D",
+    "state": "IMPLEMENTING",
+    "planState": "APPROVED_DUAL_R4",
+    "planManifest": "24f44f7323078f5d66d5a57de582a266f93cead7f42f2239b868d93d5f837d52",
+    "planSha256": "9da4a327c4bab6a67382710b350c9caf4c43c2269da89914ac302bab3cb39a4b",
+    "approvalReceipt": "docs/stages/stage-06d-approval.json",
+    "mode": "LOCAL_SYNTHETIC_QA_ONLY",
+    "realPublicationEnabled": false,
+    "realPushEnabled": false,
+    "operationalAnalyticsEnabled": false,
+    "productionIdentityConfigured": false,
+    "nativeGate": "NEW_0006_BUILDS_FINISHED_ANDROID_SECURESTORE_SETTINGS_RESTART_ROTATION_OBSERVED_IOS_USER_DEFERRED"
+  },
+  "repositoryBackup": {
+    "forcePush": false,
+    "lastRemoteVerifiedCommit": "00bebe1d573353a68ceb39c952f360ab5cabbda4",
+    "receipt": "../outputs/development-stages/backups/main-00bebe1d5733.json",
+    "authorization": "USER_APPROVED_REVIEWED_COMMITS",
+    "unreviewedChangesPushed": false
   }
 }

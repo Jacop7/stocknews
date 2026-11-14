@@ -220,6 +220,12 @@
     "nativeBuilds": {
       "android": "AGENT_OBSERVED_EMULATOR",
       "ios": "PENDING_NATIVE_CONFIRMATION"
-    }
+    },
+    "nativeInputDigest": "f6de4b3bce492b89c5fe47ab80ee4394cea471ee4a68cd476c5e9b7ce80d3fa4",
+    "runtimeVersions": {
+      "android": "android-native-0006",
+      "ios": "ios-native-0006"
+    },
+    "nativeEvidence": "docs/native-release.json"
   }
 }

@@ -9,7 +9,7 @@
     "ios": {
       "bundleIdentifier": "com.jacop.stocknews",
       "buildNumber": "1",
-      "runtimeVersion": "ios-native-0005",
+      "runtimeVersion": "ios-native-0006",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.jacop.stocknews",
       "versionCode": 1,
-      "runtimeVersion": "android-native-0005"
+      "runtimeVersion": "android-native-0006"
     },
     "web": {
       "bundler": "metro",
@@ -33,6 +33,13 @@
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511",
           "delayAppMeasurementInit": true
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": false
         }
       ]
     ],
