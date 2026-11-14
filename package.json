@@ -35,7 +35,8 @@
     "test:installation": "node --test tests/installation-boundary.test.mjs tests/view-visit.test.mjs",
     "test:installation-runtime": "node scripts/test-installation-schema.mjs && node scripts/test-installation-views.mjs && node scripts/test-installation-runtime.mjs && node scripts/test-installation-recovery.mjs && node scripts/test-installation-native-recovery.mjs && node scripts/test-installation-catalog-seals.mjs && node scripts/test-installation-stat-windows.mjs && node scripts/test-installation-revocation-race.mjs",
     "test:reservations": "node --test tests/reservation-state.test.mjs",
-    "test:reservation-runtime": "node scripts/test-reservation-schema.mjs && node scripts/test-maintenance-retention.mjs && node scripts/test-maintenance-observation.mjs && node scripts/test-reservation-races.mjs && node scripts/test-reservation-http.mjs && node scripts/test-reservation-review-guards.mjs"
+    "test:reservation-runtime": "node scripts/test-reservation-schema.mjs && node scripts/test-maintenance-retention.mjs && node scripts/test-maintenance-observation.mjs && node scripts/test-reservation-races.mjs && node scripts/test-reservation-http.mjs && node scripts/test-reservation-review-guards.mjs",
+    "test:market-metrics": "node --experimental-strip-types --test tests/market-metrics.test.ts"
   },
   "devDependencies": {
     "supabase": "3.1.0",

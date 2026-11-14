@@ -1,0 +1,27 @@
+{
+  "state": "APPROVED_DUAL_R2",
+  "caseId": "74af6c3a722d65ed8f1012c81619ff44",
+  "reviewManifest": "a945ba87ce1281620d1f9c4eed3004f3d596203e6b50910cff6cc2c290d0a144",
+  "planSha256": "dd89e0e7a4165927e6217ef1e9dcd9ee28c70419731c5cb245fc7077bd25bda6",
+  "baseCommit": "b7d14c50066398b3c971d4dbd5bebcb3f9c7b999",
+  "roles": {
+    "claude": {
+      "key": "62cb8e310f1dc472b43083429776d0f3093f4e7f1f3f7ff6a8ff3546c2987094",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "f37dcbc89628a9e65a287dcacf46dcb217466ce9f26e44de325c08ab800f0876",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "scope": "PLAN_ONLY_NOT_IMPLEMENTATION",
+  "fullStage6Complete": false,
+  "nativeP03bComplete": false,
+  "liveSupplyEnabled": false
+}

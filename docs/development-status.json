@@ -216,5 +216,17 @@
     "iPhone": "USER_DEFERRED",
     "nativeSdkChanges": 0,
     "evidence": "docs/stages/stage-06e-runtime.json"
+  },
+  "marketMetricsPreparation": {
+    "stage": "7A",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "mode": "LOCAL_SYNTHETIC_PURE_ONLY",
+    "planManifest": "a945ba87ce1281620d1f9c4eed3004f3d596203e6b50910cff6cc2c290d0a144",
+    "planSha256": "dd89e0e7a4165927e6217ef1e9dcd9ee28c70419731c5cb245fc7077bd25bda6",
+    "liveSupplyEnabled": false,
+    "appConnected": false,
+    "currentM2Complete": false,
+    "iPhone": "USER_DEFERRED",
+    "realRequests": 0
   }
 }

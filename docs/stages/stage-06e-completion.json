@@ -1,0 +1,46 @@
+{
+  "state": "VERIFIED_AND_BACKED_UP_LOCAL_MAINTENANCE",
+  "stage": "6E",
+  "commit": "b7d14c50066398b3c971d4dbd5bebcb3f9c7b999",
+  "caseId": "5f750df5fedb373953e561b37d94d049",
+  "reviewManifest": "397852e04f6f25afdb6178378896ccffac56538bd6e46b3d34be812d22e38a08",
+  "roles": {
+    "claude": {
+      "key": "98e956a4ebc352ef179f2052f899b0415d2ef43cc4869512f3f6ebd67cda3f78",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "bda3c81573df252827fe61d5ab5b95b56391514c98a6ca2d974d35c43caff069",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "fullVerifyBeforeCommit": "PASS_LOCAL_AND_FRESH_16_GROUPS",
+  "runtimeGroups": 23,
+  "sourceFiles": 315,
+  "exactIndexBytes": true,
+  "remainingP3": [
+    "Catalog edit lock-wait/retry UX measurement",
+    "Keep expected business-error whitelist aligned when m1 validators change; consider repeated-failure candidate isolation after whole-tick rollback"
+  ],
+  "realNewsRequests": 0,
+  "aiRequests": 0,
+  "priceRequests": 0,
+  "realPushSent": 0,
+  "adRequests": 0,
+  "rightsHoldEndpoints": 112,
+  "liveGate7": "CLOSED",
+  "liveGate8": "CLOSED",
+  "iPhone": "USER_DEFERRED",
+  "fullStage6Complete": false,
+  "nativeP03bComplete": false,
+  "postCommitVerify": "PASS_16_GROUPS",
+  "remoteCommit": "b7d14c50066398b3c971d4dbd5bebcb3f9c7b999",
+  "backupReceipt": "C:\\Users\\jacop\\주식\\outputs\\development-stages\\backups\\main-b7d14c500663.json",
+  "nextStage": "7A_LOCAL_MARKET_METRICS_PLAN"
+}
