@@ -331,5 +331,27 @@
       "supabase/cloud/core-dev/adoption.json#core.pendingLocalMigrations",
       "supabase/cloud/core-dev/adoption.json#limitations"
     ]
+  },
+  "cloudCatalog": {
+    "stage": "CLOUD06C",
+    "state": "RECORDED_DEV_DISABLED_CATALOG_APPLIED",
+    "registry": "supabase/cloud/catalog-dev/adoption.json",
+    "planManifest": "e417024421c662bc377dad970e1300f551b76d5a36da4bb31661aba2927c0fe5",
+    "planSha256": "bd985647f05bb426fbdb37a6a11acbc0734aa2141fcfaaa9575faf41b511a3dc",
+    "recordedOfficialHistoryRows": 5,
+    "latestVersion": "20261116000103",
+    "recordedRelations": 58,
+    "recordedFunctions": 130,
+    "liveVerified": false,
+    "appConnected": false,
+    "workerConnected": false,
+    "historicalAuthNamespaceInvariant": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "supersedes": [
+      "docs/development-status.json#cloudM1",
+      "supabase/cloud/m1-dev/adoption.json#sources",
+      "supabase/cloud/m1-dev/adoption.json#snapshots.devScope47",
+      "supabase/cloud/m1-dev/adoption.json#m1.pendingLocalMigrations",
+      "supabase/cloud/m1-dev/adoption.json#limitations"
+    ]
   }
 }
