@@ -376,5 +376,29 @@
       "supabase/cloud/catalog-dev/adoption.json#snapshots",
       "supabase/cloud/catalog-dev/adoption.json#catalog.newActualReferenceRows"
     ]
+  },
+  "cloudSearchInstallation": {
+    "stage": "CLOUD08C",
+    "state": "RECORDED_DEV_SEARCH_INSTALLATION_APPLIED_WRITE_CLOSED",
+    "registry": "supabase/cloud/search-installation-dev/adoption.json",
+    "planManifest": "ff019bcfb9e170a68e3b072226dafb218b32c18b16dc1bfacd4075ad6de01e21",
+    "planSha256": "a47b90bad76b4fc61b4d3729f56176eac26ebd4e71d1c3fa60a95a4a67f77f8d",
+    "recordedOfficialHistoryRows": 6,
+    "recordedCatalogHead": 2,
+    "recordedCompanies": 339,
+    "recordedHolds": 341,
+    "recordedRelations": 67,
+    "recordedDataTables": 66,
+    "recordedFunctions": 154,
+    "recordedFingerprint66": "1fac4954955f1b536f483bee70574177a4827b98bc324111a280eab98d8d49f8",
+    "liveVerified": false,
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "historicalAuthNamespaceInvariant": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "supersedes": [
+      "docs/development-status.json#cloudReference",
+      "supabase/cloud/reference-dev/adoption.json#snapshots.devScope57_C"
+    ]
   }
 }

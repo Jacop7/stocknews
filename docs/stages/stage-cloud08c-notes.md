@@ -1,0 +1,9 @@
+# CLOUD08C — 검색·저장·설정 적용 기록의 오프라인 제품 보관
+
+CLOUD08B 실제 dev66data/67relations/154fn/native6는DUAL9142/634파일ZIP6ecc로검증됐다. 이번단계원격DB/API/CLI요청0이며원SQL을다시적용하지않는다. 원A1,049,864B/SHA66440458 raw5는실행workdir가아닌감사archive이고PREPARED주석도바꾸지않는다. 기존398중394동결·4exact수정·6추가로404다. 최신cloudSearchInstallation이current66 selector,구reference57은historical이다. 전체Auth사용자행/과거namespace·실시간service인증을주장하지않고liveVerifiedfalse/NOT_ESTABLISHED를보존한다.
+
+CL08CP01: verify.mjs는toolchain뒤C7독립entry1개를C8독립entry로정확1개치환한다. CI도C7step을C8step으로교체하고원C7validator파일은동결/미실행한다. 원래23+latest1=24이며각exactdiff를validator가base원문과equals로검사한다. CL07CI01: fresh검증checkout자체를변형하지않고별도owned negativecheckout에frozen/offline dependencies를확보한뒤실제pnpm earlyexit negative를실행한다. 실패를PASS로세지않는다. 음성검사의로컬disposable Git refs만생성/복구·삭제할수있고실제제품/remote refs삭제·force/reset은없다.
+
+CL08BI01: B검수/ZIP밖의readonlypostUI22:07:54Z APIoffFree/PNG–JSONSHA를C입력에고정한다. 현재DB전체새attestation은아니다. C08BIC01: historicalintent에명시preflightSHA가없는사실을그대로기록하고postbaseline간접연결을보존한다. 기존intent수정/재전송없으며미래adapter는fsync전명시SHA를포함해야한다.
+
+18unit13fixture1Lockrace/synthetic1.085초와actualack4.800초·37요청1write/폐쇄2실호출/readonlycheck1을구분한다. 토큰·프로필·headers/cookies는archive/hash/git에없다. 실패probe/unit/negative는보존되며현재PASS에합산하지않는다. M2false/112RIGHTS_HOLD/iPhoneUSER_DEFERRED/앱adminworker미연결/실제뉴스AI가격푸시0. 전체24local/fresh/별도negative/publisher8→결과DUAL→sourceZIP→정상commit→committed24→검수OIDfeature/mainFF/mainOIDpush→최종backup순서다. 전체서비스완료는아니다.

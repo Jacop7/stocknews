@@ -1,0 +1,15 @@
+# CLOUD08C — 적용된 검색·저장·설정 DB 구조의 제품 보관
+
+CLOUD08B 실제적용결과 DUAL9142b962/634파일ZIP6ecc5458/actualnative6·post66baseline1fac4954·원실행64045b87→폐쇄04cac87b가완료됐다. 이를고정입력으로정식계획을작성한다. DB/API/CLI·인증·권한·worker 또는 앱 연결 변경은 없는 Git 보관 단계다. CLOUD07C 기준398/main1d9af37의4파일(status/dispatcher/verify/CI)만 정확 변경하고6파일을 추가해404로 만든다. 이전394파일은 동결한다. native6가 실제 등록됐다는 기록과 prepared A 원문 주석은 분리하며 주석을 고쳐 실행 bytes를 바꾸지 않는다.
+
+새 문서3개(단계 계획/DUAL 승인/구현 노트), supabase/cloud/search-installation-dev/adoption.json, archive/20261116000104_cloud08a_search_installation_disabled.sql, scripts/verify-cloud08c-foundation.mjs를 추가한다. source는 unbound A exact66440458…/1,049,864B, raw native5lexeme·body0·원본39–45 mapping과 검수된 native6 실제기록의 감사자료이며 실행workdir/config/CLI/auth/codec비밀·토큰을 넣지 않는다. rootlocal50·종전cloudarchive/기존catalog/reference 기록은 바꾸지 않는다. 최신 selector cloudSearchInstallation을 추가해 현재66data67relations154fn/native6/참조head2/339미확정341holds/QAcoverage1을 나타낸다. 이전 cloudReference는 pre-search57 구조의 역사적자료이며 currentbaseline은 actual66 fingerprint1fac4954…와 B postbaseline/anchor다. liveVerified=false를 유지해 단순기록을 현재원격재인증으로표현하지않는다.
+
+원실행11파일SHA·폐쇄후11파일SHA와정확두줄LF폐쇄·18unit13fixture/Lockrace1·별도check0001·1write/37요청·writer/probe3기준·codec152864B/원문복원·actualack4.800초와synthetic1.085초를구분한다. 토큰출력/hash/ZIP/git제외, Auth선언범위/ns/managedCbinary미인증·과거namespaceNOT_ESTABLISHED,prod읽기전용app0/native0,DataAPIoff/Free,M2false112RIGHTS_HOLDiPhoneUSER_DEFERRED와앱/admin/worker미연결을보존한다. 실패probe/unit/negative기록도manifest/검증백업에포함하고현재PASS로합산하지않는다.
+
+새 validator는독립entry로 toolchain직후 verify.mjs에서실행하고CI의현재C07C독립단계를C08C로교체한다. C07C검사코드자체는동결한다. dispatcher는C08C최신분기만추가한다. 원래23그룹을그대로유지하고최신독립validator1그룹으로총24를기대하되실제실행목록으로판정한다. 네수정의exactdiff,398baseline/394frozen/6new,adoption/rawsourceSHA/원문7개·local-onlyboundary·모델아닌제품Git상태·모든refs를검사한다. 이전validator를현재404에직접실행해예전398guard통과라고주장하지않는다.
+
+검사순서는현재전체24→독립Git객체source clone/frozeninstall/byte404동일/전체24→별도owned변형checkout(검증용fresh를재사용하지않음)에서meaningfulnegative(archive변형/selector오염/독립entry·CI제거/dispatcher조기종료가실제pnpm에서거부/refs오염/cleanup source복구)·publisher8이다. 실제pipeline negative는그별도ownedcheckout의frozen dependencies가확보된후에만실행하고설치실패를PASS로세지않는다. 모델계획·필수문서2검사·계획DUAL·정확sourcehash결과DUAL을통과한뒤sourceZIP→정상featurecommit→committed독립clone전체24→검수된immutableOID featurepush/mainFF/mainOIDpush→combinedls-remote일치→finalbackup/status를남긴다. force/reset/rebase/refs삭제/빈commit은없고未검수byte를보내지않는다. 이전published메인OID1d9가전제며새branch는feat/cloud08c-search-installation-archive다. 후속46–50·gateway/Auth·앱/어드민/worker·실제수집권한/AI·08:10契約은별도단계다.
+
+CL08BI-01(P3): 결과검수·백업뒤별도read-only UI보완관측22:07:54Z를추가했다. dev/prod freshreload후DataAPIoff/Free를JSON–PNG SHA로결속했고설정write0이다. 이것은B9142manifest/원래634파일ZIP밖의보완관측임을분명히하고이C계획/결과에고정한다. static화면은같은PNG가될수있고UI비트관측이DB전체현재재인증은아니다.
+
+C08BI-C01(P3): 원래activation-intent에는preflight-manifest의명시적SHA가없고post-baseline→preflight-manifest로사후연결된다. 모든원본intent/ack/manifest/anchor가실제같음을확인한기록을그대로보관하며기존intent를소급수정하거나writer를열지않는다. 이C단계는write없음으로해당전송을다시하지않으며다음실제adapter부터exclusive/fsyncintent에검증된preflight-manifestSHA를명시적으로포함해야한다는미래요구를기록한다. 기존P3원문은삭제하지않는다.
