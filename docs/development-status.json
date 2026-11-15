@@ -311,5 +311,25 @@
       "supabase/cloud/dev/adoption.json#snapshots.dev",
       "supabase/cloud/dev/adoption.json#limitations"
     ]
+  },
+  "cloudM1": {
+    "stage": "CLOUD05F",
+    "state": "RECORDED_DEV_DISABLED_M1_APPLIED",
+    "registry": "supabase/cloud/m1-dev/adoption.json",
+    "planManifest": "88445e0ca1f966d782ecdf0f76c9c93f7e5a033df2ad67cc259c8a97671e05d2",
+    "planSha256": "1347f818a09b1b13cbe97d51b7daf630b4d91e0bb8dd61e7e06606e5c6e5e486",
+    "recordedOfficialHistoryRows": 4,
+    "latestVersion": "20261115000102",
+    "liveVerified": false,
+    "appConnected": false,
+    "workerConnected": false,
+    "historicalAuthNamespaceInvariant": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "supersedes": [
+      "docs/development-status.json#cloudCore",
+      "supabase/cloud/core-dev/adoption.json#sources",
+      "supabase/cloud/core-dev/adoption.json#snapshots.dev",
+      "supabase/cloud/core-dev/adoption.json#core.pendingLocalMigrations",
+      "supabase/cloud/core-dev/adoption.json#limitations"
+    ]
   }
 }

@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "state": "RECORDED_DEV_DISABLED_M1_APPLIED",
+  "liveVerified": false,
+  "organizationRef": "qfzgicohgpuogehdyzfx",
+  "projectRef": "nxfpfvsdwbziowkxsxnh",
+  "physicalEnvironment": "dev",
+  "logicalEnvironment": "preview",
+  "observedAt": "2026-11-15T15:52:28.877037+00:00",
+  "recoveryObservedAt": "2026-11-15T16:02:31.447285+00:00",
+  "historicalCore": {
+    "path": "supabase/cloud/core-dev/adoption.json",
+    "sha256": "795ede19a3e94db2521b2c45e020a43b0d089a32dadb23027965bb7751a47759",
+    "observedAt": "2026-11-15T13:23:45.990186+00:00",
+    "historyRows": 3,
+    "context": "HISTORICAL_CORE_ONLY"
+  },
+  "sources": [
+    {
+      "version": "20261114000000",
+      "name": "cloud02_dev_control",
+      "path": "supabase/cloud/dev/migrations/20261114000000_cloud02_dev_control.sql",
+      "bytes": 2956,
+      "sha256": "a58a6453802cb785087ccd7cc3bcfd536b7c7f8b765fe6822f0e66e9a0eadb1e",
+      "statementCount": 16,
+      "statementCharacters": 2924,
+      "statementArraySha256": "abc9505f190dd3487bd9c25f8c86a5408bc5ee380ac7247ad357e3282ec67eec"
+    },
+    {
+      "version": "20261114000001",
+      "name": "cloud03_dev_domain_foundation",
+      "path": "supabase/cloud/dev/migrations/20261114000001_cloud03_dev_domain_foundation.sql",
+      "bytes": 24148,
+      "sha256": "330f333ff252111d97ac68a8b55695350d545eaa524930589cecbb02396d5df9",
+      "statementCount": 87,
+      "statementCharacters": 23970,
+      "statementArraySha256": "4971cb4aaf88ac8e658b22997955898eff3150074c499a09c52776c35500a306"
+    },
+    {
+      "version": "20261115000101",
+      "name": "cloud05a_core_disabled",
+      "path": "supabase/cloud/core-dev/migrations/20261115000101_cloud05a_core_disabled.sql",
+      "bytes": 88750,
+      "sha256": "cd45fb900076c4ea30e5de715619363effcddb4a1eafb95d6492515d5b2456f1",
+      "statementCount": 46,
+      "statementCharacters": 88541,
+      "statementArraySha256": "a26349c2bac4c056f855b4d7d71274177678cb64c930b7e0be1f81a0651fb306"
+    },
+    {
+      "version": "20261115000102",
+      "name": "cloud05d_m1_disabled",
+      "path": "supabase/cloud/m1-dev/migrations/20261115000102_cloud05d_m1_disabled.sql",
+      "bytes": 443028,
+      "sha256": "857eef2a188613ea678d06b925d1532b356185c180ac0d7e6349a6691b524bb0",
+      "statementCount": 5,
+      "statementCharacters": 442367,
+      "statementArraySha256": "a912a5fc4b6144b1891f6a6c4e9ff4f822933e75484ba322b6f43361816c82f4",
+      "statementSlices": [
+        {
+          "characters": 85,
+          "sha256": "7d8e6a7b0cb9a9575b8c5b94559e09b9c738da0b049cf7335b869b9c66ce8ce9"
+        },
+        {
+          "characters": 33,
+          "sha256": "da02339210fb8baf6a812a5ed7fa0b4383f2819a7c67570c137da040f1e2bfab"
+        },
+        {
+          "characters": 27,
+          "sha256": "9595c1422cbd67c7f9e4363c5d522e26b7cb2a6a2b6fa7262fd510c905c2b973"
+        },
+        {
+          "characters": 442216,
+          "sha256": "13a5ee2c414a6ccadcc283878ad65643556115fadc0dc4f0dc30bba0bb2c9326"
+        },
+        {
+          "characters": 6,
+          "sha256": "9505cacb7c710ed17125fcc6cb3669e8ddca6c8cd8af6a31f6b3cd64604c3098"
+        }
+      ]
+    }
+  ],
+  "snapshots": {
+    "devScope44": {
+      "before": "77b731ebeb11479fb16dcd153c2e98d4ee5da3fbd4b7296cb15b0911f48dc5eb",
+      "after": "cd8716afb73e194300164e426e2a9ccd3129cdfc482d8af7989034e2d2089c2a",
+      "scope": "APP_METADATA_AND_ORIGINAL44_TABLE_DATA"
+    },
+    "devScope47": {
+      "after": "e422fbc20730eea4b5ed89a22de28522f0414fefd6b1cfc068498f397e87dbe6",
+      "scope": "APP_METADATA_AND_CURRENT47_TABLE_DATA"
+    },
+    "prod": {
+      "before": "152880e674e3d00c089fcd6a09b9132627963c4d0a59dfe8bcf2dbbe8b9ffc79",
+      "after": "152880e674e3d00c089fcd6a09b9132627963c4d0a59dfe8bcf2dbbe8b9ffc79",
+      "relations": 0
+    }
+  },
+  "m1": {
+    "relations": 48,
+    "functions": 75,
+    "officialHistoryRows": 4,
+    "latestVersion": "20261115000102",
+    "policyVersion": 2,
+    "apiContractVersion": 2,
+    "minAppVersion": "0.1.0",
+    "newManagedAuthFk": 4,
+    "newInternalRiTriggers": 8,
+    "publicAndApiObjectAccess": 0,
+    "rootLocalStreamReplayed": false,
+    "applicationWriteRequests": 1,
+    "productionWrites": 0,
+    "coveredLocalMigrations": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "pendingLocalMigrations": [
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50
+    ]
+  },
+  "authNamespace": {
+    "historicalUnchanged": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "currentObservationSha256": "254b2e35ba0cfa46dc2b13e4a588755537135e8ddfb9e23b51f60fa7006a4eef",
+    "currentQuerySha256": "ec0975be0e008e220ef1fab5bc6884539104d2f84cf32cbc34b246e10c243cd9",
+    "currentOwner": "supabase_admin",
+    "currentEffectiveAclRows": 10,
+    "futureBeforeTransactionAfterBaselineRequired": true,
+    "baselineFilePresenceAndShaRequired": true
+  },
+  "originalPreDdlFullAuthCheck": "NARROW_PORTABLE_GUARD_FULL_HOSTED_COMPARE_POSTCOMMIT_NO_OBSERVED_DRIFT",
+  "execution": {
+    "originalExecutorSha256": "9dd1cd97b8adbeac7b1cbd55bd571e2f46f916587f4c870ecdd50e6e68672416",
+    "originalWireSha256": "f2e07597979678bb57ac81d5dcdbf3116e9dfe047e2eb96bb835c158d08bd845",
+    "originalPayloadSha256": "ec60e5c7a9cfedf09bd9011f40239ac46bcd6aed4d534c34f090f99a14023c65",
+    "recoveryContractSha256": "d256a0956b8e6bc43361da3ff9d37ce52b9acdd49c61540ec604a83e9a6d4a7e",
+    "writeEntryPointsClosed": true,
+    "additionalRemoteWrites": 0
+  },
+  "runtime": {
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "M2": false,
+    "liveSupplyEnabled": false,
+    "iPhone": "USER_DEFERRED",
+    "rightsHold": 112,
+    "dataApiEnabledObserved": false,
+    "organizationPlanObserved": "Free"
+  },
+  "rootLocalStream": {
+    "path": "supabase/migrations",
+    "migrationCount": 50,
+    "foundationBytes": 19011,
+    "foundationSha256": "5b3c2d38206dc3c43c51db287d14584b3aa72b1f54d5b2e368e252a5fcf90caa",
+    "cloudCompatible": false,
+    "remoteUse": "FORBIDDEN"
+  },
+  "replay": "REPLAY_FORBIDDEN",
+  "supersedes": [
+    "docs/development-status.json#cloudCore",
+    "supabase/cloud/core-dev/adoption.json#sources",
+    "supabase/cloud/core-dev/adoption.json#snapshots.dev",
+    "supabase/cloud/core-dev/adoption.json#core.pendingLocalMigrations",
+    "supabase/cloud/core-dev/adoption.json#limitations"
+  ],
+  "precedence": "docs/development-status.json#cloudM1 -> supabase/cloud/m1-dev/adoption.json; historical cloudCore inspector is the earlier three-row observation, not current live state",
+  "postBaseline": {
+    "stage": "CLOUD05E_POST_APPLY",
+    "devFingerprint44": "cd8716afb73e194300164e426e2a9ccd3129cdfc482d8af7989034e2d2089c2a",
+    "postFingerprint47": "e422fbc20730eea4b5ed89a22de28522f0414fefd6b1cfc068498f397e87dbe6",
+    "files": {
+      "dev-after.json": "ab7fb2acb3da565b0c56c4064d0f041a1f1dff60dad7a7e109ef9c8de37f8dd1",
+      "prod-after.json": "ac0c7fa6fb6c3124adc7b059b20aad2887d6905d291908f02ecfb7a398eeb466",
+      "history-after.json": "126b91402e12cda66072436744111362ffd273b7f3901e21ab89f8ffecd5d02b",
+      "auth-after.json": "578ab641ab8081b6b5fe6cb5f0e65a4b80ff61993412e91cba84f8f959bc7b8b",
+      "m1-after.json": "ecc7504efac36b50c883549c69062e85454fcd809d72ba3bed5ad0fc92a12a90",
+      "policy-after.json": "e57d9f4e17ad0be8892fc39c99b2d0ffee630b973f8d55af0c08e14ef7c1ce16",
+      "post-snapshot.json": "077addc45ac1c7b85bb4582400ad0e9afc05e38d768b4cade98bf04f9f64d082"
+    },
+    "replayForbidden": true,
+    "nextStageUses": "CLOUD05E_POST_APPLY"
+  },
+  "evidence": {
+    "manifest": "c9188540cb98a6c3384ecff1743341f4164b0e66424555db8033476a1ec21587",
+    "claudeKey": "0cfe8044ace2a2b03b3ef083f5a9b381dc515ecffc3083c8fc84945278ce8b87",
+    "codexKey": "5de0a8b584c34fe80daa48238e0d046d1307335af20b1e11fcc128edee9ce75b",
+    "statusSha256": "aee8b814599c39fd6c97abcd77a86bc99c57839d577308b8c21cd3054472eacf",
+    "verificationSha256": "d1b7e64b124bef64477b2f26f755b877a59c6b4e342b46577d8b83d02a185415",
+    "remoteProofSha256": "e93b336fee327837dc161907a9de4ff234d013ef85a0dd554129f7839823027f",
+    "backupSha256": "8400ee873a47b8e11ddbda6d3af784612025334f0c39e3ce891b32eb74d97a7f",
+    "backupFiles": 151
+  },
+  "limitations": [
+    "Stored host observations and scoped review receipts, not current live-state or provider-signed attestation.",
+    "Historical Auth namespace owner/ACL equality was not observed and remains NOT_ESTABLISHED; current and synthetic observations do not establish history.",
+    "Original full hosted Auth was compared postcommit after narrower pre-DDL checks. Original live writer is permanently closed; future mutations require full in-transaction baseline.",
+    "44-table and 47-table data fingerprints have different scopes and are not interchangeable.",
+    "Source archive has no config/executor and is not replay authorization. Old cloud:core:inspect is historical three-row context.",
+    "Static identical UI PNGs do not prove observation freshness.",
+    "Migrations21-50, gateway/Auth/app/admin/worker integration, production and M2 remain pending."
+  ]
+}

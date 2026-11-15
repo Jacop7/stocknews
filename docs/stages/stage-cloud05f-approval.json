@@ -1,0 +1,12 @@
+{
+  "stage": "CLOUD05F",
+  "state": "APPROVED_DUAL_R1",
+  "baseCommit": "b4fd38ec7e19c8744ee60617deb572bc97f8751d",
+  "reviewManifest": "88445e0ca1f966d782ecdf0f76c9c93f7e5a033df2ad67cc259c8a97671e05d2",
+  "planSha256": "1347f818a09b1b13cbe97d51b7daf630b4d91e0bb8dd61e7e06606e5c6e5e486",
+  "claudeKey": "51e9c9f87122aece7558eeebd5565c42eade4af15985dba5551a0324753c8129",
+  "codexKey": "07f3dde5bf29335ab7d8c2016efc2710ea3971ced642ee24a6c0e7a5ec2e5043",
+  "newFiles": 6,
+  "mutableFiles": 2,
+  "remoteMutationsAuthorized": false
+}
