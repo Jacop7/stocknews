@@ -43,7 +43,9 @@
     "cloud:inspect": "node scripts/cloud-inspect.mjs",
     "test:cloud-deployment": "node --test tests/cloud-deployment.test.mjs",
     "cloud:history:inspect": "node scripts/cloud-history-inspect.mjs",
-    "test:cloud-history": "node --test tests/cloud-history.test.mjs"
+    "test:cloud-history": "node --test tests/cloud-history.test.mjs",
+    "cloud:core:inspect": "node scripts/cloud-core-inspect.mjs",
+    "test:cloud-core": "node --test tests/cloud-core.test.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
