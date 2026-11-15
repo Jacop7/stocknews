@@ -1,0 +1,47 @@
+{
+  "state": "VERIFIED_AND_BACKED_UP_LOCAL_SNAPSHOT_PROTOCOL",
+  "stage": "7B2A",
+  "mode": "LOCAL_SYNTHETIC_PURE_ONLY",
+  "reviewManifest": "07387c14eadbb2c27e839f7bce63206c271f2156434ce65bb45bf7a51eb7f229",
+  "roles": {
+    "claude": {
+      "key": "345a246dee185e52e33d5d3ddbdeb7129769dbc27e7fadd9ea4facd84f1d4dd6",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "700930e9f309c4c31afab2eb01e79f3e857e8de50ac3b90549cacff6929e6a07",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "unitTests": 46,
+  "fullVerifyLocal": "PASS_19_GROUPS",
+  "fullVerifyFresh": "PASS_19_GROUPS",
+  "negativeGroups": 8,
+  "sourceFiles": 338,
+  "realNewsRequests": 0,
+  "aiRequests": 0,
+  "priceRequests": 0,
+  "realPushSent": 0,
+  "adRequests": 0,
+  "rightsHoldEndpoints": 112,
+  "liveGate7": "CLOSED",
+  "liveGate8": "CLOSED",
+  "appConnected": false,
+  "realAtomicPersistence": false,
+  "runtimeSchedulerConnected": false,
+  "homeRankingConnected": false,
+  "full7BComplete": false,
+  "M2Complete": false,
+  "iPhone": "USER_DEFERRED",
+  "nextStage": "7B2B_STORY_LANES_STABILITY_THEN_7B2C_REAL_PERSISTENCE",
+  "commit": "37929a37fbc77cef91a87e267bfbb9321ad84d8a",
+  "remoteCommit": "37929a37fbc77cef91a87e267bfbb9321ad84d8a",
+  "postCommitVerify": "PASS_19_GROUPS",
+  "backupReceipt": "C:\\Users\\jacop\\주식\\outputs\\development-stages\\backups\\main-37929a37fbc7.json"
+}
