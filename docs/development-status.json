@@ -266,5 +266,16 @@
     "currentM2Complete": false,
     "realRequests": 0,
     "iPhone": "USER_DEFERRED"
+  },
+  "cloudDeployment": {
+    "stage": "CLOUD04A",
+    "state": "OFFLINE_SOURCE_ONLY",
+    "planManifest": "a0075b686c65b7c7b7a6bac094ab667ee147c85eaa12cc1a658d28e3acdf8b1e",
+    "planSha256": "8f70d19e6fcd7b7075de7f265f55d51e03c35de00244b349459c5a9fbad652e7",
+    "appConnected": false,
+    "workerConnected": false,
+    "officialHistoryAdopted": false,
+    "liveSupplyEnabled": false,
+    "iPhone": "USER_DEFERRED"
   }
 }

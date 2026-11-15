@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "mode": "OFFLINE_SOURCE_ONLY",
+  "officialHistoryAdopted": false,
+  "evidenceManifest": "051fca72c1e29c195aa8819eeb71625d3005d0927d6ae5cab63b47511cc46071",
+  "nameEvidence": {
+    "path": "outputs/development-stages/reviews/cloud01-implementation/resources.json",
+    "sha256": "3c0d450990e5122cd27b33adea1c2d741700e13bfc28e4a843b9f9c01daea143"
+  },
+  "targets": [
+    {
+      "id": "supabase_preview",
+      "status": "OBSERVED_NOT_CONNECTED",
+      "actual": {
+        "productId": "judoju-news",
+        "createdNewForProduct": true,
+        "organizationRef": "qfzgicohgpuogehdyzfx",
+        "region": "ap-northeast-2",
+        "plan": "Free",
+        "observedAt": "2026-11-15T08:29:06.201Z",
+        "dataApiEnabled": false,
+        "connected": false,
+        "observationOnly": true,
+        "officialHistoryAdopted": false,
+        "evidenceManifest": "051fca72c1e29c195aa8819eeb71625d3005d0927d6ae5cab63b47511cc46071",
+        "projectRef": "nxfpfvsdwbziowkxsxnh",
+        "projectName": "judoju-news-dev",
+        "physicalEnvironment": "dev",
+        "logicalEnvironment": "preview",
+        "databaseState": "STAGED_DISABLED"
+      }
+    },
+    {
+      "id": "supabase_production",
+      "status": "OBSERVED_NOT_CONNECTED",
+      "actual": {
+        "productId": "judoju-news",
+        "createdNewForProduct": true,
+        "organizationRef": "qfzgicohgpuogehdyzfx",
+        "region": "ap-northeast-2",
+        "plan": "Free",
+        "observedAt": "2026-11-15T08:29:06.201Z",
+        "dataApiEnabled": false,
+        "connected": false,
+        "observationOnly": true,
+        "officialHistoryAdopted": false,
+        "evidenceManifest": "051fca72c1e29c195aa8819eeb71625d3005d0927d6ae5cab63b47511cc46071",
+        "projectRef": "zkzevpinuixeuyjlffwi",
+        "projectName": "judoju-news-prod",
+        "physicalEnvironment": "prod",
+        "logicalEnvironment": "production",
+        "databaseState": "EMPTY"
+      }
+    }
+  ],
+  "artifact": {
+    "id": "foundation1",
+    "version": "20261114000001",
+    "sourcePath": "supabase/migrations/20261114000001_m0_foundation.sql",
+    "sourceBytes": 19011,
+    "sourceSha256": "5b3c2d38206dc3c43c51db287d14584b3aa72b1f54d5b2e368e252a5fcf90caa",
+    "guardBytes": 1941,
+    "guardSha256": "90e223fdef008a609ab12c906731e23583d951a73477ec5d66ee5894d48ae75d",
+    "sealBytes": 3193,
+    "sealSha256": "e556b2bfa61c22a2c21190d3c05a197b77f0977db24c74987e762b6870bc4056",
+    "deploymentBytes": 24148,
+    "deploymentSha256": "330f333ff252111d97ac68a8b55695350d545eaa524930589cecbb02396d5df9"
+  },
+  "replay": "REPLAY_FORBIDDEN",
+  "limitations": [
+    "Historical UI observations only; not current health or connection approval.",
+    "Artifact ledger is not official Supabase CLI migration history. Migrations 2–50, RPC and runtime connections remain pending."
+  ]
+}

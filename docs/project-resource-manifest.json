@@ -48,17 +48,51 @@
       "id": "supabase_preview",
       "type": "backend",
       "environment": "preview",
-      "status": "PENDING",
+      "status": "OBSERVED_NOT_CONNECTED",
       "plannedNamespace": "judoju-news-supabase-preview",
-      "actual": null
+      "actual": {
+        "productId": "judoju-news",
+        "createdNewForProduct": true,
+        "organizationRef": "qfzgicohgpuogehdyzfx",
+        "region": "ap-northeast-2",
+        "plan": "Free",
+        "observedAt": "2026-11-15T08:29:06.201Z",
+        "dataApiEnabled": false,
+        "connected": false,
+        "observationOnly": true,
+        "officialHistoryAdopted": false,
+        "evidenceManifest": "051fca72c1e29c195aa8819eeb71625d3005d0927d6ae5cab63b47511cc46071",
+        "projectRef": "nxfpfvsdwbziowkxsxnh",
+        "projectName": "judoju-news-dev",
+        "physicalEnvironment": "dev",
+        "logicalEnvironment": "preview",
+        "databaseState": "STAGED_DISABLED"
+      }
     },
     {
       "id": "supabase_production",
       "type": "backend",
       "environment": "production",
-      "status": "PENDING",
+      "status": "OBSERVED_NOT_CONNECTED",
       "plannedNamespace": "judoju-news-supabase-production",
-      "actual": null
+      "actual": {
+        "productId": "judoju-news",
+        "createdNewForProduct": true,
+        "organizationRef": "qfzgicohgpuogehdyzfx",
+        "region": "ap-northeast-2",
+        "plan": "Free",
+        "observedAt": "2026-11-15T08:29:06.201Z",
+        "dataApiEnabled": false,
+        "connected": false,
+        "observationOnly": true,
+        "officialHistoryAdopted": false,
+        "evidenceManifest": "051fca72c1e29c195aa8819eeb71625d3005d0927d6ae5cab63b47511cc46071",
+        "projectRef": "zkzevpinuixeuyjlffwi",
+        "projectName": "judoju-news-prod",
+        "physicalEnvironment": "prod",
+        "logicalEnvironment": "production",
+        "databaseState": "EMPTY"
+      }
     },
     {
       "id": "worker_local",
