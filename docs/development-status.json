@@ -228,5 +228,17 @@
     "currentM2Complete": false,
     "iPhone": "USER_DEFERRED",
     "realRequests": 0
+  },
+  "issuePriorityPreparation": {
+    "stage": "7B1",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "mode": "LOCAL_SYNTHETIC_PURE_ONLY",
+    "planManifest": "c15d05a3dadd6bf782bc2af862572a2559105e8dc1507ed7c4d0a31cedc85949",
+    "planSha256": "ce9d3183ff4e32d3d431dc36dcb3a19eab7b198fe6ea12ef516004935e159fd9",
+    "liveSupplyEnabled": false,
+    "appConnected": false,
+    "currentM2Complete": false,
+    "realRequests": 0,
+    "iPhone": "USER_DEFERRED"
   }
 }

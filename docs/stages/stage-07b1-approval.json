@@ -1,0 +1,8 @@
+{
+  "state": "APPROVED_DUAL_R2",
+  "stage": "7B1",
+  "planSha256": "ce9d3183ff4e32d3d431dc36dcb3a19eab7b198fe6ea12ef516004935e159fd9",
+  "reviewManifest": "c15d05a3dadd6bf782bc2af862572a2559105e8dc1507ed7c4d0a31cedc85949",
+  "baseCommit": "aac3d3c1bd64b4d842bf51924cf895e4a5810d7b",
+  "mode": "LOCAL_SYNTHETIC_PURE_ONLY"
+}

@@ -1,0 +1,51 @@
+{
+  "state": "VERIFIED_AND_BACKED_UP_LOCAL_METRICS_PREPARATION",
+  "stage": "7A",
+  "mode": "LOCAL_SYNTHETIC_PURE_ONLY",
+  "commit": "aac3d3c1bd64b4d842bf51924cf895e4a5810d7b",
+  "baseCommit": "b7d14c50066398b3c971d4dbd5bebcb3f9c7b999",
+  "caseId": "b8dec05f722e36050ce8546a67f9de45",
+  "reviewManifest": "d98c5af58fa51ca2ea6886aa24fae04e57509a1b5e808ecb6ec6e0f5fb06eeee",
+  "roles": {
+    "claude": {
+      "key": "a206fa4847ee136a9b000472f425d220da6b6dcb3673074903caa67c43efd124",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "UI_OBSERVED"
+    },
+    "codex": {
+      "key": "8f89a4aa088e146678ef52902fc18a30190e3caf4e66634ba8cb4e81ea3906c1",
+      "execution_status": "COMPLETE",
+      "reviewer_verdict": "READY",
+      "input_assurance": "SCOPED_PROJECTION",
+      "model_assurance": "HOST_ACCEPTED"
+    }
+  },
+  "fullVerifyBeforeCommit": "PASS_LOCAL_AND_FRESH_17_GROUPS",
+  "metricsTests": 39,
+  "historyFixtureGroups": 4,
+  "sourceFiles": 322,
+  "exactIndexBytes": true,
+  "realNewsRequests": 0,
+  "aiRequests": 0,
+  "priceRequests": 0,
+  "realPushSent": 0,
+  "adRequests": 0,
+  "rightsHoldEndpoints": 112,
+  "liveGate7": "CLOSED",
+  "liveGate8": "CLOSED",
+  "appConnected": false,
+  "fullStage6Complete": false,
+  "nativeP03bComplete": false,
+  "currentM2Complete": false,
+  "iPhone": "USER_DEFERRED",
+  "remainingP3": [
+    "S7AI-01: distinguish global adjustment-policy versions from per-instrument adjustments before live supply",
+    "S7AI-02: define point-in-time known-data set for snapshot replay before 7B"
+  ],
+  "nextStage": "7B_LIVE_SUPPLY_VALIDATION_AND_HOME_RANKING_PLAN",
+  "postCommitVerify": "PASS_17_GROUPS",
+  "remoteCommit": "aac3d3c1bd64b4d842bf51924cf895e4a5810d7b",
+  "backupReceipt": "C:\\Users\\jacop\\주식\\outputs\\development-stages\\backups\\main-aac3d3c1bd64.json"
+}

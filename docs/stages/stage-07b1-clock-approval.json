@@ -1,0 +1,7 @@
+{
+  "state": "APPROVED_DUAL",
+  "reviewManifest": "9a5d5ddfecf3c4deec923ee33a084c38e767f7f3e83568e69b82380bf81b86f0",
+  "planSha256": "5103acd44fe0ffbaf79ad6f221dc4fb08e0317115ea7c400f3298b23d97ce2c9",
+  "baseCommit": "aac3d3c1bd64b4d842bf51924cf895e4a5810d7b",
+  "change": "EXACT_SYNTHETIC_FIXTURE_CLOCK_ONLY"
+}

@@ -121,5 +121,5 @@ test('No real attempts means NOT_MEASURED not zero latency/free or successful su
 });
 test('Shared probe budget aggregates host requests and enforces one in-flight per host',async()=>{
  const b=createProbeBudget({maxRequests:3,hostLimits:{'news.example':1}}),release=b.acquire('news.example');assert.equal(b.acquire('news.example'),null);assert.equal(b.consume('news.example'),true);release();assert.equal(b.consume('news.example'),false);assert.equal(b.snapshot().active,0);
- const result=await probe({endpoint,profile,execute:true,lookupHost:async()=>new Promise(()=>{}),limits:{timeoutMs:10,maxBytes:100,maxHops:1}});assert.equal(result.reason,'REQUEST_TIMEOUT');assert.equal(result.requests,0);
+ const result=await probe({endpoint,profile,now:()=>time,execute:true,lookupHost:async()=>new Promise(()=>{}),limits:{timeoutMs:10,maxBytes:100,maxHops:1}});assert.equal(result.reason,'REQUEST_TIMEOUT');assert.equal(result.requests,0);
 });
