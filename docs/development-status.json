@@ -277,5 +277,21 @@
     "officialHistoryAdopted": false,
     "liveSupplyEnabled": false,
     "iPhone": "USER_DEFERRED"
+  },
+  "cloudHistory": {
+    "stage": "CLOUD04E",
+    "state": "RECORDED_ADOPTED_DISABLED",
+    "registry": "supabase/cloud/dev/adoption.json",
+    "planManifest": "ca40473c1c24a09b2fbc015f0178b29301565dc353243f0ea9d24bbd93a1c8d7",
+    "planSha256": "41ce7ccc3ecb0f3eadea54622cc56f0cbaa7534e83d754928a7cc1709607ef70",
+    "recordedOfficialHistoryAdopted": true,
+    "liveVerified": false,
+    "appConnected": false,
+    "workerConnected": false,
+    "supersedes": [
+      "docs/project-resource-manifest.json#resources.supabase_preview.actual.officialHistoryAdopted",
+      "docs/cloud/deployment-contract.json#officialHistoryAdopted",
+      "docs/development-status.json#cloudDeployment.officialHistoryAdopted"
+    ]
   }
 }

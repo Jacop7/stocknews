@@ -41,7 +41,9 @@
     "test:home-snapshot": "node --experimental-strip-types --test tests/home-snapshot.test.ts",
     "test:home-ranking": "node --experimental-strip-types --test tests/home-ranking.test.ts",
     "cloud:inspect": "node scripts/cloud-inspect.mjs",
-    "test:cloud-deployment": "node --test tests/cloud-deployment.test.mjs"
+    "test:cloud-deployment": "node --test tests/cloud-deployment.test.mjs",
+    "cloud:history:inspect": "node scripts/cloud-history-inspect.mjs",
+    "test:cloud-history": "node --test tests/cloud-history.test.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
