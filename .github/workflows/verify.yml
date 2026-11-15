@@ -26,6 +26,8 @@ jobs:
           node-version-file: .node-version
       - name: Install exact locked dependencies without lifecycle scripts
         run: corepack pnpm install --frozen-lockfile --ignore-scripts
+      - name: Verify latest recorded reference independently
+        run: node scripts/verify-cloud07c-foundation.mjs
       - name: Verify source, contracts, web build and Android/iOS JS bundles
         run: corepack pnpm verify
 # Native Android/iOS binaries, real devices, Supabase, worker and cloud release

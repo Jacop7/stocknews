@@ -4,7 +4,7 @@ import { realpathSync,readFileSync } from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const results = [];
-for (const script of ['verify-toolchain.mjs', 'verify-foundation.mjs', 'verify-native-release.mjs']) {
+for (const script of ['verify-toolchain.mjs', 'verify-cloud07c-foundation.mjs', 'verify-foundation.mjs', 'verify-native-release.mjs']) {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL(script, import.meta.url))], {encoding:'utf8', windowsHide:true});
   if (result.error || result.status !== 0) {
     process.stderr.write(result.stderr || String(result.error));
