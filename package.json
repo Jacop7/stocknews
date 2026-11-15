@@ -37,7 +37,8 @@
     "test:reservations": "node --test tests/reservation-state.test.mjs",
     "test:reservation-runtime": "node scripts/test-reservation-schema.mjs && node scripts/test-maintenance-retention.mjs && node scripts/test-maintenance-observation.mjs && node scripts/test-reservation-races.mjs && node scripts/test-reservation-http.mjs && node scripts/test-reservation-review-guards.mjs",
     "test:market-metrics": "node --experimental-strip-types --test tests/market-metrics.test.ts",
-    "test:issue-priority": "node --experimental-strip-types --test tests/issue-priority.test.ts"
+    "test:issue-priority": "node --experimental-strip-types --test tests/issue-priority.test.ts",
+    "test:home-snapshot": "node --experimental-strip-types --test tests/home-snapshot.test.ts"
   },
   "devDependencies": {
     "supabase": "3.1.0",

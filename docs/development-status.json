@@ -240,5 +240,18 @@
     "currentM2Complete": false,
     "realRequests": 0,
     "iPhone": "USER_DEFERRED"
+  },
+  "homeSnapshotPreparation": {
+    "stage": "7B2A",
+    "state": "IMPLEMENTED_REVIEW_PENDING",
+    "mode": "LOCAL_SYNTHETIC_PURE_ONLY",
+    "planManifest": "d4daae56482e07ae4dae784625bd68ac877632896a6ce2918e6798b4605498de",
+    "planSha256": "7e00b5bee535c7f47e881837f1cc825e9786ac2511980557f1ddc5bf85b54726",
+    "liveSupplyEnabled": false,
+    "appConnected": false,
+    "realAtomicPersistence": false,
+    "currentM2Complete": false,
+    "realRequests": 0,
+    "iPhone": "USER_DEFERRED"
   }
 }
