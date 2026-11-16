@@ -10,6 +10,7 @@ import {searchResponse} from './catalog/search-route.mjs';
 export const PROJECT='nxfpfvsdwbziowkxsxnh',UPSTREAM='https://'+PROJECT+'.supabase.co';
 export const READ_RPCS=Object.freeze(['m1_public_identity','m1_public_article','catalog_public_tree','catalog_public_sector_page','catalog_public_articles','catalog_public_search_news','catalog_public_search_companies','catalog_public_saved','catalog_public_company_sectors'].sort());
 const root=fileURLToPath(new URL('../',import.meta.url));
+const isolatedConfigs=new WeakSet();
 class PreviewError extends Error{constructor(code,status=503){super(code);this.status=status;}}
 const reject=(code,status)=>{throw new PreviewError(code,status);};
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -24,19 +25,31 @@ function validatedConfig(c){
  if(!c||c.productId!=='judoju-news'||c.environment!=='preview'||c.projectRef!==PROJECT||c.apiUrl!==UPSTREAM||c.mode!=='PREVIEW_SYNTHETIC'||!Array.isArray(c.webOrigins)||c.webOrigins.length>8||c.webOrigins.some(x=>!/^http:\/\/(127\.0\.0\.1|localhost):[1-9][0-9]{0,4}$/.test(x)||Number(new URL(x).port)>65535)||new Set(c.webOrigins).size!==c.webOrigins.length||['serviceKey','secretKey','accessToken','pat'].some(k=>Object.hasOwn(c,k)))reject('PREVIEW_CONFIG_REJECTED');
  const kind=classifyPublicKey(c.publicKey);return Object.freeze({...c,keyKind:kind,webOrigins:Object.freeze([...c.webOrigins])});
 }
-function readRegularPrivate(relative){
- const p=path.join(root,relative);let cursor=root;
+function readRegularPrivate(relative,privateRoot=root){
+ const p=path.join(privateRoot,relative);let cursor=privateRoot;
  for(const part of relative.split('/')){cursor=path.join(cursor,part);const st=lstatSync(cursor);if(st.isSymbolicLink())reject('PREVIEW_CONFIG_REJECTED');}
- if(!realpathSync(p).startsWith(realpathSync(root)+path.sep)||!lstatSync(p).isFile())reject('PREVIEW_CONFIG_REJECTED');return readFileSync(p);
+ if(!realpathSync(p).startsWith(realpathSync(privateRoot)+path.sep)||!lstatSync(p).isFile())reject('PREVIEW_CONFIG_REJECTED');return readFileSync(p);
 }
-export function loadApprovedPreviewConfig(){
+export function loadApprovedPreviewConfig(options={}){
+ if(!options||typeof options!=='object'||Array.isArray(options)||Object.keys(options).some(k=>k!=='privateRoot'))reject('PREVIEW_CONFIG_REJECTED');
+ const isolated=Object.hasOwn(options,'privateRoot');let privateRoot=root;
+ if(isolated){
+  privateRoot=options.privateRoot;
+  if(typeof privateRoot!=='string'||!path.isAbsolute(privateRoot))reject('PREVIEW_CONFIG_REJECTED');
+  try{
+   privateRoot=path.resolve(privateRoot);let cursor=path.parse(privateRoot).root;
+   for(const part of privateRoot.slice(cursor.length).split(path.sep).filter(Boolean)){cursor=path.join(cursor,part);const st=lstatSync(cursor);if(st.isSymbolicLink()||!st.isDirectory())reject('PREVIEW_CONFIG_REJECTED');}
+   if(realpathSync(privateRoot)!==privateRoot)reject('PREVIEW_CONFIG_REJECTED');
+  }catch{reject('PREVIEW_CONFIG_REJECTED');}
+ }
+
  // A has no B access proof. Reject before reading key configuration or fetching.
  let proofBytes,proof;
- try{proofBytes=readRegularPrivate('.local-data/cloud-preview/access-proof.json');proof=JSON.parse(proofBytes);}catch{reject('PREVIEW_READ_NOT_ACTIVATED');}
+ try{proofBytes=readRegularPrivate('.local-data/cloud-preview/access-proof.json',privateRoot);proof=JSON.parse(proofBytes);}catch{reject('PREVIEW_READ_NOT_ACTIVATED');}
  const names=Array.isArray(proof.readRpcNames)?[...proof.readRpcNames].sort():[];
  if(proof.state!=='CLOUD10B_PUBLIC_READ_VERIFIED'||proof.productId!=='judoju-news'||proof.projectRef!==PROJECT||proof.environment!=='preview'||proof.dataApiEnabledObserved!==true||proof.writeGrants!==0||proof.M2!==false||proof.prodWrites!==0||JSON.stringify(names)!==JSON.stringify(READ_RPCS)||!(/^[a-f0-9]{64}$/).test(proof.userAuthorizationSha256??'')||!(/^[a-f0-9]{64}$/).test(proof.reviewedResultSha256??''))reject('PREVIEW_READ_NOT_ACTIVATED');
- let c;try{c=JSON.parse(readRegularPrivate('.local-data/cloud-preview/public-config.json'));}catch{reject('PREVIEW_CONFIG_REJECTED');}
- if(c.proofSha256!==sha(proofBytes))reject('PREVIEW_CONFIG_REJECTED');return validatedConfig(c);
+ let c;try{c=JSON.parse(readRegularPrivate('.local-data/cloud-preview/public-config.json',privateRoot));}catch{reject('PREVIEW_CONFIG_REJECTED');}
+ if(c.proofSha256!==sha(proofBytes))reject('PREVIEW_CONFIG_REJECTED');const result=validatedConfig(c);if(isolated)isolatedConfigs.add(result);return result;
 }
 export function assertPreviewIdentity(value){
  if(!value||Object.keys(value).sort().join(',')!=='bootstrapId,contract,environment,productId,sampleKind'||value.productId!=='judoju-news'||value.environment!=='preview'||value.bootstrapId!==null||value.sampleKind!=='SYNTHETIC'||value.contract!=='M1')reject('PREVIEW_IDENTITY_MISMATCH');return value;
@@ -46,6 +59,7 @@ export function previewRoute(raw){
  if(!READ_RPCS.includes(r.name))reject('ROUTE_NOT_ALLOWED',404);return r;
 }
 export async function previewUpstream(input,name,args,{fetchImpl=fetch}={}){
+ if(isolatedConfigs.has(input)&&fetchImpl===fetch)reject('ISOLATED_CONFIG_REQUIRES_FIXTURE');
  const c=validatedConfig(input);if(!READ_RPCS.includes(name))reject('ROUTE_NOT_ALLOWED',404);
  const headers={apikey:c.publicKey,'Content-Type':'application/json'};if(c.keyKind==='LEGACY_ANON_JWT')headers.Authorization='Bearer '+c.publicKey;
  let response;try{response=await fetchImpl(c.apiUrl+'/rest/v1/rpc/'+name,{method:'POST',redirect:'error',cache:'no-store',headers,body:JSON.stringify(args),signal:AbortSignal.timeout(7000)});}catch{reject('PREVIEW_READ_UNAVAILABLE');}
@@ -68,7 +82,9 @@ function previewResponse(route,raw){
  if(route.name==='m1_public_article'&&(!value||!['PUBLISHED','NOT_FOUND','HIDDEN','WITHDRAWN','CORRECTION_PENDING'].includes(value.state)||value.state==='PUBLISHED'&&value.sample_kind!=='SYNTHETIC'))reject('PREVIEW_RESPONSE_INVALID',502);
  if(Buffer.byteLength(JSON.stringify(value))>262144)reject('PREVIEW_RESPONSE_TOO_LARGE',502);return value;
 }
-export async function createPreviewGateway(input,{transport=previewUpstream,port=62331,now=Date.now}={}){
+export async function createPreviewGateway(input,options={}){
+ const {transport=previewUpstream,port=62331,now=Date.now}=options;
+ if(Object.hasOwn(options,'privateRoot')||transport===previewUpstream&&isolatedConfigs.has(input))reject('ISOLATED_CONFIG_REQUIRES_FIXTURE');
  const c=validatedConfig(input);
  // Injected test transports are an instruction boundary, not an OS sandbox.
  if(transport===previewUpstream){const approved=loadApprovedPreviewConfig();if(JSON.stringify(approved)!==JSON.stringify(c))reject('PREVIEW_CONFIG_REJECTED');}

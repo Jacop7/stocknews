@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,mkdtempSync,rmSync,lstatSync,realpathSync,symlinkSync,unlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request} from 'node:http';
 import {classifyPublicKey,loadApprovedPreviewConfig,assertPreviewIdentity,previewRoute,previewUpstream,createPreviewGateway,PROJECT,UPSTREAM,READ_RPCS} from '../scripts/cloud-preview-public-read.mjs';
@@ -60,10 +63,15 @@ test('upstream failures are bounded, generic and never echo SQL/key material',as
  await assert.rejects(call(async()=>Response.json({code:'P0001',message:'STALE_CATALOG'},{status:400})),e=>e.status===409);
  await assert.rejects(call(async()=>new Response('',{status:302,headers:{Location:'https://example.invalid'}})),/PREVIEW_RESPONSE_INVALID/);
 });
-test('import/default CLI missing B proof cannot read real key settings or fetch/listen',async()=>{
- let calls=0;const before=globalThis.fetch;globalThis.fetch=()=>{calls++;throw new Error('NO_NETWORK');};
- try{assert.throws(loadApprovedPreviewConfig,/PREVIEW_READ_NOT_ACTIVATED/);await assert.rejects(createPreviewGateway(config),/PREVIEW_READ_NOT_ACTIVATED/);assert.equal(calls,0);}finally{globalThis.fetch=before;}
- const child=spawnSync(process.execPath,['scripts/cloud-preview-public-read.mjs'],{encoding:'utf8',windowsHide:true});assert.equal(child.status,1);assert.equal(child.stdout,'');assert.equal(child.stderr.trim(),'PREVIEW_READ_NOT_ACTIVATED');
+test('isolated missing proof does not read product settings or use network',async()=>{
+ const dir=ownDir();let calls=0;const original=globalThis.fetch;globalThis.fetch=()=>{calls++;throw new Error('NO_NETWORK');};
+ try{
+  assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);
+  const entry=new URL('../scripts/cloud-preview-public-read.mjs',import.meta.url).href;
+  const source='import {loadApprovedPreviewConfig} from '+JSON.stringify(entry)+';globalThis.fetch=()=>{throw new Error("NO_NETWORK")};try{loadApprovedPreviewConfig({privateRoot:'+JSON.stringify(dir)+'})}catch(e){console.error(e.message);process.exitCode=1}';
+  const env=Object.fromEntries(Object.entries(process.env).filter(([k])=>!k.startsWith('SUPABASE_')));
+  const child=spawnSync(process.execPath,['--input-type=module','-e',source],{encoding:'utf8',windowsHide:true,env});assert.equal(child.status,1);assert.equal(child.stdout,'');assert.equal(child.stderr.trim(),'PREVIEW_READ_NOT_ACTIVATED');assert.equal(calls,0);
+ }finally{globalThis.fetch=original;cleanDir(dir);}
 });
 test('loopback HTTP fixture covers all read DTOs, HEAD, CORS preflight without upstream and sanitized errors',async()=>{
  const calls=[];let bad=null;
@@ -101,4 +109,71 @@ test('concurrent upstream maximum releases after rejection and close',async()=>{
 test('existing local guard and refresh lifecycle remain distinct and no preview secrets in app',()=>{
  const local=readFileSync(new URL('../scripts/public-read-gateway.mjs',import.meta.url),'utf8');assert.ok(local.includes("identity.environment!=='local'"));assert.ok(local.includes('identity.bootstrapId!==c.bootstrapId'));
  const client=readFileSync(new URL('../apps/mobile/src/data/public-read.ts',import.meta.url),'utf8');for(const marker of ['resolveReadTarget','value.mode!==target.mode','generation.current','controller?.abort()','AppState','credentials:\'omit\''])assert.ok(client.includes(marker));assert.ok(!client.includes('publicKey')&&!client.includes('Authorization'));
+});
+
+function ownDir(){return mkdtempSync(path.join(tmpdir(),'judoju-cloud10b-'));}
+function cleanDir(dir){
+ const absolute=path.resolve(dir),parent=realpathSync(tmpdir());assert.equal(realpathSync(path.dirname(absolute)),parent);assert.ok(path.basename(absolute).startsWith('judoju-cloud10b-')&&!lstatSync(absolute).isSymbolicLink());assert.equal(realpathSync(absolute),absolute);rmSync(absolute,{recursive:true,force:false});
+}
+function fakeSettings(dir){
+ const proof={state:'CLOUD10B_PUBLIC_READ_VERIFIED',productId:'judoju-news',projectRef:PROJECT,environment:'preview',dataApiEnabledObserved:true,writeGrants:0,M2:false,prodWrites:0,readRpcNames:READ_RPCS,userAuthorizationSha256:'0'.repeat(64),reviewedResultSha256:'1'.repeat(64)};
+ const folder=path.join(dir,'.local-data/cloud-preview');mkdirSync(folder,{recursive:true});const proofBytes=Buffer.from(JSON.stringify(proof));writeFileSync(path.join(folder,'access-proof.json'),proofBytes);writeFileSync(path.join(folder,'public-config.json'),JSON.stringify({...config,proofSha256:createHash('sha256').update(proofBytes).digest('hex')}));return folder;
+}
+test('isolated synthetic proof/config validates SHA/project/key with no product-root access',()=>{
+ const dir=ownDir();try{
+  const folder=fakeSettings(dir);assert.equal(loadApprovedPreviewConfig({privateRoot:dir}).keyKind,'PUBLISHABLE');
+  const p=path.join(folder,'public-config.json'),original=readFileSync(p);writeFileSync(p,JSON.stringify({...config,proofSha256:'0'.repeat(64)}));assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_CONFIG_REJECTED/);writeFileSync(p,original);
+  writeFileSync(p,JSON.stringify({...JSON.parse(original),projectRef:'other'}));assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_CONFIG_REJECTED/);writeFileSync(p,original);
+  writeFileSync(path.join(folder,'access-proof.json'),'{');assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);
+  for(const privateRoot of ['.',null,7])assert.throws(()=>loadApprovedPreviewConfig({privateRoot}),/PREVIEW_CONFIG_REJECTED/);
+ }finally{cleanDir(dir);}
+});
+test('owned directory junction/symlink root and config-directory traversal rejected',()=>{
+ const dir=ownDir();let rootLink,subLink;
+ try{
+  const actual=path.join(dir,'actual');mkdirSync(actual);fakeSettings(actual);rootLink=path.join(dir,'root-link');symlinkSync(actual,rootLink,process.platform==='win32'?'junction':'dir');assert.throws(()=>loadApprovedPreviewConfig({privateRoot:rootLink}),/PREVIEW_CONFIG_REJECTED/);unlinkSync(rootLink);rootLink=null;
+  const other=path.join(dir,'other');mkdirSync(path.join(other,'.local-data'),{recursive:true});subLink=path.join(other,'.local-data/cloud-preview');symlinkSync(path.join(actual,'.local-data/cloud-preview'),subLink,process.platform==='win32'?'junction':'dir');assert.throws(()=>loadApprovedPreviewConfig({privateRoot:other}),/PREVIEW_READ_NOT_ACTIVATED/);
+ }finally{if(rootLink)unlinkSync(rootLink);if(subLink)unlinkSync(subLink);cleanDir(dir);}
+});
+test('isolated privateRoot cannot combine with default gateway/upstream or forwarded root options',async()=>{
+ const dir=ownDir();let calls=0;const original=globalThis.fetch;globalThis.fetch=()=>{calls++;throw new Error('NO_NETWORK');};
+ try{
+  fakeSettings(dir);const isolated=loadApprovedPreviewConfig({privateRoot:dir});
+  await assert.rejects(createPreviewGateway(isolated),/ISOLATED_CONFIG_REQUIRES_FIXTURE/);
+  await assert.rejects(createPreviewGateway(config,{privateRoot:dir}),/ISOLATED_CONFIG_REQUIRES_FIXTURE/);
+  await assert.rejects(previewUpstream(isolated,'catalog_public_tree',{}),/ISOLATED_CONFIG_REQUIRES_FIXTURE/);
+  assert.equal(calls,0);
+  const g=await createPreviewGateway(isolated,{port:0,transport:async(c,n,a)=>fixture(n,a)});try{assert.equal((await http(g,'/v2/catalog')).status,200);}finally{await g.close();}
+ }finally{globalThis.fetch=original;cleanDir(dir);}
+});
+test('test call paths never execute actual product CLI or default config loader',()=>{
+ const source=readFileSync(new URL(import.meta.url),'utf8');
+ assert.ok(!new RegExp('loadApprovedPreviewConfig'+'\\s*\\(\\s*\\)').test(source));
+ assert.ok(!source.includes("['scripts/"+'cloud-preview-public-read.mjs'+"']"));
+ const module=readFileSync(new URL('../scripts/cloud-preview-public-read.mjs',import.meta.url),'utf8');assert.ok(module.includes("if(Object.hasOwn(options,'privateRoot')||transport===previewUpstream&&isolatedConfigs.has(input))reject('ISOLATED_CONFIG_REQUIRES_FIXTURE');"));
+});
+async function deadlineFixture(body=false){
+ let aborted=false,observedSignal,abortHandler,timer;const guard=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(new Error('SYNTHETIC_GUARD_EXPIRED')),11000);});
+ const fetchImpl=async(url,{signal})=>{
+  observedSignal=signal;
+  if(!body)return await new Promise((resolve,reject)=>{abortHandler=()=>{aborted=true;reject(signal.reason);};signal.addEventListener('abort',abortHandler,{once:true});});
+  return new Response(new ReadableStream({start(controller){abortHandler=()=>{aborted=true;controller.error(signal.reason);};signal.addEventListener('abort',abortHandler,{once:true});}}));
+ };
+ try{
+  await assert.rejects(Promise.race([previewUpstream(config,'catalog_public_tree',{}, {fetchImpl}),guard]),/PREVIEW_READ_UNAVAILABLE/);
+  assert.ok(aborted&&observedSignal.aborted&&observedSignal.reason?.name==='TimeoutError','ABORT_DEADLINE_REQUIRED');
+ }finally{clearTimeout(timer);if(observedSignal&&abortHandler)observedSignal.removeEventListener('abort',abortHandler);}
+}
+test('actual deadline aborts pending fake fetch; non-aborting mutation must fail',{timeout:15000},async()=>{await deadlineFixture();});
+test('actual deadline aborts delayed response body without leaking provider error',{timeout:15000},async()=>{await deadlineFixture(true);});
+test('three delayed body timeouts release gateway slots for next healthy request',{timeout:15000},async()=>{
+ let block=true,aborted=0,guardTimer;const listeners=[];
+ const fetchImpl=async(url,{signal})=>block?new Response(new ReadableStream({start(controller){const handler=()=>{aborted++;controller.error(signal.reason);};listeners.push([signal,handler]);signal.addEventListener('abort',handler,{once:true});}})):Response.json(fixture('catalog_public_tree',{}));
+ const transport=async(c,n,a)=>n==='m1_public_identity'?identity:previewUpstream(c,n,a,{fetchImpl});
+ const g=await createPreviewGateway(config,{port:0,transport});
+ try{
+  const guard=new Promise((resolve,reject)=>{guardTimer=setTimeout(()=>reject(new Error('SYNTHETIC_GUARD_EXPIRED')),11000);});
+  const results=await Promise.race([Promise.all([http(g,'/v2/catalog'),http(g,'/v2/catalog'),http(g,'/v2/catalog')]),guard]);assert.equal(aborted,3,'ABORT_DEADLINE_REQUIRED');assert.ok(results.every(x=>x.status===503&&x.text==='{"error":"PREVIEW_READ_UNAVAILABLE"}'));
+  block=false;assert.equal((await http(g,'/v2/catalog')).status,200);
+ }finally{clearTimeout(guardTimer);listeners.forEach(([signal,handler])=>signal.removeEventListener('abort',handler));await g.close();}
 });

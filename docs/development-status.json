@@ -460,5 +460,37 @@
       "freshDefinitionsRequired": true,
       "holdOnInsufficientBoundary": true
     }
+  },
+  "cloudPublicReadActivationPreparation": {
+    "stage": "CLOUD10B",
+    "state": "OFFLINE_TEST_CONFIG_ISOLATION_PREPARED_NOT_ACTIVATED",
+    "registry": "supabase/cloud/public-read-activation/preparation.json",
+    "planManifest": "eb0bc5b1d7d8020213e99431827176d559560593911e1a92b378ad6bf970ab54",
+    "planSha256": "8634d54b4e9c093d5f58de81db72cf4b43fbeae5bbd825404eb825aeb0fd3564",
+    "actualKeysRead": 0,
+    "remoteDatabaseRequests": 0,
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "liveVerified": false,
+    "futureAccessGate": {
+      "stage": "CLOUD10B",
+      "separatePlanImplementationDualAndConcreteUserApprovalRequired": true,
+      "directSupabaseRpcBypassMustBeAssessed": true,
+      "effectiveAclInventoryRequired": [
+        "schemas",
+        "relations",
+        "sequences",
+        "functions",
+        "PUBLIC",
+        "anon",
+        "authenticated"
+      ],
+      "onlyNineApplicationRpcExceptions": true,
+      "managedRlsAutoEnableBaselineMustBeExplicitlyJustified": true,
+      "directRpcBoundsTimeoutAbuseCostAssessmentRequired": true,
+      "freshDefinitionsRequired": true,
+      "holdOnInsufficientBoundary": true
+    }
   }
 }

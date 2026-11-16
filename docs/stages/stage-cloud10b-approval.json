@@ -1,0 +1,14 @@
+{
+  "stage": "CLOUD10B",
+  "state": "APPROVED_DUAL_R1",
+  "baseCommit": "b26207a1d8a89e48f9b08a8d0d8278be73f03a6a",
+  "reviewManifest": "eb0bc5b1d7d8020213e99431827176d559560593911e1a92b378ad6bf970ab54",
+  "planSha256": "8634d54b4e9c093d5f58de81db72cf4b43fbeae5bbd825404eb825aeb0fd3564",
+  "claudeKey": "137ae03c6b3e6c82649049f7fb9a969fd2e71694ef9c6e2025a67ea41f56b5a1",
+  "codexKey": "18ca9bdadcc49b65441e507287e6e2d8f5c2a9dc417b47607ac265d7c83cb501",
+  "newFiles": 5,
+  "mutableFiles": 6,
+  "remoteMutationsAuthorized": false,
+  "actualReadOrKeysAuthorized": false,
+  "verifyEntryDiff": "REPLACE_C10A_WITH_C10B_EXACTLY_ONCE_KEEP_25"
+}
