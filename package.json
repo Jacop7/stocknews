@@ -50,7 +50,9 @@
     "test:preview-admin": "node --test tests/preview-admin.test.mjs tests/preview-admin-sql.test.mjs",
     "test:preview-admin-db": "node scripts/test-preview-admin-db.mjs",
     "test:pipeline-contracts": "node --experimental-strip-types --test tests/pipeline-contracts.test.ts",
-    "test:parallel4-readiness": "node --test tests/parallel4-readiness.test.mjs"
+    "test:parallel4-readiness": "node --test tests/parallel4-readiness.test.mjs",
+    "test:pipeline-semantics": "node --experimental-strip-types --test tests/pipeline-semantics.test.ts",
+    "test:pipeline-ranking": "node --experimental-strip-types --test tests/pipeline-ranking.test.ts"
   },
   "devDependencies": {
     "supabase": "3.1.0",

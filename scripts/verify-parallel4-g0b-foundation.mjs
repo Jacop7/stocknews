@@ -1,0 +1,60 @@
+// G0B source transition and application-boundary checks; never an execution/credential authority.
+import assert from 'node:assert/strict';
+import {readFileSync,realpathSync,lstatSync,existsSync,readdirSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+import {allowedHostedPullRef} from './native-release-policy.mjs';
+import {parallel4Readiness} from './parallel4-readiness.mjs';
+const root=realpathSync(fileURLToPath(new URL('../',import.meta.url))),base='d48ef21067f531636884eb1f986753e9abe7930e',feature='feat/parallel4-g0b-semantics';
+let checks=0;const check=(v,label)=>{assert.ok(v,label);checks++;},sha=b=>createHash('sha256').update(b).digest('hex');
+function git(args,input){const r=spawnSync('git',['-c','core.quotepath=false','-C',root,...args],{input,windowsHide:true,maxBuffer:64*1024*1024});assert.ifError(r.error);return {code:r.status,text:r.stdout.toString('utf8').trim(),bytes:r.stdout};}
+function read(file){let at=root;const parts=file.split('/');check(parts.every(p=>p&&p!=='.'&&p!=='..'&&!p.includes('\\')&&!p.includes(':')),'Relative source');for(const [i,p] of parts.entries()){at=path.join(at,p);const s=lstatSync(at);check(!s.isSymbolicLink()&&(i===parts.length-1?s.isFile():s.isDirectory()),'Owned regular source '+file);}const relative=path.relative(root,realpathSync(at));check(!relative.startsWith('..')&&!path.isAbsolute(relative),'Internal source');return readFileSync(at);}
+const json=f=>JSON.parse(read(f));
+check(realpathSync(git(['rev-parse','--show-toplevel']).text)===root,'Independent product root');
+check(lstatSync(path.join(root,'.git')).isDirectory()&&!lstatSync(path.join(root,'.git')).isSymbolicLink(),'Own Git only; no worktree');
+check(realpathSync(path.resolve(root,git(['rev-parse','--git-common-dir']).text))===path.join(root,'.git'),'No shared Git');
+check(!existsSync(path.join(root,'.git/objects/info/alternates'))&&!existsSync(path.join(root,'.gitmodules')),'No borrowed Git');
+check(git(['config','--local','--name-only','--get-regexp','^(include\\.|includeif\\.|core\\.hookspath$)']).code===1,'No inherited hooks');
+for(const k of ['GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES'])check(!process.env[k],'No Git routing '+k);
+check(git(['remote']).text==='origin','Only own remote');for(const args of [['remote','get-url','--all','origin'],['remote','get-url','--push','--all','origin']])check(git(args).text==='https://github.com/Jacop7/stocknews.git','Authorized remote');
+const baseline='docs/stages/stage-parallel4-g0b-baseline.json';check(sha(read(baseline))==='3e55761e2c8de95dc046720e7a6dc8791590be95d009dd4cded43ba3ee6bd1a3','Frozen 451-file authority');
+const b=json(baseline);check(b.baseCommit===base&&b.baseCount===27&&b.feature===feature&&Object.keys(b.files).length===451&&Object.keys(b.refs).length===35&&b.mutableFiles.length===8&&b.newFiles.length===9,'Exact transition scope');
+const head=git(['rev-parse','HEAD']).text,branch=git(['branch','--show-current']).text,parents=git(['rev-list','--parents','-n','1','HEAD']).text.split(/\s+/).slice(1),count=Number(git(['rev-list','--count','HEAD']).text);
+const hosted=process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='Jacop7/stocknews',isBase=head===base&&count===27,isChild=count===28&&parents.length===1&&parents[0]===base;
+const other=parents.length===2?parents.find(p=>p!==b.refs['refs/heads/main']):null;
+const isHostedMerge=hosted&&count===29&&parents.length===2&&new Set(parents).size===2&&parents.includes(b.refs['refs/heads/main'])&&other&&git(['rev-list','--parents','-n','1',other]).text.split(/\s+/).slice(1).join(' ')===base&&git(['rev-parse',head+'^{tree}']).text===git(['rev-parse',other+'^{tree}']).text;
+check(isBase||isChild||isHostedMerge,'Reviewed base, one exact feature child or equal-tree hosted PR merge');
+check(branch===feature||isBase&&branch==='feat/parallel4-g0-contracts'||hosted&&!branch&&head===process.env.GITHUB_SHA,'Owned preparation feature');
+check(git(['rev-list','--max-parents=0','HEAD']).text==='f7dce3a9e05c39580f23a210c3ac9d2514c38b74','New product ancestry');
+const refs=new Map(git(['for-each-ref','--format=%(refname) %(objectname)']).text.split(/\r?\n/).filter(Boolean).map(s=>s.split(' '))),allowed=new Set([...Object.keys(b.refs),'refs/heads/'+feature,'refs/remotes/origin/'+feature]);
+const pullRef=allowedHostedPullRef(process.env,head,r=>refs.get(r)??null);if(pullRef)allowed.add(pullRef);
+for(const [ref,oid] of refs){check(allowed.has(ref),'Declared ref '+ref);if(Object.hasOwn(b.refs,ref))check(oid===b.refs[ref],'Frozen historical ref '+ref);else check(oid===base||oid===head||isHostedMerge&&oid===other,'Only preparation ref');}
+if(!hosted)for(const [ref,oid] of Object.entries(b.refs))check(refs.get(ref)===oid,'Historical ref retained '+ref);
+const actual=git(['ls-files','--cached','--others','--exclude-standard','-z']).bytes.toString().split('\0').filter(Boolean).sort();assert.deepEqual(actual,[...Object.keys(b.files),...b.newFiles].sort());checks++;
+const entries=git(['ls-tree','-r','-z','--full-tree',base]).bytes.toString().split('\0').filter(Boolean).map(x=>{const [meta,file]=x.split('\t'),[mode,type,oid]=meta.split(' ');check(mode==='100644'&&type==='blob'&&Object.hasOwn(b.files,file),'Historical regular blob');return {file,oid};});check(entries.length===451,'451 base blobs');
+const batch=git(['cat-file','--batch'],entries.map(x=>x.oid).join('\n')+'\n');check(batch.code===0,'Historical bytes');let offset=0;const original=new Map();
+for(const e of entries){const end=batch.bytes.indexOf(10,offset),[oid,type,n]=batch.bytes.subarray(offset,end).toString().split(' '),size=Number(n);check(oid===e.oid&&type==='blob'&&Number.isSafeInteger(size),'Original object');offset=end+1;const bytes=batch.bytes.subarray(offset,offset+size);check(size===b.files[e.file].bytes&&sha(bytes)===b.files[e.file].sha256,'Exact d48 '+e.file);original.set(e.file,bytes);if(!b.mutableFiles.includes(e.file))check(read(e.file).equals(bytes),'Unchanged '+e.file);offset+=size+1;}
+check(offset===batch.bytes.length,'Complete original stream');
+const preparation='docs/stages/stage-parallel4-g0b-preparation.json',prep=json(preparation),pins=[...b.mutableFiles,...b.newFiles].filter(f=>f!==preparation).sort();assert.deepEqual(Object.keys(prep.sourcePins).sort(),pins);checks++;
+for(const file of pins)check(sha(read(file))===prep.sourcePins[file],'Review candidate pin '+file);
+const domainFiles=['packages/domain/src/home-ranking.ts','packages/domain/src/issue-priority.ts'];
+assert.deepEqual(prep.changedDomains,[...domainFiles.filter(f=>!read(f).equals(original.get(f)))].sort());checks++;
+check(prep.stage==='PARALLEL4_G0B'&&prep.state==='SOURCE_PREPARED_REVIEW_PENDING_NOT_ACTIVATED'&&prep.planManifest==='c51acaca9a89bcfa74623607998b1c9643fa50f3a34347af733ff89ff1930d3d'&&prep.executionEnabled===false&&prep.forksCreated===0&&prep.actualKeysRead===0&&prep.actualRemoteRequests===0&&prep.adminConnected===false&&prep.workerConnected===false&&prep.fullG0Complete===false&&prep.M2===false,'Honest synthetic-only preparation');
+const status=json('docs/development-status.json'),addition=status.parallelContractSemanticsPreparation;delete status.parallelContractSemanticsPreparation;assert.deepEqual(status,JSON.parse(original.get('docs/development-status.json')));checks++;
+assert.deepEqual(addition,{stage:'PARALLEL4_G0B',state:prep.state,planManifest:prep.planManifest,forksCreated:0,messagesDispatched:0,executionEnabled:false,actualRoleIsolationBound:false,fullG0Complete:false,adminConnected:false,workerConnected:false,M2:false});checks++;
+const oldPackage=JSON.parse(original.get('package.json')),pkg=json('package.json');check(pkg.scripts['test:pipeline-semantics']==='node --experimental-strip-types --test tests/pipeline-semantics.test.ts'&&pkg.scripts['test:pipeline-ranking']==='node --experimental-strip-types --test tests/pipeline-ranking.test.ts','Two new exact groups');delete pkg.scripts['test:pipeline-semantics'];delete pkg.scripts['test:pipeline-ranking'];assert.deepEqual(pkg,oldPackage);checks++;
+let expected=original.get('scripts/verify.mjs').toString().replace('const parallel4=',"const g0b=JSON.parse(readFileSync(new URL('../docs/development-status.json',import.meta.url),'utf8')).parallelContractSemanticsPreparation?.stage==='PARALLEL4_G0B';\nconst parallel4=").replace("parallel4?'verify-parallel4-g0-foundation.mjs'","g0b?'verify-parallel4-g0b-foundation.mjs':parallel4?'verify-parallel4-g0-foundation.mjs'").replace("...(parallel4?['test:pipeline-contracts','test:parallel4-readiness']:[])","...(parallel4?['test:pipeline-contracts','test:parallel4-readiness']:[]),...(g0b?['test:pipeline-semantics','test:pipeline-ranking']:[])");
+expected=expected.replace("console.log(JSON.stringify({status:'PASS', stage, results,", "if(g0b){const artifactCheck=spawnSync(process.execPath,[fileURLToPath(new URL('verify-parallel4-g0b-foundation.mjs',import.meta.url)),'--artifacts'],{cwd:root,encoding:'utf8',windowsHide:true});if(artifactCheck.error||artifactCheck.status!==0){process.stderr.write(artifactCheck.stderr||String(artifactCheck.error));process.exit(artifactCheck.status||1);}results.push({name:'g0b-artifact-boundary',status:'PASS',stdout:artifactCheck.stdout});}\nconsole.log(JSON.stringify({status:'PASS', stage, results,");check(read('scripts/verify.mjs').toString()===expected,'Original 28 groups preserved plus two and artifact boundary');
+expected=original.get('scripts/verify-foundation.mjs').toString().replace("if(status.parallelDevelopmentPreparation?.stage==='PARALLEL4_G0A'){","if(status.parallelContractSemanticsPreparation?.stage==='PARALLEL4_G0B'){\n  await import('./verify-parallel4-g0b-foundation.mjs');\n  await import('./verify-stage3-providers.mjs');\n} else if(status.parallelDevelopmentPreparation?.stage==='PARALLEL4_G0A'){");check(read('scripts/verify-foundation.mjs').toString()===expected,'Historical foundation branches retained');
+const attrs=git(['check-attr','-z','filter','ident','working-tree-encoding','--',...actual]);check(attrs.code===0,'Source attributes');const parts=attrs.bytes.toString().split('\0');assert.equal(parts.pop(),'');for(let n=0;n<parts.length;n+=3)check(['unset','unspecified'].includes(parts[n+2]),'No source transforms');
+const allowedNodeReferences=new Set(['packages/domain/src/pipeline-ranking.ts','tests/pipeline-ranking.test.ts','scripts/verify-parallel4-g0b-foundation.mjs']);
+for(const f of actual.filter(f=>/\.(?:[cm]?js|tsx?)$/.test(f))){if(!allowedNodeReferences.has(f))check(!/\/pipeline-ranking(?:\.(?:ts|js))?['"]/.test(read(f).toString()),'No static internal Node module reference in app source '+f);}
+let artifactFiles=0;
+if(process.argv.includes('--artifacts'))for(const folder of ['apps/admin/.next/server','apps/admin/.next/static','apps/mobile/dist/android','apps/mobile/dist/ios']){
+  const start=path.join(root,folder);check(existsSync(start),'Built artifact directory '+folder);
+  function scan(dir){for(const e of readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);check(!lstatSync(f).isSymbolicLink(),'Owned artifact');if(e.isDirectory())scan(f);else if(/\.(?:js|json|map|hbc|bundle)$/.test(e.name)){const bytes=readFileSync(f);check(!bytes.includes(Buffer.from('SYNTHETIC_K1_COMPLETED_RANKING'))&&!bytes.includes(Buffer.from('pipeline-ranking.ts')),'Internal Node module absent from artifact');artifactFiles++;}}}scan(start);
+}
+check(parallel4Readiness().state==='HOLD_NOT_ACTIVATED','No launch authority');
+console.log(JSON.stringify({status:'PASS',stage:'PARALLEL4_G0B_SOURCE_ONLY',checks,baselineFiles:451,mutableFiles:8,newFiles:9,productGroups:30,artifactFiles,executionEnabled:false,forksCreated:0,actualKeysRead:0,actualRemoteRequests:0,adminConnected:false,workerConnected:false,fullG0Complete:false,M2:false,limitations:'Pure synthetic contract semantics and in-memory completion replay only. No child admission, live evidence, DB durability or service completion.'}));

@@ -29,14 +29,21 @@ export class SyntheticPipelineRepositories {
     const value=effect();this.effects.set(command.effectKey,{canonical,result:copy(value)});return {sampleKind:'SYNTHETIC',persistence:'MEMORY_FIXTURE_ONLY',effectKey:command.effectKey,status:'APPLIED',value:copy(value)};
   }
   appendSourceRevision(raw:unknown):PipelineReceipt<RevisionResult>{
+    return this.appendRevision(raw,false);
+  }
+  /** Exact delivery storage for strict K1 consumers; legacy semantic dedup remains unchanged. */
+  appendSourceRevisionExact(raw:unknown):PipelineReceipt<RevisionResult>{
+    return this.appendRevision(raw,true);
+  }
+  private appendRevision(raw:unknown,exactDelivery:boolean):PipelineReceipt<RevisionResult>{
     const c=validatePipelineWrite(raw,validateSourceRevision);assertPipelineVersions(c.value,c.versions);
-    return this.transact('appendSourceRevision',c,()=>{
+    return this.transact(exactDelivery?'appendSourceRevisionExact':'appendSourceRevision',c,()=>{
       const value=c.value,canonical=pipelineCanonical(value),old=this.revisions.get(value.revisionId);
       if(old){if(old.canonical!==canonical)throw new PipelineError('EFFECT_CONFLICT');return copy(old.result);}
       if([...this.revisions.values()].some(r=>r.value.sourceDocumentId===value.sourceDocumentId&&(r.value.sourceId!==value.sourceId||r.value.nativeId!==value.nativeId)||r.value.sourceId===value.sourceId&&r.value.nativeId===value.nativeId&&r.value.sourceDocumentId!==value.sourceDocumentId))throw new PipelineError('INVALID_INPUT');
       const identity=(v:PipelineSourceRevision)=>pipelineCanonical(Object.fromEntries(Object.entries(v).filter(([k])=>!['revisionId','collectedAt'].includes(k))));
       const duplicate=[...this.revisions.values()].find(r=>identity(r.value)===identity(value));
-      if(duplicate)return copy(duplicate.result);
+      if(duplicate&&!exactDelivery)return copy(duplicate.result);
       const revision=(this.documents.get(value.sourceDocumentId)??0)+1,result={revisionId:value.revisionId,sourceDocumentId:value.sourceDocumentId,revision};
       this.revisions.set(value.revisionId,{canonical,result,value:copy(value)});this.documents.set(value.sourceDocumentId,revision);return result;
     });

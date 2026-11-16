@@ -516,5 +516,18 @@
     "adminConnected": false,
     "workerConnected": false,
     "M2": false
+  },
+  "parallelContractSemanticsPreparation": {
+    "stage": "PARALLEL4_G0B",
+    "state": "SOURCE_PREPARED_REVIEW_PENDING_NOT_ACTIVATED",
+    "planManifest": "c51acaca9a89bcfa74623607998b1c9643fa50f3a34347af733ff89ff1930d3d",
+    "forksCreated": 0,
+    "messagesDispatched": 0,
+    "executionEnabled": false,
+    "actualRoleIsolationBound": false,
+    "fullG0Complete": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "M2": false
   }
 }
