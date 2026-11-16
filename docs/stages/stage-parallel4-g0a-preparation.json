@@ -1,0 +1,27 @@
+{
+  "stage": "PARALLEL4_G0A",
+  "state": "SOURCE_PREPARED_REVIEW_PENDING_NOT_ACTIVATED",
+  "planManifest": "f2639973c41691d3b91cea12220d11a509db178e866f3cce598077b0a6ae7077",
+  "forksCreated": 0,
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "readIsolationVerified": false,
+  "M2": false,
+  "sourcePins": {
+    ".github/workflows/verify.yml": "1db3d5b0837a032847ac901d736c10b961cbc2eb2241787d4d09ecc7bb3560fa",
+    "AGENTS.md": "fb239285c4fc66eefa44bf469ffa9c0bc296429c7c38330d874b64251f410f7b",
+    "docs/development-status.json": "035e4bb2aa74544bb6ce267359ca0b8dad09b4121cc38643ec647355009808ce",
+    "docs/reference/planning/홈순위-운영개정안-v1.0-20261115.md": "8ab76a1bc0758b13ad6e97f237e799a77b645d59c53944b722e6d0895caf5a93",
+    "docs/stages/stage-parallel4-g0a-baseline.json": "47dd9c483ad53a62a23d070c7895aaefe855f082e4f0802635b178a1df65ac20",
+    "docs/stages/stage-parallel4-g0a.md": "e9598a29289900b8cc86c7938a42ce68fb9d1cd0b19eb9dee7a801cae22103e2",
+    "package.json": "82210daae4a5f0892c238877c87f254dd18d3d295087250d65a711f1ab282084",
+    "packages/contracts/src/pipeline-memory.ts": "93dd98f61ecda5397e9ad87dc879ea3d2321687a9a3f07d8ad764c421a4a09e3",
+    "packages/contracts/src/pipeline.ts": "4eb6a723939a03fd61fc1bed8a85d342be311c259cfc8d3541ae7e7a74b73282",
+    "scripts/parallel4-readiness.mjs": "0d1b766219b52a2878cb529fea24aec7019f569568d15a31d977f7278eaf51fe",
+    "scripts/verify-foundation.mjs": "198a83edffcc0384b8294d37f7b30eb353463b35c4ae2ba40ffb79eeed53ef40",
+    "scripts/verify-parallel4-g0-foundation.mjs": "067381421227fc5d01207d535fae533871b1d17e277c35181348116ab7297e9c",
+    "scripts/verify.mjs": "2c9cad1f8575eec9925191d825a5120fb4004b91bf97fbbed08d261bff780241",
+    "tests/parallel4-readiness.test.mjs": "fd5478816b793dd6b7310fb00fc6eca2afeacfff51070acaeef3422c754164ae",
+    "tests/pipeline-contracts.test.ts": "168ad9e3fe723ff524b6d323649603ca09ea85107d01e671b7e0a13cec1ecca5"
+  }
+}

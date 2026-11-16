@@ -504,5 +504,17 @@
     "workerConnected": false,
     "M2": false,
     "iPhone": "USER_DEFERRED"
+  },
+  "parallelDevelopmentPreparation": {
+    "stage": "PARALLEL4_G0A",
+    "state": "CONTRACT_SOURCE_PREPARATION_NOT_ACTIVATED",
+    "planManifest": "f2639973c41691d3b91cea12220d11a509db178e866f3cce598077b0a6ae7077",
+    "registry": "docs/stages/stage-parallel4-g0a-preparation.json",
+    "forksCreated": 0,
+    "messagesDispatched": 0,
+    "readIsolationVerified": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "M2": false
   }
 }

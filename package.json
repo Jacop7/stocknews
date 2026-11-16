@@ -48,7 +48,9 @@
     "test:cloud-core": "node --test tests/cloud-core.test.mjs",
     "test:cloud-preview-read": "node --test tests/cloud-preview-read.test.mjs",
     "test:preview-admin": "node --test tests/preview-admin.test.mjs tests/preview-admin-sql.test.mjs",
-    "test:preview-admin-db": "node scripts/test-preview-admin-db.mjs"
+    "test:preview-admin-db": "node scripts/test-preview-admin-db.mjs",
+    "test:pipeline-contracts": "node --experimental-strip-types --test tests/pipeline-contracts.test.ts",
+    "test:parallel4-readiness": "node --test tests/parallel4-readiness.test.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
