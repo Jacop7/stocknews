@@ -1,0 +1,850 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "state": "RECORDED_DEV_RESERVATION_MAINTENANCE_APPLIED_WRITE_CLOSED",
+  "liveVerified": false,
+  "organizationRef": "qfzgicohgpuogehdyzfx",
+  "projectRef": "nxfpfvsdwbziowkxsxnh",
+  "physicalEnvironment": "dev",
+  "logicalEnvironment": "preview",
+  "historicalSearchInstallation": {
+    "path": "supabase/cloud/search-installation-dev/adoption.json",
+    "sha256": "a6cb98e9dae98c23b694185dc86c547a7fe206e679cfd1c56c0649af0de91bb0",
+    "historyRows": 6,
+    "dataTables": 66,
+    "functions": 154,
+    "context": "HISTORICAL_PRE_RESERVATION_MAINTENANCE"
+  },
+  "archive": {
+    "path": "supabase/cloud/reservation-maintenance-dev/archive/20261116000105_cloud09a_reservation_maintenance_disabled.sql",
+    "bytes": 1230288,
+    "sha256": "289f244771a724b62ddf7e8cd896c9e225f36979e66c918d58743975140a6d17",
+    "crlfPairs": 73,
+    "lfBytes": 680,
+    "standaloneCr": 0,
+    "kind": "AUDIT_ONLY_RECORDED_NATIVE_SOURCE",
+    "nativeHistoryInsertedIn": "CLOUD09B",
+    "nativeHistoryVersion": "20261116000105",
+    "nativeHistoryRows": 7,
+    "rawLexemes": 5,
+    "normalization": "NONE_WHITESPACE_COMMENT_CRLF_SEMICOLON_PRESERVED",
+    "replay": "REPLAY_FORBIDDEN"
+  },
+  "snapshots": {
+    "historical47_E": {
+      "context": "PRE_REFERENCE_ONLY_NOT_AFTER_IMPORT_INVARIANT",
+      "fingerprint": "e422fbc20730eea4b5ed89a22de28522f0414fefd6b1cfc068498f397e87dbe6"
+    },
+    "historical57_C": {
+      "before": "be5d3bd898bf7959735eafb5efdaaf9a60148527c399c9d96a81c3f1ddc8857c",
+      "after": "b5e0addd725c5728e398f9e88f502d1fe8202de61229bcb5a3e4b1173efbfa86",
+      "scope": "APP_METADATA_AND_CURRENT57_TABLE_DATA_C_ORDER",
+      "context": "HISTORICAL_PRE_SEARCH_IMPORT_REFERENCE_STATE"
+    },
+    "historical66_S": {
+      "before": "b5e0addd725c5728e398f9e88f502d1fe8202de61229bcb5a3e4b1173efbfa86",
+      "beforeScope": "APP_METADATA_AND_OLD57_DATA",
+      "after": "1fac4954955f1b536f483bee70574177a4827b98bc324111a280eab98d8d49f8",
+      "afterScope": "APP_METADATA_AND_CURRENT66_DATA",
+      "beforeAndAfterSameScope": false,
+      "context": "HISTORICAL_PRE_RESERVATION_MAINTENANCE"
+    },
+    "devScope71_R": {
+      "before": "1fac4954955f1b536f483bee70574177a4827b98bc324111a280eab98d8d49f8",
+      "beforeScope": "APP_METADATA_AND_OLD66_TABLE_DATA",
+      "after": "031743b951ec9b2261667e34db617c2d9ddd3d2fd7351d7d0532ef32dfe6bb1f",
+      "afterScope": "APP_METADATA_AND_CURRENT71_TABLE_DATA",
+      "beforeAndAfterSameScope": false
+    },
+    "prod": {
+      "before": "152880e674e3d00c089fcd6a09b9132627963c4d0a59dfe8bcf2dbbe8b9ffc79",
+      "after": "152880e674e3d00c089fcd6a09b9132627963c4d0a59dfe8bcf2dbbe8b9ffc79",
+      "relations": 0
+    }
+  },
+  "reservationMaintenance": {
+    "relations": 72,
+    "dataTables": 71,
+    "applicationFunctions": 177,
+    "officialHistoryRows": 7,
+    "newNativeRows": 1,
+    "catalogHead": 2,
+    "referenceCompanies": 339,
+    "stockIdentityHolds": 339,
+    "structuralHolds": 2,
+    "totalHolds": 341,
+    "newTableCounts": {
+      "manual_publication_schedules": 0,
+      "reservation_requests": 0,
+      "maintenance_runs": 0,
+      "maintenance_cron_jobs": 0,
+      "maintenance_safety_proof": 0
+    },
+    "oldDataTablesUnchanged": 66,
+    "oldFunctionsUnchanged": 152,
+    "platformHelperUnchanged": true,
+    "sourceLogicBodyTransformations": 1,
+    "logicAdaptation": "No cron namespace: QA purge delegates to preserved original legacy alias; cron present branch unverified and installation gated.",
+    "coveredLocalMigrations": [
+      46,
+      47,
+      48,
+      49,
+      50
+    ],
+    "rootLocalStreamReplayed": false,
+    "actualNewsAIPricePush": 0,
+    "codeMarketPriceStockUrl": "NULL_UNTIL_IDENTITY_VERIFIED",
+    "referenceGrade": "USER_REFERENCE_UNVERIFIED",
+    "snapshotSource": "LOCAL_REFERENCE",
+    "rawNativeSourceSha256": "586cb8dfe66b2cc848114f736ecb08257a7cbe3f0a56c74e89b95a3f4ffe7405",
+    "rawNativeCharacters": [
+      100,
+      35,
+      29,
+      1229155,
+      8
+    ],
+    "actualWriteRequests": 1,
+    "allStageRequests": 43,
+    "ledgerFiles": 128
+  },
+  "authNamespace": {
+    "historicalUnchanged": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "currentObservationSha256": "254b2e35ba0cfa46dc2b13e4a588755537135e8ddfb9e23b51f60fa7006a4eef",
+    "currentQuerySha256": "ec0975be0e008e220ef1fab5bc6884539104d2f84cf32cbc34b246e10c243cd9",
+    "currentOwner": "supabase_admin",
+    "currentEffectiveAclRows": 10,
+    "futureBeforeTransactionAfterBaselineRequired": true,
+    "baselineFilePresenceAndShaRequired": true,
+    "thisStageScopedUnchanged": true,
+    "fullScopedHostedBeforeFirstDdlInTransaction": true,
+    "fullScopedHostedAfterSourceAndHistory": true,
+    "scope": "Declared uid/users/sessions metadata, policies, triggers, RI and required namespace only; not all managed Auth objects or user rows"
+  },
+  "cronSafety": {
+    "state": "ABSENCE_VERIFIED_ONLY_FULL_RETENTION_DEFERRED",
+    "observed": {
+      "extensions": [],
+      "schema": null,
+      "relations": []
+    },
+    "cronMustRemainAbsentUntilGenuineProof": true,
+    "cronInstallationIsGatedQaSemanticChange": true,
+    "futurePreflightsMustRecheckCronAbsence": true,
+    "genuineCapabilityRetentionPlanTestsDualRequiredBeforeInstallation": true,
+    "fullRetention1000BatchVerified": false,
+    "liveCronActivated": false,
+    "fakeCronUsed": false
+  },
+  "execution": {
+    "executedSourceHashes": {
+      "reservation_core.py": "acbb87e659ac9ff0eed544792b841d1fc81a8280eab4ce134b356b8c80b14f10",
+      "fixture.py": "66c04561ba2bf65370766fed5725413d05e5928fe0a024ca864c90cb366e7165",
+      "prepare_codec.py": "8cf0bf0dd5aca2fd5d4295383730326a820eee19be7327d48853f06c992f74b5",
+      "apply_reservation.py": "4c7884f55384ec9179099ae6a7ef20b9e16e71e88c7d03a3819555f15d8a74be",
+      "test_apply.py": "2e54768956b203911ee7b9052d935ff408989b5f1f89965fb0a21dbfb93ff2de",
+      "test_local.py": "fa753404cd10166e9c27a5d46a1a3dad3022585dd8868c5ec35c049cb2559ffc",
+      "race_before_ddl.py": "bca4d3e03181415b22ed109f00a251713c422f954e77494de050a7ab03649c44",
+      "local_support.py": "aeb5ec29d53d70bec584939fb5840ed24310229f4466249a1c430ec0bba12052",
+      "source-pins.json": "e697fdf165beaf14aec69a9ef069953e29e4afe0ebce107bf8a8a04d8f1816cc",
+      "codec.json": "73f9f875c872075af28c7bbc1938048d75f5c8d602fed52f8d6edfd37705ca87",
+      "reservation-source.pgp": "294d5757cd0531d81758a948df6837244f4422c205e309dd33d2c64ad5e1110f"
+    },
+    "currentClosedSourceHashes": {
+      "reservation_core.py": "acbb87e659ac9ff0eed544792b841d1fc81a8280eab4ce134b356b8c80b14f10",
+      "fixture.py": "66c04561ba2bf65370766fed5725413d05e5928fe0a024ca864c90cb366e7165",
+      "prepare_codec.py": "8cf0bf0dd5aca2fd5d4295383730326a820eee19be7327d48853f06c992f74b5",
+      "apply_reservation.py": "a331f9d8ac965bd789d4e844df4d403411a7c6d943ac81210de32b901994518a",
+      "test_apply.py": "2e54768956b203911ee7b9052d935ff408989b5f1f89965fb0a21dbfb93ff2de",
+      "test_local.py": "fa753404cd10166e9c27a5d46a1a3dad3022585dd8868c5ec35c049cb2559ffc",
+      "race_before_ddl.py": "bca4d3e03181415b22ed109f00a251713c422f954e77494de050a7ab03649c44",
+      "local_support.py": "aeb5ec29d53d70bec584939fb5840ed24310229f4466249a1c430ec0bba12052",
+      "source-pins.json": "e697fdf165beaf14aec69a9ef069953e29e4afe0ebce107bf8a8a04d8f1816cc",
+      "codec.json": "73f9f875c872075af28c7bbc1938048d75f5c8d602fed52f8d6edfd37705ca87",
+      "reservation-source.pgp": "294d5757cd0531d81758a948df6837244f4422c205e309dd33d2c64ad5e1110f"
+    },
+    "rawByteDelta": "EXACTLY_TWO_UNCONDITIONAL_FIRST_LINE_GUARDS",
+    "rawByteDeltaVerified": true,
+    "executedLF": 87,
+    "closedLF": 89,
+    "CRLF": 0,
+    "writeEntryPointsClosed": true,
+    "closure": "UNCONDITIONAL_NO_FLAG_NO_ENV",
+    "additionalRemoteWritesAfterClosure": 0,
+    "actualIntentToAckWallSeconds": 5.343898,
+    "wallTimeIncludesNetworkAndPersistence": true,
+    "actualServerExecutionTimeSeparatelyMeasured": false,
+    "executedUnitTests": 26,
+    "executedFixtureChecks": 15,
+    "realBeforeDdlLockWaitRaces": 1,
+    "normalSyntheticSeconds": 1.25,
+    "currentClosedEntryChecks": 2,
+    "latestReadonlyReconcile": "check-0001",
+    "capacityWriter": {
+      "payloadBytes": 459961,
+      "queryUtf8Bytes": 455294,
+      "queryCharacters": 455294
+    },
+    "capacityProbe": {
+      "payloadBytes": 460985,
+      "queryUtf8Bytes": 460956,
+      "queryCharacters": 460956
+    },
+    "probeDoesNotGuaranteeWrite": true,
+    "managedDecoderBothRolesVerified": true,
+    "managedDecoderBinaryAttested": false,
+    "freshBinding": "B_OUTER_AFTER_LOCK_AND_AFTER_DECODE_BEFORE_DDL",
+    "aBinderCalled": false,
+    "nativeStatements": "UNBOUND_A_5_RAW_LEXEMES_EXCLUDING_OUTER",
+    "intentPreflightDigest": {
+      "explicitAtDispatch": true,
+      "sha256": "15ae17c740d8a3657f4a0fe62aa74c9b73c60a0e3f30a1047d9856e568c9a5c7",
+      "verifiedBeforeExclusiveFlushFsyncIntentAndSend": true,
+      "historicalC08BGapRetrofitted": false
+    },
+    "codec": {
+      "format": "PGCRYPTO_PGP_ZIP_BYTEA_V1",
+      "publicPhraseIsCredential": false,
+      "options": "compress-algo=1,compress-level=9,cipher-algo=aes256,convert-crlf=0",
+      "sourceBytes": 1230288,
+      "sourceSha256": "289f244771a724b62ddf7e8cd896c9e225f36979e66c918d58743975140a6d17",
+      "packetBytes": 179241,
+      "packetSha256": "294d5757cd0531d81758a948df6837244f4422c205e309dd33d2c64ad5e1110f",
+      "randomPacketRegenerationByteReproducible": false,
+      "decodedSourceByteReproducible": true
+    }
+  },
+  "runtime": {
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "M2": false,
+    "liveSupplyEnabled": false,
+    "iPhone": "USER_DEFERRED",
+    "rightsHold": 112,
+    "dataApiEnabledObserved": false,
+    "organizationPlanObserved": "Free"
+  },
+  "rootLocalStream": {
+    "path": "supabase/migrations",
+    "migrationCount": 50,
+    "foundationBytes": 19011,
+    "foundationSha256": "5b3c2d38206dc3c43c51db287d14584b3aa72b1f54d5b2e368e252a5fcf90caa",
+    "cloudCompatible": false,
+    "remoteUse": "FORBIDDEN"
+  },
+  "replay": "REPLAY_FORBIDDEN",
+  "postBaseline": {
+    "state": "APPLIED_DISABLED_RESERVATION_MAINTENANCE",
+    "files": {
+      "activation-intent.json": "76cafeabf85eb4ea3bd35c541149cf8d9ae793e83ac6365b6edc21f758dc1500",
+      "acknowledgment.json": "8d434ae445d7b4e9ed2cb2bcbd1ebacfb36e60155522b3639d4bb49b5f3f43af",
+      "after-observations.json": "53c80e467bc8a76b621639c61b8cd1aee29b863c492f18306050af022c3c9b4e",
+      "remote-result.json": "1d505666a212be4859413ba409bed301131ed03520420df33def065fb29c0a1c"
+    },
+    "preflightManifestSha256": "15ae17c740d8a3657f4a0fe62aa74c9b73c60a0e3f30a1047d9856e568c9a5c7",
+    "fingerprint71": "031743b951ec9b2261667e34db617c2d9ddd3d2fd7351d7d0532ef32dfe6bb1f",
+    "nativeRows": 7,
+    "cronMustRemainAbsentUntilGenuineProof": true,
+    "cronInstallationIsGatedQaSemanticChange": true,
+    "catalogHead": 2,
+    "historicalAuthNamespaceInvariant": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION"
+  },
+  "postBaselineAnchorSha256": "4e99dd759b14afb1a5fddbac32b929af3edaf816ec6aa997995c9609ce280de7",
+  "postUiAnchorSha256": "e40b152ad55a2552ba7a2ec7601d0eb85deec12ced987559323894d1dfe1ee4d",
+  "supersedes": [
+    "docs/development-status.json#cloudSearchInstallation",
+    "supabase/cloud/search-installation-dev/adoption.json#snapshots.devScope66_S"
+  ],
+  "precedence": "docs/development-status.json#cloudReservationMaintenance -> supabase/cloud/reservation-maintenance-dev/adoption.json; older66/57/47 records remain historical, not current runtime or fresh attestation.",
+  "evidence": {
+    "manifest": "f24c48776ebd8c3a7cae9a0ea23527a584ebafb63135ef2d0ae23e46071f4763",
+    "claudeKey": "58bf730a3bd075e425be30fbab9453341d13174206af97b64813eb574d82f175",
+    "codexKey": "46d5f5ed32d46b560485662257026e8dd11790aab40d1eb32b49ec7e58e2ed87",
+    "statusSha256": "c585dea26ac862912c0fa40d449ffd54f4c30539258f85850f57b58426a34595",
+    "resultSha256": "e8dcb47cb1b00d462d6ceef03371bd00b28bc479e7d9b6458982a88f2170e797",
+    "verificationSha256": "55376c384daae06bd601f2e172eee80bc9a7c18d8e4f6c78263d66ab343d8ca8",
+    "resultAuthority": "result-r2.json and verification-r2.json; earlier derived originals preserved",
+    "backup": {
+      "archive": "outputs/development-stages/backups/cloud09b-reservation-maintenance-applied-20261116.zip",
+      "archiveSha256": "54cfdbfd31e40a475072599af6abff83ccc0b6c2e957946620270e0162ecbb82",
+      "fileCount": 1064,
+      "credentialsExcluded": true
+    },
+    "backupManifestSha256": "8a54fab175df4bb31b119663c224811ebe4a16be7aaab819acf7d901e55fa019",
+    "actualFiles": {
+      "activation-intent.json": "76cafeabf85eb4ea3bd35c541149cf8d9ae793e83ac6365b6edc21f758dc1500",
+      "acknowledgment.json": "8d434ae445d7b4e9ed2cb2bcbd1ebacfb36e60155522b3639d4bb49b5f3f43af",
+      "remote-result.json": "1d505666a212be4859413ba409bed301131ed03520420df33def065fb29c0a1c",
+      "preflight/manifest.json": "15ae17c740d8a3657f4a0fe62aa74c9b73c60a0e3f30a1047d9856e568c9a5c7",
+      "preflight/prepared.json": "172a04c137e1cb60269d8044ff7c5418f7a3d7c93ee400aaf440adfe93d9cac3",
+      "preflight/capacity.json": "5256347fffe63c9fa08bf6665dd066b63ac9eb5a918f7a83ed983a575cc26f4e",
+      "post-baseline.json": "3071704b56274abcccf72df175274272dd4c869c7314ef125929bcbfa6424fee",
+      "post-baseline-anchor.json": "4e99dd759b14afb1a5fddbac32b929af3edaf816ec6aa997995c9609ce280de7",
+      "write-closed-proof.json": "ad42e87726d4e9b53e13fc592b0afcedd09a0e9dfd9617b602531b911ad2fe66",
+      "closed-entry-tests.json": "2f64d7bac6810189878c344af27c17f3c38394ad641788de9756e98742be80ea",
+      "ui-before.json": "11c07fd635121351099bb04ee6d75bdeda0cd493dea5d16cc9414f7cecf87306",
+      "ui-after.json": "85b0f06d27424589d4409a350f90ba1c89ec1ad6bf1e7f13756d9668c37b7e20",
+      "post-ui-anchor.json": "e40b152ad55a2552ba7a2ec7601d0eb85deec12ced987559323894d1dfe1ee4d",
+      "check-0001/manifest.json": "edc7dbd8a1f7ae0bff46fea39d1be9c38f795e179409c05099132d686567a141",
+      "check-0001/result.json": "650f5d0c9c2290be1f8715284d24625b9e000c290028b65322272bf5e21b232f"
+    },
+    "ledgers": {
+      "outputs/development-stages/cloud09b/preflight/requests/request-0001-intent.json": {
+        "bytes": 188,
+        "sha256": "87fe5d3fc7e4c6d6ba5aaaa6ad14eb15ba8ec4652927402f06f4f38e2b466b39"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0001-result.json": {
+        "bytes": 192,
+        "sha256": "490cbd7a0a0edaec370f46d31d6830e3c7177a05df5190c99a314df55c29310d"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0002-intent.json": {
+        "bytes": 188,
+        "sha256": "ed176c83b443e17dc6da25ad4ffe938f789fbf743437d74ff73ab6c33e880073"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0002-result.json": {
+        "bytes": 192,
+        "sha256": "fae3c80c5ea5a9711da071f89319f03458f23e4580f7b1662d81db89b9e4cbca"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0003-intent.json": {
+        "bytes": 355,
+        "sha256": "01ee68e82781b90ef281f98a0d47266817e984efb9f8ae19208efa10166318c6"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0003-result.json": {
+        "bytes": 192,
+        "sha256": "6fd0b274a6e104872cdaa588642f7fd40ff884acc53ccd38264f9a9826839a45"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0004-intent.json": {
+        "bytes": 361,
+        "sha256": "64247048d7c731bb955c75b8831166f1f4aa28527867d0322290c6e712d65740"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0004-result.json": {
+        "bytes": 192,
+        "sha256": "79dfb4456acb25bc39146e39bfd224bb721f33ed466f7877c85bce8216bfaa4c"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0005-intent.json": {
+        "bytes": 352,
+        "sha256": "ef1bee28d69bb7e590fb2c9a81a6a00a1a44d959b70ef47ca12663a4a43cfbaa"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0005-result.json": {
+        "bytes": 192,
+        "sha256": "e18c2f86bc511c16e056dd60b3da06bda991812d3d59e6e4f9e308551f2ac176"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0006-intent.json": {
+        "bytes": 354,
+        "sha256": "d1b80666eb4040c629543492814ace3315b547381cf21c27a95ea2f6b7336d5b"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0006-result.json": {
+        "bytes": 192,
+        "sha256": "408589b603349aca37b113ff6eefab8e5e3cbc7d4296b473296f18b3dc8859e9"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0007-intent.json": {
+        "bytes": 357,
+        "sha256": "f327520b89f6d2c9901e2de3b4141b42a559b7478602ac87813d873641525053"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0007-result.json": {
+        "bytes": 192,
+        "sha256": "300e0031a37b9e5a1e402c8504edd88aa11a718e97f53572c403842ddf62d9ef"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0008-intent.json": {
+        "bytes": 355,
+        "sha256": "631100a613a2febcbb8e4df6ec858a25e8e59b1007cabcf6d8efd9c3e8fa521b"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0008-result.json": {
+        "bytes": 192,
+        "sha256": "6ae2bb4c52c42c63618d7a18075064da3e1839d750d738474f4b16ba3f58c507"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0009-intent.json": {
+        "bytes": 355,
+        "sha256": "26646a0f8b7864b700c6ba4c6e87bb2bb89de1bf8b2aae1db190e2fa6f2ae86b"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0009-result.json": {
+        "bytes": 192,
+        "sha256": "5066f5a09706f2026db185157ec606c03c0986366e9446967187dbc5b802ea2e"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0010-intent.json": {
+        "bytes": 348,
+        "sha256": "e0c2ede9056d08f075afef99dfcbc3ecdfa34ebe96b2215a8b02e1f683931cf1"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0010-result.json": {
+        "bytes": 192,
+        "sha256": "94eae049a0ebeb5f332a669f7af33bf0d8bb3cbc5a797d9b33ca3b7faf660ad8"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0011-intent.json": {
+        "bytes": 352,
+        "sha256": "21738b24a5462f2fbd3dbe786f86cc6fdd7fca7814095faa07b802819511eb3c"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0011-result.json": {
+        "bytes": 192,
+        "sha256": "c5b1a271dfdfbd83f00581c7527700646697eeb2f0001ad88486940362b10f80"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0012-intent.json": {
+        "bytes": 362,
+        "sha256": "b4baa67e3b090678751b3695fa4ae1a0f76c0ae72d3122f365549607c1864ab0"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0012-result.json": {
+        "bytes": 192,
+        "sha256": "0ad899ba07a8ef12c17b7dc8153f0c97967dc6c335f0e7341eba65265fdbe398"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0013-intent.json": {
+        "bytes": 366,
+        "sha256": "fafcb4747f4e4d485f5ceb4e82ce42774c91f4f3af6a5fffff271e92aced7cf6"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0013-result.json": {
+        "bytes": 192,
+        "sha256": "cbd5cf42569f7623b8cffc702e633fc6aff4355b4834f73cb71e9684eb7208c0"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0014-intent.json": {
+        "bytes": 379,
+        "sha256": "75ae5361c0dc3ae4fb3fb0b47946d74e03abdbfd9c53f4ee7a69dc935e99f114"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0014-result.json": {
+        "bytes": 192,
+        "sha256": "b1bc1fec481f48fae883711929a7a0176a105745288bed75f1a698d8b7fda4f5"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0001-intent.json": {
+        "bytes": 188,
+        "sha256": "d084292e96d66e9f6722166be5f4e9f05166b15f4d57582d920bb60ada8335f7"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0001-result.json": {
+        "bytes": 192,
+        "sha256": "9a3b5483b7f7bc383a9dcafc14a4238168ad0b4eaf45e3bac049411cbea744d4"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0002-intent.json": {
+        "bytes": 188,
+        "sha256": "1311fd7fc564c34f9e9c2d7004752f933ab1a0040932d33f7bcc8f0af4b64e1f"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0002-result.json": {
+        "bytes": 192,
+        "sha256": "b2451b35e32508cabe2f2b20a7828b515e6fa25d92234714cbf7d51d193e3275"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0003-intent.json": {
+        "bytes": 372,
+        "sha256": "439f56eb175273a9c9e765370b62514076bf51a7bb7bbbba3d4f245dda4bbc7e"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0003-result.json": {
+        "bytes": 136,
+        "sha256": "9e289d2e38f14ed4ac3a2b901ec328cf214360318e0164d6ae1a6b5df7a72644"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0004-intent.json": {
+        "bytes": 188,
+        "sha256": "33248f9f6aa6945db138a2dc4773b230401ac3d80699619a997fd4ec377be5c1"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0004-result.json": {
+        "bytes": 192,
+        "sha256": "03ba0916d56a9fdb0b7d5f296937957af7fb8aa8f232a9fc900a41b4cfeaae63"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0005-intent.json": {
+        "bytes": 188,
+        "sha256": "ec0dfaea742bd2446a8c91a9b303da55da0771c3df44ff9e89e5f59b6c109264"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0005-result.json": {
+        "bytes": 192,
+        "sha256": "8e433f859420d7a22cde88c06558c4ffba1aa1b8bbada4c0b3299437f997bd82"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0006-intent.json": {
+        "bytes": 355,
+        "sha256": "3f42903e8804b4b2159159765974a1fb300bf377088ebe5e47a650a90c928b48"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0006-result.json": {
+        "bytes": 192,
+        "sha256": "7200cc13f7cce8159e487e42b3a58c42266d01ac8ae29d83dddfab5e1db5b415"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0007-intent.json": {
+        "bytes": 361,
+        "sha256": "d9bcd1f9066185491327b7a8c7c4b0cec5b58d60654600bb8372a6026792c0b3"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0007-result.json": {
+        "bytes": 192,
+        "sha256": "635b1313e6382ac2fe9781f758e4191622cd77d54c38139679ab3a7ac9ed647a"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0008-intent.json": {
+        "bytes": 352,
+        "sha256": "8ffa5401c5b55acd6ad87497ce200c4f9ff419910ae3d910a747bebb15595422"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0008-result.json": {
+        "bytes": 192,
+        "sha256": "69c8bc1332a879e652d3fab826abf3252b0736db6349dfca98b9e8c676eed19b"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0009-intent.json": {
+        "bytes": 354,
+        "sha256": "754a951e912e72f6f856af7e43db8389eb29033640152336bc1bc54f780db961"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0009-result.json": {
+        "bytes": 192,
+        "sha256": "09fdb54ae456ec3a345ce8b7ddebdc9b520cc231280a359f68198fb265cefc4a"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0010-intent.json": {
+        "bytes": 357,
+        "sha256": "15deabcd77f57d964e86ee243c6aafc30a039ddfd454160712718c944296a545"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0010-result.json": {
+        "bytes": 192,
+        "sha256": "59bb842e32af9a073361e703d8e171e2ad240d8605308f8080181f5a091b5c72"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0011-intent.json": {
+        "bytes": 355,
+        "sha256": "69e1b5dc03a5f0cc073b18d4f47a79e6d0289ca8b038da330065661c1d4b589d"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0011-result.json": {
+        "bytes": 192,
+        "sha256": "317c7714de409b9318e9b6d9c5526487d9fa748b7e557c2c4efa9fd1eef06ccd"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0012-intent.json": {
+        "bytes": 355,
+        "sha256": "69d39726a69b05f12b41f4c7cdc08a1e1db68daaa40d77b2d1a557b8cc551144"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0012-result.json": {
+        "bytes": 192,
+        "sha256": "62abb6d708e91267d23aceff3b745c7ff587ca7a8da18cef1175eb21ad171396"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0013-intent.json": {
+        "bytes": 348,
+        "sha256": "cb1648d2f4d00a73fb70cf564fc021813e4cc6a413d2cb1727a617a2a32b4aca"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0013-result.json": {
+        "bytes": 192,
+        "sha256": "65ac0efebd3f388f7b924ccc13ec8e0fc2b227ef5e33bf86e64b98e3d6731f3a"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0014-intent.json": {
+        "bytes": 352,
+        "sha256": "4dfe359e57733591d6324cc933aad87c3db7a28d2e824d442d0a4de08b412595"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0014-result.json": {
+        "bytes": 192,
+        "sha256": "2cb874b7c66563d81298a6eb97933f7642800a18b58030a0d4b89dac2f07dc5c"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0015-intent.json": {
+        "bytes": 362,
+        "sha256": "62705c44535634276a2f1c4652042466053f4ea1abe8a626aa7423a8252f87f2"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0015-result.json": {
+        "bytes": 192,
+        "sha256": "f792ced1129aed46815440095fc8141790aff35b2dacbd7e96cf590abbae280a"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0016-intent.json": {
+        "bytes": 366,
+        "sha256": "6948721a90e1515fef3b2301f192a49a5bc5c4ce9bc7147bd79e8bf1720b72bc"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0016-result.json": {
+        "bytes": 192,
+        "sha256": "c01594a66bc54b1547b64c6a94e2be1b06f99f606b2e016de698fc272562f016"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0001-intent.json": {
+        "bytes": 188,
+        "sha256": "c93f6b86c27c52bdfa35c1b813358c4985cfb009a9f534313319012627fe3814"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0001-result.json": {
+        "bytes": 192,
+        "sha256": "49b93c62ca5cae7c98f6416d7bfb151312a5523af832f4d22e2854aae7f8cb80"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0002-intent.json": {
+        "bytes": 188,
+        "sha256": "2805e81778c1cdfe1b42976c29625e78d52338f9ed448bd59c238929365b2f7a"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0002-result.json": {
+        "bytes": 192,
+        "sha256": "4c0e1b99e7225b76fa30b3a42c47f95c325871e58220e52461dc0cd2174035b4"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0003-intent.json": {
+        "bytes": 355,
+        "sha256": "b95aef7c56a0f0052f039390e0ced764cc3b9ef94a905081b5902babf9cde4b1"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0003-result.json": {
+        "bytes": 192,
+        "sha256": "63a9dcfab42f14b23f5fe2cce715d5be6ef1f7fea84a9392b17147eb46f1ee8d"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0004-intent.json": {
+        "bytes": 361,
+        "sha256": "d2522fa45ea9f3ace2d7cfd8ad7ef19d3596b2787c17954ef2960b4cc0f0097c"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0004-result.json": {
+        "bytes": 192,
+        "sha256": "91040b37d6edb4129e97bcf43f6a289e03e0c655e79dca7c04cdae76c54a0ac3"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0005-intent.json": {
+        "bytes": 352,
+        "sha256": "4748954ee0d593cc285dc3dbbefccbc90b53d74c84f2cf3233592ebeb13e7d06"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0005-result.json": {
+        "bytes": 192,
+        "sha256": "655245f3c72853df21c703a1a5963a1a06c39a836a50f655143e4d1a31a02cd4"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0006-intent.json": {
+        "bytes": 354,
+        "sha256": "01abe30ac42105c6e99dcb79e60b3405d3aabb0c298551aab122c0b8b15b519f"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0006-result.json": {
+        "bytes": 192,
+        "sha256": "e776542b27f24ca37bca86672573123c20640796b51ba7bbb41d8b891fd1cdc9"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0007-intent.json": {
+        "bytes": 357,
+        "sha256": "5eaec8f3dec9a38dbfab67c90b2e979edf91802373b7b76e1a96eacdac797356"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0007-result.json": {
+        "bytes": 192,
+        "sha256": "ab1b524c7835abb18a564158ae11cd5acaf7db4fd14e365f1f623d7298b7dabb"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0008-intent.json": {
+        "bytes": 355,
+        "sha256": "661fb464fa4579e7e050ab335ac181e36a34679be4e85e5d9faab4f060e35bb8"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0008-result.json": {
+        "bytes": 192,
+        "sha256": "c6c261f69b14435b9dcac21576579eb21cd61aa563131020c20aaf875c6c62b0"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0009-intent.json": {
+        "bytes": 355,
+        "sha256": "9b143ce678de313bf5d8b5ff294c9b238c7799c3e8db842529333df56aeac343"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0009-result.json": {
+        "bytes": 192,
+        "sha256": "5a633e3e6ac265c3c30eafe4882f7ed38976602c05ec9f7ebde1b13c86ab98ce"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0010-intent.json": {
+        "bytes": 348,
+        "sha256": "03338938cbe22c6b598f117d857c70f3c2283c80157b5a54e9b819ba465b72d7"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0010-result.json": {
+        "bytes": 192,
+        "sha256": "983872001f901e39f2173e04434e622436be538ecbfd72fd3dabe3b74dd7980c"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0011-intent.json": {
+        "bytes": 352,
+        "sha256": "847fc6f08739a302797cd3d533855d7edc84edec2b7ebd998c5643f71cd3096e"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0011-result.json": {
+        "bytes": 192,
+        "sha256": "ad1d19336625b3bfa3179105fa11f0ce087e126fdc1fb528d2300e560203d760"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0012-intent.json": {
+        "bytes": 362,
+        "sha256": "fb777463446c2d0d7afd11f6b80d4e4d51eef5e322c247ae391fe7d84aab8725"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0012-result.json": {
+        "bytes": 192,
+        "sha256": "01fe4482195af389919d1324a27a6a05f204e3d1d012a77173925d0a2da83752"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0013-intent.json": {
+        "bytes": 366,
+        "sha256": "5dce366a1a7fcb13826903877e1031f6588a901cf226f3c0806448a125e8598e"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0013-result.json": {
+        "bytes": 192,
+        "sha256": "78f69999d101b01b32b55ee2b17d25f0e20e9a21a371c652dd469b8ee80fdcda"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0001-projection.json": {
+        "bytes": 248,
+        "sha256": "32167f989cd65d45a9c70657a6d0e627c9e162dcecb10a50db4981963c2e9bc3"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0002-projection.json": {
+        "bytes": 249,
+        "sha256": "75c385398ccabd1656fd63e5c19fae0df7b0e8d5d8b7a7fc78f7b19129ad9be8"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0003-projection.json": {
+        "bytes": 2276412,
+        "sha256": "1f216221517486aab9b8166e6473db68dfe4afe558d8c67899ce85f2c1a1b690"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0004-projection.json": {
+        "bytes": 449843,
+        "sha256": "fb4bfe48af7a5ec231bfa014c666a639d65b42d50c4d1752345ab9fe61d691b7"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0005-projection.json": {
+        "bytes": 17779,
+        "sha256": "d2064f050002d0307799d68d1c81deced910dfc453f9482a8590806ccb382714"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0006-projection.json": {
+        "bytes": 1283,
+        "sha256": "389dca3270b93742f1783d9cc3c0f18aba503e019dc218c4caa809728cb7c9ed"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0007-projection.json": {
+        "bytes": 3157336,
+        "sha256": "4f3c305894d30ba11d436ae6b95639b3dc08ce9fc2b7205e9971de42710199dc"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0008-projection.json": {
+        "bytes": 16169,
+        "sha256": "ac0c7fa6fb6c3124adc7b059b20aad2887d6905d291908f02ecfb7a398eeb466"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0009-projection.json": {
+        "bytes": 1921,
+        "sha256": "56411b8b24a587078ecb63f941f32adb7d1f0ac11a95d1d84f96e0cf0f90b430"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0010-projection.json": {
+        "bytes": 141830,
+        "sha256": "26e3ce8037bbcf03c6bede300b4f714a3f47b257197e53717f07f517b6f98706"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0011-projection.json": {
+        "bytes": 282,
+        "sha256": "d90d583dcf08b2de081334a84f1693355868ae8a96c824d1504bebef7f29053e"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0012-projection.json": {
+        "bytes": 10736,
+        "sha256": "8cbaeb00c891071e338e3fdf2779889266e03b4ab55cfc640a96d84ca2e5e6c9"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0013-projection.json": {
+        "bytes": 216,
+        "sha256": "27c1d24aff9b9eab816ccf7f414e9a11484e522a3e76fa6eb56bd850e5d55518"
+      },
+      "outputs/development-stages/cloud09b/preflight/requests/request-0014-projection.json": {
+        "bytes": 2072,
+        "sha256": "7b50060a62e5aa95ad5c736b27a190079c627dcea30ee828bb9a69205e2c2d0c"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0001-projection.json": {
+        "bytes": 248,
+        "sha256": "32167f989cd65d45a9c70657a6d0e627c9e162dcecb10a50db4981963c2e9bc3"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0002-projection.json": {
+        "bytes": 249,
+        "sha256": "75c385398ccabd1656fd63e5c19fae0df7b0e8d5d8b7a7fc78f7b19129ad9be8"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0004-projection.json": {
+        "bytes": 248,
+        "sha256": "32167f989cd65d45a9c70657a6d0e627c9e162dcecb10a50db4981963c2e9bc3"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0005-projection.json": {
+        "bytes": 249,
+        "sha256": "75c385398ccabd1656fd63e5c19fae0df7b0e8d5d8b7a7fc78f7b19129ad9be8"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0006-projection.json": {
+        "bytes": 3567201,
+        "sha256": "fde9e72bf74278731f7508c796d20182fb3d7ee038e0e0abe29798083955fd9b"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0007-projection.json": {
+        "bytes": 507270,
+        "sha256": "f305b06df3c3586612309f6ebffa75cd735bff0c7cafaab914b3c5914f75ac74"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0008-projection.json": {
+        "bytes": 17779,
+        "sha256": "d2064f050002d0307799d68d1c81deced910dfc453f9482a8590806ccb382714"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0009-projection.json": {
+        "bytes": 1283,
+        "sha256": "389dca3270b93742f1783d9cc3c0f18aba503e019dc218c4caa809728cb7c9ed"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0010-projection.json": {
+        "bytes": 3157336,
+        "sha256": "4f3c305894d30ba11d436ae6b95639b3dc08ce9fc2b7205e9971de42710199dc"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0011-projection.json": {
+        "bytes": 16169,
+        "sha256": "ac0c7fa6fb6c3124adc7b059b20aad2887d6905d291908f02ecfb7a398eeb466"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0012-projection.json": {
+        "bytes": 1921,
+        "sha256": "56411b8b24a587078ecb63f941f32adb7d1f0ac11a95d1d84f96e0cf0f90b430"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0013-projection.json": {
+        "bytes": 143534,
+        "sha256": "2884a8fee974c8c91d15ef48634575b1c77dfa0d0b8e8e886d774e4f1b794c13"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0014-projection.json": {
+        "bytes": 282,
+        "sha256": "d90d583dcf08b2de081334a84f1693355868ae8a96c824d1504bebef7f29053e"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0015-projection.json": {
+        "bytes": 10736,
+        "sha256": "8cbaeb00c891071e338e3fdf2779889266e03b4ab55cfc640a96d84ca2e5e6c9"
+      },
+      "outputs/development-stages/cloud09b/apply-requests/request-0016-projection.json": {
+        "bytes": 216,
+        "sha256": "27c1d24aff9b9eab816ccf7f414e9a11484e522a3e76fa6eb56bd850e5d55518"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0001-projection.json": {
+        "bytes": 248,
+        "sha256": "32167f989cd65d45a9c70657a6d0e627c9e162dcecb10a50db4981963c2e9bc3"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0002-projection.json": {
+        "bytes": 249,
+        "sha256": "75c385398ccabd1656fd63e5c19fae0df7b0e8d5d8b7a7fc78f7b19129ad9be8"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0003-projection.json": {
+        "bytes": 3567201,
+        "sha256": "fde9e72bf74278731f7508c796d20182fb3d7ee038e0e0abe29798083955fd9b"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0004-projection.json": {
+        "bytes": 507270,
+        "sha256": "f305b06df3c3586612309f6ebffa75cd735bff0c7cafaab914b3c5914f75ac74"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0005-projection.json": {
+        "bytes": 17779,
+        "sha256": "d2064f050002d0307799d68d1c81deced910dfc453f9482a8590806ccb382714"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0006-projection.json": {
+        "bytes": 1283,
+        "sha256": "389dca3270b93742f1783d9cc3c0f18aba503e019dc218c4caa809728cb7c9ed"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0007-projection.json": {
+        "bytes": 3157336,
+        "sha256": "4f3c305894d30ba11d436ae6b95639b3dc08ce9fc2b7205e9971de42710199dc"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0008-projection.json": {
+        "bytes": 16169,
+        "sha256": "ac0c7fa6fb6c3124adc7b059b20aad2887d6905d291908f02ecfb7a398eeb466"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0009-projection.json": {
+        "bytes": 1921,
+        "sha256": "56411b8b24a587078ecb63f941f32adb7d1f0ac11a95d1d84f96e0cf0f90b430"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0010-projection.json": {
+        "bytes": 143534,
+        "sha256": "2884a8fee974c8c91d15ef48634575b1c77dfa0d0b8e8e886d774e4f1b794c13"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0011-projection.json": {
+        "bytes": 282,
+        "sha256": "d90d583dcf08b2de081334a84f1693355868ae8a96c824d1504bebef7f29053e"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0012-projection.json": {
+        "bytes": 10736,
+        "sha256": "8cbaeb00c891071e338e3fdf2779889266e03b4ab55cfc640a96d84ca2e5e6c9"
+      },
+      "outputs/development-stages/cloud09b/check-0001/requests/request-0013-projection.json": {
+        "bytes": 216,
+        "sha256": "27c1d24aff9b9eab816ccf7f414e9a11484e522a3e76fa6eb56bd850e5d55518"
+      }
+    },
+    "postWriteUi": {
+      "observation": {
+        "observedAt": "2026-11-16T00:02:40.090Z",
+        "dev": "nxfpfvsdwbziowkxsxnh",
+        "prod": "zkzevpinuixeuyjlffwi",
+        "org": "qfzgicohgpuogehdyzfx",
+        "devDataApi": false,
+        "prodDataApi": false,
+        "devPlan": "Free",
+        "prodPlan": "Free",
+        "settingWrites": 0,
+        "readOnly": true,
+        "freshReloadObserved": true,
+        "screenshots": [
+          {
+            "file": "ui-after/dev.png",
+            "sha256": "4270706367a633c827f055e2e8a9e9470e67cd4b5aec46c29949f04244f86cfc"
+          },
+          {
+            "file": "ui-after/prod.png",
+            "sha256": "0f2d8935a8c198407902e0d8cb98cc2dba1643e68387fbc7873a5d905996e3e7"
+          }
+        ],
+        "proofLimits": "Freshly observed visible settings after actual apply and independent readback, not continuous backend attestation; unchanged PNG may match prior bytes."
+      },
+      "beforeSha256": "11c07fd635121351099bb04ee6d75bdeda0cd493dea5d16cc9414f7cecf87306",
+      "afterSha256": "85b0f06d27424589d4409a350f90ba1c89ec1ad6bf1e7f13756d9668c37b7e20",
+      "anchorSha256": "e40b152ad55a2552ba7a2ec7601d0eb85deec12ced987559323894d1dfe1ee4d",
+      "insideBResultReviewManifest": true,
+      "settingWrites": 0,
+      "wholeDatabaseFreshAttestation": false
+    }
+  },
+  "limitations": [
+    "Recorded scoped historical evidence only; liveVerified=false, not current remote attestation.",
+    "Auth metadata limited to declared scope; historical namespace NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION remains unchanged; managed C binary not attested.",
+    "Source A has73CRLF and680LF; no normalization permitted in working tree/index/clone/Git archive.",
+    "pg_cron absence only verified. Installation changes QA semantics and is prohibited until separate genuine capability/retention plan/tests/DUAL; later preflights recheck absence.",
+    "Full cron-present retention1000batch/live jobs remain deferred; no fake cron/grants/extension created.",
+    "Actual5.343898sec includes network, server duration unmeasured; local1.25sec distinct.",
+    "Failures preserved but not counted as PASS. Authoritative result-r2/verification-r2 include128ledgerfiles.",
+    "No gateway/Auth/app/admin/worker/real feeds/AI/prices/push or production activation;08:10 KRX/NXT20:00 versus old09:10 contract integration pending."
+  ]
+}

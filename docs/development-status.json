@@ -400,5 +400,32 @@
       "docs/development-status.json#cloudReference",
       "supabase/cloud/reference-dev/adoption.json#snapshots.devScope57_C"
     ]
+  },
+  "cloudReservationMaintenance": {
+    "stage": "CLOUD09C",
+    "state": "RECORDED_DEV_RESERVATION_MAINTENANCE_APPLIED_WRITE_CLOSED",
+    "registry": "supabase/cloud/reservation-maintenance-dev/adoption.json",
+    "planManifest": "c53c3d2197ac30ea7786e78a85b803393f003bb1f317e8b70994f31d40720913",
+    "planSha256": "b3dd9bd3ec3b1fc3f19f026fadd6cc25b117dd78d08b088ae928333dc6a43b80",
+    "recordedOfficialHistoryRows": 7,
+    "recordedCatalogHead": 2,
+    "recordedCompanies": 339,
+    "recordedHolds": 341,
+    "recordedRelations": 72,
+    "recordedDataTables": 71,
+    "recordedFunctions": 177,
+    "recordedFingerprint71": "031743b951ec9b2261667e34db617c2d9ddd3d2fd7351d7d0532ef32dfe6bb1f",
+    "cronMustRemainAbsentUntilGenuineProof": true,
+    "cronInstallationIsGatedQaSemanticChange": true,
+    "futurePreflightsMustRecheckCronAbsence": true,
+    "liveVerified": false,
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "historicalAuthNamespaceInvariant": "NOT_ESTABLISHED_NO_PRE_APPLY_PROJECTION",
+    "supersedes": [
+      "docs/development-status.json#cloudSearchInstallation",
+      "supabase/cloud/search-installation-dev/adoption.json#snapshots.devScope66_S"
+    ]
   }
 }

@@ -22,3 +22,6 @@ apps/admin/next-env.d.ts -text -filter -ident
 supabase/migrations/20261115000046_reservation_foundation.sql -text -filter -ident
 supabase/migrations/20261115000047_reservation_operations.sql -text -filter -ident
 supabase/migrations/20261115000048_maintenance_cron.sql -text -filter -ident
+
+# Recorded CLOUD09B source binds exact mixed CRLF bytes.
+supabase/cloud/reservation-maintenance-dev/archive/20261116000105_cloud09a_reservation_maintenance_disabled.sql -text -filter -ident
