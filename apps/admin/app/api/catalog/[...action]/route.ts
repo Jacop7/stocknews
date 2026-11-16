@@ -1,3 +1,5 @@
+import {adminJson} from '../../../../lib/admin-request.mjs';
+import {adminCookie,assertAdminRequest} from '../../../../lib/admin-profile.mjs';
 import {NextRequest,NextResponse} from 'next/server';
 import {AdminError,assertWrite,editorRpc,session} from '../../../../lib/runtime.mjs';
 export const runtime='nodejs';export const dynamic='force-dynamic';
@@ -5,8 +7,8 @@ const reply=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{'
 const integer=(v:string|null,fallback:number,max:number)=>{if(v===null)return fallback;if(!/^\d{1,6}$/.test(v)||Number(v)>max)throw new AdminError('INVALID_PARAMETER');return Number(v);};
 const allowed=(p:URLSearchParams,keys:string[])=>{const actual=[...p.keys()];if(actual.some(k=>!keys.includes(k))||new Set(actual).size!==actual.length)throw new AdminError('INVALID_PARAMETER');};
 export async function GET(request:NextRequest,{params}:{params:Promise<{action:string[]}>}){
- try{
-  const s=await session(request.cookies.get('judoju_admin_session')?.value),name=(await params).action.join('/'),p=request.nextUrl.searchParams;
+ try{assertAdminRequest(request.headers,'catalog');
+  const s=await session(request.cookies.get(adminCookie())?.value),name=(await params).action.join('/'),p=request.nextUrl.searchParams;
   if(request.url.length>8192)throw new AdminError('REQUEST_TOO_LARGE',413);
   if(name==='summary'){allowed(p,['offset','limit']);return reply(await editorRpc('catalog_editor_index',{p_offset:integer(p.get('offset'),0,100000),p_limit:integer(p.get('limit'),100,200)},s));}
   if(name==='tree'){allowed(p,[]);return reply(await editorRpc('catalog_editor_tree',{},s));}
@@ -19,12 +21,11 @@ export async function GET(request:NextRequest,{params}:{params:Promise<{action:s
  }catch(e){return reply({error:e instanceof AdminError?e.message:'REQUEST_FAILED'},e instanceof AdminError?e.status:500);}
 }
 export async function POST(request:NextRequest,{params}:{params:Promise<{action:string[]}>}){
- try{
+ try{assertAdminRequest(request.headers,'catalog');
   assertWrite(request.headers,undefined,undefined);
   if(Number(request.headers.get('content-length')??0)>131072)throw new AdminError('REQUEST_TOO_LARGE',413);
-  const raw=await request.text();if(Buffer.byteLength(raw)>131072)throw new AdminError('REQUEST_TOO_LARGE',413);
-  let data;try{data=JSON.parse(raw);}catch{throw new AdminError('INVALID_JSON');}
-  const s=await session(request.cookies.get('judoju_admin_session')?.value);assertWrite(request.headers,s.csrf,request.headers.get('x-csrf-token'));
+  const s=await session(request.cookies.get(adminCookie())?.value);assertWrite(request.headers,s.csrf,request.headers.get('x-csrf-token'));
+  const data=await adminJson(request);
   const name=(await params).action.join('/');
   if(!data||Array.isArray(data)||typeof data!=='object')throw new AdminError('INVALID_CATALOG_REQUEST');
   if(name==='impact'){

@@ -1,0 +1,15 @@
+{
+  "stage": "CLOUD11A",
+  "state": "PLAN_DUAL_READY_SOURCE_PREPARATION_ONLY",
+  "baseCommit": "99a83e6f6407fb2dd42a1df373f9b1be201ba559",
+  "planManifest": "ee22b5fecd7133d57ff7e47a758e1853a0ec730caf0bbcd3b822fc7368e663a7",
+  "planSha256": "99089fd68b23896443b132216cb7e0c5348c3ae67a83407cf415b3e74298ea50",
+  "claudeKey": "d605811b6f40f24630d4d511f54210daff5773b89c87bca374e689c833bad715",
+  "codexKey": "060bff80ca37ee8c672d36cb7a366f39e92c6acd94dd777e470a0d9de7e11c2b",
+  "remoteMutationsAuthorized": false,
+  "actualKeysRead": 0,
+  "ownerAccountCreated": false,
+  "adminConnected": false,
+  "workerConnected": false,
+  "M2": false
+}

@@ -492,5 +492,17 @@
       "freshDefinitionsRequired": true,
       "holdOnInsufficientBoundary": true
     }
+  },
+  "cloudAdminPreviewPreparation": {
+    "stage": "CLOUD11A",
+    "state": "SOURCE_AND_ISOLATED_TEST_PREPARATION_NOT_ACTIVATED",
+    "planManifest": "ee22b5fecd7133d57ff7e47a758e1853a0ec730caf0bbcd3b822fc7368e663a7",
+    "registry": "supabase/cloud/admin-preview-dev/preparation.json",
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "adminConnected": false,
+    "workerConnected": false,
+    "M2": false,
+    "iPhone": "USER_DEFERRED"
   }
 }

@@ -8,7 +8,10 @@ import { spawnSync } from 'node:child_process';
 const root = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const status = JSON.parse(readFileSync(path.join(root, 'docs/development-status.json'), 'utf8'));
 const stage = status.currentStage;
-if(status.cloudPublicReadActivationPreparation?.stage==='CLOUD10B'){
+if(status.cloudAdminPreviewPreparation?.stage==='CLOUD11A'){
+  await import('./verify-cloud11a-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.cloudPublicReadActivationPreparation?.stage==='CLOUD10B'){
   await import('./verify-cloud10b-foundation.mjs');
   await import('./verify-stage3-providers.mjs');
 } else if(status.cloudPreviewReadPreparation?.stage==='CLOUD10A'){
