@@ -1,13 +1,13 @@
 import { useCallback,useEffect,useRef,useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-const base=process.env.EXPO_PUBLIC_READ_API_URL??'http://127.0.0.1:62330';
+import {resolveReadTarget} from './read-target';
 export class PublicReadError extends Error{constructor(message:string,public status:number,public retryAt=0){super(message);}}
 export async function publicRead<T>(path:string,signal:AbortSignal):Promise<T>{
- if(!/^http:\/\/(127\.0\.0\.1|192\.168\.200\.132):62330$/.test(base))throw new Error('공개 개발 API 주소를 확인해 주세요.');
- const r=await fetch(base+path,{signal,credentials:'omit',headers:{Accept:'application/json','Cache-Control':'no-cache'}});
+ const target=resolveReadTarget({base:process.env.EXPO_PUBLIC_READ_API_URL,mode:process.env.EXPO_PUBLIC_READ_MODE,environment:process.env.EXPO_PUBLIC_APP_ENV});
+ const r=await fetch(target.url+path,{signal,credentials:'omit',headers:{Accept:'application/json','Cache-Control':'no-cache'}});
  if(!r.ok){const raw=r.headers.get('Retry-After'),seconds=raw&&/^\d+$/.test(raw)?Number(raw):1;throw new PublicReadError(r.status===409?'분류 또는 기간이 바뀌었습니다. 첫 페이지부터 다시 확인해 주세요.':r.status===429?'요청이 많습니다. 잠시 후 다시 확인해 주세요.':'공개 데이터를 확인할 수 없습니다.',r.status,r.status===429?Date.now()+Math.max(1,Math.min(seconds,60))*1000:0);}
- const value=await r.json();if(value.productId!=='judoju-news'||value.mode!=='LOCAL_SYNTHETIC'||!Object.hasOwn(value,'data'))throw new Error('개발 데이터 형식이 올바르지 않습니다.');
+ const value=await r.json();if(value.productId!=='judoju-news'||value.mode!==target.mode||!Object.hasOwn(value,'data'))throw new Error('개발 데이터 형식이 올바르지 않습니다.');
  return value.data as T;
 }
 export function usePublicRead<T>(path:string|null){

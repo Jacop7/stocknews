@@ -427,5 +427,38 @@
       "docs/development-status.json#cloudSearchInstallation",
       "supabase/cloud/search-installation-dev/adoption.json#snapshots.devScope66_S"
     ]
+  },
+  "cloudPreviewReadPreparation": {
+    "stage": "CLOUD10A",
+    "state": "OFFLINE_PREVIEW_READ_PREPARED_NOT_ACTIVATED",
+    "registry": "supabase/cloud/public-read-preview/preparation.json",
+    "planManifest": "b4848089feab67c58e517dfe9f8990c51610cd38939aca9e92c26d0afbf4aa61",
+    "planSha256": "fda1ad95a5abd4cfcc4cb685adc49936e32d5a16021ebcd552e436a50ec5abaf",
+    "liveVerified": false,
+    "appConnected": false,
+    "adminConnected": false,
+    "workerConnected": false,
+    "remoteDatabaseRequests": 0,
+    "actualKeysRead": 0,
+    "actualApiOrGrantsActivated": false,
+    "futureAccessGate": {
+      "stage": "CLOUD10B",
+      "separatePlanImplementationDualAndConcreteUserApprovalRequired": true,
+      "directSupabaseRpcBypassMustBeAssessed": true,
+      "effectiveAclInventoryRequired": [
+        "schemas",
+        "relations",
+        "sequences",
+        "functions",
+        "PUBLIC",
+        "anon",
+        "authenticated"
+      ],
+      "onlyNineApplicationRpcExceptions": true,
+      "managedRlsAutoEnableBaselineMustBeExplicitlyJustified": true,
+      "directRpcBoundsTimeoutAbuseCostAssessmentRequired": true,
+      "freshDefinitionsRequired": true,
+      "holdOnInsufficientBoundary": true
+    }
   }
 }
