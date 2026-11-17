@@ -529,5 +529,15 @@
     "adminConnected": false,
     "workerConnected": false,
     "M2": false
+  },
+  "mainAiMetadataPreparation": {
+    "stage": "MAIN_AI_A1",
+    "state": "SYNTHETIC_PROPOSAL_GATE_NOT_ACTIVATED",
+    "planManifest": "feff4625809a08204045c8d36ef820b3bfe10c4b1f21cbec942f11662a03893f",
+    "actualModelCalls": 0,
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }

@@ -1,0 +1,24 @@
+{
+  "stage": "MAIN_AI_A1",
+  "state": "SYNTHETIC_PROPOSAL_GATE_NOT_ACTIVATED",
+  "planManifest": "feff4625809a08204045c8d36ef820b3bfe10c4b1f21cbec942f11662a03893f",
+  "actualModelCalls": 0,
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "workerConnected": false,
+  "M2": false,
+  "sourcePins": {
+    "AGENTS.md": "56171a69ec564c88c91ba618226d59c544cccb9ddde240fc6f498ac2a5e872d3",
+    "docs/development-status.json": "512cafa8ed72dcb581c9feeb3af11c419d98af387ac6092526c527594b1db525",
+    "docs/stages/stage-main-ai-a1-baseline.json": "aba1819692165926fba0d2235d9be309efe65c53ef130d474b2bd93fbf928d0f",
+    "docs/stages/stage-main-ai-a1-notes.md": "681186337e9e1b63e807f89628f430bcd31738a523b617b066fbd1d1ab6cbf0e",
+    "docs/stages/stage-main-ai-a1-plan.md": "3294f14e5b4e02acf990bd54b98916e4b60a1d0aeec9c6adaf61d8785ae18e89",
+    "package.json": "40d98191e53e1eecf4b11cf2a2465b3159ea96c90fed585a29ba5f355cc4bc2c",
+    "scripts/verify-foundation.mjs": "a0d63d14b29ce65efad2ad8232af94eeab17a0f54698db1c994ddcde6b948fd9",
+    "scripts/verify-main-ai-a1-foundation.mjs": "316d6c7ae6a16753804c899c032bc1270f4d95f60dcafc4b80c5446ae8698bcc",
+    "scripts/verify.mjs": "2220d8e176d30542279859036d712c3c3f298b7130073af2d4b41a1487ff4a89",
+    "tests/ai-metadata-intake.test.ts": "bd585279a2515fa96029b1bee6d55500cc9aff94b98e07d099978edb84909dd7",
+    "workers/ai-processing/src/metadata-intake.ts": "70ff1967b3276329c1c322333991b28ab29fccfa8ed47621b920dae834e7aba3",
+    "workers/ai-processing/tsconfig.json": "88020c5d0c639e9fca3c8cc0425dc6233bbb30b14c5a0cb5dcb7d7530d4b788f"
+  }
+}
