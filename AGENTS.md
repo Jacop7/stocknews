@@ -25,3 +25,5 @@
 - MAIN_PARALLEL_P3는 MAIN이 AI 입력·관리자 수명 처리를 직접 작성하고 기존 collector/home 작성자가 지정 네 파일만 작성한다. 실제 연결 없는 OFFLINE_REPLAY 경계이며 권한·현재 관측은 fixture assertion이다. MAIN만 전체 통합·검수·Git을 수행하고 실제 수집/AI/DB/권한/게시/원격 실행기를 활성화하지 않는다. 기존 계획·검수·회차와 미해결 P3는 보존한다.
 
 - MAIN_ADMIN_C1B는 MAIN 직접 관리자 host·fixture 설정 writer·소유 Windows Job 준비다. 실제 loader는 private I/O 전 비활성화하고 official framework 실행은 metadata 환경 경계와 controlled env를 먼저 적용한다. ACTUAL/Auth/DB/권한/게시/worker를 활성화하지 않으며 전체 native 시험·DUAL·백업 후 커밋한다. 기존 P3·원격 HOLD와 운영상 격리 한계를 유지한다.
+
+- MAIN_PARALLEL_P4는 검수된 별도 collector 8개·HOME 6개 신규 소스와 MAIN 직접 AI bridge·통합 8개 신규/기존 5개 공통 파일만 작성한다. 두 담당은 지정 소스와 시험 작성만 수행하고 MAIN이 전체 시험·새 독립 합성 PostgreSQL 자원·통합 검수·Git을 맡는다. 각 DB의 현재 읽기와 역사 receipt를 구별하며 물리 COMMIT 시각 권한·산식 인증·교차 worker 원자성을 보증하지 않는다. 실제 사이트/텔레그램/외부 AI/게시/Auth/hosted DB/운영 worker와 관리자 C2는 활성화하지 않는다. 기존 source·검사·미해결 P3·원격 HOLD 및 회차를 유지한다. 읽기 제한 지시는 OS sandbox 증명이 아니다.

@@ -594,5 +594,19 @@
     "DBMutations": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "parallelDurablePreparation": {
+    "stage": "MAIN_PARALLEL_P4",
+    "state": "SYNTHETIC_DB_SOURCE_IMPLEMENTATION_NOT_ACTIVATED",
+    "planManifest": "ac4c335429a4f28622db3715fd9a3bacc44bc9d9e7e7d2c5f650c63a9ecd3542",
+    "productAiProcessingCalls": 0,
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "actualAuthCalls": 0,
+    "workerConnected": false,
+    "adminConnected": false,
+    "M2": false,
+    "crossWorkerAtomicityProven": false,
+    "physicalCommitTimeQualificationProven": false
   }
 }

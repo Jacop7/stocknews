@@ -71,7 +71,11 @@
     "check:home-ranking": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json",
     "test:admin-preview-config-writer": "node --test tests/admin-preview-config-writer.test.mjs",
     "test:admin-preview-supervisor": "node --test tests/admin-preview-supervisor.test.mjs",
-    "test:admin-preview-host": "node --test tests/admin-preview-host.test.mjs"
+    "test:admin-preview-host": "node --test tests/admin-preview-host.test.mjs",
+    "test:collector-db-capture": "node --experimental-strip-types --test tests/collector-db-capture-v1.test.ts",
+    "test:home-database-bound": "node --experimental-strip-types --test tests/home-database-bound.test.ts",
+    "test:durable-analysis-input": "node --experimental-strip-types --test tests/durable-analysis-input.test.ts",
+    "test:parallel-p4-db": "node --experimental-strip-types scripts/test-main-p4-integration.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
