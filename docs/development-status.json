@@ -539,5 +539,15 @@
     "actualRemoteRequests": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "sourceReceiptPreparation": {
+    "stage": "MAIN_SOURCE_R1",
+    "state": "SYNTHETIC_SOURCE_RECEIPTS_NOT_ACTIVATED",
+    "planManifest": "fef3284de4f192ad07ac54fd4d527464488207bdf58f1d6cb2eca954cb5c23dd",
+    "actualModelCalls": 0,
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }

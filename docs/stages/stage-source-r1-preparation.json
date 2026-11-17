@@ -1,0 +1,24 @@
+{
+  "stage": "MAIN_SOURCE_R1",
+  "state": "SYNTHETIC_SOURCE_RECEIPTS_NOT_ACTIVATED",
+  "planManifest": "fef3284de4f192ad07ac54fd4d527464488207bdf58f1d6cb2eca954cb5c23dd",
+  "actualModelCalls": 0,
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "workerConnected": false,
+  "M2": false,
+  "sourcePins": {
+    "AGENTS.md": "42f0ddc164d6d0a1a67a13036f63e326f59446e5c53b2ce1079a36b21c2df61a",
+    "docs/development-status.json": "bbf8ef362b483bbf72c66d33c5f17ad37215819eb3a7d97bc578e7fbcc6d5156",
+    "docs/stages/stage-source-r1-baseline.json": "4354bad59814ac8bb36a9ddf998408004662aa8b1be56b56605c3b8c1238f6ee",
+    "docs/stages/stage-source-r1-notes.md": "b0321e09f47b09f9140726423466d6855157a500f9e0fb231c21b7f714712133",
+    "docs/stages/stage-source-r1-plan.md": "35a32b98fdd4ab307fe8463761738e5db76b5f4b9b3c5508d997eff6452d3766",
+    "package.json": "60086f9b11fa5246ce9861a8996f3ffb1767291c9d3cd79a6873bf63529ea183",
+    "scripts/verify-foundation.mjs": "3b87cb6eb2fc78a36acf6d69fa4ed58c168d3988e3264e35dd23d2eeb7f38c77",
+    "scripts/verify-source-r1-foundation.mjs": "1751f7bcbad15ec470e27b4ae8ef7bd6d944175c36b62b4fc17491eb1f2fe9bc",
+    "scripts/verify.mjs": "9a97eaa2becf6ba96ec3f81ecf5bdef13cb22634e7ae7dd1a89d8b753cb224c8",
+    "tests/source-receipts.test.ts": "defc8b0087993015111788e9532a6042f3a8ba1ca6917436fddbdc9366b5de63",
+    "workers/collectors/src/source-receipts.ts": "1feaa26047a50d8e2173f2f3de2d94a12bbf6c3b70ec7bf213cdfc41b8964ece",
+    "workers/collectors/tsconfig.json": "c4f1bf11134fe86863bc90288cb4a952905a0c2958fe1392ea65a9f7ffa5cc87"
+  }
+}
