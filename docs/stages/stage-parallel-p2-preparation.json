@@ -1,0 +1,31 @@
+{
+  "stage": "MAIN_PARALLEL_P2",
+  "state": "SYNTHETIC_PARALLEL_SOURCE_NOT_ACTIVATED",
+  "planManifest": "1db88485984ccca127487711116b5ef648295db9a5f77f586266ec1aad2d1ef5",
+  "productAiProcessingCalls": 0,
+  "developmentAuthorInvocations": 2,
+  "developmentModelRequestCount": "UNMEASURED",
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "workerConnected": false,
+  "M2": false,
+  "sourcePins": {
+    "AGENTS.md": "0e7c82385a3b386db9f4e07c757d86234efcb7f838bf6ac28a05cd4ab177ec59",
+    "docs/development-status.json": "410901318b4cb3c2c406347af2c2c18b0601584b7f8ae6f10bf26cd960fb623b",
+    "docs/stages/stage-parallel-p2-baseline.json": "4fbcf69b291f02647d94385b0f76cf33953a8a67c459bfac666c5f3f11ab2f49",
+    "docs/stages/stage-parallel-p2-notes.md": "cd892183604ff33f6dd8d26dac648639a90c33306b7ebff0c97d0cc6c4672046",
+    "docs/stages/stage-parallel-p2-plan.md": "cf33482664958fdde0d7920017ee5d96c5f1af036cc5bbfe049c545a75bc2aca",
+    "package.json": "a1d472b3db9fcf92983ce59117e0c501ec994d412f372b248e4983715d5a8948",
+    "packages/contracts/src/rankable-batch.ts": "7ee2bf5d445de0c8d183b8cd255755694a236ad1d725a3f7652aad063d159a35",
+    "scripts/verify-foundation.mjs": "5fbdd211d486e42c4f5bfc4254802e3f5c9e9141810bcc9936f2c037adefbbe9",
+    "scripts/verify-parallel-p2-foundation.mjs": "ee7e1dceb9f43f6cefc4158822cc4743f8c1ce4665929e7f025e50b43bd6bcbc",
+    "scripts/verify.mjs": "913f72c44f9ea56602d0c7eb7375484a3a11453c3c98819841b961dea697ab28",
+    "tests/collector-partition-journal.test.ts": "f371bbc085fa53b9d5e48ba5f844a25dfcda13f632529edc894af38e7843b30e",
+    "tests/event-routing.test.ts": "e0d39cbb30707ac50a994cfdaae504aae418142dfb07dc4b564601d6475bc137",
+    "tests/rankable-batch.test.ts": "e1bb9e855746fdb0fdc666dceb82f7f82c0bfe3598a4e8485bc09d487a6e1f23",
+    "workers/ai-processing/src/event-routing.ts": "65995f4f85f3d52b501dd05546ba383b3f72b1a145efe4f0821512a546842bdd",
+    "workers/collectors/src/partition-contracts.ts": "86e0015c0ff2e4579f2e5d920be5af1d18b9f512ad8410ae80b3d93fb12be5db",
+    "workers/collectors/src/partition-journal.ts": "cbaeea596129974e492a497e7f30ea518e8b87b8e4e8c5126485603f2cef88d6",
+    "workers/home-ranking/src/rankable-adapter.ts": "eac1c79f745acefd03179781429cd0f779a8e0c384e238e1c864593c33f521c1"
+  }
+}

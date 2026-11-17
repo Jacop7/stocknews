@@ -60,7 +60,10 @@
     "test:acquisition": "node --experimental-strip-types --test tests/acquisition-store.test.ts",
     "test:collector-inventory": "node --experimental-strip-types --test tests/collector-inventory.test.ts",
     "test:home-worker-adapter": "node --experimental-strip-types --test tests/home-worker-adapter.test.ts",
-    "check:home-worker-adapter": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json"
+    "check:home-worker-adapter": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json",
+    "test:collector-partition": "node --experimental-strip-types --test tests/collector-partition-journal.test.ts",
+    "test:rankable-batch": "node node_modules/typescript/bin/tsc --noEmit --target ES2022 --lib ES2022,DOM --module NodeNext --moduleResolution NodeNext --strict --allowImportingTsExtensions --skipLibCheck --verbatimModuleSyntax workers/home-ranking/src/rankable-adapter.ts && node --experimental-strip-types --test tests/rankable-batch.test.ts",
+    "test:event-routing": "node --experimental-strip-types --test tests/event-routing.test.ts"
   },
   "devDependencies": {
     "supabase": "3.1.0",

@@ -559,5 +559,17 @@
     "actualRemoteRequests": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "parallelProgressBinding": {
+    "stage": "MAIN_PARALLEL_P2",
+    "state": "SYNTHETIC_PARALLEL_SOURCE_NOT_ACTIVATED",
+    "planManifest": "1db88485984ccca127487711116b5ef648295db9a5f77f586266ec1aad2d1ef5",
+    "productAiProcessingCalls": 0,
+    "developmentAuthorInvocations": 2,
+    "developmentModelRequestCount": "UNMEASURED",
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }
