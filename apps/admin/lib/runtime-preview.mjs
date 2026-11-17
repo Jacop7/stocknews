@@ -106,7 +106,7 @@ export function createPreviewRuntime({loadConfig=loadPreviewAdminConfig,fetcher=
     record(failure,state);if(failure)throw failure;
   }
   function assertWrite(headers,csrf,provided){
-    if(headers.get('host')!=='127.0.0.1:62333'||headers.get('origin')!=='http://127.0.0.1:62333'||headers.get('content-type')?.split(';')[0]!=='application/json')deny('ORIGIN_OR_CONTENT_TYPE_REJECTED');
+    if(headers.get('host')!=='127.0.0.2:62333'||headers.get('origin')!=='http://127.0.0.2:62333'||headers.get('content-type')?.split(';')[0]!=='application/json')deny('ORIGIN_OR_CONTENT_TYPE_REJECTED');
     if(csrf!==undefined&&(typeof csrf!=='string'||typeof provided!=='string'||Buffer.byteLength(csrf)!==Buffer.byteLength(provided)||!timingSafeEqual(Buffer.from(csrf),Buffer.from(provided))))deny('CSRF_REJECTED');
   }
   return Object.freeze({config,serverRpc,editorRpc,assertFingerprint,login,session,logout,assertWrite,diagnostics:()=>lastLifecycle===null?null:Object.freeze({...lastLifecycle})});

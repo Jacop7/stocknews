@@ -15,7 +15,7 @@ function fixture(){
  const root=mkdtempSync(path.join(os.tmpdir(),'judoju-cloud11a-'));
  const privateDir=path.join(root,'.local-data/cloud-admin');mkdirSync(privateDir,{recursive:true});writeFileSync(path.join(root,'package.json'),JSON.stringify({name:'@judoju/news'}));
  const owner=randomUUID(),now=Date.now(),proof={schemaVersion:1,stage:'CLOUD11A',state:'ADMIN_CONNECTION_ACTIVATED',productId:'judoju-news',projectRef:previewProject,organizationRef:'qfzgicohgpuogehdyzfx',ownerUserId:owner,fixture:true,approvedAt:new Date(now-1000).toISOString(),expiresAt:new Date(now+3600000).toISOString(),activationDecisionSha256:'a'.repeat(64),implementationManifestSha256:'b'.repeat(64),sqlSha256:'c'.repeat(64),M2:false,realPublicationEnabled:false,workerEnabled:false,editorFunctions,serverFunctions};
- const config={schemaVersion:1,productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',projectRef:previewProject,apiUrl:previewApi,origin:'http://127.0.0.1:62333',ownerUserId:owner,publishableKey:'FIXTURE_PUBLISHABLE',secretKey:'FIXTURE_SECRET',encryptionKey:'d'.repeat(64),fixture:true};
+ const config={schemaVersion:1,productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',projectRef:previewProject,apiUrl:previewApi,origin:'http://127.0.0.2:62333',ownerUserId:owner,publishableKey:'FIXTURE_PUBLISHABLE',secretKey:'FIXTURE_SECRET',encryptionKey:'d'.repeat(64),fixture:true};
  function save(){const b=Buffer.from(JSON.stringify(proof));writeFileSync(path.join(privateDir,'activation-proof.json'),b);writeFileSync(path.join(privateDir,'admin-server.json'),JSON.stringify({...config,proofSha256:hash(b)}));}
  save();
  function cleanup(){const target=path.resolve(root),parent=path.resolve(os.tmpdir());assert.equal(path.dirname(target),parent);assert.ok(path.basename(target).startsWith('judoju-cloud11a-'));assert.ok(lstatSync(target).isDirectory()&&!lstatSync(target).isSymbolicLink());rmSync(target,{recursive:true});}
@@ -120,7 +120,7 @@ test('response parsing bounds and safe errors; unknown write result remains not-
 test('profile/cookie, exact Host/Origin, CSRF and disabled preview feature gates',()=>{
  const old=process.env.JUDOJU_ADMIN_PROFILE;try{
   process.env.JUDOJU_ADMIN_PROFILE='preview';assert.equal(adminProfile(),'preview');assert.equal(adminCookie(),'judoju_admin_preview_session');
-  const h=new Headers({host:'127.0.0.1:62333',origin:'http://127.0.0.1:62333','content-type':'application/json'}),r=createPreviewRuntime();
+  const h=new Headers({host:'127.0.0.2:62333',origin:'http://127.0.0.2:62333','content-type':'application/json'}),r=createPreviewRuntime();
   assert.doesNotThrow(()=>assertAdminRequest(h,'editor'));assert.doesNotThrow(()=>r.assertWrite(h,'abc','abc'));
   for(const feature of ['analytics','installations','reservations','ranking','sources','settings'])assert.throws(()=>assertAdminRequest(h,feature),/PREVIEW_FEATURE_NOT_CONNECTED/);
   for(const key of ['host','origin','content-type']){const bad=new Headers(h);bad.set(key,'untrusted');assert.throws(()=>r.assertWrite(bad,'abc','abc'),/ORIGIN_OR_CONTENT_TYPE_REJECTED/);}

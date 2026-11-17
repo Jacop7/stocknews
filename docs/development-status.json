@@ -583,5 +583,16 @@
     "actualRemoteRequests": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "adminC1bPreparation": {
+    "stage": "MAIN_ADMIN_C1B",
+    "state": "HOST_FIXTURE_SUPERVISOR_NOT_ACTIVATED",
+    "planManifest": "96c4cf288eb1d3af5d84cedacb604293a46177f4dc45cf333941c7bfdb52214e",
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "actualAuthCalls": 0,
+    "DBMutations": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }

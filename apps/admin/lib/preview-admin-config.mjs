@@ -1,7 +1,8 @@
-// Server only. Actual configuration is read only when an activated runtime calls it.
+// Server only. C1B ACTUAL stays source-harddisabled before any private file I/O.
 import {readFileSync,lstatSync,realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import {nativeBoundary} from './preview-file-boundary.mjs';
 import {AdminError} from './runtime-local.mjs';
 export const previewProject='nxfpfvsdwbziowkxsxnh';
 export const previewApi='https://'+previewProject+'.supabase.co';
@@ -32,11 +33,16 @@ function regular(root,relative,max){
 }
 function read(root,fixture){
   try{
-    if(JSON.parse(regular(root,'package.json',32768)).name!=='@judoju/news')fail();
-    const proofBytes=regular(root,'.local-data/cloud-admin/activation-proof.json',65536),p=JSON.parse(proofBytes);
-    const c=JSON.parse(regular(root,'.local-data/cloud-admin/admin-server.json',16384));
+    const nativeFiles=fixture&&process.platform==='win32'?nativeBoundary('ReadFixture',{root}).files:null;
+    const readOwned=(relative,max)=>{
+      const bytes=nativeFiles?Buffer.from(nativeFiles[relative],'base64'):regular(root,relative,max);
+      if(bytes.length>max)fail();return bytes;
+    };
+    if(JSON.parse(readOwned('package.json',32768)).name!=='@judoju/news')fail();
+    const proofBytes=readOwned('.local-data/cloud-admin/activation-proof.json',65536),p=JSON.parse(proofBytes);
+    const c=JSON.parse(readOwned('.local-data/cloud-admin/admin-server.json',16384));
     const expected=['schemaVersion','productId','environment','sampleKind','projectRef','apiUrl','origin','ownerUserId','publishableKey','secretKey','encryptionKey','proofSha256','fixture'].sort();
-    if(Object.keys(c).sort().join('|')!==expected.join('|')||c.schemaVersion!==1||c.productId!=='judoju-news'||c.environment!=='preview'||c.sampleKind!=='SYNTHETIC'||c.projectRef!==previewProject||c.apiUrl!==previewApi||c.origin!=='http://127.0.0.1:62333'||c.fixture!==fixture||!uuid.test(c.ownerUserId??'')||!hex.test(c.encryptionKey??'')||c.proofSha256!==digest(proofBytes))fail();
+    if(Object.keys(c).sort().join('|')!==expected.join('|')||c.schemaVersion!==1||c.productId!=='judoju-news'||c.environment!=='preview'||c.sampleKind!=='SYNTHETIC'||c.projectRef!==previewProject||c.apiUrl!==previewApi||c.origin!=='http://127.0.0.2:62333'||c.fixture!==fixture||!uuid.test(c.ownerUserId??'')||!hex.test(c.encryptionKey??'')||c.proofSha256!==digest(proofBytes))fail();
     if(fixture?c.publishableKey!=='FIXTURE_PUBLISHABLE'||c.secretKey!=='FIXTURE_SECRET':!/^sb_publishable_[A-Za-z0-9_-]+$/.test(c.publishableKey??'')||!/^sb_secret_[A-Za-z0-9_-]+$/.test(c.secretKey??''))fail();
     const approved=Date.parse(p.approvedAt),expires=Date.parse(p.expiresAt);
     if(p.schemaVersion!==1||p.stage!=='CLOUD11A'||p.state!=='ADMIN_CONNECTION_ACTIVATED'||p.productId!=='judoju-news'||p.projectRef!==previewProject||p.organizationRef!=='qfzgicohgpuogehdyzfx'||p.ownerUserId!==c.ownerUserId||p.fixture!==fixture||!hex.test(p.activationDecisionSha256??'')||!hex.test(p.implementationManifestSha256??'')||!hex.test(p.sqlSha256??'')||p.M2!==false||p.realPublicationEnabled!==false||p.workerEnabled!==false||!Number.isFinite(approved)||!Number.isFinite(expires)||approved>Date.now()||expires<=Date.now()||expires-approved>86400000||JSON.stringify(p.editorFunctions)!==JSON.stringify(editorFunctions)||JSON.stringify(p.serverFunctions)!==JSON.stringify(serverFunctions))fail();
@@ -44,7 +50,7 @@ function read(root,fixture){
     (fixture?fixtureConfigs:actualConfigs).add(result);return result;
   }catch{fail();}
 }
-export function loadPreviewAdminConfig(){return read(productRoot(),false);}
+export function loadPreviewAdminConfig(){fail();}
 // Trusted fixture loader only, not an authentication sandbox. Default network rejects its results.
 export function loadPreviewAdminFixture(root){
   if(path.resolve(root)===path.resolve(productRoot()))fail();

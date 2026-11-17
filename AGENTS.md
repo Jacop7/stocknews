@@ -23,3 +23,5 @@
 - MAIN_PARALLEL_P2는 기존 native collector/home 담당의 정확 신규 세 파일과 MAIN event-routing 두 파일을 병렬 구현한다. partition checkpoint는 source K1과 별개인 합성 journal이고, 게시/근거 binding과 semantic delta는 fixture assertion이다. 실제 수집·AI 검증·게시·DB·Router/원격3회 재시도를 활성화하지 않는다. 기존 P1 경계와 운영상 읽기 제한·MAIN 통합 책임을 그대로 유지한다.
 
 - MAIN_PARALLEL_P3는 MAIN이 AI 입력·관리자 수명 처리를 직접 작성하고 기존 collector/home 작성자가 지정 네 파일만 작성한다. 실제 연결 없는 OFFLINE_REPLAY 경계이며 권한·현재 관측은 fixture assertion이다. MAIN만 전체 통합·검수·Git을 수행하고 실제 수집/AI/DB/권한/게시/원격 실행기를 활성화하지 않는다. 기존 계획·검수·회차와 미해결 P3는 보존한다.
+
+- MAIN_ADMIN_C1B는 MAIN 직접 관리자 host·fixture 설정 writer·소유 Windows Job 준비다. 실제 loader는 private I/O 전 비활성화하고 official framework 실행은 metadata 환경 경계와 controlled env를 먼저 적용한다. ACTUAL/Auth/DB/권한/게시/worker를 활성화하지 않으며 전체 native 시험·DUAL·백업 후 커밋한다. 기존 P3·원격 HOLD와 운영상 격리 한계를 유지한다.

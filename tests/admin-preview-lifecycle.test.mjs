@@ -29,7 +29,7 @@ function fixture(t,intercept=()=>undefined){
   const owner=randomUUID(),authSession=randomUUID(),wall=Date.now(),clock=new Clock();
   const proof={schemaVersion:1,stage:'CLOUD11A',state:'ADMIN_CONNECTION_ACTIVATED',productId:'judoju-news',projectRef:previewProject,organizationRef:'qfzgicohgpuogehdyzfx',ownerUserId:owner,fixture:true,approvedAt:new Date(wall-1000).toISOString(),expiresAt:new Date(wall+3600000).toISOString(),activationDecisionSha256:'a'.repeat(64),implementationManifestSha256:'b'.repeat(64),sqlSha256:'c'.repeat(64),M2:false,realPublicationEnabled:false,workerEnabled:false,editorFunctions,serverFunctions};
   const proofBytes=Buffer.from(JSON.stringify(proof));writeFileSync(path.join(priv,'activation-proof.json'),proofBytes);
-  writeFileSync(path.join(priv,'admin-server.json'),JSON.stringify({schemaVersion:1,productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',projectRef:previewProject,apiUrl:previewApi,origin:'http://127.0.0.1:62333',ownerUserId:owner,publishableKey:'FIXTURE_PUBLISHABLE',secretKey:'FIXTURE_SECRET',encryptionKey:'d'.repeat(64),fixture:true,proofSha256:digest(proofBytes)}));
+  writeFileSync(path.join(priv,'admin-server.json'),JSON.stringify({schemaVersion:1,productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',projectRef:previewProject,apiUrl:previewApi,origin:'http://127.0.0.2:62333',ownerUserId:owner,publishableKey:'FIXTURE_PUBLISHABLE',secretKey:'FIXTURE_SECRET',encryptionKey:'d'.repeat(64),fixture:true,proofSha256:digest(proofBytes)}));
   const token=['FIXTURE',Buffer.from(JSON.stringify({iss:previewApi+'/auth/v1',aud:'authenticated',role:'authenticated',sub:owner,session_id:authSession,exp:Math.floor(wall/1000)+1800})).toString('base64url'),'FIXTURE'].join('.');
   const calls=[],rows=new Map();
   const answer=(body={},status=200)=>new Response(JSON.stringify(body),{status});
@@ -147,7 +147,7 @@ test('actual editor route clears cookie on started logout failure only (VM runti
       '../../../../lib/runtime.mjs':{AdminError,login(){throw Error('NOT_LOGIN');},editorRpc(){throw Error('NOT_WRITE');},session:async()=>{if(mode==='session')throw new AdminError('LOGIN_REQUIRED',401);return {csrf:'fixture_csrf'};},assertWrite:(headers,csrf,provided)=>{if(csrf!==undefined&&csrf!==provided)throw new AdminError('CSRF_REJECTED',403);},logout:async()=>{logoutCalls++;if(mode==='close-failure')throw new AdminError('ORIGINAL_CLOSE_FAILURE',503,true);}}
     };
     await mod.link(spec=>{const values=mocks[spec];assert.ok(values,'Unexpected route import');return new vm.SyntheticModule(Object.keys(values),function(){for(const [k,v]of Object.entries(values))this.setExport(k,v);},{context});});await mod.evaluate();
-    const request=new Request('http://127.0.0.1:62333/api/editor/logout',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':mode==='csrf'?'wrong':'fixture_csrf'},body:mode==='body'?'not-json':'{}'});
+    const request=new Request('http://127.0.0.2:62333/api/editor/logout',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':mode==='csrf'?'wrong':'fixture_csrf'},body:mode==='body'?'not-json':'{}'});
     Object.defineProperty(request,'cookies',{value:{get:()=>({value:'a'.repeat(43)})}});
     const response=await mod.namespace.POST(request,{params:Promise.resolve({action:['logout']})});
     const started=['success','close-failure'].includes(mode);assert.equal(logoutCalls,started?1:0);assert.equal(cookies.length,started?1:0);

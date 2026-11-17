@@ -15,9 +15,9 @@
     "dev:mobile": "corepack pnpm --filter @judoju/mobile dev",
     "dev:admin": "corepack pnpm --filter @judoju/admin dev",
     "check:types": "corepack pnpm -r --if-present check",
-    "build:admin": "corepack pnpm --filter @judoju/admin build",
-    "export:android": "corepack pnpm --filter @judoju/mobile export:android",
-    "export:ios": "corepack pnpm --filter @judoju/mobile export:ios",
+    "build:admin": "node scripts/admin-preview-policy.mjs build:admin",
+    "export:android": "node scripts/admin-preview-policy.mjs export:android",
+    "export:ios": "node scripts/admin-preview-policy.mjs export:ios",
     "test:domain": "node --experimental-strip-types --test tests/domain.test.ts tests/native-release.test.mjs",
     "eas": "node scripts/eas.mjs",
     "test:providers": "node --test tests/providers.test.mjs",
@@ -68,7 +68,10 @@
     "test:home-bound": "node --experimental-strip-types --test tests/home-bound-dispatch.test.ts",
     "test:analysis-input": "node --experimental-strip-types --test tests/analysis-input.test.ts",
     "test:admin-preview-lifecycle": "node --experimental-vm-modules --test tests/admin-preview-lifecycle.test.mjs",
-    "check:home-ranking": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json"
+    "check:home-ranking": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json",
+    "test:admin-preview-config-writer": "node --test tests/admin-preview-config-writer.test.mjs",
+    "test:admin-preview-supervisor": "node --test tests/admin-preview-supervisor.test.mjs",
+    "test:admin-preview-host": "node --test tests/admin-preview-host.test.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
