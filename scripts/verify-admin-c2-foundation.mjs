@@ -13,6 +13,9 @@ const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
 const baselineFile='docs/stages/stage-admin-c2-baseline.json';
 const baselineSha='ea090ac7e58c51ecd4612a5e4d90b4064c99d23771950f7e1bd2fdf2ab686b87';
 const base='bab66bc09af2ef181b0ebfff6bc73f2ca0fe4d12',feature='feat/admin-c2-actual';
+// Exact CI repair checkpoint; no third feature commit or arbitrary ancestry is accepted.
+const ciCheckpoint='2564630b955dafac373fa925691f9a4d4f765d67';
+const hosted=process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='Jacop7/stocknews';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 let checks=0;
 function check(value,label){assert.ok(value,label);checks++;}
@@ -36,7 +39,9 @@ check(!existsSync(path.join(root,'.git/objects/info/alternates'))&&!existsSync(p
 check(git(['config','--local','--name-only','--get-regexp','^(include\\.|includeif\\.|core\\.hookspath$)']).code===1,'No inherited hooks');
 for(const key of ['GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES'])check(!process.env[key],'No Git routing '+key);
 check(git(['remote']).text==='origin','One own remote');
-for(const args of [['remote','get-url','--all','origin'],['remote','get-url','--push','--all','origin']])check(git(args).text==='https://github.com/Jacop7/stocknews.git','Authorized remote');
+for(const args of [['remote','get-url','--all','origin'],['remote','get-url','--push','--all','origin']]){
+  const url=git(args).text;check(url==='https://github.com/Jacop7/stocknews.git'||hosted&&url==='https://github.com/Jacop7/stocknews','Authorized remote');
+}
 check(sha(read(baselineFile))===baselineSha,'Frozen C2 baseline');
 const b=JSON.parse(read(baselineFile));
 check(b.baseCommit===base&&b.feature===feature&&b.stage==='MAIN_ADMIN_C2'&&Object.keys(b.files).length===562,'Historical 562-file baseline');
@@ -46,13 +51,20 @@ assert.deepEqual(b.mutableFiles,mutable);assert.deepEqual(b.newFiles,additions);
 const head=git(['rev-parse','HEAD']).text,branch=git(['branch','--show-current']).text;
 const parents=git(['rev-list','--parents','-n','1','HEAD']).text.split(/\s+/).slice(1);
 const count=Number(git(['rev-list','--count','HEAD']).text);
-const hosted=process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='Jacop7/stocknews';
-const child=parents.length===1&&parents[0]===base&&count===b.baseCount+1;
+check(git(['rev-list','--parents','-n','1',ciCheckpoint]).text===ciCheckpoint+' '+base&&Number(git(['rev-list','--count',ciCheckpoint]).text)===b.baseCount+1,'Exact first checkpoint');
+check(sha(git(['show',ciCheckpoint+':'+baselineFile]).bytes)===baselineSha,'Checkpoint baseline bytes');
+function featureOrdinal(commit){
+  if(commit===ciCheckpoint)return 1;
+  const p=git(['rev-list','--parents','-n','1',commit]).text.split(/\s+/).slice(1);
+  if(p.length!==1||p[0]!==ciCheckpoint||Number(git(['rev-list','--count',commit]).text)!==b.baseCount+2)return null;
+  return git(['diff','--name-only',ciCheckpoint,commit]).text==='scripts/verify-admin-c2-foundation.mjs'?2:null;
+}
+const ordinal=featureOrdinal(head);
 const other=parents.length===2?parents.find(p=>p!==b.refs['refs/heads/main']):null;
-const hostedMerge=hosted&&parents.length===2&&new Set(parents).size===2&&parents.includes(b.refs['refs/heads/main'])&&other
-  &&git(['rev-list','--parents','-n','1',other]).text.split(/\s+/).slice(1).join(' ')===base
-  &&count===b.baseCount+2&&git(['rev-parse',head+'^{tree}']).text===git(['rev-parse',other+'^{tree}']).text;
-check(head===base&&count===b.baseCount||child||hostedMerge,'Historical base, exact child or equal-tree hosted merge');
+const otherOrdinal=other?featureOrdinal(other):null;
+const hostedMerge=hosted&&parents.length===2&&new Set(parents).size===2&&parents.includes(b.refs['refs/heads/main'])&&otherOrdinal
+  &&count===b.baseCount+otherOrdinal+1&&git(['rev-parse',head+'^{tree}']).text===git(['rev-parse',other+'^{tree}']).text;
+check(head===base&&count===b.baseCount||ordinal||hostedMerge,'Historical base, exact checkpoint/one-file repair child or equal-tree hosted merge');
 check(branch===feature||hosted&&!branch&&head===process.env.GITHUB_SHA,'Current feature');
 check(git(['rev-list','--max-parents=0','HEAD']).text==='f7dce3a9e05c39580f23a210c3ac9d2514c38b74','Independent product ancestry');
 const refs=new Map(git(['for-each-ref','--format=%(refname) %(objectname)']).text.split(/\r?\n/).filter(Boolean).map(s=>s.split(' ')));
@@ -61,7 +73,7 @@ const pull=allowedHostedPullRef(process.env,head,r=>refs.get(r)??null);if(pull)a
 for(const [ref,oid] of refs){
   check(allowed.has(ref),'Declared ref '+ref);
   if(Object.hasOwn(b.refs,ref))check(oid===b.refs[ref],'Historical ref '+ref);
-  else check(oid===base||oid===head||hostedMerge&&oid===other,'Only C2 ref');
+  else check(oid===base||oid===ciCheckpoint||oid===head||hostedMerge&&oid===other,'Only C2 ref');
 }
 if(!hosted)for(const [ref,oid] of Object.entries(b.refs))check(refs.get(ref)===oid,'Historical ref retained '+ref);
 const files=git(['ls-files','--cached','--others','--exclude-standard','-z']).bytes.toString().split('\0').filter(Boolean).sort();
