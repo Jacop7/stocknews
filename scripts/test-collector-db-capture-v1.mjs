@@ -1,6 +1,6 @@
 // MAIN-invoked acceptance library; import opens no process/socket/database and writes nothing.
 import {randomUUID,createHash} from 'node:crypto';
-import {writeFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {setTimeout as pause} from 'node:timers/promises';
 import {COLLECTOR_AUDIT_MASK_V1,COLLECTOR_RECEIPT_MASK_V1,COLLECTOR_BODY_HASH_ALG_V1,COLLECTOR_RAW_HASH_ALG_V1,COLLECTOR_CANONICAL_ALG_V1,COLLECTOR_DB_SCHEMA_V1,collectorDataV1,collectorRecordV1,collectorExactV1,collectorRejectV1,collectorDigestV1,collectorIdV1,collectorKnownV1,collectorUnknownV1,validateCollectorExpectedIdentityV1} from '../workers/collectors/src/collector-db-contracts-v1.ts';
@@ -182,4 +182,177 @@ export async function runCollectorDbNullStateRegressionV1(context,request){
  const file=path.join(bound.outputDirectory,'collector-null-state-regression.json');
  await writeFile(file,JSON.stringify(result,null,2)+'\n',{flag:'wx'});result.reportPath=file;
  return freezeGraph(result);
+}
+
+
+// Independent native installer regression. CORE/FINAL and DB23 stay unchanged.
+// MAIN supplies an isolated resource with the existing P4 identity and callbacks.
+// Every attempt starts with absent component state; only the last positive case
+// commits. Negative cases may share that resource after independently observing
+// rollback from a fresh connection. No callback is invoked merely by importing.
+const bootstrapIdentityKeys = Object.freeze([
+  'productId','component','runId','bootstrapId','clusterIdentity',
+  'containerId','containerName','imageId','databaseName','pgDataPath',
+  'socketDirectory','tmpfsMounts','readOnlyRoot','networkMode',
+  'publishedPorts','testLoginPrincipals','resourceIdentityDigest'
+]);
+const bootstrapPrincipalKinds = Object.freeze(['executor','reader','authority','maintenance']);
+const bootstrapPrincipalKeys = Object.freeze([
+  'name','oid','roleName','roleOid','login','superuser',
+  'createRole','createDb','replication','bypassRls'
+]);
+const bootstrapCaseSpecs = (() => {
+  const cases = [];
+  const add = (id,code,mutate,faultInjection='NONE') => cases.push(Object.freeze({id,code,mutate,faultInjection}));
+  const wrongType = value => typeof value === 'string' ? 7 : typeof value === 'number' ? String(value) : typeof value === 'boolean' ? String(value) : [];
+  add('ROOT_NULL','STORE_MISMATCH',() => null);
+  add('ROOT_ARRAY','STORE_MISMATCH',() => []);
+  for (const field of bootstrapIdentityKeys) {
+    const id = 'ROOT_'+field.toUpperCase();
+    add(id+'_MISSING','STORE_MISMATCH',b => { delete b[field]; return b; });
+    add(id+'_NULL','STORE_MISMATCH',b => { b[field]=null; return b; });
+    add(id+'_WRONG_TYPE','STORE_MISMATCH',b => { b[field]=wrongType(b[field]); return b; });
+  }
+  add('ROOT_UNKNOWN_FIELD','STORE_MISMATCH',b => { b.extraBootstrapField=true; return b; });
+  add('PRINCIPALS_UNKNOWN_KIND','UNAUTHORIZED',b => { b.testLoginPrincipals.extra={}; return b; });
+  for (const kind of bootstrapPrincipalKinds) {
+    const prefix = 'PRINCIPAL_'+kind.toUpperCase();
+    add(prefix+'_MISSING','UNAUTHORIZED',b => { delete b.testLoginPrincipals[kind]; return b; });
+    add(prefix+'_NULL','UNAUTHORIZED',b => { b.testLoginPrincipals[kind]=null; return b; });
+    add(prefix+'_WRONG_TYPE','UNAUTHORIZED',b => { b.testLoginPrincipals[kind]=[]; return b; });
+    add(prefix+'_UNKNOWN_FIELD','UNAUTHORIZED',b => { b.testLoginPrincipals[kind].extra=true; return b; });
+    for (const field of bootstrapPrincipalKeys) {
+      const id = prefix+'_'+field.toUpperCase();
+      add(id+'_MISSING','UNAUTHORIZED',b => { delete b.testLoginPrincipals[kind][field]; return b; });
+      add(id+'_NULL','UNAUTHORIZED',b => { b.testLoginPrincipals[kind][field]=null; return b; });
+      add(id+'_WRONG_TYPE','UNAUTHORIZED',b => { b.testLoginPrincipals[kind][field]=wrongType(b.testLoginPrincipals[kind][field]); return b; });
+    }
+  }
+  add('PRINCIPALS_DUPLICATE_OID','UNAUTHORIZED',b => { b.testLoginPrincipals.reader.oid=b.testLoginPrincipals.executor.oid; return b; });
+  add('TMPFS_UNKNOWN_MOUNT','STORE_MISMATCH',b => { b.tmpfsMounts['/extra']='rw'; return b; });
+  add('TMPFS_MISSING_MOUNT','STORE_MISMATCH',b => { delete b.tmpfsMounts['/tmp']; return b; });
+  add('RUN_ID_INVALID_UUID','STORE_MISMATCH',b => { b.runId='not-a-uuid'; return b; });
+  add('BOOTSTRAP_ID_INVALID_UUID','STORE_MISMATCH',b => { b.bootstrapId='not-a-uuid'; return b; });
+  add('CLUSTER_ID_NONCANONICAL','STORE_MISMATCH',b => { b.clusterIdentity='0'+b.clusterIdentity; return b; });
+  add('CLUSTER_ID_OUT_OF_RANGE','STORE_MISMATCH',b => { b.clusterIdentity='9223372036854775808'; return b; });
+  add('IDENTITY_DIGEST_INVALID','STORE_MISMATCH',b => { b.resourceIdentityDigest='not-a-digest'; return b; });
+  add('SQL_PARTIAL_EFFECT_ROLLBACK','COLLECTOR_BOOTSTRAP_PARTIAL_EFFECT_PROBE',b => b,'AFTER_STORE_INSERT_BEFORE_FUNCTIONS_V1');
+  add('VALID_IDENTITY',null,b => b);
+  return Object.freeze(cases);
+})();
+export const COLLECTOR_DB_BOOTSTRAP_CASE_IDS_V1 = Object.freeze(bootstrapCaseSpecs.map(item => item.id));
+
+const bootstrapRollbackProbe = `do $collector_bootstrap_rollback_probe$
+begin
+  if (select count(*) from pg_catalog.pg_namespace where nspname in ('collector_private','collector_api')) <> 2
+     or (select count(*) from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+         where n.nspname='collector_private' and c.relkind='r') <> 9
+     or (select count(*) from collector_private.collector_store_v1) <> 1 then
+    raise exception 'COLLECTOR_BOOTSTRAP_PROBE_NOT_REACHED';
+  end if;
+  raise exception 'COLLECTOR_BOOTSTRAP_PARTIAL_EFFECT_PROBE';
+end
+$collector_bootstrap_rollback_probe$;
+`;
+
+export async function runCollectorDbBootstrapCaseV1(context,request) {
+  const q = collectorRecordV1(collectorDataV1(request));
+  collectorExactV1(q,['caseId','expectedSqlSha256']);
+  collectorDigestV1(q.expectedSqlSha256);
+  const spec = bootstrapCaseSpecs.find(item => item.id === q.caseId);
+  check(spec,'UNKNOWN_BOOTSTRAP_CASE');
+  const bound = collectorContextBindingsV1(context,{installer:true});
+  await assertCollectorOutputDirectoryV1(bound.outputDirectory);
+  await verifyCollectorDbCaptureResourceV1(context,{stage:'BEFORE_APPLY',expectedSqlSha256:q.expectedSqlSha256});
+  const attempt = ownFunction(context,'attemptBootstrapCase');
+  const observe = ownFunction(context,'observeBootstrapCatalog');
+  const sourceSql = await readFile(new URL('../workers/collectors/sql/collector_db_capture_v1.sql',import.meta.url),'utf8');
+  check(digest(Buffer.from(sourceSql,'utf8')) === q.expectedSqlSha256,'BOOTSTRAP_SOURCE_HASH_MISMATCH');
+  let sqlUtf8 = sourceSql;
+  if (spec.faultInjection !== 'NONE') {
+    const anchor = 'create function collector_private.fail_v1(';
+    check(sourceSql.split(anchor).length === 2,'BOOTSTRAP_FAULT_ANCHOR_MISMATCH');
+    sqlUtf8 = sourceSql.replace(anchor,bootstrapRollbackProbe+anchor);
+  }
+  const bootstrapUtf8 = JSON.stringify(spec.mutate(copy(bound.resourceIdentity)));
+  const command = freezeGraph({
+    operation:'RUN_COLLECTOR_BOOTSTRAP_CASE_V1',caseId:spec.id,
+    resourceIdentity:copy(bound.resourceIdentity),sourceSqlSha256:q.expectedSqlSha256,
+    executedSqlSha256:digest(Buffer.from(sqlUtf8,'utf8')),sqlUtf8,
+    bootstrapSha256:digest(Buffer.from(bootstrapUtf8,'utf8')),bootstrapUtf8,
+    faultInjection:spec.faultInjection
+  });
+  const catalog = async () => {
+    const value = collectorRecordV1(collectorDataV1(await observe({
+      resourceIdentity:bound.resourceIdentity,selector:'BOOTSTRAP_CATALOG_V1',freshConnectionRequired:true
+    })));
+    collectorExactV1(value,[
+      'resourceIdentityDigest','namespaceCount','tableCount','functionCount',
+      'storeRowCount','externalRolesDigest','defaultAclDigest'
+    ]);
+    check(value.resourceIdentityDigest === bound.resourceIdentity.resourceIdentityDigest,'BOOTSTRAP_RESOURCE_MISMATCH');
+    for (const key of ['namespaceCount','tableCount','functionCount','storeRowCount']) {
+      check(Number.isSafeInteger(value[key]) && value[key] >= 0,'BOOTSTRAP_CATALOG_COUNT_INVALID');
+    }
+    collectorDigestV1(value.externalRolesDigest);
+    collectorDigestV1(value.defaultAclDigest);
+    return value;
+  };
+  const absent = value => ['namespaceCount','tableCount','functionCount','storeRowCount'].every(key => value[key] === 0);
+  const before = await catalog();
+  check(absent(before),'BOOTSTRAP_FRESH_STATE_REQUIRED');
+  let actual = null;
+  let after = null;
+  let status = 'HOLD';
+  let failure = null;
+  try {
+    // A lost/uncertain result is reported once. This helper never retries an
+    // installation or converts an UNKNOWN transaction into a rejection.
+    actual = collectorRecordV1(collectorDataV1(await attempt(command)));
+    collectorExactV1(actual,[
+      'resourceIdentityDigest','sourceSqlSha256','executedSqlSha256',
+      'bootstrapSha256','transaction','sqlState','errorCode'
+    ]);
+    for (const key of ['resourceIdentityDigest','sourceSqlSha256','executedSqlSha256','bootstrapSha256']) {
+      const expected = key === 'resourceIdentityDigest' ? bound.resourceIdentity.resourceIdentityDigest : command[key];
+      check(actual[key] === expected,'BOOTSTRAP_ATTEMPT_BINDING_MISMATCH');
+    }
+    check(['COMMITTED','ROLLED_BACK','UNKNOWN'].includes(actual.transaction),'BOOTSTRAP_TRANSACTION_INVALID');
+    check(actual.sqlState === null || /^[A-Z0-9]{5}$/.test(actual.sqlState),'BOOTSTRAP_SQLSTATE_INVALID');
+    check(actual.errorCode === null || ['STORE_MISMATCH','UNAUTHORIZED','EFFECT_CONFLICT',
+      'COLLECTOR_BOOTSTRAP_PARTIAL_EFFECT_PROBE','COLLECTOR_BOOTSTRAP_PROBE_NOT_REACHED'].includes(actual.errorCode),
+      'BOOTSTRAP_ERROR_CODE_INVALID');
+    after = await catalog();
+    const rolesUnchanged = before.externalRolesDigest === after.externalRolesDigest;
+    if (actual.transaction === 'UNKNOWN') {
+      failure = 'TRANSACTION_UNKNOWN_NO_RETRY';
+    } else if (spec.code === null) {
+      const passed = actual.transaction === 'COMMITTED' && actual.sqlState === null && actual.errorCode === null
+        && rolesUnchanged && after.namespaceCount === 2 && after.tableCount === 9 && after.storeRowCount === 1;
+      status = passed ? 'PASS' : 'FAIL';
+      if (passed) await verifyCollectorDbCaptureResourceV1(context,{stage:'AFTER_APPLY',expectedSqlSha256:q.expectedSqlSha256});
+    } else {
+      status = actual.transaction === 'ROLLED_BACK' && actual.sqlState === 'P0001' && actual.errorCode === spec.code
+        && absent(after) && rolesUnchanged && before.defaultAclDigest === after.defaultAclDigest ? 'PASS' : 'FAIL';
+    }
+  } catch {
+    status = 'HOLD';
+    failure = 'CALLBACK_OR_OBSERVATION_UNAVAILABLE';
+    // Raw PostgreSQL messages and SQL/bootstrap strings are never copied to reports.
+    actual = null;
+  }
+  const result = {
+    schema:'COLLECTOR_DB_BOOTSTRAP_CASE_V1',scope:'NATIVE_SQL_BOOTSTRAP_ONLY',caseId:spec.id,status,
+    fixtureAssertionOnly:true,fullCoreAcceptanceProven:false,
+    resourceIdentityDigest:bound.resourceIdentity.resourceIdentityDigest,
+    sourceSqlSha256:q.expectedSqlSha256,executedSqlSha256:command.executedSqlSha256,
+    bootstrapSha256:command.bootstrapSha256,faultInjection:spec.faultInjection,
+    expected:{transaction:spec.code === null ? 'COMMITTED' : 'ROLLED_BACK',sqlState:spec.code === null ? null : 'P0001',errorCode:spec.code},
+    actual,before,after,failure,rawNativeInstallerBypassesTypeScriptBootstrapValidation:true,
+    physicalCommitTimeRightsProven:false,providerExecutionEnabled:false,aiExecutionEnabled:false,crossWorkerAtomicityProven:false
+  };
+  const file = path.join(bound.outputDirectory,'collector-bootstrap-'+spec.id.toLowerCase()+'.json');
+  await writeFile(file,JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+  result.reportPath = file;
+  return freezeGraph(result);
 }

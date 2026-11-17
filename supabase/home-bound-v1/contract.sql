@@ -20,8 +20,15 @@ REVOKE ALL ON SCHEMA home_bound_v1 FROM PUBLIC;
 CREATE TABLE home_bound_v1.resource_control (
  singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
  resource_id uuid NOT NULL UNIQUE, run_id uuid NOT NULL UNIQUE, identity jsonb NOT NULL,
- CHECK(identity->>'schema'='HOME_DB_BOUND_V1_RESOURCE'),
- CHECK(identity->>'resourceId'=resource_id::text AND identity->>'runId'=run_id::text)
+ -- CHECK accepts SQL NULL unless its complete predicate is explicitly true.
+ CHECK((pg_catalog.jsonb_typeof(identity)='object' AND identity ? 'schema'
+  AND pg_catalog.jsonb_typeof(identity->'schema')='string'
+  AND identity->>'schema'='HOME_DB_BOUND_V1_RESOURCE') IS TRUE),
+ CHECK((identity ?& ARRAY['resourceId','runId']
+  AND pg_catalog.jsonb_typeof(identity->'resourceId')='string'
+  AND pg_catalog.jsonb_typeof(identity->'runId')='string'
+  AND (identity->>'resourceId') IS NOT DISTINCT FROM resource_id::text
+  AND (identity->>'runId') IS NOT DISTINCT FROM run_id::text) IS TRUE)
 );
 CREATE TABLE home_bound_v1.principals (
  principal_oid oid PRIMARY KEY, principal_name name NOT NULL UNIQUE,
@@ -119,6 +126,34 @@ CREATE FUNCTION home_bound_v1._exact(p_value jsonb,p_keys text[]) RETURNS void L
 END $$;
 CREATE FUNCTION home_bound_v1._strings(p_value jsonb,p_keys text[],p_nullable text[] DEFAULT ARRAY[]::text[]) RETURNS void LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $$ DECLARE k text;BEGIN
  FOREACH k IN ARRAY p_keys LOOP IF NOT(k=ANY(p_nullable) AND p_value->k='null'::jsonb) AND pg_catalog.jsonb_typeof(p_value->k) IS DISTINCT FROM 'string' THEN PERFORM home_bound_v1._fail('INVALID_REQUEST','22023');END IF;END LOOP;
+END $$;
+-- Private decoded-value identity guard. The three bootstrap CHECK fields remain
+-- installation constraints; every other malformed identity is a runtime mismatch.
+CREATE FUNCTION home_bound_v1._resource_identity_valid(p_value jsonb,p_resource uuid,p_run uuid) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $$
+DECLARE keys text[]:=ARRAY['schema','productId','stage','component','resourceId','runId','containerId','imageId','clusterSystemIdentifier','databaseName','databaseOid','bootstrapUuid','contractSha256'];
+BEGIN
+ -- Guard the root before _exact: object-only functions must never see a scalar.
+ IF pg_catalog.jsonb_typeof(p_value) IS DISTINCT FROM 'object' THEN RETURN false;END IF;
+ PERFORM home_bound_v1._exact(p_value,keys);
+ PERFORM home_bound_v1._strings(p_value,keys);
+ IF p_resource IS NULL OR p_run IS NULL
+  OR p_value->>'schema' IS DISTINCT FROM 'HOME_DB_BOUND_V1_RESOURCE'
+  OR p_value->>'productId' IS DISTINCT FROM 'judoju-news'
+  OR p_value->>'stage' IS DISTINCT FROM 'MAIN_PARALLEL_P4'
+  OR p_value->>'component' IS DISTINCT FROM 'HOME_DB_BOUND_V1'
+  OR p_value->>'imageId' IS DISTINCT FROM 'sha256:7c31363a3f7434ff14945f1b8a4880e6eca8b362e197e88b87c476c77aa3cf8c'
+  OR home_bound_v1._uuid(p_value->>'resourceId') IS DISTINCT FROM p_resource
+  OR home_bound_v1._uuid(p_value->>'runId') IS DISTINCT FROM p_run
+  OR (p_value->>'containerId') !~ '^[0-9a-f]{64}$'
+  OR (p_value->>'contractSha256') !~ '^[0-9a-f]{64}$'
+ THEN RETURN false;END IF;
+ PERFORM home_bound_v1._uuid(p_value->>'bootstrapUuid');
+ PERFORM home_bound_v1._decimal(p_value->>'clusterSystemIdentifier');
+ PERFORM home_bound_v1._decimal(p_value->>'databaseOid');
+ PERFORM home_bound_v1._id(p_value->>'databaseName');
+ RETURN true;
+ EXCEPTION WHEN SQLSTATE '22023' OR SQLSTATE '22P02' OR SQLSTATE '22003' THEN RETURN false;
 END $$;
 CREATE FUNCTION home_bound_v1._request_types(p_value jsonb) RETURNS void LANGUAGE plpgsql IMMUTABLE SET search_path='' AS $$ DECLARE k text;BEGIN
  FOREACH k IN ARRAY ARRAY['resourceId','namespaceId','effectKey','roundId','streamId','rankingCutoff','backendGeneration','producerRevision','inputDigest','resultCanonical','operation','requestDigest','slotGeneration','reason','action','initialStreamId','expectedInputRevision','profileManifestId'] LOOP
@@ -429,8 +464,15 @@ CREATE FUNCTION home_bound_v1.resource_identity(p_request jsonb) RETURNS jsonb L
 DECLARE principal jsonb;c home_bound_v1.resource_control%ROWTYPE;sysid text;db_oid text;BEGIN
  principal:=home_bound_v1._entry('resource_identity');PERFORM home_bound_v1._budget(p_request);PERFORM home_bound_v1._exact(p_request,ARRAY['resourceId']);
  SELECT * INTO c FROM home_bound_v1.resource_control WHERE singleton;
+ IF home_bound_v1._resource_identity_valid(c.identity,c.resource_id,c.run_id) IS NOT TRUE THEN
+  PERFORM home_bound_v1._fail('RESOURCE_MISMATCH');
+ END IF;
  SELECT system_identifier::text INTO sysid FROM pg_catalog.pg_control_system();SELECT oid::text INTO db_oid FROM pg_catalog.pg_database WHERE datname=pg_catalog.current_database();
- IF home_bound_v1._uuid(p_request->>'resourceId')<>c.resource_id OR c.identity->>'clusterSystemIdentifier'<>sysid OR c.identity->>'databaseName'<>pg_catalog.current_database() OR c.identity->>'databaseOid'<>db_oid OR c.identity->>'imageId'<>'sha256:7c31363a3f7434ff14945f1b8a4880e6eca8b362e197e88b87c476c77aa3cf8c' OR c.identity->>'productId'<>'judoju-news' OR c.identity->>'stage'<>'MAIN_PARALLEL_P4' OR c.identity->>'component'<>'HOME_DB_BOUND_V1' THEN PERFORM home_bound_v1._fail('RESOURCE_MISMATCH');END IF;
+ IF home_bound_v1._uuid(p_request->>'resourceId') IS DISTINCT FROM c.resource_id
+  OR c.identity->>'clusterSystemIdentifier' IS DISTINCT FROM sysid
+  OR c.identity->>'databaseName' IS DISTINCT FROM pg_catalog.current_database()
+  OR c.identity->>'databaseOid' IS DISTINCT FROM db_oid
+ THEN PERFORM home_bound_v1._fail('RESOURCE_MISMATCH');END IF;
  RETURN home_bound_v1._envelope('resource_identity',NULL,pg_catalog.jsonb_build_object('resourceIdentity',c.identity,'postmasterStartedAt',home_bound_v1._stamp(pg_catalog.pg_postmaster_start_time())),principal);
 END $$;
 CREATE FUNCTION home_bound_v1.fixture_apply(p_request jsonb) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path='' AS $$

@@ -16,6 +16,7 @@ const dockerEndpoint=process.platform==='win32'?'npipe:////./pipe/dockerDesktopL
 const sqlQuote=x=>"'"+String(x).replaceAll("'","''")+"'";
 const identifier=x=>{assert.match(x,/^[a-z][a-z0-9_]{0,62}$/);return '"'+x+'"';};
 const hash=b=>createHash('sha256').update(b).digest('hex');
+const bootstrapErrorCodes=new Set(['STORE_MISMATCH','UNAUTHORIZED','EFFECT_CONFLICT','COLLECTOR_BOOTSTRAP_PARTIAL_EFFECT_PROBE','COLLECTOR_BOOTSTRAP_PROBE_NOT_REACHED']);
 const sqlErrorCodes=new Set(['INVALID_INPUT','DUPLICATE_FIELD','UNKNOWN_FIELD','SCHEMA_UNSUPPORTED','LIVE_NOT_ENABLED','ISOLATION_NOT_SUPPORTED','STORE_MISMATCH','EPOCH_STALE','STORE_FROZEN','UNAUTHORIZED','AUDIT_RECOVERY_NOT_CONFIGURED','GRANT_UNKNOWN','RIGHTS_HOLD','POLICY_STALE','GRANT_VERSION_CONFLICT','EFFECT_CONFLICT','DELIVERY_CONFLICT','DELIVERY_ALREADY_RECORDED','BODY_CONFLICT','BODY_ALREADY_ATTACHED','TOMBSTONED','HASH_MISMATCH','BODY_TOO_LARGE','UNSUPPORTED_BODY_ENCODING','INVALID_UTF8','LOCK_BUSY','DB_UNAVAILABLE','COMMIT_UNKNOWN','FORBIDDEN','QUALIFICATION_HOLD','INPUT_STALE','HEAD_CONFLICT','HEAD_ADVANCED','ROUND_NOT_FOUND','ROUND_STALE','NAMESPACE_NOT_FOUND','RESOURCE_MISMATCH','PROFILE_MISMATCH','SLOT_BUSY','ROUND_STATE_CONFLICT','PERMISSION_DENIED']);
 for(const code of ['BINDING_CONFLICT','BINDING_MISSING','CLAIM_MISSING','CONTEXT_UNAVAILABLE','CUTOFF_NOT_CURRENT','DEPENDENCY_GRAPH_CHANGED','FIRST_PUBLICATION_CHANGED','FUTURE_KNOWN_INPUT','GATE_NOT_HELD','IMMUTABLE_OBSERVATION','INPUT_SET_TOO_LARGE','INVALID_REQUEST','JSON_BUDGET','NAMESPACE_EXISTS','NAMESPACE_UNKNOWN','OLD_CARD_OBSERVATION_MISSING','PRIOR_STATE_MISSING','REVISION_CONFLICT','SLOT_CONFLICT','SOURCE_IDENTITY_CONFLICT','STALE_CUTOFF','STREAM_UNKNOWN','RESULT_BUDGET','RESULT_INVALID','GENERATION_CONFLICT','NOT_STALE','ROUND_NOT_PENDING','ROUND_UNKNOWN'])sqlErrorCodes.add(code);
 function cleanEnvironment(){const env={PATH:process.platform==='win32'?'C:/Windows/System32;C:/Windows':'/usr/bin:/bin'};for(const k of ['SystemRoot','WINDIR','TEMP','TMP'])if(typeof process.env[k]==='string')env[k]=process.env[k];return env;}
@@ -27,7 +28,7 @@ class MainOwnedP4Postgres {
   #cid=null;#identity=null;#closed=false;#sessions=new Set();
   constructor(component,contractFile){assert.ok(['COLLECTOR_DB_CAPTURE_V1','HOME_DB_BOUND_V1'].includes(component));this.component=component;this.contractFile=contractFile;this.runId=randomUUID();this.resourceId=randomUUID();this.bootstrapUuid=randomUUID();this.name='judoju-p4-'+(component==='HOME_DB_BOUND_V1'?'home-':'collector-')+this.runId;this.databaseName='p4_'+this.runId.replaceAll('-','');this.outputDirectory=path.join(outputRoot,this.component.toLowerCase()+'-'+this.runId);mkdirSync(path.join(this.outputDirectory,'docker-empty-config'),{recursive:true});this.environment=Object.freeze(cleanEnvironment());this.contract=regularSource(contractFile);this.contractSha256=hash(this.contract);this.closed=false;}
   args(args){return ['--config',path.join(this.outputDirectory,'docker-empty-config'),'--host',dockerEndpoint,...args];}
-  command(args,input,timeout=30000){const r=spawnSync(dockerExe,this.args(args),{cwd:root,env:this.environment,input,encoding:'utf8',windowsHide:true,timeout,maxBuffer:2*1024*1024});assert.ifError(r.error);if(r.status!==0){const error=Error('P4_DOCKER_COMMAND_FAILED:'+String(r.status));error.sqlState=/ERROR:\s+([0-9A-Z]{5}):/.exec(r.stderr)?.[1]??null;error.sourceLine=Number(/(?:<stdin>|-):([0-9]+):/.exec(r.stderr)?.[1]??/^LINE ([0-9]+):/m.exec(r.stderr)?.[1]??0);error.syntaxToken=/syntax error at or near "([A-Za-z_][A-Za-z0-9_]{0,40})"/.exec(r.stderr)?.[1]??null;error.syntaxKind=r.stderr.includes('syntax error at end of input')?'END_OF_INPUT':error.syntaxToken?'AT_TOKEN':null;error.compilationFunction=/compilation of PL\/pgSQL function "([A-Za-z_][A-Za-z0-9_]{0,80})"/.exec(r.stderr)?.[1]??/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-z_][a-z0-9_.]{0,100})/i.exec(r.stderr)?.[1]??null;throw error;}return r.stdout.trim();}
+  command(args,input,timeout=30000){const r=spawnSync(dockerExe,this.args(args),{cwd:root,env:this.environment,input,encoding:'utf8',windowsHide:true,timeout,maxBuffer:2*1024*1024});assert.ifError(r.error);if(r.status!==0){const error=Error('P4_DOCKER_COMMAND_FAILED:'+String(r.status));error.sqlState=/ERROR:\s+([0-9A-Z]{5}):/.exec(r.stderr)?.[1]??null;const nativeMessage=/ERROR:\s+[0-9A-Z]{5}:\s+([A-Z][A-Z0-9_]*)(?:\r?\n|$)/.exec(r.stderr)?.[1]??null;error.bootstrapErrorCode=bootstrapErrorCodes.has(nativeMessage)?nativeMessage:null;error.processExited=Number.isInteger(r.status)&&r.signal==null;error.processExitStatus=Number.isInteger(r.status)?r.status:null;error.sourceLine=Number(/(?:<stdin>|-):([0-9]+):/.exec(r.stderr)?.[1]??/^LINE ([0-9]+):/m.exec(r.stderr)?.[1]??0);error.syntaxToken=/syntax error at or near "([A-Za-z_][A-Za-z0-9_]{0,40})"/.exec(r.stderr)?.[1]??null;error.syntaxKind=r.stderr.includes('syntax error at end of input')?'END_OF_INPUT':error.syntaxToken?'AT_TOKEN':null;error.compilationFunction=/compilation of PL\/pgSQL function "([A-Za-z_][A-Za-z0-9_]{0,80})"/.exec(r.stderr)?.[1]??/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+([a-z_][a-z0-9_.]{0,100})/i.exec(r.stderr)?.[1]??null;throw error;}return r.stdout.trim();}
   async start(){assert.equal(this.#cid,null);assert.equal(this.command(['image','inspect',imageTag,'--format','{{.Id}}']),imageId,'Only cached exact image');
     const intent={productId:'judoju-news',stage:'MAIN_PARALLEL_P4',component:this.component,runId:this.runId,resourceId:this.resourceId,bootstrapUuid:this.bootstrapUuid,name:this.name,imageId,network:'none',ports:[],contractSha256:this.contractSha256,phase:'CREATE_INTENT'};writeFileSync(path.join(this.outputDirectory,'create-intent.json'),JSON.stringify(intent,null,2),{flag:'wx'});
     const shell="set -eu; umask 077; initdb -D /tmp/p4-pg -A trust --no-locale --encoding=UTF8 > /tmp/initdb.log; pg_ctl -D /tmp/p4-pg -l /tmp/server.log -o \""+postgresOptions+"\" -w start > /tmp/start.log; trap 'pg_ctl -D /tmp/p4-pg -m fast -w stop >/dev/null 2>&1 || true; exit 0' TERM INT; while :; do sleep 1 & wait $! || true; done";
@@ -169,18 +170,270 @@ export async function prepareHomeContext(resource){
   };
   return Object.freeze({resourceIdentity:identity,outputDirectory:resource.outputDirectory,transport,openSession,inspectResource,observeState,restartServer:()=>resource.restartServer()});
 }
+const fixedContractFile='workers/collectors/sql/collector_db_capture_v1.sql',component='COLLECTOR_DB_CAPTURE_V1';
+const kinds=Object.freeze(['executor','reader','authority','maintenance']),nativeBootstrapCodes=bootstrapErrorCodes;
+const rollbackProbe = `do $collector_bootstrap_rollback_probe$
+begin
+  if (select count(*) from pg_catalog.pg_namespace where nspname in ('collector_private','collector_api')) <> 2
+     or (select count(*) from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+         where n.nspname='collector_private' and c.relkind='r') <> 9
+     or (select count(*) from collector_private.collector_store_v1) <> 1 then
+    raise exception 'COLLECTOR_BOOTSTRAP_PROBE_NOT_REACHED';
+  end if;
+  raise exception 'COLLECTOR_BOOTSTRAP_PARTIAL_EFFECT_PROBE';
+end
+$collector_bootstrap_rollback_probe$;
+`;
+
+const oneJson=parseOneJson;
+const exactKeys = (object,keys) => {
+  assert.ok(object && typeof object === 'object' && !Array.isArray(object));
+  assert.deepEqual(Object.keys(object).sort(),[...keys].sort());
+};
+const absent = catalog => ['namespaceCount','tableCount','functionCount','storeRowCount']
+  .every(key => catalog[key] === 0);
+
+
+function prepareCollectorBootstrapDiagnosticContext(resource,prepared,{readReviewedSource,caseIds}) {
+  assert.equal(resource.component,component);
+  assert.equal(resource.contractFile,fixedContractFile);
+  assert.equal(typeof readReviewedSource,'function');
+  assert.ok(Array.isArray(caseIds) && caseIds.length === 201);
+  assert.equal(new Set(caseIds).size,201);
+  assert.equal(caseIds.at(-1),'VALID_IDENTITY');
+  assert.ok(caseIds.includes('SQL_PARTIAL_EFFECT_ROLLBACK'));
+  const allowedCases = new Set(caseIds);
+  const base = resource.identity();
+  const identity = prepared.identity;
+  assert.equal(base.runId,identity.runId);
+  assert.equal(base.containerId,identity.containerId);
+  assert.equal(base.databaseName,identity.databaseName);
+  assert.equal(prepared.installContext.resourceIdentity,identity);
+  prepared.local.validateCollectorTestResourceIdentityV1(identity);
+  const assertIdentity = request => assert.deepEqual(request.resourceIdentity,identity,'Exact own diagnostic resource');
+  const sourceSql = Buffer.from(readReviewedSource()).toString('utf8');
+  const sourceHash = hash(Buffer.from(sourceSql,'utf8'));
+  assert.equal(sourceHash,resource.contractSha256,'Current reviewed SQL source');
+  assert.equal(sourceSql,resource.contract.toString('utf8'),'Fresh resource captured same source');
+  const anchor = 'create function collector_private.fail_v1(';
+  assert.equal(sourceSql.split(anchor).length,2);
+  const injectedSql = sourceSql.replace(anchor,rollbackProbe+anchor);
+  const roleNames = ['collector_owner_v1',...kinds.map(kind => 'collector_'+kind+'_v1'),
+    ...kinds.map(kind => identity.testLoginPrincipals[kind].name)];
+  const roleNamesSql = roleNames.map(sqlQuote).join(',');
+  const observedAttempts = new Set();
+  let inFlight = false;
+
+  const observeBootstrapCatalog = async request => {
+    exactKeys(request,['resourceIdentity','selector','freshConnectionRequired']);
+    assertIdentity(request);
+    assert.equal(request.selector,'BOOTSTRAP_CATALOG_V1');
+    assert.equal(request.freshConnectionRequired,true);
+    await resource.inspectContainer();
+    // ownerSql starts a fresh psql process and connection on every invocation.
+    // Never query catalog state through the failed installer connection.
+    // A read-only transaction makes the role/membership/default-ACL snapshot
+    // coherent, and only hashes of those test-role metadata are returned.
+    const observed = oneJson(resource.ownerSql(`begin read only;
+with selected_roles as (
+  select r.oid,r.rolname,r.rolsuper,r.rolinherit,r.rolcreaterole,r.rolcreatedb,
+    r.rolcanlogin,r.rolreplication,r.rolconnlimit,r.rolvaliduntil,r.rolbypassrls,r.rolconfig
+  from pg_catalog.pg_roles r where r.rolname in (${roleNamesSql})
+), role_snapshot as (
+  select pg_catalog.jsonb_build_object(
+    'roles',coalesce((select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'oid',r.oid::text,'name',r.rolname,'superuser',r.rolsuper,'inherit',r.rolinherit,
+      'createRole',r.rolcreaterole,'createDb',r.rolcreatedb,'login',r.rolcanlogin,
+      'replication',r.rolreplication,'connectionLimit',r.rolconnlimit,
+      'validUntil',r.rolvaliduntil::text,'bypassRls',r.rolbypassrls,'config',r.rolconfig
+    ) order by r.oid) from selected_roles r),'[]'::jsonb),
+    'memberships',coalesce((select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'roleOid',m.roleid::text,'memberOid',m.member::text,'grantorOid',m.grantor::text,
+      'admin',m.admin_option,'inherit',m.inherit_option,'set',m.set_option
+    ) order by m.roleid,m.member,m.grantor)
+    from pg_catalog.pg_auth_members m
+    where m.roleid in (select oid from selected_roles) or m.member in (select oid from selected_roles)),'[]'::jsonb)
+  ) as value
+), default_acl_snapshot as (
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+    'oid',d.oid::text,'roleOid',d.defaclrole::text,'namespaceOid',d.defaclnamespace::text,
+    'objectType',d.defaclobjtype,'acl',coalesce((
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+        'grantorOid',a.grantor::text,'granteeOid',a.grantee::text,
+        'privilege',a.privilege_type,'grantable',a.is_grantable
+      ) order by a.grantor,a.grantee,a.privilege_type,a.is_grantable)
+      from pg_catalog.aclexplode(d.defaclacl) a
+    ),'[]'::jsonb)
+  ) order by d.defaclrole,d.defaclnamespace,d.defaclobjtype,d.oid),'[]'::jsonb) as value
+  from pg_catalog.pg_default_acl d
+)
+select pg_catalog.json_build_object(
+  'clusterIdentity',(pg_catalog.pg_control_system()).system_identifier::text,
+  'databaseName',pg_catalog.current_database(),
+  'databaseOid',(select oid::text from pg_catalog.pg_database where datname=pg_catalog.current_database()),
+  'namespaceCount',(select count(*) from pg_catalog.pg_namespace where nspname in ('collector_private','collector_api')),
+  'tableCount',(select count(*) from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+    where n.nspname in ('collector_private','collector_api') and c.relkind in ('r','p')),
+  'functionCount',(select count(*) from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+    where n.nspname in ('collector_private','collector_api')),
+  'storeExists',pg_catalog.to_regclass('collector_private.collector_store_v1') is not null,
+  'selectedRoleCount',(select count(*) from selected_roles),
+  'externalRolesDigest',pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to((select value::text from role_snapshot),'UTF8')),'hex'),
+  'defaultAclDigest',pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to((select value::text from default_acl_snapshot),'UTF8')),'hex')
+);
+commit;`));
+    assert.equal(observed.clusterIdentity,identity.clusterIdentity);
+    assert.equal(observed.databaseName,identity.databaseName);
+    assert.equal(observed.databaseOid,base.databaseOid);
+    assert.equal(observed.selectedRoleCount,9,'All fixed external test roles preserved');
+    // Missing-table references cannot be put in a CASE expression: PostgreSQL
+    // resolves that relation before evaluating CASE. The second fresh read is
+    // performed only after to_regclass proves existence. This diagnostic
+    // resource has one sequential writer; do not share it with CORE/FINAL.
+    const storeRowCount = observed.storeExists
+      ? Number(resource.ownerSql('begin read only;select count(*) from collector_private.collector_store_v1;commit;'))
+      : 0;
+    const value = {
+      resourceIdentityDigest:identity.resourceIdentityDigest,
+      namespaceCount:observed.namespaceCount,tableCount:observed.tableCount,
+      functionCount:observed.functionCount,storeRowCount,
+      externalRolesDigest:observed.externalRolesDigest,defaultAclDigest:observed.defaultAclDigest
+    };
+    for (const key of ['namespaceCount','tableCount','functionCount','storeRowCount']) {
+      assert.ok(Number.isSafeInteger(value[key]) && value[key] >= 0);
+    }
+    for (const key of ['externalRolesDigest','defaultAclDigest']) assert.match(value[key],/^[a-f0-9]{64}$/);
+    return value;
+  };
+
+  const attemptBootstrapCase = async command => {
+    exactKeys(command,[
+      'operation','caseId','resourceIdentity','sourceSqlSha256','executedSqlSha256',
+      'sqlUtf8','bootstrapSha256','bootstrapUtf8','faultInjection'
+    ]);
+    assertIdentity(command);
+    assert.equal(command.operation,'RUN_COLLECTOR_BOOTSTRAP_CASE_V1');
+    assert.ok(allowedCases.has(command.caseId));
+    assert.equal(inFlight,false,'One attempt at a time on this owned fixture');
+    assert.equal(observedAttempts.has(command.caseId),false,'Never resend an uncertain or repeated attempt');
+    assert.equal(hash(Buffer.from(readReviewedSource())),sourceHash,'Source stayed fixed');
+    assert.equal(command.sourceSqlSha256,sourceHash);
+    assert.equal(typeof command.bootstrapUtf8,'string');
+    assert.ok(Buffer.byteLength(command.bootstrapUtf8,'utf8') <= 65536);
+    assert.equal(JSON.stringify(JSON.parse(command.bootstrapUtf8)),command.bootstrapUtf8,'Raw JSON serialization unchanged');
+    assert.equal(command.bootstrapSha256,hash(Buffer.from(command.bootstrapUtf8,'utf8')));
+    const isProbe = command.caseId === 'SQL_PARTIAL_EFFECT_ROLLBACK';
+    assert.equal(command.faultInjection,isProbe ? 'AFTER_STORE_INSERT_BEFORE_FUNCTIONS_V1' : 'NONE');
+    assert.equal(command.sqlUtf8,isProbe ? injectedSql : sourceSql,'Exact source or fixed test-only SQL copy');
+    assert.equal(command.executedSqlSha256,hash(Buffer.from(command.sqlUtf8,'utf8')));
+    await resource.inspectContainer();
+    const before = await observeBootstrapCatalog({resourceIdentity:identity,selector:'BOOTSTRAP_CATALOG_V1',freshConnectionRequired:true});
+    assert.ok(absent(before),'Diagnostic installer must begin with absent component state');
+    // Mark before native dispatch. Even UNKNOWN cannot be automatically retried.
+    observedAttempts.add(command.caseId);
+    inFlight = true;
+    const reply = {
+      resourceIdentityDigest:identity.resourceIdentityDigest,
+      sourceSqlSha256:sourceHash,executedSqlSha256:command.executedSqlSha256,
+      bootstrapSha256:command.bootstrapSha256,
+      transaction:'UNKNOWN',sqlState:null,errorCode:null
+    };
+    try {
+      // This calls the same fresh-psql ON_ERROR_STOP path as the normal installer.
+      // The GUC is deliberately raw mutated JSON; do not revalidate/re-hash it as
+      // a TypeScript identity, and do not replace it with prepared.identity.
+      resource.ownerSql("select set_config('collector.bootstrap_v1',"+sqlQuote(command.bootstrapUtf8)+",false);\n"+command.sqlUtf8);
+      reply.transaction = 'COMMITTED';
+    } catch (error) {
+      // command() must have populated these from actual native stderr only.
+      const state = typeof error?.sqlState === 'string' && /^[A-Z0-9]{5}$/.test(error.sqlState) ? error.sqlState : null;
+      const code = nativeBootstrapCodes.has(error?.bootstrapErrorCode) ? error.bootstrapErrorCode : null;
+      reply.sqlState = state;
+      reply.errorCode = code;
+      // A timed-out/spawn-failed command remains UNKNOWN even when an immediate
+      // catalog read happens to see no committed objects. An exited installer
+      // with an actual SQLSTATE and a fresh zero catalog proves rollback here.
+      if (error?.processExited === true && Number.isInteger(error.processExitStatus)
+          && error.processExitStatus !== 0 && state !== null) {
+        const after = await observeBootstrapCatalog({resourceIdentity:identity,selector:'BOOTSTRAP_CATALOG_V1',freshConnectionRequired:true});
+        if (absent(after) && after.externalRolesDigest === before.externalRolesDigest
+            && after.defaultAclDigest === before.defaultAclDigest) reply.transaction = 'ROLLED_BACK';
+      }
+    } finally {
+      inFlight = false;
+    }
+    return reply;
+  };
+
+  return Object.freeze({
+    resourceIdentity:identity,outputDirectory:resource.outputDirectory,
+    inspectResource:prepared.inspectResource,observeState:prepared.observeState,
+    attemptBootstrapCase,observeBootstrapCatalog
+  });
+}
+
+
+
+async function runNextCollectorBootstrapDiagnostics(resource,progress){
+  await resource.start();
+  const prepared=await prepareCollectorInstallContext(resource);
+  const acceptance=await import('./test-collector-db-capture-v1.mjs');
+  const ids=acceptance.COLLECTOR_DB_BOOTSTRAP_CASE_IDS_V1;
+  assert.equal(ids.length,201);assert.equal(ids.at(-2),'SQL_PARTIAL_EFFECT_ROLLBACK');assert.equal(ids.at(-1),'VALID_IDENTITY');
+  const context=prepareCollectorBootstrapDiagnosticContext(resource,prepared,{
+    readReviewedSource:()=>regularSource('workers/collectors/sql/collector_db_capture_v1.sql'),caseIds:ids,
+  });
+  const results=[];
+  for(const caseId of ids){
+    const item=await acceptance.runCollectorDbBootstrapCaseV1(context,{caseId,expectedSqlSha256:resource.contractSha256});
+    results.push({caseId:item.caseId,status:item.status,reportPath:item.reportPath});
+    if(item.status!=='PASS'){
+      resource.saveProof('bootstrap-matrix-result',{status:item.status,completed:results.length,cases:results});
+      throw Error('NEXT_COLLECTOR_BOOTSTRAP_DIAGNOSTIC_FAILED');
+    }
+    if(results.length%25===0)progress('COLLECTOR_BOOTSTRAP_'+results.length+'_OF_201');
+  }
+  const report={stage:'MAIN_PARALLEL_NEXT',status:'PASS',passed:201,failed:0,held:0,cases:results,
+    resourceIdentity:prepared.identity,sourceSqlSha256:resource.contractSha256,
+    fullCoreAcceptanceProven:false,actualRemoteRequests:0,providerExecutionEnabled:false};
+  resource.saveProof('bootstrap-matrix-result',report);return report;
+}
+
+async function runNextHomeIdentityDiagnostics(resource,normalIdentity){
+  await resource.start();
+  const prepared=await prepareHomeContext(resource),identity=prepared.resourceIdentity;
+  for(const key of ['resourceId','runId','containerId','clusterSystemIdentifier','databaseName','bootstrapUuid'])assert.notEqual(identity[key],normalIdentity[key],'Separate HOME diagnostic resource '+key);
+  const before=await prepared.inspectResource();
+  const {runHomeDatabaseIdentityDiagnostics}=await import('./test-home-database-postgres.mjs');
+  const diagnostic=await runHomeDatabaseIdentityDiagnostics(Object.freeze({
+    resourceIdentity:identity,outputDirectory:resource.outputDirectory,
+    ownerExecute:sql=>resource.ownerSql(sql),
+    openCaptureSession:()=>resource.openSession('h4_'+identity.runId.replaceAll('-','')+'_capture','home_v1_capture_worker'),
+  }));
+  assert.equal(diagnostic.schema,'HOME_DB_BOUND_V1_IDENTITY_DIAGNOSTICS');assert.equal(diagnostic.status,'PASS');
+  assert.equal(diagnostic.passed,66);assert.equal(diagnostic.failed,0);assert.equal(diagnostic.cases.length,66);
+  assert.equal(new Set(diagnostic.cases.map(c=>c.name)).size,66);assert.ok(diagnostic.cases.every(c=>c.status==='PASS'));
+  assert.deepEqual(diagnostic.resource,identity);
+  assert.deepEqual(diagnostic.cleanup,{sessionsClosed:true,identityAndMembershipsRestored:true,resourceCleanupOwnedByMAIN:true});
+  assert.deepEqual(JSON.parse(readFileSync(path.join(resource.outputDirectory,'home-database-identity-diagnostics.json'),'utf8')),diagnostic);
+  assert.deepEqual(await prepared.inspectResource(),before,'Identity, roles and ACL restored after all HOME variants');
+  return diagnostic;
+}
 /** Real separate component resources; provider/network/publication activation remains absent. */
 export async function runMainP4Integration(){
-  const prep=JSON.parse(regularSource('docs/stages/stage-parallel-p4-preparation.json')),baseline=JSON.parse(regularSource('docs/stages/stage-parallel-p4-baseline.json'));
-  assert.equal(prep.stage,'MAIN_PARALLEL_P4');assert.equal(prep.actualRemoteRequests,0);assert.equal(prep.actualAuthCalls,0);assert.equal(prep.workerConnected,false);
-  const files=[...Object.keys(baseline.files),...baseline.newFiles].sort();assert.equal(new Set(files).size,555);
+  const next=JSON.parse(regularSource('docs/development-status.json')).parallelNextPreparation?.stage==='MAIN_PARALLEL_NEXT';
+  const prep=JSON.parse(regularSource(next?'docs/stages/stage-parallel-next-baseline.json':'docs/stages/stage-parallel-p4-preparation.json')),baseline=next?prep:JSON.parse(regularSource('docs/stages/stage-parallel-p4-baseline.json'));
+  assert.equal(prep.stage,next?'MAIN_PARALLEL_NEXT':'MAIN_PARALLEL_P4');assert.equal(prep.actualRemoteRequests,0);assert.equal(prep.actualAuthCalls,0);assert.equal(prep.workerConnected,false);
+  const files=[...Object.keys(baseline.files),...baseline.newFiles].sort();assert.equal(new Set(files).size,next?562:555);
   const pins=()=>Object.fromEntries(files.map(f=>[f,hash(regularSource(f))]));
   for(const [f,digest] of Object.entries(prep.sourcePins))assert.equal(hash(regularSource(f)),digest,'Frozen candidate '+f);
-  assert.equal(Object.keys(prep.sourcePins).length,26);const beforePins=pins();
+  assert.equal(Object.keys(prep.sourcePins).length,next?15:26);const beforePins=pins();
   const out=path.join(outputRoot,'main-integration-'+randomUUID());mkdirSync(out,{recursive:true});
   writeFileSync(path.join(out,'source-pins-before.json'),JSON.stringify(beforePins,null,2),{flag:'wx'});
   const collector=new MainOwnedP4Postgres('COLLECTOR_DB_CAPTURE_V1','workers/collectors/sql/collector_db_capture_v1.sql'),home=new MainOwnedP4Postgres('HOME_DB_BOUND_V1','supabase/home-bound-v1/contract.sql');
-  const report={stage:'MAIN_PARALLEL_P4',status:'PENDING',sourceDigest:hash(JSON.stringify(beforePins)),actualProviderCalls:0,actualRemoteRequests:0,crossWorkerAtomicityProven:false,physicalCommitTimeQualificationProven:false,independentResources:[],cleanup:[]};
+  const diagnosticCollector=next?new MainOwnedP4Postgres('COLLECTOR_DB_CAPTURE_V1','workers/collectors/sql/collector_db_capture_v1.sql'):null;
+  const diagnosticHome=next?new MainOwnedP4Postgres('HOME_DB_BOUND_V1','supabase/home-bound-v1/contract.sql'):null;
+  const report={stage:next?'MAIN_PARALLEL_NEXT':'MAIN_PARALLEL_P4',status:'PENDING',sourceDigest:hash(JSON.stringify(beforePins)),actualProviderCalls:0,actualRemoteRequests:0,crossWorkerAtomicityProven:false,physicalCommitTimeQualificationProven:false,independentResources:[],cleanup:[]};
   const progress=phase=>{writeFileSync(path.join(out,'progress.json'),JSON.stringify({phase,observedAt:new Date().toISOString()},null,2));console.log(JSON.stringify({phase,output:out}));};
   const observeOther=resource=>{
     const component=resource.component==='HOME_DB_BOUND_V1'?"json_build_object('heads',(select coalesce(json_agg(json_build_object('namespaceId',namespace_id,'streamId',stream_id,'revision',global_revision::text,'digest',digest) order by namespace_id,stream_id),'[]'::json) from home_bound_v1.heads),'rounds',(select count(*) from home_bound_v1.rounds),'entries',(select count(*) from home_bound_v1.entries))":"json_build_object('store',(select json_build_object('id',stable_store_id,'epoch',store_epoch::text,'state',state) from collector_private.collector_store_v1 where singleton),'effects',(select count(*) from collector_private.collector_effect_v1))";
@@ -192,6 +445,10 @@ export async function runMainP4Integration(){
     const expectedSqlSha256=collector.contractSha256,before=await local.verifyCollectorDbCaptureResourceV1(installContext,{stage:'BEFORE_APPLY',expectedSqlSha256}),applied=await local.applyCollectorDbCaptureSqlV1(installContext,{operation:'APPLY_REVIEWED_COLLECTOR_SQL',expectedSqlSha256,verifiedResource:before});assert.equal(applied.status,'APPLIED');const expectedStoreIdentity=applied.storeIdentity;
     const restartCollector=async request=>{assert.deepEqual(request.resourceIdentity,p.identity);assert.equal(request.operation,'POSTGRES_SERVICE_RESTART_SAME_OWN_PGDATA');const otherBefore=observeOther(home),restart=await collector.restartServer(),otherAfter=observeOther(home);assert.deepEqual(otherAfter,otherBefore,'HOME unchanged by collector service restart');report.independentResources.push({restarted:'COLLECTOR_DB_CAPTURE_V1',unchanged:'HOME_DB_BOUND_V1',before:otherBefore,after:otherAfter});return {status:'RESTARTED',containerId:restart.containerId,pgDataPath:'/tmp/p4-pg',previousServerPid:restart.before.serverPid,currentServerPid:restart.after.serverPid,resourceIdentityDigest:p.identity.resourceIdentityDigest};};
     const collectorContext=Object.freeze({...p.runtimeContext,restartServer:restartCollector}),request={phase:'CORE',expectedSqlSha256,expectedStoreIdentity,fixtureNamespace:'main-p4-integrated',priorCoreReceipt:null};
+    if(next){
+      progress('COLLECTOR_RAW_BOOTSTRAP_DIAGNOSTICS');report.collectorBootstrap=await runNextCollectorBootstrapDiagnostics(diagnosticCollector,progress);
+      progress('HOME_REGISTERED_IDENTITY_DIAGNOSTICS');report.homeIdentity=await runNextHomeIdentityDiagnostics(diagnosticHome,homeContext.resourceIdentity);
+    }
     progress('COLLECTOR_CORE');const {runCollectorDbCaptureAcceptanceV1}=await import('./test-collector-db-capture-v1.mjs');const core=await runCollectorDbCaptureAcceptanceV1(collectorContext,request);report.collectorCore=core;assert.equal(core.status,'CORE_PASSED_FINAL_PENDING');
     progress('MAIN_DURABLE_AI_INPUT');const verification=await local.verifyCollectorDbCaptureResourceV1(collectorContext,{stage:'AFTER_APPLY',expectedSqlSha256}),ports=await local.createCollectorDbCapturePortsV1(collectorContext,{verifiedResource:verification,expectedStoreIdentity});
     const {CollectorDbStoreV1,createOwnedCollectorDbReadPortV1}=await import('../workers/collectors/src/collector-db-store-v1.ts'),{createDurableAnalysisInputPort}=await import('../workers/ai-processing/src/durable-input.ts');
@@ -203,7 +460,7 @@ export async function runMainP4Integration(){
     report.home=await runHomeDatabasePostgresAcceptance(Object.freeze({...homeContext,restartServer:restartHome}));assert.equal(report.home.status,'PASS');assert.equal(report.home.failed,0);assert.equal(report.home.held,0);assert.equal(report.independentResources.length,2);
     assert.deepEqual(pins(),beforePins,'No source mutation during real acceptance');report.status='PASS';
   }catch(e){report.status='FAIL';report.error={code:e.code??null,message:sqlErrorCodes.has(e.message)?e.message:'MAIN_P4_ACCEPTANCE_FAILED',sqlState:e.sqlState??null,sourceLine:e.sourceLine??null,syntaxToken:e.syntaxToken??null,compilationFunction:e.compilationFunction??null};}
-  finally{for(const resource of [home,collector]){try{await resource.close();report.cleanup.push({component:resource.component,status:'PASS',runId:resource.runId});}catch(e){report.status='FAIL';report.cleanup.push({component:resource.component,status:'HOLD',runId:resource.runId,code:e.code??e.name});}}try{assert.deepEqual(pins(),beforePins);}catch{report.status='FAIL';report.sourceChangedDuringAcceptance=true;}writeFileSync(path.join(out,'integration-result.json'),JSON.stringify(report,null,2),{flag:'wx'});progress(report.status);}
+  finally{for(const resource of [diagnosticHome,diagnosticCollector,home,collector].filter(Boolean)){try{await resource.close();report.cleanup.push({component:resource.component,status:'PASS',runId:resource.runId});}catch(e){report.status='FAIL';report.cleanup.push({component:resource.component,status:'HOLD',runId:resource.runId,code:e.code??e.name});}}try{assert.deepEqual(pins(),beforePins);}catch{report.status='FAIL';report.sourceChangedDuringAcceptance=true;}writeFileSync(path.join(out,'integration-result.json'),JSON.stringify(report,null,2),{flag:'wx'});progress(report.status);}
   if(report.status!=='PASS')throw Error('MAIN_P4_ACCEPTANCE_FAILED');return report;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))await runMainP4Integration();

@@ -608,5 +608,19 @@
     "M2": false,
     "crossWorkerAtomicityProven": false,
     "physicalCommitTimeQualificationProven": false
+  },
+  "parallelNextPreparation": {
+    "stage": "MAIN_PARALLEL_NEXT",
+    "state": "SYNTHETIC_IMPLEMENTATION_REVIEW_PENDING",
+    "planManifest": "12d49813d102cb4d3e11a32aeff427e8a14b514fd1f74e84f552bc8e6f276052",
+    "productAiProcessingCalls": 0,
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "actualAuthCalls": 0,
+    "workerConnected": false,
+    "adminConnected": false,
+    "M2": false,
+    "crossWorkerAtomicityProven": false,
+    "physicalCommitTimeQualificationProven": false
   }
 }

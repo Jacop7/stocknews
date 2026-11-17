@@ -294,3 +294,286 @@ export async function runHomeDatabasePostgresAcceptance(context){
  const report={...HOME_DATABASE_FLAGS,status,scope:'ISOLATED_HOME_MINIMUM_ACCEPTANCE',resource:resourceProof,cases,passed:cases.filter(c=>c.status==='PASS').length,failed:cases.filter(c=>c.status==='FAIL').length,held:cases.filter(c=>c.status==='HOLD').length,skipped:cases.filter(c=>c.status==='SKIP').length,operationalContinuity:'HOLD',originalRequestBytesCertified:false,realPublishingEnabled:false,actualProviderCalls:0,cleanup:{sessionsClosed:sessions.size===0,resourceCleanupOwnedByMAIN:true},limits:['D0_ISOLATED_FIXTURE_ASSERTIONS_ONLY','SEPARATE_COLLECTOR_RESOURCE_NOT_CROSSWORKER_ATOMIC','UNREGISTERED_TWO_MEMBERSHIPS_DOES_NOT_INDEPENDENTLY_PROVE_MEMBERSHIP_BRANCH','NO_REALTIME_32_OR_288_EVIDENCE','NO_HOST_CRASH_OR_CONTAINER_RECREATION_CONTINUITY']};
  await mkdir(output,{recursive:true});await writeFile(join(output,'home-database-postgres.json'),JSON.stringify(report,null,2)+'\n','utf8');return report;
 }
+
+/** Independent, bounded installer/principal diagnostics for a separate MAIN-owned resource.
+ * Exact context: {resourceIdentity,outputDirectory,ownerExecute,openCaptureSession}.
+ * ownerExecute(sql) returns psql -X -qAt text with ON_ERROR_STOP=1; it targets only
+ * this disposable database. openCaptureSession() returns the existing raw session
+ * shape {backendPid,principal,execute,close}, using the registered capture LOGIN.
+ * MAIN installs/seeds/owns/cleans the resource. Do not pass the normal acceptance
+ * resource, pooled/SET ROLE connections, a production database, or a transport codec.
+ * ownerExecute is a test-only bootstrap capability, never an application API.
+ */
+export async function runHomeDatabaseIdentityDiagnostics(context){
+ const contextKeys=['resourceIdentity','outputDirectory','ownerExecute','openCaptureSession'];
+ assert(context&&typeof context==='object'&&!homeIsProxy(context));
+ assert.deepEqual(Object.keys(context).sort(),[...contextKeys].sort());
+ for(const key of contextKeys){
+  const descriptor=Object.getOwnPropertyDescriptor(context,key);
+  assert(descriptor&&'value'in descriptor&&descriptor.enumerable);
+ }
+ assert.equal(typeof context.ownerExecute,'function');
+ assert.equal(typeof context.openCaptureSession,'function');
+ const identity=validateHomeDatabaseResource(context.resourceIdentity);
+ const output=resolve(context.outputDirectory);
+ assert(/[/\\]outputs[/\\]development-stages[/\\]/.test(output));
+ const runHex=identity.runId.replaceAll('-','');
+ const captureLogin=`h4_${runHex}_capture`,component='home_v1_capture_worker';
+ const extraRole=`h4d_${runHex}_extra`,parentRole=`h4d_${runHex}_parent`;
+ const quoted=name=>{assert(/^[a-z][a-z0-9_]{0,62}$/.test(name));return `"${name}"`;};
+ const text=value=>`'${value.replaceAll("'","''")}'`;
+ const owner=source=>context.ownerExecute(source);
+ const ownerJson=async source=>parse(await owner(source));
+ const cases=[],sessions=new Set(),backendPids=new Set();
+ let baseline=null,cleanupVerified=false,rolesAttempted=false;
+ const request={resourceId:identity.resourceId};
+
+ // This projection records every _entry predicate relevant to these two branches.
+ // It deliberately excludes server time so unchanged before/after values compare.
+ const snapshotSql=`SELECT pg_catalog.jsonb_build_object(
+  'resourceIdentity',c.identity,'rowResourceId',c.resource_id::text,'rowRunId',c.run_id::text,
+  'databaseName',pg_catalog.current_database(),
+  'databaseOid',(SELECT oid::text FROM pg_catalog.pg_database WHERE datname=pg_catalog.current_database()),
+  'clusterSystemIdentifier',(SELECT system_identifier::text FROM pg_catalog.pg_control_system()),
+  'login',pg_catalog.jsonb_build_object('oid',r.oid::text,'name',r.rolname,'canLogin',r.rolcanlogin,
+   'inherit',r.rolinherit,'superuser',r.rolsuper,'createDb',r.rolcreatedb,'createRole',r.rolcreaterole,
+   'replication',r.rolreplication,'bypassRls',r.rolbypassrls),
+  'component',pg_catalog.jsonb_build_object('oid',k.oid::text,'name',k.rolname,'canLogin',k.rolcanlogin,
+   'superuser',k.rolsuper,'bypassRls',k.rolbypassrls),
+  'principal',(SELECT pg_catalog.jsonb_build_object('oid',p.principal_oid::text,'name',p.principal_name,
+   'resourceId',p.resource_id::text,'runId',p.run_id::text,'componentRole',p.component_role)
+   FROM home_bound_v1.principals p WHERE p.principal_oid=r.oid),
+  'loginMemberships',COALESCE((SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+   'roleOid',m.roleid::text,'memberOid',m.member::text,'grantorOid',m.grantor::text,
+   'inherit',m.inherit_option,'set',m.set_option,'admin',m.admin_option) ORDER BY m.roleid)
+   FROM pg_catalog.pg_auth_members m WHERE m.member=r.oid),'[]'::jsonb),
+  'componentParents',COALESCE((SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+   'roleOid',m.roleid::text,'memberOid',m.member::text,'grantorOid',m.grantor::text,
+   'inherit',m.inherit_option,'set',m.set_option,'admin',m.admin_option) ORDER BY m.roleid)
+   FROM pg_catalog.pg_auth_members m WHERE m.member=k.oid),'[]'::jsonb),
+  'databaseOwnershipCount',(SELECT pg_catalog.count(*) FROM pg_catalog.pg_database WHERE datdba=r.oid),
+  'acl',pg_catalog.jsonb_build_object('functionOid',f.oid::text,'ownerOid',f.proowner::text,
+   'functionAcl',f.proacl::text,'schemaOid',n.oid::text,'schemaAcl',n.nspacl::text,
+   'schemaUsage',pg_catalog.has_schema_privilege(r.oid,n.oid,'USAGE'),
+   'rpcExecute',pg_catalog.has_function_privilege(r.oid,f.oid,'EXECUTE'))
+ )::text FROM home_bound_v1.resource_control c
+ JOIN pg_catalog.pg_roles r ON r.rolname=${text(captureLogin)}
+ JOIN pg_catalog.pg_roles k ON k.rolname=${text(component)}
+ JOIN pg_catalog.pg_namespace n ON n.nspname='home_bound_v1'
+ JOIN pg_catalog.pg_proc f ON f.pronamespace=n.oid AND f.proname='resource_identity'
+  AND f.oid='home_bound_v1.resource_identity(jsonb)'::pg_catalog.regprocedure
+ WHERE c.singleton;`;
+ const snapshot=()=>ownerJson(snapshotSql);
+ function assertBaseline(value){
+  assert.deepEqual(value.resourceIdentity,identity);
+  assert.equal(value.rowResourceId,identity.resourceId);assert.equal(value.rowRunId,identity.runId);
+  assert.equal(value.databaseName,identity.databaseName);assert.equal(value.databaseOid,identity.databaseOid);
+  assert.equal(value.clusterSystemIdentifier,identity.clusterSystemIdentifier);
+  assert.equal(value.login.name,captureLogin);assert.equal(value.login.canLogin,true);assert.equal(value.login.inherit,true);
+  for(const key of ['superuser','createDb','createRole','replication','bypassRls'])assert.equal(value.login[key],false);
+  assert.equal(value.component.name,component);assert.equal(value.component.canLogin,false);
+  assert.equal(value.component.superuser,false);assert.equal(value.component.bypassRls,false);
+  assert.deepEqual(value.principal,{oid:value.login.oid,name:captureLogin,resourceId:identity.resourceId,runId:identity.runId,componentRole:component});
+  assert.equal(value.loginMemberships.length,1);
+  const membership=value.loginMemberships[0];
+  assert.equal(membership.roleOid,value.component.oid);assert.equal(membership.memberOid,value.login.oid);
+  assert.equal(membership.inherit,true);assert.equal(membership.set,false);assert.equal(membership.admin,false);
+  assert.deepEqual(value.componentParents,[]);assert.equal(value.databaseOwnershipCount,0);
+  assert.equal(value.acl.schemaUsage,true);assert.equal(value.acl.rpcExecute,true);
+ }
+ async function open(){
+  const session=await context.openCaptureSession();sessions.add(session);
+  assert.equal(typeof session.execute,'function');assert.equal(typeof session.close,'function');
+  const live=parse(await session.execute(`SELECT pg_catalog.jsonb_build_object(
+   'sessionUser',session_user,'currentUser',current_user,'backendPid',pg_catalog.pg_backend_pid(),
+   'sessionUserOid',(SELECT oid::text FROM pg_catalog.pg_roles WHERE rolname=session_user),
+   'isolation',pg_catalog.current_setting('transaction_isolation'))::text;`));
+  assert.equal(live.sessionUser,captureLogin);assert.equal(live.currentUser,captureLogin);
+  assert.equal(live.isolation,'read committed');assert.equal(live.sessionUserOid,baseline.login.oid);
+  assert.equal(live.backendPid,session.backendPid);assert(!backendPids.has(live.backendPid));backendPids.add(live.backendPid);
+  assert.deepEqual(session.principal,{sessionUser:captureLogin,sessionUserOid:baseline.login.oid,componentRole:component,resourceId:identity.resourceId,runId:identity.runId});
+  return session;
+ }
+ async function close(session){
+  if(!session)return;
+  try{await session.execute('ROLLBACK;');}catch{}
+  try{await session.close();}finally{sessions.delete(session);}
+ }
+ async function positive(){
+  let session;
+  try{
+   session=await open();
+   const reply=validateHomeDatabaseReply('resource_identity',parse(await session.execute(sql('resource_identity',request))));
+   assert.deepEqual(reply.result.resourceIdentity,identity);
+   assert.equal(reply.principal.sessionUserOid,baseline.login.oid);
+   return {backendPid:session.backendPid,sessionUserOid:reply.principal.sessionUserOid};
+  }finally{await close(session);}
+ }
+ async function nativeRejection(expectedCode,expectedState){
+  assert(['FORBIDDEN','RESOURCE_MISMATCH'].includes(expectedCode));
+  assert(['42501','P0001'].includes(expectedState));
+  let session;
+  try{
+   session=await open();
+   // Check the actual backend exception before MAIN's text transport can map an
+   // arbitrary ACL 42501 to FORBIDDEN. Do not append another SQL statement here:
+   // psql ON_ERROR_STOP=0 would let its success mask a failed DO assertion.
+   await session.execute(`DO $home_diagnostic$
+    DECLARE caught_state text;caught_message text;
+    BEGIN
+     BEGIN
+      PERFORM home_bound_v1.resource_identity(${literal(request)});
+     EXCEPTION WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS caught_state=RETURNED_SQLSTATE,caught_message=MESSAGE_TEXT;
+     END;
+     IF caught_state IS DISTINCT FROM ${text(expectedState)} OR caught_message IS DISTINCT FROM ${text(expectedCode)} THEN
+      RAISE EXCEPTION 'HOME_DIAGNOSTIC_WRONG_NATIVE_REJECTION';
+     END IF;
+    END $home_diagnostic$;`);
+   return {backendPid:session.backendPid,sqlState:expectedState,code:expectedCode,nativeExceptionCheckedInsideBackend:true};
+  }finally{await close(session);}
+ }
+ async function runCase(name,work){
+  try{cases.push({name,status:'PASS',...await work()});}
+  catch(error){cases.push({name,status:'FAIL',...errorEvidence(error)});}
+ }
+ async function restoreIdentity(){
+  await owner(`BEGIN;UPDATE home_bound_v1.resource_control SET identity=${literal(identity)} WHERE singleton;COMMIT;`);
+ }
+ async function membershipCase(name,member,role,field){
+  const before=await snapshot();assert.deepEqual(before,baseline);const beforePositive=await positive();
+  let changed,rejection,roleProof;
+  try{
+   await owner(`GRANT ${quoted(role)} TO ${quoted(member)} WITH INHERIT FALSE, SET FALSE, ADMIN FALSE;`);
+   changed=await snapshot();
+   roleProof=await ownerJson(`SELECT pg_catalog.jsonb_build_object('oid',oid::text,'name',rolname,
+    'canLogin',rolcanlogin,'superuser',rolsuper,'createDb',rolcreatedb,'createRole',rolcreaterole,
+    'replication',rolreplication,'bypassRls',rolbypassrls)::text FROM pg_catalog.pg_roles WHERE rolname=${text(role)};`);
+   assert.equal(roleProof.name,role);
+   for(const key of ['canLogin','superuser','createDb','createRole','replication','bypassRls'])assert.equal(roleProof[key],false);
+   const extra=changed[field].filter(m=>!baseline[field].some(b=>b.roleOid===m.roleOid));
+   assert.equal(extra[0]?.roleOid,roleProof.oid);
+   assert.equal(extra.length,1);assert.equal(extra[0].inherit,false);assert.equal(extra[0].set,false);assert.equal(extra[0].admin,false);
+   assert.deepEqual({...changed,[field]:baseline[field]},baseline,'Only the targeted membership predicate may differ');
+   assert.equal(changed[field].length,baseline[field].length+1);
+   rejection=await nativeRejection('FORBIDDEN','42501');
+  }finally{await owner(`REVOKE ${quoted(role)} FROM ${quoted(member)};`);}
+  const restored=await snapshot();assert.deepEqual(restored,baseline);const afterPositive=await positive();
+  return {branch:name,beforePositive,roleProof,changed,rejection,restored,afterPositive,membershipBranchIndependentlyProven:true};
+ }
+ function identityVariants(){
+  const variants=[
+   {name:'SQL_NULL',expression:'NULL::jsonb',phase:'INSTALL_NOT_NULL',sqlState:'23502'},
+   ...[['JSON_NULL',null],['ROOT_ARRAY',[]],['ROOT_STRING','identity'],['ROOT_NUMBER',1],['EMPTY_OBJECT',{}]].map(([name,value])=>({name,value,phase:'INSTALL_CHECK',sqlState:'23514'}))
+  ];
+  const installKeys=new Set(['schema','resourceId','runId']);
+  for(const key of Object.keys(identity)){
+   const missing=clone(identity);delete missing[key];
+   const phase=installKeys.has(key)?'INSTALL_CHECK':'RPC',sqlState=installKeys.has(key)?'23514':'P0001';
+   for(const [kind,value]of [['MISSING',missing],['JSON_NULL',{...identity,[key]:null}],['WRONG_TYPE',{...identity,[key]:false}]])
+    variants.push({name:`${key}_${kind}`,value,phase,sqlState});
+  }
+  const runtime=(name,key,value)=>variants.push({name,value:{...identity,[key]:value},phase:'RPC',sqlState:'P0001'});
+  variants.push({name:'EXTRA_KEY',value:{...identity,extraField:'unexpected'},phase:'RPC',sqlState:'P0001'});
+  variants.push({name:'SCHEMA_WRONG_FIXED',value:{...identity,schema:'OTHER'},phase:'INSTALL_CHECK',sqlState:'23514'});
+  for(const key of ['resourceId','runId'])variants.push({name:`${key}_ROW_MISMATCH`,value:{...identity,[key]:randomUUID()},phase:'INSTALL_CHECK',sqlState:'23514'});
+  for(const key of ['productId','stage','component','imageId'])runtime(`${key}_WRONG_FIXED`,key,'OTHER');
+  for(const key of ['containerId','contractSha256'])runtime(`${key}_BAD_HASH`,key,'invalid');
+  runtime('bootstrapUuid_BAD_UUID','bootstrapUuid','invalid');runtime('databaseName_BAD_ID','databaseName','invalid name');
+  runtime('clusterSystemIdentifier_NONCANONICAL','clusterSystemIdentifier','01');
+  runtime('databaseOid_OVERFLOW','databaseOid','9223372036854775808');
+  runtime('databaseOid_NUMERIC_COERCION','databaseOid',Number(identity.databaseOid));
+  runtime('clusterSystemIdentifier_LIVE_MISMATCH','clusterSystemIdentifier',identity.clusterSystemIdentifier==='0'?'1':'0');
+  runtime('databaseOid_LIVE_MISMATCH','databaseOid',identity.databaseOid==='0'?'1':'0');
+  runtime('databaseName_LIVE_MISMATCH','databaseName',`diagnostic_other_${runHex}`);
+  return variants;
+ }
+ async function identityCase(variant){
+  assert.deepEqual(await snapshot(),baseline);
+  let installation,rejection=null;
+  try{
+   // The explicit SAVEPOINT and the PL/pgSQL exception subtransaction keep a
+   // rejected UPDATE from poisoning the owner transaction. An accepted malformed
+   // value is committed only in this disposable diagnostic resource, so a new
+   // actual LOGIN backend can exercise the runtime identity guard.
+   installation=await ownerJson(`BEGIN;
+    CREATE TEMP TABLE home_identity_diagnostic(result jsonb NOT NULL) ON COMMIT DROP;
+    SAVEPOINT home_identity_case;
+    DO $home_install_diagnostic$
+    DECLARE caught_state text;constraint_name text;column_name text;
+    BEGIN
+     BEGIN
+      UPDATE home_bound_v1.resource_control SET identity=${variant.expression??literal(variant.value)} WHERE singleton;
+     EXCEPTION WHEN check_violation OR not_null_violation THEN
+      GET STACKED DIAGNOSTICS caught_state=RETURNED_SQLSTATE,constraint_name=CONSTRAINT_NAME,column_name=COLUMN_NAME;
+     END;
+     IF (SELECT identity FROM home_bound_v1.resource_control WHERE singleton) IS DISTINCT FROM ${literal(identity)} AND caught_state IS NOT NULL THEN
+      RAISE EXCEPTION 'HOME_DIAGNOSTIC_INSTALL_REJECTION_LEFT_EFFECT';
+     END IF;
+     INSERT INTO pg_temp.home_identity_diagnostic VALUES(pg_catalog.jsonb_build_object(
+      'phase',CASE caught_state WHEN '23514' THEN 'INSTALL_CHECK' WHEN '23502' THEN 'INSTALL_NOT_NULL' ELSE 'STORED' END,
+      'sqlState',caught_state,'constraintName',NULLIF(constraint_name,''),'columnName',NULLIF(column_name,'')));
+    END $home_install_diagnostic$;
+    SELECT result::text FROM pg_temp.home_identity_diagnostic;
+    RELEASE SAVEPOINT home_identity_case;
+    COMMIT;`);
+   if(variant.phase==='RPC'){
+    assert.equal(installation.phase,'STORED');assert.equal(installation.sqlState,null);
+    rejection=await nativeRejection('RESOURCE_MISMATCH',variant.sqlState);
+   }else{
+    assert.equal(installation.phase,variant.phase);assert.equal(installation.sqlState,variant.sqlState);
+   }
+  }finally{await restoreIdentity();}
+  assert.deepEqual(await snapshot(),baseline);
+  const restoredPositive=await positive();
+  return {expectedPhase:variant.phase,installation,rejection,restoredPositive,identityRestored:true};
+ }
+ try{
+  const observed=await snapshot();assertBaseline(observed);baseline=observed;
+  const collision=await ownerJson(`SELECT pg_catalog.jsonb_build_object('count',pg_catalog.count(*))::text FROM pg_catalog.pg_roles WHERE rolname IN (${text(extraRole)},${text(parentRole)});`);
+  assert.equal(collision.count,0,'Diagnostic role names must be unused in this fresh resource');
+  rolesAttempted=true;
+  await owner(`BEGIN;
+   CREATE ROLE ${quoted(extraRole)} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+   CREATE ROLE ${quoted(parentRole)} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+   COMMIT;`);
+  await runCase('REGISTERED_CAPTURE_BASELINE',async()=>({baseline,positive:await positive()}));
+  await runCase('REGISTERED_CAPTURE_EXTRA_DIRECT_MEMBERSHIP',()=>membershipCase('LOGIN_DIRECT_COUNT',captureLogin,extraRole,'loginMemberships'));
+  await runCase('REGISTERED_CAPTURE_COMPONENT_HAS_PARENT',()=>membershipCase('COMPONENT_PARENT_EXISTS',component,parentRole,'componentParents'));
+  for(const variant of identityVariants())await runCase(`IDENTITY_${variant.name}`,()=>identityCase(variant));
+ }catch(error){cases.push({name:'DIAGNOSTIC_RESOURCE_OR_HARNESS_FAILURE',status:'FAIL',...errorEvidence(error)});}
+ finally{
+  for(const session of [...sessions]){
+   try{await close(session);}catch(error){cases.push({name:'DIAGNOSTIC_SESSION_CLOSE_FAILURE',status:'FAIL',...errorEvidence(error)});}
+  }
+  if(baseline){
+   try{
+    await restoreIdentity();
+    if(rolesAttempted)await owner(`DO $home_cleanup$
+     BEGIN
+      IF EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname=${text(extraRole)}) THEN
+       REVOKE ${quoted(extraRole)} FROM ${quoted(captureLogin)};DROP ROLE ${quoted(extraRole)};
+      END IF;
+      IF EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname=${text(parentRole)}) THEN
+       REVOKE ${quoted(parentRole)} FROM ${quoted(component)};DROP ROLE ${quoted(parentRole)};
+      END IF;
+     END $home_cleanup$;`);
+    const restored=await snapshot();assert.deepEqual(restored,baseline);assertBaseline(restored);
+    const absent=await ownerJson(`SELECT pg_catalog.jsonb_build_object('count',pg_catalog.count(*))::text FROM pg_catalog.pg_roles WHERE rolname IN (${text(extraRole)},${text(parentRole)});`);
+    assert.equal(absent.count,0);assert.equal(sessions.size,0);await positive();cleanupVerified=true;
+   }catch(error){cases.push({name:'DIAGNOSTIC_RESTORATION_FAILURE',status:'FAIL',...errorEvidence(error)});}
+  }
+ }
+ const report={...HOME_DATABASE_FLAGS,schema:'HOME_DB_BOUND_V1_IDENTITY_DIAGNOSTICS',
+  status:cases.some(c=>c.status==='FAIL')||!cleanupVerified?'FAIL':'PASS',
+  resource:identity,scope:'SEPARATE_MAIN_OWNED_DIAGNOSTIC_RESOURCE',cases,
+  passed:cases.filter(c=>c.status==='PASS').length,failed:cases.filter(c=>c.status==='FAIL').length,
+  cleanup:{sessionsClosed:sessions.size===0,identityAndMembershipsRestored:cleanupVerified,resourceCleanupOwnedByMAIN:true},
+  actualProviderCalls:0,realPublishingEnabled:false,operationalContinuity:'HOLD',
+  limits:['DECODED_JSONB_NOT_ORIGINAL_REQUEST_BYTES','D0_ISOLATED_FIXTURE_ASSERTIONS_ONLY',
+   'NO_REALTIME_32_OR_288_EVIDENCE','NO_REALCLOCK_MARKET_BOUNDARY_EVIDENCE',
+   'CONTAINER_BOOTSTRAP_AND_CONTRACT_HASH_EXPECTATIONS_REMAIN_MAIN_OWNED']};
+ await mkdir(output,{recursive:true});
+ await writeFile(join(output,'home-database-identity-diagnostics.json'),JSON.stringify(report,null,2)+'\n','utf8');
+ return report;
+}

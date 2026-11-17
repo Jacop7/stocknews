@@ -2,27 +2,163 @@
 -- MAIN must prepare fresh roles/logins and set collector.bootstrap_v1 on this installer session.
 begin;
 do $bootstrap$
-declare b jsonb; k text; r record; p jsonb;
+declare
+  b jsonb;
+  p jsonb;
+  k text;
+  field text;
+  value_text text;
+  component_role record;
+  login_role record;
+  seen_oids text[] := array[]::text[];
+  identity_keys constant text[] := array[
+    'productId','component','runId','bootstrapId','clusterIdentity',
+    'containerId','containerName','imageId','databaseName','pgDataPath',
+    'socketDirectory','tmpfsMounts','readOnlyRoot','networkMode',
+    'publishedPorts','testLoginPrincipals','resourceIdentityDigest'
+  ];
+  principal_kinds constant text[] := array['executor','reader','authority','maintenance'];
+  principal_keys constant text[] := array[
+    'name','oid','roleName','roleOid','login','superuser',
+    'createRole','createDb','replication','bypassRls'
+  ];
 begin
-  b:=nullif(pg_catalog.current_setting('collector.bootstrap_v1',true),'')::jsonb;
-  if b is null or b->>'productId'<>'judoju-news' or b->>'component'<>'COLLECTOR_DB_CAPTURE_V1'
-     or b->>'imageId'<>'sha256:7c31363a3f7434ff14945f1b8a4880e6eca8b362e197e88b87c476c77aa3cf8c'
-     or b->>'databaseName'<>pg_catalog.current_database() or b->>'networkMode'<>'none'
-     or b->'readOnlyRoot'<>'true'::jsonb or b->'publishedPorts'<>'0'::jsonb
-     or b->>'clusterIdentity'<>(select system_identifier::text from pg_catalog.pg_control_system()) then
+  b := nullif(pg_catalog.current_setting('collector.bootstrap_v1',true),'')::jsonb;
+
+  -- The runtime validators are installed later. Validate here with built-ins,
+  -- before creating schemas, tables, helpers, or changing default privileges.
+  if pg_catalog.jsonb_typeof(b) is distinct from 'object' then
     raise exception 'STORE_MISMATCH';
   end if;
-  if exists(select 1 from pg_catalog.pg_namespace where nspname in ('collector_private','collector_api')) then raise exception 'EFFECT_CONFLICT';end if;
-  for k in select unnest(array['owner','executor','reader','authority','maintenance']) loop
-    select * into r from pg_catalog.pg_roles where rolname='collector_'||k||'_v1';
-    if not found or r.rolcanlogin or r.rolsuper or r.rolcreaterole or r.rolcreatedb or r.rolreplication or r.rolbypassrls then raise exception 'UNAUTHORIZED';end if;
-    if exists(select 1 from pg_catalog.pg_auth_members where member=r.oid) then raise exception 'UNAUTHORIZED';end if;
-    if k<>'owner' then
-      p:=b->'testLoginPrincipals'->k;
-      if p->>'roleName'<>r.rolname or p->>'roleOid'<>r.oid::text or p->>'name'<>'judoju_p4_c_'||k||'_'||left(replace(b->>'runId','-',''),12) then raise exception 'UNAUTHORIZED';end if;
-      select * into r from pg_catalog.pg_roles where rolname=p->>'name';
-      if not found or r.oid::text<>p->>'oid' or not r.rolcanlogin or r.rolsuper or r.rolcreaterole or r.rolcreatedb or r.rolreplication or r.rolbypassrls then raise exception 'UNAUTHORIZED';end if;
-      if (select count(*) from pg_catalog.pg_auth_members where member=r.oid)<>1 or not exists(select 1 from pg_catalog.pg_auth_members where member=r.oid and roleid=(p->>'roleOid')::oid) then raise exception 'UNAUTHORIZED';end if;
+  if not (b ?& identity_keys)
+     or (select count(*) from pg_catalog.jsonb_object_keys(b)) <> cardinality(identity_keys) then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  foreach field in array array[
+    'productId','component','runId','bootstrapId','clusterIdentity',
+    'containerId','containerName','imageId','databaseName','pgDataPath',
+    'socketDirectory','networkMode','resourceIdentityDigest'
+  ] loop
+    if pg_catalog.jsonb_typeof(b->field) is distinct from 'string' then
+      raise exception 'STORE_MISMATCH';
+    end if;
+  end loop;
+  if b->>'productId' is distinct from 'judoju-news'
+     or b->>'component' is distinct from 'COLLECTOR_DB_CAPTURE_V1'
+     or b->>'imageId' is distinct from 'sha256:7c31363a3f7434ff14945f1b8a4880e6eca8b362e197e88b87c476c77aa3cf8c'
+     or b->>'databaseName' is distinct from pg_catalog.current_database()
+     or b->>'networkMode' is distinct from 'none'
+     or b->>'pgDataPath' is distinct from '/tmp/p4-pg'
+     or b->>'socketDirectory' is distinct from '/tmp'
+     or b->'readOnlyRoot' is distinct from 'true'::jsonb
+     or b->'publishedPorts' is distinct from '0'::jsonb then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  foreach field in array array['runId','bootstrapId'] loop
+    if (b->>field) !~ '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' then
+      raise exception 'STORE_MISMATCH';
+    end if;
+  end loop;
+  value_text := b->>'clusterIdentity';
+  if length(value_text) > 19 or value_text !~ '^[1-9][0-9]*$' then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  if value_text::numeric > 9223372036854775807
+     or value_text is distinct from (select system_identifier::text from pg_catalog.pg_control_system()) then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  if b->>'containerId' !~ '^[a-f0-9]{64}$'
+     or length(b->>'containerName') > 128
+     or b->>'containerName' !~ '^[A-Za-z0-9][A-Za-z0-9_.:/-]*$'
+     or b->>'databaseName' !~ '^[a-z][a-z0-9_]{0,62}$'
+     or b->>'resourceIdentityDigest' !~ '^[a-f0-9]{64}$' then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  if b->'tmpfsMounts' is distinct from '{
+    "/tmp":"rw,nosuid,size=268435456",
+    "/var/lib/postgresql/data":"rw,nosuid,size=16777216",
+    "/var/run/postgresql":"rw,nosuid,size=16777216"
+  }'::jsonb then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  -- The MAIN resource verifier retains responsibility for inspecting the
+  -- container and the existing sorted-JSON identity digest; do not substitute
+  -- the runtime typed canonical digest for that separate identity ABI.
+  if pg_catalog.jsonb_typeof(b->'testLoginPrincipals') is distinct from 'object' then
+    raise exception 'STORE_MISMATCH';
+  end if;
+  if not ((b->'testLoginPrincipals') ?& principal_kinds)
+     or (select count(*) from pg_catalog.jsonb_object_keys(b->'testLoginPrincipals')) <> cardinality(principal_kinds) then
+    raise exception 'UNAUTHORIZED';
+  end if;
+  foreach k in array principal_kinds loop
+    p := b->'testLoginPrincipals'->k;
+    if pg_catalog.jsonb_typeof(p) is distinct from 'object' then
+      raise exception 'UNAUTHORIZED';
+    end if;
+    if not (p ?& principal_keys)
+       or (select count(*) from pg_catalog.jsonb_object_keys(p)) <> cardinality(principal_keys) then
+      raise exception 'UNAUTHORIZED';
+    end if;
+    foreach field in array array['name','oid','roleName','roleOid'] loop
+      if pg_catalog.jsonb_typeof(p->field) is distinct from 'string' then
+        raise exception 'UNAUTHORIZED';
+      end if;
+    end loop;
+    if p->>'name' is distinct from 'judoju_p4_c_'||k||'_'||left(replace(b->>'runId','-',''),12)
+       or p->>'roleName' is distinct from 'collector_'||k||'_v1'
+       or p->'login' is distinct from 'true'::jsonb then
+      raise exception 'UNAUTHORIZED';
+    end if;
+    foreach field in array array['superuser','createRole','createDb','replication','bypassRls'] loop
+      if p->field is distinct from 'false'::jsonb then
+        raise exception 'UNAUTHORIZED';
+      end if;
+    end loop;
+    foreach field in array array['oid','roleOid'] loop
+      value_text := p->>field;
+      if length(value_text) > 19 or value_text !~ '^[1-9][0-9]*$' then
+        raise exception 'UNAUTHORIZED';
+      end if;
+      if value_text::numeric > 9223372036854775807 or value_text = any(seen_oids) then
+        raise exception 'UNAUTHORIZED';
+      end if;
+      seen_oids := array_append(seen_oids,value_text);
+    end loop;
+  end loop;
+
+  if exists(select 1 from pg_catalog.pg_namespace where nspname in ('collector_private','collector_api')) then
+    raise exception 'EFFECT_CONFLICT';
+  end if;
+  foreach k in array array['owner','executor','reader','authority','maintenance'] loop
+    select * into component_role from pg_catalog.pg_roles where rolname='collector_'||k||'_v1';
+    if not found then
+      raise exception 'UNAUTHORIZED';
+    end if;
+    if component_role.rolcanlogin or component_role.rolsuper or component_role.rolcreaterole
+       or component_role.rolcreatedb or component_role.rolreplication or component_role.rolbypassrls
+       or exists(select 1 from pg_catalog.pg_auth_members where member=component_role.oid) then
+      raise exception 'UNAUTHORIZED';
+    end if;
+    if k <> 'owner' then
+      p := b->'testLoginPrincipals'->k;
+      if p->>'roleName' is distinct from component_role.rolname
+         or p->>'roleOid' is distinct from component_role.oid::text then
+        raise exception 'UNAUTHORIZED';
+      end if;
+      select * into login_role from pg_catalog.pg_roles where rolname=p->>'name';
+      if not found then
+        raise exception 'UNAUTHORIZED';
+      end if;
+      if login_role.oid::text is distinct from p->>'oid'
+         or not login_role.rolcanlogin or login_role.rolsuper or login_role.rolcreaterole
+         or login_role.rolcreatedb or login_role.rolreplication or login_role.rolbypassrls then
+        raise exception 'UNAUTHORIZED';
+      end if;
+      if (select count(*) from pg_catalog.pg_auth_members where member=login_role.oid) <> 1
+         or not exists(select 1 from pg_catalog.pg_auth_members where member=login_role.oid and roleid=component_role.oid) then
+        raise exception 'UNAUTHORIZED';
+      end if;
     end if;
   end loop;
 end

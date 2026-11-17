@@ -75,7 +75,9 @@
     "test:collector-db-capture": "node --experimental-strip-types --test tests/collector-db-capture-v1.test.ts",
     "test:home-database-bound": "node --experimental-strip-types --test tests/home-database-bound.test.ts",
     "test:durable-analysis-input": "node --experimental-strip-types --test tests/durable-analysis-input.test.ts",
-    "test:parallel-p4-db": "node --experimental-strip-types scripts/test-main-p4-integration.mjs"
+    "test:parallel-p4-db": "node --experimental-strip-types scripts/test-main-p4-integration.mjs",
+    "test:analysis-run": "node --experimental-strip-types --test tests/analysis-run.test.ts",
+    "test:preview-activation-proof": "node --test tests/preview-activation-proof.test.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",
