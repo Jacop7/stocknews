@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][ValidateSet('Inspect','CreateFixture','VerifyFixture','WriteFixture','ReadFixture','Supervise','DeathTest')][string]$Operation)
+param([Parameter(Mandatory=$true)][ValidateSet('Inspect','CreateFixture','VerifyFixture','WriteFixture','ReadFixture','PrivateFixture','Supervise','DeathTest','CreateActual','WriteActualFile','ReadActualFile','ReadActual','AppendActualJournal','ReadActualJournal','ActualStatus','DeleteActualSecrets','Clock','OperatorIdentity','ReadOperatorToken')][string]$Operation)
 $ErrorActionPreference = 'Stop'
 [Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)

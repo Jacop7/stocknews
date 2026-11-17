@@ -5,7 +5,7 @@ import path from 'node:path';
 import {assertEnvironmentBoundary} from './admin-preview-policy.mjs';
 import {productDirectory,nativeNode,controlledEnvironment,boundaryHold} from '../apps/admin/lib/preview-file-boundary.mjs';
 const mode=process.argv.length===4&&process.argv[2]==='--mode'?process.argv[3]:null;
-if(!['Preflight','Fixture','FixtureBrowser','Descendant','Preview'].includes(mode))boundaryHold('FIXED_MODE');
+if(!['Preflight','Fixture','FixtureBrowser','Descendant','Preview','Actual'].includes(mode))boundaryHold('FIXED_MODE');
 assertEnvironmentBoundary();
 if(process.versions.node!=='24.15.0')boundaryHold('FIXED_NODE');
 const emit=x=>process.stdout.write(JSON.stringify(x)+'\n');
@@ -31,12 +31,16 @@ else {
     emit({eventName:'ready',kind:'COOKIE_FIXTURE_ONLY'});
   }else {
     assertEnvironmentBoundary();
+    if(mode==='Actual'){
+      const {loadPreviewAdminConfig,previewConfigKind}=await import('../apps/admin/lib/preview-admin-config.mjs');
+      if(previewConfigKind(loadPreviewAdminConfig())!=='ACTUAL')boundaryHold('ACTUAL_ENTRY_NOT_ACTIVATED');
+    }
     const cli=path.join(productDirectory,'apps/admin/node_modules/next/dist/bin/next');
     const child=spawn(nativeNode,[cli,'start',path.join(productDirectory,'apps/admin'),'--hostname','127.0.0.2','--port','62333'],{cwd:productDirectory,windowsHide:true,stdio:['ignore','inherit','inherit'],env:{...controlledEnvironment(),JUDOJU_ADMIN_PROFILE:'preview'}});
     child.on('error',()=>process.exit(2));child.on('exit',()=>process.exit(3));
     const until=performance.now()+29000;
     let ready=false;
     while(performance.now()<until){try{const r=await fetch('http://127.0.0.2:62333/login',{redirect:'error',signal:AbortSignal.timeout(500)});if(r.status===200){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,100));}
-    if(!ready)process.exit(4);emit({eventName:'ready',kind:'ACTUAL_BLOCKED_PREVIEW'});
+    if(!ready)process.exit(4);emit({eventName:'ready',kind:mode==='Actual'?'ACTUAL_DEV_ADMIN':'ACTUAL_BLOCKED_PREVIEW'});
   }
 }

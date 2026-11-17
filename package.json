@@ -77,7 +77,9 @@
     "test:durable-analysis-input": "node --experimental-strip-types --test tests/durable-analysis-input.test.ts",
     "test:parallel-p4-db": "node --experimental-strip-types scripts/test-main-p4-integration.mjs",
     "test:analysis-run": "node --experimental-strip-types --test tests/analysis-run.test.ts",
-    "test:preview-activation-proof": "node --test tests/preview-activation-proof.test.mjs"
+    "test:preview-activation-proof": "node --test tests/preview-activation-proof.test.mjs",
+    "test:preview-admin-actual": "node --experimental-vm-modules --test tests/preview-admin-actual.test.mjs",
+    "admin:actual": "node scripts/admin-preview-actual-setup.mjs"
   },
   "devDependencies": {
     "supabase": "3.1.0",

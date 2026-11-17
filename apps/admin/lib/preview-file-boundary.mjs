@@ -1,8 +1,8 @@
-// ADMIN_PREVIEW_FILE_C1B. Fixture-only native handle operations; import performs no I/O.
-import {spawnSync} from 'node:child_process';
+// ADMIN_PREVIEW_FILE_C1B. Fixed server-only native handles; import performs no I/O. Actual operations require bound authority.
+import {spawnSync,spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {lstatSync,realpathSync} from 'node:fs';
+import {lstatSync,realpathSync,readFileSync} from 'node:fs';
 // Explicit Node tools bind their root to this source, never to caller cwd or an env override.
 // Bundled Next fixture helpers are not executable entrypoints; ACTUAL stays unconditionally closed.
 const sourceModuleFile=fileURLToPath(import.meta.url);
@@ -29,7 +29,7 @@ export function controlledEnvironment(source=process.env){
 export function nativeBoundary(operation,payload){
   assertOwnedInvocation();
   if(process.platform!=='win32')boundaryHold('NOT_VERIFIED_WINDOWS');
-  if(!['Inspect','CreateFixture','VerifyFixture','WriteFixture','ReadFixture','Supervise','DeathTest'].includes(operation))boundaryHold('OPERATION');
+  if(!['Inspect','CreateFixture','VerifyFixture','WriteFixture','ReadFixture','PrivateFixture','Supervise','DeathTest'].includes(operation))boundaryHold('OPERATION');
   const r=spawnSync(nativePowerShell,['-NoLogo','-NoProfile','-NonInteractive','-File',path.join(productDirectory,'scripts/admin-preview-supervisor.ps1'),'-Operation',operation],{cwd:productDirectory,input:JSON.stringify(payload),encoding:'utf8',windowsHide:true,timeout:operation==='Supervise'?165000:operation==='DeathTest'?45000:20000,maxBuffer:2*1024*1024,env:controlledEnvironment()});
   if(r.error||r.status!==0)boundaryHold('NATIVE_FAILED');
   let result;try{result=JSON.parse(r.stdout.trim().split(/\r?\n/).at(-1));}catch{boundaryHold('NATIVE_RESPONSE');}
@@ -53,3 +53,46 @@ export function writeOwnedPreviewFixture(handle,payload){
   assertFixtureRoot(handle);return nativeBoundary('WriteFixture',{...payload,...ownedFixtureRoots.get(handle)});
 }
 export function inspectNativePaths(paths){return nativeBoundary('Inspect',{paths});}
+export function verifyPrivatePreviewFixture(handle){assertFixtureRoot(handle);return nativeBoundary('PrivateFixture',ownedFixtureRoots.get(handle));}
+
+// Server-only C2 explicit execution. ReadActual additionally requires this process's inherited live Windows Job.
+export function nativeActualBoundary(operation,payload={},options={}){
+  if(process.platform!=='win32')boundaryHold('NOT_VERIFIED_WINDOWS');
+  if(!['CreateActual','WriteActualFile','ReadActualFile','ReadActual','AppendActualJournal','ReadActualJournal','ActualStatus','DeleteActualSecrets','Clock','OperatorIdentity','ReadOperatorToken','Supervise'].includes(operation))boundaryHold('ACTUAL_OPERATION');
+  const root=path.resolve(process.cwd());
+  for(const part of [root,path.join(root,'.git'),path.join(root,'scripts'),path.join(root,'scripts/admin-preview-supervisor.ps1'),path.join(root,'scripts/admin-preview-native.cs'),path.join(root,'package.json')]){
+    if(lstatSync(part).isSymbolicLink()||realpathSync(part)!==part)boundaryHold('ACTUAL_OWNED_SOURCE');
+  }
+  if(JSON.parse(readFileSync(path.join(root,'package.json'),'utf8')).name!=='@judoju/news')boundaryHold('ACTUAL_PRODUCT_ROOT');
+  const maximum=operation==='Supervise'?1950000:20000;
+  if(!options||Object.keys(options).some(k=>k!=='timeoutMs')||Object.hasOwn(options,'timeoutMs')&&(!Number.isSafeInteger(options.timeoutMs)||options.timeoutMs<1||options.timeoutMs>maximum))boundaryHold('ACTUAL_NATIVE_BUDGET');
+  const limit=options.timeoutMs??maximum;
+  const r=spawnSync(nativePowerShell,['-NoLogo','-NoProfile','-NonInteractive','-File',path.join(root,'scripts/admin-preview-supervisor.ps1'),'-Operation',operation],
+    {cwd:root,input:JSON.stringify(payload),encoding:'utf8',windowsHide:true,timeout:limit,maxBuffer:2*1024*1024,env:controlledEnvironment()});
+  if(r.error||r.status!==0)boundaryHold('ACTUAL_NATIVE_FAILED');
+  let result;try{result=JSON.parse(r.stdout.trim().split(/\r?\n/).at(-1));}catch{boundaryHold('ACTUAL_NATIVE_RESPONSE');}
+  if(operation==='DeleteActualSecrets'&&result?.status==='HOLD'&&Array.isArray(result.files)&&result.files.length===3)return result;
+  if(result?.status!=='PASS')boundaryHold('ACTUAL_NATIVE_HOLD');return result;
+}
+export function nativeActualJournal(operation,payload,signal){
+  if(process.platform!=='win32'||!['ReadActualJournal','AppendActualJournal'].includes(operation))return Promise.reject(new Error('ADMIN_PREVIEW_HOLD:ACTUAL_JOURNAL_OPERATION'));
+  const root=path.resolve(process.cwd());
+  try{for(const part of [root,path.join(root,'.git'),path.join(root,'scripts/admin-preview-supervisor.ps1'),path.join(root,'scripts/admin-preview-native.cs')])if(lstatSync(part).isSymbolicLink()||realpathSync(part)!==part)boundaryHold('ACTUAL_OWNED_SOURCE');
+    if(JSON.parse(readFileSync(path.join(root,'package.json'),'utf8')).name!=='@judoju/news')boundaryHold('ACTUAL_PRODUCT_ROOT');
+  }catch{return Promise.reject(new Error('ADMIN_PREVIEW_HOLD:ACTUAL_JOURNAL_ROOT'));}
+  return new Promise((resolve,reject)=>{
+    let child,settled=false,size=0,output='';
+    const finish=(ok,value)=>{if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);ok?resolve(value):reject(new Error('ADMIN_PREVIEW_HOLD:ACTUAL_JOURNAL_UNCONFIRMED'));};
+    const abort=()=>{try{child?.kill();}catch{}finish(false);};
+    const timer=setTimeout(abort,20000);signal?.addEventListener('abort',abort,{once:true});
+    if(signal?.aborted){abort();return;}
+    try{
+      child=spawn(nativePowerShell,['-NoLogo','-NoProfile','-NonInteractive','-File',path.join(root,'scripts/admin-preview-supervisor.ps1'),'-Operation',operation],{cwd:root,windowsHide:true,env:controlledEnvironment(),stdio:['pipe','pipe','pipe']});
+      child.on('error',()=>finish(false));child.stdin.on('error',()=>finish(false));
+      child.stdout.on('data',bytes=>{size+=bytes.length;if(size>262144){abort();return;}output+=bytes.toString('utf8');});
+      child.stderr.on('data',()=>{});
+      child.on('close',code=>{if(settled)return;try{const value=JSON.parse(output.trim().split(/\r?\n/).at(-1));finish(code===0&&value.status==='PASS',value);}catch{finish(false);}});
+      child.stdin.end(JSON.stringify(payload));
+    }catch{abort();}
+  });
+}

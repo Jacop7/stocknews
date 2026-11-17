@@ -622,5 +622,20 @@
     "M2": false,
     "crossWorkerAtomicityProven": false,
     "physicalCommitTimeQualificationProven": false
+  },
+  "adminC2Preparation": {
+    "stage": "MAIN_ADMIN_C2",
+    "state": "ACTUAL_CONNECTION_CODE_NOT_APPLIED",
+    "planManifest": "a0c1450ccd8a0d1543e2e060e5dee9674dee5ed475f02c073a74e047454225e1",
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "actualAuthCalls": 0,
+    "DBMutations": 0,
+    "workerConnected": false,
+    "adminConnected": false,
+    "M2": false,
+    "crossWorkerAtomicityProven": false,
+    "physicalCommitTimeQualificationProven": false,
+    "remediationPlanManifest": "f71f7bc0eeea42f3a693647445c08226c6e7a294ce5b87d570bbdc57e7235414"
   }
 }
