@@ -8,7 +8,10 @@ import { spawnSync } from 'node:child_process';
 const root = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const status = JSON.parse(readFileSync(path.join(root, 'docs/development-status.json'), 'utf8'));
 const stage = status.currentStage;
-if(status.parallelProgressBinding?.stage==='MAIN_PARALLEL_P2'){
+if(status.parallelOperationalBoundaries?.stage==='MAIN_PARALLEL_P3'){
+  await import('./verify-parallel-p3-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelProgressBinding?.stage==='MAIN_PARALLEL_P2'){
   await import('./verify-parallel-p2-foundation.mjs');
   await import('./verify-stage3-providers.mjs');
 } else if(status.parallelSourceImplementation?.stage==='MAIN_PARALLEL_P1'){

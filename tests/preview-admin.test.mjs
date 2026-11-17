@@ -28,7 +28,7 @@ function mocked(f,options={}){
  const token=['FIXTURE',Buffer.from(JSON.stringify(claims)).toString('base64url'),'FIXTURE'].join('.');
  const fetcher=async(url,init)=>{
   assert.ok(url.startsWith(previewApi+'/'));assert.equal(init.redirect,'error');assert.equal(init.cache,'no-store');assert.ok(init.signal);
-  const name=url.split('/').at(-1),body=init.body?JSON.parse(init.body):undefined;requests.push({url,init,body});
+  const name=new URL(url).pathname.split('/').at(-1),body=init.body?JSON.parse(init.body):undefined;requests.push({url,init,body});
   const answer=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
   if(options.intercept){const r=await options.intercept({url,name,body,init});if(r)return r;}
   if(name==='m1_public_identity')return answer({productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',bootstrapId:null,contract:'M1',...options.identity});
@@ -88,7 +88,7 @@ test('headers separate public identity, verified editor JWT and secret-only sess
   assert.ok(requests.some(x=>x.url.endsWith('/auth/v1/user')));assert.ok(requests.some(x=>x.url.endsWith('/m1_open_admin_session')));
   for(const q of requests){if(!serverFunctions.some(n=>q.url.endsWith('/'+n)))assert.equal(q.init.headers.apikey,'FIXTURE_PUBLISHABLE');assert.notEqual(q.init.headers.Authorization,'Bearer FIXTURE_SECRET');}
   await r.logout(login.capability,s);assert.equal(rows.size,0);await assert.rejects(r.session(login.capability),/LOGIN_REQUIRED/);
-  const close=requests.findIndex(q=>q.url.endsWith('/m1_close_admin_session')),logout=requests.findIndex(q=>q.url.endsWith('/auth/v1/logout'));assert.ok(close<logout);
+  const close=requests.findIndex(q=>q.url.endsWith('/m1_close_admin_session')),logout=requests.findIndex(q=>new URL(q.url).pathname==='/auth/v1/logout');assert.ok(close<logout);assert.equal(new URL(requests[logout].url).searchParams.get('scope'),'local');
  }finally{f.cleanup();}
 });
 test('identity, owner, current metadata, ban, JWT session/audience/issuer/expiry and DB membership all deny',async()=>{
@@ -105,11 +105,11 @@ test('each exact RPC allowlist works; arbitrary/worker/REAL/legacy routes never 
   assert.equal(m.requests.length,before);
  }finally{f.cleanup();}
 });
-test('server failure does not automatically retry and SQL capability revoke precedes Auth logout',async()=>{
+test('server failure does not retry; Auth local logout is independently attempted after SQL close failure',async()=>{
  const f=fixture();try{
   let calls=0;const m=mocked(f,{intercept:({name})=>{if(name==='m1_close_admin_session'){calls++;throw Error('UNKNOWN');}}});
   const l=await m.runtime.login('owner@example.invalid','FIXTURE_PASSWORD'),s=await m.runtime.session(l.capability);
-  await assert.rejects(m.runtime.logout(l.capability,s),/PREVIEW_BACKEND_UNAVAILABLE/);assert.equal(calls,1);assert.equal(m.requests.some(q=>q.url.endsWith('/auth/v1/logout')),false);
+  await assert.rejects(m.runtime.logout(l.capability,s),/PREVIEW_BACKEND_UNAVAILABLE/);assert.equal(calls,1);const auth=m.requests.filter(q=>new URL(q.url).pathname==='/auth/v1/logout');assert.equal(auth.length,1);assert.equal(new URL(auth[0].url).searchParams.get('scope'),'local');
  }finally{f.cleanup();}
 });
 test('response parsing bounds and safe errors; unknown write result remains not-applied false',async()=>{

@@ -6,6 +6,7 @@ export const runtime='nodejs';export const dynamic='force-dynamic';
 const cookieName=()=>adminCookie();
 function reply(body:unknown,status=200){return NextResponse.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}
 export async function POST(request:NextRequest,{params}:{params:Promise<{action:string[]}>}){
+  let logoutStarted=false;
   try{assertAdminRequest(request.headers,'editor');
     const {action}=await params;const name=action.join('/');
     if(Number(request.headers.get('content-length')??0)>131072)throw new AdminError('REQUEST_TOO_LARGE',413);
@@ -20,12 +21,13 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{action:
     assertWrite(request.headers,s.csrf,request.headers.get('x-csrf-token'));
     const data=await adminJson(request);
     if(name==='logout'){
+      logoutStarted=true;
       await logout(capability,s);const response=reply({loggedOut:true});response.cookies.set(cookieName(),'',{httpOnly:true,sameSite:'strict',secure:false,path:'/',maxAge:0});return response;
     }
     const routes:Record<string,string>={create:'m1_create_draft',save:'m1_save_draft','save-catalog':'catalog_save_draft',preview:'m1_preview_draft',publish:'m1_publish_draft',state:'m1_set_state'};
     if(!routes[name])throw new AdminError('ROUTE_NOT_FOUND',404);
     return reply(await editorRpc(routes[name],data,s));
-  }catch(e){return reply({error:e instanceof AdminError?e.message:'REQUEST_FAILED',not_applied:e instanceof AdminError&&e.notApplied===true},e instanceof AdminError?e.status:500);}
+  }catch(e){const response=reply({error:e instanceof AdminError?e.message:'REQUEST_FAILED',not_applied:e instanceof AdminError&&e.notApplied===true},e instanceof AdminError?e.status:500);if(logoutStarted)response.cookies.set(cookieName(),'',{httpOnly:true,sameSite:'strict',secure:false,path:'/',maxAge:0});return response;}
 }
 export async function GET(request:NextRequest,{params}:{params:Promise<{action:string[]}>}){
   try{assertAdminRequest(request.headers,'editor');const name=(await params).action.join('/'),s=await session(request.cookies.get(cookieName())?.value);

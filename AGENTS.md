@@ -21,3 +21,5 @@
 - MAIN_PARALLEL_P1은 사용자 개별 오더에 따른 MAIN acquisition·native collector inventory·native home 명령 어댑터의 source-only 병렬 구현이다. 담당자별 정확 세 파일만 작성하고 MAIN만 공통 파일·전체 검사·검수·Git을 수행한다. 이 운영 지시는 OS sandbox/인증정보 접근의 기술적 격리 증명이 아니며 .env/private/다른 제품 접근을 허용하지 않는다. 기존 원격 PLAN3/3·HOLD·Router와 실제 수집/AI/DB/게시를 활성화하지 않는다.
 
 - MAIN_PARALLEL_P2는 기존 native collector/home 담당의 정확 신규 세 파일과 MAIN event-routing 두 파일을 병렬 구현한다. partition checkpoint는 source K1과 별개인 합성 journal이고, 게시/근거 binding과 semantic delta는 fixture assertion이다. 실제 수집·AI 검증·게시·DB·Router/원격3회 재시도를 활성화하지 않는다. 기존 P1 경계와 운영상 읽기 제한·MAIN 통합 책임을 그대로 유지한다.
+
+- MAIN_PARALLEL_P3는 MAIN이 AI 입력·관리자 수명 처리를 직접 작성하고 기존 collector/home 작성자가 지정 네 파일만 작성한다. 실제 연결 없는 OFFLINE_REPLAY 경계이며 권한·현재 관측은 fixture assertion이다. MAIN만 전체 통합·검수·Git을 수행하고 실제 수집/AI/DB/권한/게시/원격 실행기를 활성화하지 않는다. 기존 계획·검수·회차와 미해결 P3는 보존한다.

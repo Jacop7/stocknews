@@ -62,8 +62,13 @@
     "test:home-worker-adapter": "node --experimental-strip-types --test tests/home-worker-adapter.test.ts",
     "check:home-worker-adapter": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json",
     "test:collector-partition": "node --experimental-strip-types --test tests/collector-partition-journal.test.ts",
-    "test:rankable-batch": "node node_modules/typescript/bin/tsc --noEmit --target ES2022 --lib ES2022,DOM --module NodeNext --moduleResolution NodeNext --strict --allowImportingTsExtensions --skipLibCheck --verbatimModuleSyntax workers/home-ranking/src/rankable-adapter.ts && node --experimental-strip-types --test tests/rankable-batch.test.ts",
-    "test:event-routing": "node --experimental-strip-types --test tests/event-routing.test.ts"
+    "test:rankable-batch": "node --experimental-strip-types --test tests/rankable-batch.test.ts",
+    "test:event-routing": "node --experimental-strip-types --test tests/event-routing.test.ts",
+    "test:collector-read-boundary": "node --experimental-strip-types --test tests/collector-read-boundary.test.ts",
+    "test:home-bound": "node --experimental-strip-types --test tests/home-bound-dispatch.test.ts",
+    "test:analysis-input": "node --experimental-strip-types --test tests/analysis-input.test.ts",
+    "test:admin-preview-lifecycle": "node --experimental-vm-modules --test tests/admin-preview-lifecycle.test.mjs",
+    "check:home-ranking": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json"
   },
   "devDependencies": {
     "supabase": "3.1.0",

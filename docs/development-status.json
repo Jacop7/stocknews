@@ -571,5 +571,17 @@
     "actualRemoteRequests": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "parallelOperationalBoundaries": {
+    "stage": "MAIN_PARALLEL_P3",
+    "state": "OFFLINE_BOUNDARIES_NOT_ACTIVATED",
+    "planManifest": "4e087f3d69d9b1743c3efd2a1a82f1f98d693ce5624630f381e0c7d61f977c1b",
+    "productAiProcessingCalls": 0,
+    "developmentAuthorInvocations": 2,
+    "developmentModelRequestCount": "UNMEASURED",
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }
