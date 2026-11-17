@@ -1,0 +1,29 @@
+{
+  "stage": "MAIN_PARALLEL_P1",
+  "state": "SYNTHETIC_PARALLEL_SOURCE_NOT_ACTIVATED",
+  "planManifest": "029599567ab9852e6f337f1a8e172d9d5dc3828ebc920ad4ef754c672da1a87b",
+  "actualModelCalls": 0,
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "workerConnected": false,
+  "M2": false,
+  "sourcePins": {
+    "AGENTS.md": "6c5b25cfbd51b17031906be8bd3472c9908637249f0b091e5c2784ba29a27161",
+    "docs/development-status.json": "e04e9469ce1ed5d76161922fb8def6ee7eb1acdcfe97eb9a37e90f68076e1e27",
+    "docs/stages/stage-parallel-p1-baseline.json": "691dc44b6e2389fda167d1917e8e799199971a9f18ce33e61335c4dfd7ca6a5c",
+    "docs/stages/stage-parallel-p1-notes.md": "a3b421a476a78132e47de123c1267b4f987360e81e569739ffa4fad0c2985b7f",
+    "docs/stages/stage-parallel-p1-plan.md": "d37e5409dd7afdebd26244c4d191d55ab0325459c88c69420fc07b13135b1399",
+    "package.json": "d7afb5bcb39614b7d5e623a8118b2cceb42a601f8ec8a0a6ab1744f8c7270bdf",
+    "scripts/verify-foundation.mjs": "184a334843abcdae350e483ff13b08b3ea25c4f0f1339ccb4ec9b089203c1063",
+    "scripts/verify-parallel-p1-foundation.mjs": "960bd1e2a495a5cf686cdde8acff92c78652fec558695effe6c2ad12ebce085f",
+    "scripts/verify.mjs": "26a1d217e365bb082e8f993f8bf028696f8acf12756208af19718bc5ba6efc4a",
+    "tests/acquisition-store.test.ts": "64f2b12c8544544488748a9d724ad933430ad210d2cb371ea50c61a6d6f58b70",
+    "tests/collector-inventory.test.ts": "66c4dcd69d065370020d47ce89d2f70462dead8a1dd18ba2e7995388afe3066c",
+    "tests/home-worker-adapter.test.ts": "03fdcb6a855720ad8333f23fb639621105789486668a18d69275d0da9bb3915b",
+    "workers/collectors/src/acquisition-store.ts": "e7a8798570c381ee309878087025f093d490c9afba7068695725faf082429f22",
+    "workers/collectors/src/adapters/site-recipes.ts": "a44473b77cfa667f964b269c613508de511e104ae2913176bcff09e2d14b92bc",
+    "workers/collectors/src/inventory.ts": "d925874d0fc19182e707f5e7cb4257bf6240e4b1f5e68b3c60afb7d07e897f03",
+    "workers/home-ranking/src/completed-adapter.ts": "334166e869851c62b05406560d479cd5129653627001de57d2d8d58e2aaf0514",
+    "workers/home-ranking/tsconfig.json": "1fc8d1f9f5192db5ef7d3509979a08326d73285648eceb560ee36bc8316393a9"
+  }
+}

@@ -549,5 +549,15 @@
     "actualRemoteRequests": 0,
     "workerConnected": false,
     "M2": false
+  },
+  "parallelSourceImplementation": {
+    "stage": "MAIN_PARALLEL_P1",
+    "state": "SYNTHETIC_PARALLEL_SOURCE_NOT_ACTIVATED",
+    "planManifest": "029599567ab9852e6f337f1a8e172d9d5dc3828ebc920ad4ef754c672da1a87b",
+    "actualModelCalls": 0,
+    "actualKeysRead": 0,
+    "actualRemoteRequests": 0,
+    "workerConnected": false,
+    "M2": false
   }
 }

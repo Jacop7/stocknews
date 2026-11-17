@@ -56,7 +56,11 @@
     "test:ai-intake": "node --experimental-strip-types --test tests/ai-metadata-intake.test.ts",
     "check:ai-intake": "node node_modules/typescript/bin/tsc -p workers/ai-processing/tsconfig.json",
     "test:source-receipts": "node --experimental-strip-types --test tests/source-receipts.test.ts",
-    "check:source-receipts": "node node_modules/typescript/bin/tsc -p workers/collectors/tsconfig.json"
+    "check:source-receipts": "node node_modules/typescript/bin/tsc -p workers/collectors/tsconfig.json",
+    "test:acquisition": "node --experimental-strip-types --test tests/acquisition-store.test.ts",
+    "test:collector-inventory": "node --experimental-strip-types --test tests/collector-inventory.test.ts",
+    "test:home-worker-adapter": "node --experimental-strip-types --test tests/home-worker-adapter.test.ts",
+    "check:home-worker-adapter": "node node_modules/typescript/bin/tsc -p workers/home-ranking/tsconfig.json"
   },
   "devDependencies": {
     "supabase": "3.1.0",

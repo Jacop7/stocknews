@@ -17,3 +17,5 @@
 - MAIN_AI_A1은 MAIN 직접 작성한 순수 합성 메타데이터 제안 검증이다. 실제 AI 호출·사실 검증·수집·게시·DB·이전 원격 worker 재시도를 활성화하지 않는다. A1 결과는 K1 판정이 아니며 후속 변환 계약이 필요하다. 기존 검사와 역사 guard는 보존하고 A1 전용 guard를 우선 선택한다.
 
 - MAIN_SOURCE_R1은 동일 backend lifetime 안의 원문 저장 영수증·응답 유실 복구 합성 계약이다. 실제 수집·DB·영속 재시작·다중 writer·나머지 공유 계약을 활성화하지 않는다. 불명 작업은 새 key로 재시도하지 않는다. R1 guard는 기존 전체 검사와 세 Node-only 모듈의 앱 경계를 이어받는다.
+
+- MAIN_PARALLEL_P1은 사용자 개별 오더에 따른 MAIN acquisition·native collector inventory·native home 명령 어댑터의 source-only 병렬 구현이다. 담당자별 정확 세 파일만 작성하고 MAIN만 공통 파일·전체 검사·검수·Git을 수행한다. 이 운영 지시는 OS sandbox/인증정보 접근의 기술적 격리 증명이 아니며 .env/private/다른 제품 접근을 허용하지 않는다. 기존 원격 PLAN3/3·HOLD·Router와 실제 수집/AI/DB/게시를 활성화하지 않는다.
