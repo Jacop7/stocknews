@@ -65,9 +65,13 @@ export function loadPreviewAdminConfig(){
   try{
     const started=performance.now(),r=nativeActualBoundary('ReadActual',{}),received=performance.now();
     if(!Number.isSafeInteger(r.authoritativeNow)||!Number.isSafeInteger(r.remainingMs)||r.remainingMs<=0||r.remainingMs>1800000||received<started)fail();
-    const names=['activation-expected.json','activation-proof.json','admin-server.json','decision.json','approval.json','rendered.sql'];
+    const names=['activation-expected.json','activation-proof.json','admin-server.json','decision.json','approval.json','rendered.sql','launch-consumed.json'];
     if(!r.files||Object.keys(r.files).sort().join('|')!==names.sort().join('|'))fail();
     const files=Object.fromEntries(names.map(name=>[name,Buffer.from(r.files[name],'base64')]));
+    const launch=JSON.parse(files['launch-consumed.json']);
+    if(launch.launchEffect!==r.launchEffect||launch.ownerUserId!==actualOwner.id
+      ||launch.configSha256!==actualHash(files['admin-server.json'])||launch.proofSha256!==actualHash(files['activation-proof.json'])
+      ||Date.parse(launch.expiresAt)!==r.authoritativeNow+r.remainingMs)fail();
     const expected=JSON.parse(files['activation-expected.json']),c=JSON.parse(files['admin-server.json']);
     const d=JSON.parse(files['decision.json']),approval=JSON.parse(files['approval.json']);
     const decisionKeys=['schemaVersion','productId','projectRef','organizationRef','ownerUserId','ownerEmailSha256','effectKey','expiresAt','implementationManifestSha256','publishableKeyId','secretKeyId','prestateSha256','observedAt','launchEffect','templateSha256','sqlPreimageSha256'];
@@ -75,6 +79,7 @@ export function loadPreviewAdminConfig(){
       ||d.organizationRef!=='qfzgicohgpuogehdyzfx'||d.ownerUserId!==actualOwner.id||d.ownerEmailSha256!==actualOwner.emailSha256
       ||d.effectKey!==d.launchEffect||d.launchEffect!==r.launchEffect||!uuid.test(d.effectKey??''))fail();
     const decisionSha256=actualHash(actualCanonical(d)),sql=files['rendered.sql'].toString('utf8'),sqlSha256=actualHash(files['rendered.sql']);
+    if(launch.decisionSha256!==decisionSha256)fail();
     const sentinel="'"+decisionSha256+"'";
     if(sql.split(sentinel).length!==2||actualHash(sql.replace(sentinel,"'"+'0'.repeat(64)+"'"))!==d.sqlPreimageSha256)fail();
     checkActualApproval(approval,{decision:d,decisionSha256,sqlSha256});

@@ -16,8 +16,12 @@ const sourceRoot=fileURLToPath(new URL('../',import.meta.url));
 const hold=code=>{throw Error('ADMIN_C2_HOLD:'+code);};
 const identifier=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
 const parse=b=>JSON.parse(b.toString('utf8'));
+// A legal DB ciphertext can contain 32768 characters requiring six JSON bytes
+// each. One row plus fixed UUID/hash/boolean fields fits the 262144-byte cap.
+const sessionReadBatchSize=1;
 function nativeRead(leaf){return Buffer.from(nativeActualBoundary('ReadActualFile',{leaf}).bytes,'base64');}
-function nativeWrite(leaf,bytes,budget=null){const options=budget?{timeoutMs:actualSetupAllowance(budget,Math.floor(performance.now()),'NATIVE').timeoutMs}:{};return nativeActualBoundary('WriteActualFile',{leaf,bytes:Buffer.from(bytes).toString('base64')},options);}
+function setupNative(op,payload,budget,onDispatch=()=>{}){const options=budget?{timeoutMs:actualSetupAllowance(budget,Math.floor(performance.now()),'NATIVE').timeoutMs}:{};onDispatch();return nativeActualBoundary(op,payload,options);}
+function nativeWrite(leaf,bytes,budget=null,onDispatch=()=>{}){return setupNative('WriteActualFile',{leaf,bytes:Buffer.from(bytes).toString('base64')},budget,onDispatch);}
 const writeJson=(name,data,budget=null)=>nativeWrite(name,actualCanonical(data),budget);
 function templateText(){const p=path.join(sourceRoot,'supabase/cloud/admin-preview-dev/activation-template.sql');if(lstatSync(p).isSymbolicLink()||realpathSync(p)!==p)hold('TEMPLATE_PATH');return readFileSync(p,'utf8');}
 function argumentsFromDecision(d){return {effectKey:d.effectKey,expiresAt:d.expiresAt,implementationManifestSha256:d.implementationManifestSha256,publishableKeyId:d.publishableKeyId,secretKeyId:d.secretKeyId,prestateSha256:d.prestateSha256,observedAt:d.observedAt};}
@@ -61,7 +65,7 @@ export function actualRequestSpec(op,{binding,keyId,body}={}){
   if(method==='GET'&&body!==undefined)hold('GET_BODY');
   return Object.freeze({url,method,credential,body});
 }
-async function request(op,values,credentials){
+async function request(op,values,credentials,onDispatch=()=>{}){
   const spec=actualRequestSpec(op,values),headers={'Content-Type':'application/json'};
   const key=credentials[spec.credential];if(typeof key!=='string'||!key)hold('CREDENTIAL_UNAVAILABLE');
   if(spec.credential==='PAT')headers.Authorization='Bearer '+key;else headers.apikey=key;
@@ -73,7 +77,8 @@ async function request(op,values,credentials){
   const timeoutMs=credentials.setupBudget&&!cleanup?actualSetupAllowance(credentials.setupBudget,Math.floor(performance.now())).timeoutMs:25000;
   let response;
   try{
-    response=await fetch(spec.url,{method:spec.method,headers,body:spec.body===undefined?undefined:JSON.stringify(spec.body),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeoutMs)});
+    const init={method:spec.method,headers,body:spec.body===undefined?undefined:JSON.stringify(spec.body),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeoutMs)};
+    onDispatch();response=await fetch(spec.url,init);
     if(!response.ok)hold('HTTP_'+response.status);
     if(op==='AUTH_LOGOUT'&&response.status===204){if(response.body!==null)hold('LOGOUT_RESPONSE_INVALID');return null;}
     if(response.headers.get('content-length')!==null&&(!/^\d+$/.test(response.headers.get('content-length'))||Number(response.headers.get('content-length'))>262144))hold('RESPONSE_SIZE');
@@ -186,6 +191,7 @@ function valuesSessions(body){
 export function sessionStatement(binding,sessions,remove){
   // Fixed parameterized owner/session inventory; an absent app row is NOT an absent Auth session.
   const parameters=[actualOwner.id,binding.decisionSha256,JSON.stringify(sessions)];valuesSessions({parameters});
+  if(!remove&&sessions.length>sessionReadBatchSize)hold('SESSION_READ_BATCH');
   const guard=`exists(select 1 from private.admin_preview_control c where c.singleton and not c.enabled and c.owner_user_id=$1::uuid and c.decision_sha256=$2)`;
   const known=`known as (select (x->>'authSessionId')::uuid as auth_session_id,x->>'capabilityHash' as capability_hash from jsonb_array_elements($3::jsonb) j(x))`;
   return {parameters,query:remove?`with ${known}, removed as (delete from private.admin_sessions s using known k where s.user_id=$1::uuid and s.auth_session_id=k.auth_session_id and s.capability_hash=k.capability_hash
@@ -218,8 +224,8 @@ async function status(){
     return {status:'READ_ONLY_OPERATION_STATUS',effectKey:d.effectKey,control,authRoleApplied:rows[0].auth_role_applied===1,files:nativeActualBoundary('ActualStatus',{}).files,automaticRetry:false};
   }finally{c.PAT=null;}
 }
-function mark(phase,binding,observedOutcome='INTENT',details=null){
-  return writeJson('effect-'+phase+'.json',{schemaVersion:1,ownerUserId:actualOwner.id,decisionSha256:binding.decisionSha256,sqlSha256:binding.sqlSha256,effectKey:binding.decision.effectKey,observedOutcome,...(details===null?{}:{details})});
+function mark(phase,binding,observedOutcome='INTENT',details=null,budget=null){
+  return writeJson('effect-'+phase+'.json',{schemaVersion:1,ownerUserId:actualOwner.id,decisionSha256:binding.decisionSha256,sqlSha256:binding.sqlSha256,effectKey:binding.decision.effectKey,observedOutcome,...(details===null?{}:{details})},budget);
 }
 function oneReceipt(rows){if(!Array.isArray(rows)||rows.length!==1||!rows[0]?.receipt||typeof rows[0].receipt!=='object')hold('EFFECT_ACK');return rows[0].receipt;}
 async function fence(binding,c,onAcknowledged=()=>{}){
@@ -232,7 +238,7 @@ function readLoginEntries(){
   const r=nativeActualBoundary('ReadActualJournal',{});if(!Array.isArray(r.frames)||r.frames.length>512)hold('JOURNAL');
   return validateLoginJournal(r.frames.map(f=>{const bytes=Buffer.from(f.bytes,'base64');if(actualHash(bytes)!==f.sha256)hold('JOURNAL_HASH');return parse(bytes);}));
 }
-async function clearKnownSessions(binding,c,encryptionKey){
+async function clearKnownSessions(binding,c,encryptionKey,progress){
   const entries=readLoginEntries(),sessions=[];let unknown=false;
   for(const generation of new Set(entries.map(x=>x.generation))){
     const chain=entries.filter(x=>x.generation===generation),known=chain.find(x=>x.authSessionId!==null),cap=chain.find(x=>x.capabilityHash!==null);
@@ -240,28 +246,44 @@ async function clearKnownSessions(binding,c,encryptionKey){
     const pair={authSessionId:known.authSessionId,capabilityHash:cap?.capabilityHash??null};
     if(!sessions.some(x=>actualCanonical(x)===actualCanonical(pair)))sessions.push(pair);
   }
+  progress.knownSessions=sessions.length;progress.knownHashes=sessions.filter(x=>x.capabilityHash!==null).length;
+  const audit=(leaf,details)=>writeJson(leaf,{schemaVersion:1,ownerUserId:actualOwner.id,decisionSha256:binding.decisionSha256,effectKey:binding.decision.effectKey,...details});
+  let observation=0;
   const observe=async()=>{
-    const receipt=oneReceipt(await request('SESSIONS_READ',{binding,body:sessionStatement(binding,sessions,false)},c));
-    if(receipt.fenced!==true||!Array.isArray(receipt.sessions)||receipt.sessions.length!==sessions.length)hold('SESSION_INVENTORY');
-    const seen=new Set();
-    for(const r of receipt.sessions){
-      const key=actualCanonical({authSessionId:r.auth_session_id,capabilityHash:r.capability_hash});
-      if(r.user_id!==actualOwner.id||!sessions.some(x=>actualCanonical(x)===key)||seen.has(key)||typeof r.auth_present!=='boolean'||typeof r.app_present!=='boolean'||r.app_conflict!==false
-        ||r.app_present&&typeof r.ciphertext!=='string'||!r.app_present&&r.ciphertext!==null)hold('SESSION_OWNER');seen.add(key);
-    }return receipt.sessions;
+    const all=[],batches=sessions.length?sessions.map(x=>[x]):[[]];
+    for(let batch=0;batch<batches.length;batch++){
+      const pairs=batches[batch],ordinal=++observation;progress.inventory='UNCONFIRMED';
+      audit('session-inventory-'+ordinal+'-intent.json',{phase:'INVENTORY_INTENT',sessionCleanup:progress});
+      const receipt=oneReceipt(await request('SESSIONS_READ',{binding,body:sessionStatement(binding,pairs,false)},c));
+      if(receipt.fenced!==true||!Array.isArray(receipt.sessions)||receipt.sessions.length!==pairs.length)hold('SESSION_INVENTORY');
+      const seen=new Set();
+      for(const r of receipt.sessions){
+        const key=actualCanonical({authSessionId:r.auth_session_id,capabilityHash:r.capability_hash});
+        if(r.user_id!==actualOwner.id||!pairs.some(x=>actualCanonical(x)===key)||seen.has(key)||typeof r.auth_present!=='boolean'||typeof r.app_present!=='boolean'||r.app_conflict!==false
+          ||r.app_present&&(typeof r.ciphertext!=='string'||Array.from(r.ciphertext).length>32768)||!r.app_present&&r.ciphertext!==null)hold('SESSION_OWNER');seen.add(key);
+      }
+      all.push(...receipt.sessions);progress.inventoryObservations=ordinal;
+      if(batch===batches.length-1)progress.inventory='ACKNOWLEDGED';
+      audit('session-inventory-'+ordinal+'-ack.json',{phase:'INVENTORY_ACKNOWLEDGED',sessions:receipt.sessions.map(r=>({authSessionId:r.auth_session_id,capabilityHash:r.capability_hash,authPresent:r.auth_present,appPresent:r.app_present})),sessionCleanup:progress});
+    }
+    return all;
   };
-  let rows=await observe();const dispositions=[];
+  let rows=await observe();const dispositions=progress.sessionDispositions;
   for(const r of rows){
-    let logout='NOT_ATTEMPTED';
+    const outcome={authSessionId:r.auth_session_id,capabilityHash:r.capability_hash,logout:'NOT_ATTEMPTED',authDisposition:'UNCONFIRMED',appDisposition:'UNCONFIRMED'};
+    dispositions.push(outcome);const ordinal=dispositions.length;
+    audit('session-cleanup-'+ordinal+'-intent.json',{phase:'LOGOUT_INTENT',outcome});
     if(r.auth_present){
-      if(!r.app_present||!r.ciphertext){unknown=true;logout='MISSING_CIPHERTEXT';}
+      if(!r.app_present||!r.ciphertext){unknown=true;outcome.logout='MISSING_CIPHERTEXT';}
       else try{
         const payload=unseal(r.ciphertext,encryptionKey);
         if(payload.userId!==actualOwner.id||payload.sessionId!==r.auth_session_id)hold('SESSION_OWNER');
-        await request('AUTH_LOGOUT',{userToken:payload.accessToken},c);logout='ACKNOWLEDGED';
-      }catch{unknown=true;logout='UNCONFIRMED';}
+        await request('AUTH_LOGOUT',{userToken:payload.accessToken},c,()=>{outcome.logout='UNCONFIRMED';});outcome.logout='ACKNOWLEDGED';
+      }catch{unknown=true;}
     }
-    dispositions.push({authSessionId:r.auth_session_id,capabilityHash:r.capability_hash,logout});
+    // The ACK is retained in memory before persistence; an audit failure must not
+    // rewrite an acknowledged provider outcome or allow a following request.
+    audit('session-cleanup-'+ordinal+'-ack.json',{phase:'LOGOUT_OBSERVED',outcome});
   }
   rows=await observe();if(rows.some(r=>r.auth_present))unknown=true;
   // Only exact known app rows whose exact Auth session is now absent are eligible for deletion.
@@ -269,7 +291,7 @@ async function clearKnownSessions(binding,c,encryptionKey){
   if(deleted.fenced!==true||!Number.isSafeInteger(deleted.deleted)||deleted.deleted<0||deleted.deleted>sessions.length)hold('SESSION_DELETE');
   rows=await observe();if(rows.some(r=>r.auth_present||r.app_present))unknown=true;
   for(const outcome of dispositions){const current=rows.find(r=>r.auth_session_id===outcome.authSessionId&&r.capability_hash===outcome.capabilityHash);outcome.authDisposition=current?.auth_present?'PRESENT':'ABSENT';outcome.appDisposition=current?.app_present?'PRESENT':'ABSENT';}
-  return {knownSessions:sessions.length,knownHashes:sessions.filter(x=>x.capabilityHash!==null).length,authResidualUnconfirmed:unknown,sessionDispositions:dispositions};
+  progress.authResidualUnconfirmed=unknown;return progress;
 }
 function credentials(){
   const r=nativeActualBoundary('ReadOperatorToken',{});const token=Buffer.from(r.bytes,'base64').toString('utf8').trim();
@@ -306,6 +328,7 @@ async function apply(){
   if(!Array.isArray(files)||actualCanonical(files)!==actualCanonical(['actual-owner.json','approval.json','decision.json','rendered.sql'].sort()))hold('PREVIOUS_EFFECT_OR_UNKNOWN');
   const c=credentials();let phase='BEFORE_AUTH',sqlMayExist=false,encryptionKey=null,privateRootId=null;
   const components={keys:{publishable:'NOT_ATTEMPTED',secret:'NOT_ATTEMPTED'},auth:'NOT_ATTEMPTED',authVerification:'NOT_ATTEMPTED',sql:'NOT_ATTEMPTED',files:Object.fromEntries(secretLeaves.map(leaf=>[leaf,{creation:'NOT_ATTEMPTED',cleanup:'NOT_ATTEMPTED'}])),launch:'NOT_ATTEMPTED',host:'NOT_ATTEMPTED',localStop:'NOT_ATTEMPTED',fence:'NOT_ATTEMPTED',sessions:'NOT_ATTEMPTED',cleanup:'NOT_ATTEMPTED'};
+  const sessionCleanup={knownSessions:0,knownHashes:0,authResidualUnconfirmed:true,inventory:'NOT_ATTEMPTED',inventoryObservations:0,sessionDispositions:[]};
   try{
     const setupStart=Math.floor(performance.now());
     const operator=nativeActualBoundary('OperatorIdentity',{}),operatorReceived=Math.floor(performance.now());
@@ -314,14 +337,14 @@ async function apply(){
     if(setupStartQpc<0n)hold('OPERATOR_MONOTONIC');
     const state=await inspect(c,template);if(state.prestateSha256!==d.prestateSha256||Date.parse(state.observedAt)>=Date.parse(d.expiresAt))hold('PRESTATE_CHANGED');
     c.setupBudget=createActualSetupBudget(b,approval,state.observedAt,setupStart,Math.floor(performance.now()));
-    components.keys.publishable='UNCONFIRMED';c.PUBLISHABLE=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.publishableKeyId},c),d.publishableKeyId,'publishable');components.keys.publishable='ACKNOWLEDGED';
-    components.keys.secret='UNCONFIRMED';c.SECRET=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.secretKeyId},c),d.secretKeyId,'secret');components.keys.secret='ACKNOWLEDGED';
+    c.PUBLISHABLE=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.publishableKeyId},c,()=>{components.keys.publishable='UNCONFIRMED';}),d.publishableKeyId,'publishable');components.keys.publishable='ACKNOWLEDGED';
+    c.SECRET=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.secretKeyId},c,()=>{components.keys.secret='UNCONFIRMED';}),d.secretKeyId,'secret');components.keys.secret='ACKNOWLEDGED';
     validateAuthOwner(await request('AUTH_GET',{},c),{serverTime:state.observedAt,ownerObservation:state.ownerObservation});
-    mark('auth-intent',b);phase='AUTH_UNCONFIRMED';components.auth='UNCONFIRMED';
-    await request('AUTH_ROLE',{body:{app_metadata:{app_role:'admin',product_id:'judoju-news'}}},c);components.auth='ACKNOWLEDGED';components.authVerification='UNCONFIRMED';
-    validateAuthOwner(await request('AUTH_GET',{},c),{roleApplied:true,serverTime:state.observedAt,ownerObservation:state.ownerObservation});components.authVerification='VERIFIED';mark('auth-ack',b,'ACKNOWLEDGED');
-    mark('sql-intent',b);phase='SQL_UNCONFIRMED';sqlMayExist=true;components.sql='UNCONFIRMED';
-    await request('APPLY_SQL',{binding:b,body:{query:b.sql}},c);components.sql='ACKNOWLEDGED';phase='SQL_ACKNOWLEDGED';mark('sql-ack',b,'ACKNOWLEDGED');
+    mark('auth-intent',b,'INTENT',null,c.setupBudget);
+    await request('AUTH_ROLE',{body:{app_metadata:{app_role:'admin',product_id:'judoju-news'}}},c,()=>{phase='AUTH_UNCONFIRMED';components.auth='UNCONFIRMED';});components.auth='ACKNOWLEDGED';components.authVerification='UNCONFIRMED';
+    validateAuthOwner(await request('AUTH_GET',{},c),{roleApplied:true,serverTime:state.observedAt,ownerObservation:state.ownerObservation});components.authVerification='VERIFIED';phase='AUTH_ACKNOWLEDGED';mark('auth-ack',b,'ACKNOWLEDGED',null,c.setupBudget);
+    mark('sql-intent',b,'INTENT',null,c.setupBudget);
+    await request('APPLY_SQL',{binding:b,body:{query:b.sql}},c,()=>{phase='SQL_UNCONFIRMED';sqlMayExist=true;components.sql='UNCONFIRMED';});components.sql='ACKNOWLEDGED';phase='SQL_ACKNOWLEDGED';mark('sql-ack',b,'ACKNOWLEDGED',null,c.setupBudget);
     const after=await inspect(c,template,{activated:true});
     const id=await request('IDENTITY',{body:{}},c);
     if(id?.productId!=='judoju-news'||id.environment!=='preview'||id.sampleKind!=='SYNTHETIC'||id.bootstrapId!==null||id.contract!=='M1')hold('PUBLIC_IDENTITY');
@@ -337,28 +360,35 @@ async function apply(){
     const configBytes=Buffer.from(actualCanonical(config));
     const createdIdentities=new Set();
     for(const [leaf,bytes]of [['activation-expected.json',Buffer.from(actualCanonical(expected))],['activation-proof.json',proofBytes],['admin-server.json',configBytes]]){
-      phase='PRIVATE_FILES';components.files[leaf].creation='UNCONFIRMED';
-      const ack=secretCreationAck(nativeWrite(leaf,bytes,c.setupBudget),leaf,bytes,privateRootId);privateRootId??=ack.rootId;
+      phase='PRIVATE_FILES';
+      const ack=secretCreationAck(nativeWrite(leaf,bytes,c.setupBudget,()=>{components.files[leaf].creation='UNCONFIRMED';}),leaf,bytes,privateRootId);privateRootId??=ack.rootId;
       if(createdIdentities.has(ack.fileIdentity))hold('CREATION_IDENTITY_CONFLICT');createdIdentities.add(ack.fileIdentity);components.files[leaf].creation='ACKNOWLEDGED';
     }
-    mark('launch-intent',b);phase='LAUNCH_UNCONFIRMED';components.launch='UNCONFIRMED';
-    const start=nativeActualBoundary('Clock',{}),a=oneReceipt(await request('LAUNCH',{binding:b,body:launchStatement(b)},c)),end=nativeActualBoundary('Clock',{});
+    mark('launch-intent',b,'INTENT',null,c.setupBudget);
+    const start=setupNative('Clock',{},c.setupBudget),a=oneReceipt(await request('LAUNCH',{binding:b,body:launchStatement(b)},c,()=>{phase='LAUNCH_UNCONFIRMED';components.launch='UNCONFIRMED';})),end=setupNative('Clock',{},c.setupBudget);
     if(start.frequency!==end.frequency||start.frequency!==operator.frequency)hold('CLOCK_FREQUENCY');
     const ms=x=>{const value=Number(BigInt(x.qpc)*1000n/BigInt(x.frequency));if(!Number.isSafeInteger(value))hold('CLOCK_RANGE');return value;};
     validateLaunchAck(a,b,ms(start),ms(end));components.launch='ACKNOWLEDGED';
-    writeJson('launch-consumed.json',{...a,requestQpc:start.qpc,frequency:start.frequency,proofSha256:actualHash(proofBytes),configSha256:actualHash(configBytes),operatorPid:operator.pid,operatorCreated:operator.created,operatorImage:operator.image,setupStartQpc:String(setupStartQpc),setupDeadlineQpc:String(setupStartQpc+BigInt(operator.frequency)*300n)});
-    mark('launch-ack',b,'ACKNOWLEDGED');phase='HOST_UNCONFIRMED';components.host='UNCONFIRMED';components.localStop='UNCONFIRMED';
+    writeJson('launch-consumed.json',{...a,requestQpc:start.qpc,frequency:start.frequency,proofSha256:actualHash(proofBytes),configSha256:actualHash(configBytes),operatorPid:operator.pid,operatorCreated:operator.created,operatorImage:operator.image,setupStartQpc:String(setupStartQpc),setupDeadlineQpc:String(setupStartQpc+BigInt(operator.frequency)*300n)},c.setupBudget);
+    mark('launch-ack',b,'ACKNOWLEDGED',null,c.setupBudget);phase='HOST_UNCONFIRMED';
     actualSetupAllowance(c.setupBudget,Math.floor(performance.now()),'NATIVE');
+    components.host='UNCONFIRMED';components.localStop='UNCONFIRMED';
     const host=nativeActualBoundary('Supervise',{mode:'Actual'});
-    if(host.cleanupObserved!==true||host.mode!=='Actual')hold('HOST_EXIT_UNCONFIRMED');components.host='ACKNOWLEDGED';components.localStop='ACKNOWLEDGED';mark('host-exit',b,'ACKNOWLEDGED');
+    if(host.mode!=='Actual'||typeof host.cleanupObserved!=='boolean'||typeof host.jobCleanupObserved!=='boolean'||typeof host.created!=='boolean'||![true,false,null].includes(host.childExitedObserved)
+      ||![true,false,null].includes(host.portClosedObserved)||!host.created&&host.childExitedObserved!==null||!['PASS','HOLD'].includes(host.status))hold('HOST_EXIT_UNCONFIRMED');
+    components.hostObservation={created:host.created,childExitedObserved:host.childExitedObserved,portClosedObserved:host.portClosedObserved,cleanupObserved:host.cleanupObserved,jobCleanupObserved:host.jobCleanupObserved,
+      reason:typeof host.reason==='string'&&/^[A-Z_]{3,80}$/.test(host.reason)?host.reason:'HOST_UNCONFIRMED'};
+    components.localStop=!host.created?'NOT_CREATED':host.jobCleanupObserved&&host.childExitedObserved===true?'ACKNOWLEDGED':'UNCONFIRMED';components.host=host.status==='PASS'?'ACKNOWLEDGED':'FAILED';
+    mark('host-exit',b,host.status==='PASS'?'ACKNOWLEDGED':'FAILED',{host:components.host,localStop:components.localStop,hostObservation:components.hostObservation});
+    if(host.status!=='PASS'||host.cleanupObserved!==true||host.jobCleanupObserved!==true||!host.created||host.childExitedObserved!==true||host.portClosedObserved!==true)hold('HOST_EXIT_UNCONFIRMED');
     components.fence='UNCONFIRMED';await fence(b,c,()=>{components.fence='ACKNOWLEDGED';});phase='FENCED';components.sessions='UNCONFIRMED';
-    const residual=await clearKnownSessions(b,c,encryptionKey);components.sessions=residual.authResidualUnconfirmed?'RESIDUAL_HOLD':'ACKNOWLEDGED';
-    if(residual.authResidualUnconfirmed){mark('cleanup',b,'AUTH_RESIDUAL_HOLD');return {status:'HOLD',phase:'FENCED_SESSION_RESIDUAL',...residual,secretFilesDisposition:'NOT_ATTEMPTED',components,automaticRetry:false,automaticAuthInverse:false};}
+    const residual=await clearKnownSessions(b,c,encryptionKey,sessionCleanup);components.sessions=residual.authResidualUnconfirmed?'RESIDUAL_HOLD':'ACKNOWLEDGED';
+    if(residual.authResidualUnconfirmed){mark('cleanup',b,'AUTH_RESIDUAL_HOLD',{sessionCleanup});return {status:'HOLD',phase:'FENCED_SESSION_RESIDUAL',...residual,secretFilesDisposition:'NOT_ATTEMPTED',components,automaticRetry:false,automaticAuthInverse:false};}
     components.cleanup='UNCONFIRMED';for(const leaf of secretLeaves)components.files[leaf].cleanup='UNKNOWN';
     const secretCleanup=secretCleanupAck(nativeActualBoundary('DeleteActualSecrets',{}),b,privateRootId);
     for(const file of secretCleanup.files)components.files[file.leaf].cleanup=file.disposition;components.cleanup=secretCleanup.status==='PASS'?'ACKNOWLEDGED':'HOLD';
-    if(secretCleanup.status!=='PASS'){mark('cleanup',b,'SECRET_CLEANUP_HOLD');return {status:'HOLD',phase:'FENCED_SECRET_CLEANUP',...residual,secretCleanup,components,automaticRetry:false,automaticAuthInverse:false};}
-    mark('cleanup',b,'ACKNOWLEDGED');
+    if(secretCleanup.status!=='PASS'){mark('cleanup',b,'SECRET_CLEANUP_HOLD',{sessionCleanup});return {status:'HOLD',phase:'FENCED_SECRET_CLEANUP',...residual,secretCleanup,components,automaticRetry:false,automaticAuthInverse:false};}
+    mark('cleanup',b,'ACKNOWLEDGED',{sessionCleanup});
     return {status:residual.authResidualUnconfirmed?'HOLD':'DEV_HOST_CLOSED',phase:'FENCED_KNOWN_ROWS_CLEANED',...residual,authMetadataRetained:true,
       launchTombstoneRetained:true,adminConnectionResultReviewRequired:true,actualProductionPublishing:false,components};
   }catch(error){
@@ -366,8 +396,8 @@ async function apply(){
       components.fence='UNCONFIRMED';try{await fence(b,c,()=>{components.fence='ACKNOWLEDGED';});}catch{}
     }
     const code=operatorFailureCode(error);let holdAudit='UNCONFIRMED';
-    try{mark('hold',b,phase,{code,components});holdAudit='ACKNOWLEDGED';}catch{}
-    return {status:'HOLD',phase,code,components,holdAudit,fenceConfirmed:components.fence==='ACKNOWLEDGED',automaticRetry:false,automaticAuthInverse:false,authResidualUnconfirmed:components.auth!=='NOT_ATTEMPTED'};
+    try{mark('hold',b,phase,{code,components,sessionCleanup});holdAudit='ACKNOWLEDGED';}catch{}
+    return {status:'HOLD',phase,code,components,sessionCleanup,holdAudit,fenceConfirmed:components.fence==='ACKNOWLEDGED',automaticRetry:false,automaticAuthInverse:false,authResidualUnconfirmed:components.auth!=='NOT_ATTEMPTED'};
   }finally{c.PAT=null;c.SECRET=null;c.PUBLISHABLE=null;encryptionKey=null;}
 }
 export async function runActualOperator(argv){

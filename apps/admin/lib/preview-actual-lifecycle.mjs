@@ -160,14 +160,14 @@ function appendCheckedJournal(old,next){
   if(next.phase==='BEFORE_AUTH'){
     const current=old.filter(x=>x.generation===latest).at(-1);
     if(next.generation!==latest+1||current&&!['COMPLETE','RESIDUAL','CLOSED'].includes(current.phase))fail('JOURNAL_SEQUENCE');
-  }else if(!last||next.generation!==latest
+  }else if(!last||next.generation!==latest&&next.phase!=='CLOSED'
     ||next.phase==='BEFORE_OPEN'&&last.phase!=='BEFORE_AUTH'
     ||next.phase==='COMPLETE'&&last.phase!=='BEFORE_OPEN'
     ||next.phase==='CLOSED'&&!['COMPLETE','RESIDUAL'].includes(last.phase)
     ||next.phase==='RESIDUAL'&&!['BEFORE_AUTH','BEFORE_OPEN'].includes(last.phase))fail('JOURNAL_SEQUENCE');
   for(const field of ['authSessionId','capabilityHash']){
     const known=same.find(x=>x[field]!==null);
-    if(known&&next[field]!==known[field])fail('JOURNAL_BINDING_CONFLICT');
+    if(next.phase==='CLOSED'&&!known||known&&next[field]!==known[field])fail('JOURNAL_BINDING_CONFLICT');
   }
   return [...old,next];
 }

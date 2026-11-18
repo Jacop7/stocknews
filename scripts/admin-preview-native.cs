@@ -105,6 +105,29 @@ public static class JudojuAdminNative {
       }
     }
   }
+  // The bytes checked and delivered are one snapshot. Retained read-only handles
+  // deny writes/deletes until every dependent validation and response is complete.
+  sealed class PrivateSnapshot:IDisposable {
+    readonly List<FileStream> Streams=new List<FileStream>();
+    public readonly Dictionary<string,byte[]> Bytes=new Dictionary<string,byte[]>(StringComparer.Ordinal);
+    public PrivateSnapshot(string dir,string[] leaves) {
+      try {foreach(string leaf in leaves){
+        string target=Path.Combine(dir,leaf);Components(target,false);
+        SafeFileHandle h=CreateFile(target,0x80020000,1,IntPtr.Zero,3,0x00200000,IntPtr.Zero);
+        FileStream stream=null;
+        try {
+          FileInfo before=Info(h);PrivateAcl(h);int limit=leaf=="admin-server.json"?16384:leaf=="rendered.sql"?524288:65536;
+          Require(before.SizeHigh==0&&before.SizeLow<=limit,"PRIVATE_SIZE");
+          stream=new FileStream(h,FileAccess.Read);Streams.Add(stream);h=null;
+          byte[] bytes=new byte[before.SizeLow];int n=0,k;while(n<bytes.Length&&(k=stream.Read(bytes,n,bytes.Length-n))>0)n+=k;
+          Require(n==bytes.Length&&stream.ReadByte()==-1&&Identity(before)==Identity(Info(stream.SafeFileHandle)),"PRIVATE_SNAPSHOT_CHANGED");
+          new UTF8Encoding(false,true).GetString(bytes);Bytes.Add(leaf,bytes);
+        }finally{if(h!=null)h.Dispose();}
+      }}catch{Dispose();throw;}
+    }
+    public Dictionary<string,object> Object(string leaf){return Json.Deserialize<Dictionary<string,object>>(Encoding.UTF8.GetString(Bytes[leaf]));}
+    public void Dispose(){foreach(var stream in Streams)stream.Dispose();Streams.Clear();}
+  }
   static List<SafeFileHandle> HoldParents(string target) {
     var held=new List<SafeFileHandle>();
     try {
@@ -195,6 +218,43 @@ public static class JudojuAdminNative {
     var substituted=new Dictionary<string,object>(complete);substituted["capabilityHash"]=new string('b',64);bool conflict=false;try{CheckJournalSequence(new List<Dictionary<string,object>>{before,opened,substituted});}catch(IOException){conflict=true;}Require(conflict,"JOURNAL_FIXTURE_CONFLICT");cases.Add("NATIVE_JOURNAL_CROSS_PHASE_BINDING_REJECTED");
     string persisted=Path.Combine(dir,"persisted-journal");SecureCreate(persisted,null,true);int frame=0;foreach(var e in new[]{before,opened,substituted})SecureCreate(Path.Combine(persisted,"journal-"+(++frame).ToString("D4")+".json"),Encoding.UTF8.GetBytes(Json.Serialize(e)),false);
     bool persistedConflict=false;try{string[] names;ReadJournalEntriesAt(persisted,out names);}catch(IOException){persistedConflict=true;}Require(persistedConflict,"JOURNAL_PERSISTED_FIXTURE_CONFLICT");cases.Add("NATIVE_PERSISTED_JOURNAL_BINDING_REJECTED_BEFORE_RETURN");
+    foreach(bool olderFirst in new[]{true,false}){
+      var entries=new List<Dictionary<string,object>>{before,opened,complete};
+      var second=new Dictionary<string,object>(before);second["generation"]=2;entries.Add(second);
+      var secondOpen=new Dictionary<string,object>(second);secondOpen["phase"]="BEFORE_OPEN";secondOpen["authSessionId"]="22222222-2222-4222-8222-222222222222";secondOpen["capabilityHash"]=new string('b',64);entries.Add(secondOpen);
+      var secondComplete=new Dictionary<string,object>(secondOpen);secondComplete["phase"]="COMPLETE";entries.Add(secondComplete);
+      var firstClose=new Dictionary<string,object>(complete);firstClose["phase"]="CLOSED";
+      var secondClose=new Dictionary<string,object>(secondComplete);secondClose["phase"]="CLOSED";
+      entries.Add(olderFirst?firstClose:secondClose);entries.Add(olderFirst?secondClose:firstClose);
+      var third=new Dictionary<string,object>(before);third["generation"]=3;entries.Add(third);
+      CheckJournalSequence(entries);
+      string dir3=Path.Combine(dir,"two-logins-"+(olderFirst?"older-first":"newer-first"));SecureCreate(dir3,null,true);int f3=0;
+      foreach(var e in entries)SecureCreate(Path.Combine(dir3,"journal-"+(++f3).ToString("D4")+".json"),Encoding.UTF8.GetBytes(Json.Serialize(e)),false);
+      string[] names;Require(ReadJournalEntriesAt(dir3,out names).Count==9,"HISTORICAL_CLOSE_PERSISTED");
+      entries.Add(firstClose);bool duplicate=false;try{CheckJournalSequence(entries);}catch(IOException){duplicate=true;}Require(duplicate,"HISTORICAL_CLOSE_DUPLICATE");
+      cases.Add("NATIVE_TWO_LOGINS_"+(olderFirst?"OLDER_FIRST":"NEWER_FIRST")+"_PERSISTED_CLOSE_AND_HIGH_WATER");
+    }
+    using(var lease=new PrivateRootLease(dir,"read-snapshot",root,true)){
+      byte[] configBytes=Encoding.UTF8.GetBytes(Json.Serialize(new{ownerUserId=SelectedOwner,fixture=false}));
+      string serverTime=DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'"),endTime=DateTimeOffset.UtcNow.AddMinutes(10).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+      byte[] expectedBytes=Encoding.UTF8.GetBytes(Json.Serialize(new{ownerUserId=SelectedOwner,fixture=false,activationDecisionSha256=new string('d',64)}));
+      byte[] proofBytes=Encoding.UTF8.GetBytes(Json.Serialize(new{ownerUserId=SelectedOwner,fixture=false,activationDecisionSha256=new string('d',64),expiresAt=endTime}));
+      var launch=new{launchEffect="11111111-1111-4111-8111-111111111111",ownerUserId=SelectedOwner,decisionSha256=new string('d',64),serverTime=serverTime,expiresAt=endTime,requestQpc=Stopwatch.GetTimestamp().ToString(),frequency=Stopwatch.Frequency.ToString(),proofSha256=Digest(proofBytes),configSha256=Digest(configBytes),operatorPid=1,operatorCreated="1",operatorImage=Node,setupStartQpc="1",setupDeadlineQpc="2"};
+      SecureCreate(Path.Combine(lease.PathName,"launch-consumed.json"),Encoding.UTF8.GetBytes(Json.Serialize(launch)),false);
+      SecureCreate(Path.Combine(lease.PathName,"activation-expected.json"),expectedBytes,false);SecureCreate(Path.Combine(lease.PathName,"activation-proof.json"),proofBytes,false);
+      string configPath=Path.Combine(lease.PathName,"admin-server.json");SecureCreate(configPath,configBytes,false);
+      using(var snapshot=new PrivateSnapshot(lease.PathName,LeaseLeaves)){
+        long observed;Require(ActualRemaining(snapshot,out observed)>0,"SNAPSHOT_POSITIVE");
+        bool writeDenied=false,replaceDenied=false;try{File.WriteAllText(configPath,"SYNTHETIC_CHANGED_AFTER_VALIDATION");}catch(IOException){writeDenied=true;}
+        try{File.Move(configPath,configPath+"-old");}catch(IOException){replaceDenied=true;}
+        Require(writeDenied&&replaceDenied&&snapshot.Bytes["admin-server.json"].SequenceEqual(configBytes),"VALIDATED_DELIVERY_SNAPSHOT");
+      }
+      File.WriteAllText(configPath,Json.Serialize(new{ownerUserId=SelectedOwner,fixture=false,changed=true}));
+      bool changedDenied=false;using(var snapshot=new PrivateSnapshot(lease.PathName,LeaseLeaves)){try{long observed;ActualRemaining(snapshot,out observed);}catch(IOException){changedDenied=true;}}
+      Require(changedDenied,"CHANGED_CONFIG_DIGEST_REJECTED");File.WriteAllBytes(configPath,configBytes);
+      using(var snapshot=new PrivateSnapshot(lease.PathName,LeaseLeaves)){long observed;Require(ActualRemaining(snapshot,out observed)>0,"RESTORED_SNAPSHOT_POSITIVE");}
+      cases.Add("NATIVE_VALIDATION_TO_DELIVERY_WRITES_REPLACEMENTS_DENIED_SAME_SNAPSHOT");cases.Add("NATIVE_CHANGED_CONFIG_DIGEST_REJECTED_RESTORED_POSITIVE");
+    }
 
     foreach(string scenario in new[]{"positive","replacement","partial","missing-receipt"}){
       using(var lease=new PrivateRootLease(dir,"cleanup-"+scenario,root,true)){
@@ -215,6 +275,8 @@ public static class JudojuAdminNative {
     var wrongParent=new Dictionary<string,object>(bound);wrongParent["operatorPid"]=Process.GetCurrentProcess().Id;bool parentDenied=false;try{IntPtr h=OpenBoundOperator(wrongParent,true);CloseHandle(h);}catch(IOException){parentDenied=true;}Require(parentDenied,"OPERATOR_PARENT_FIXTURE");cases.Add("OPERATOR_WRONG_CREATION_OR_IMMEDIATE_PARENT_REJECTED");
     long nativeStart=Stopwatch.GetTimestamp();var setup=new Dictionary<string,object>{{"setupStartQpc",nativeStart.ToString()},{"setupDeadlineQpc",checked(nativeStart+Stopwatch.Frequency*300L).ToString()}};RequireSetupDeadline(setup);
     setup["setupStartQpc"]=(nativeStart-Stopwatch.Frequency*301L).ToString();setup["setupDeadlineQpc"]=(nativeStart-Stopwatch.Frequency).ToString();bool expiredSetup=false;try{RequireSetupDeadline(setup);}catch(IOException){expiredSetup=true;}Require(expiredSetup,"NATIVE_SETUP_FIXTURE");cases.Add("NATIVE_SETUP_DEADLINE_POSITIVE_AND_EXPIRED_REJECTED");
+    foreach(int n in new[]{1,3,128,299,380,384})Require(ActualLeaf("session-inventory-"+n+"-ack.json"),"INVENTORY_BATCH_LEAF_POSITIVE");
+    foreach(string leaf in new[]{"session-inventory-0-ack.json","session-inventory-385-ack.json","session-inventory-01-ack.json","session-inventory-384-extra.json","../session-inventory-1-ack.json"})Require(!ActualLeaf(leaf),"INVENTORY_BATCH_LEAF_REJECTED");cases.Add("BOUNDED_INVENTORY_BATCH_1_TO_384_FIXED_LEAF_NAMES");
     return new{status="PASS",mode="FIXTURE",cases=cases.ToArray(),actualBrandRegistered=false,actualKeysRead=0,actualHostStarted=false};
   }
   static readonly string[] SecretLeaves=new[]{"admin-server.json","activation-proof.json","activation-expected.json"};
@@ -222,10 +284,12 @@ public static class JudojuAdminNative {
     Require(SecretLeaves.Contains(leaf)&&created!=null&&System.Text.RegularExpressions.Regex.IsMatch(decisionSha,"^[0-9a-f]{64}$"),"CREATION_RECEIPT_BINDING");
     SecureCreate(Path.Combine(dir,"creation-"+leaf),Encoding.UTF8.GetBytes(Json.Serialize(new{schemaVersion=1,productId="judoju-news",sourceRoot=sourceRoot,ownerSid=WindowsIdentity.GetCurrent().User.Value,rootId=rootId,leaf=leaf,fileIdentity=created.FileIdentity,sha256=created.Sha256,decisionSha256=decisionSha})),false);
   }
+  static bool ActualLeaf(string leaf) {
+    return System.Text.RegularExpressions.Regex.IsMatch(leaf,"^session-cleanup-(?:[1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])-(?:intent|ack)\\.json$")||System.Text.RegularExpressions.Regex.IsMatch(leaf,"^session-inventory-(?:[1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-7][0-9]|38[0-4])-(?:intent|ack)\\.json$")||new[]{"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql","launch-consumed.json",
+      "effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"}.Contains(leaf);
+  }
   static object ActualFile(Dictionary<string,object> p,bool write) {
-    string leaf=Text(p,"leaf");
-    Require(new[]{"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql","launch-consumed.json",
-      "effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"}.Contains(leaf),"ACTUAL_FIXED_FILE");
+    string leaf=Text(p,"leaf");Require(ActualLeaf(leaf),"ACTUAL_FIXED_FILE");
     Require(p.Count==(write?2:1),"ACTUAL_FILE_ARGUMENTS");string dir=ActualRoot(false);
     using(var parents=new Held(HoldParents(dir))){
       if(write){byte[] bytes=Convert.FromBase64String(Text(p,"bytes"));Require(bytes.Length>0&&bytes.Length<=524288,"ACTUAL_SIZE");new UTF8Encoding(false,true).GetString(bytes);var created=SecureCreate(Path.Combine(dir,leaf),bytes,false);if(SecretLeaves.Contains(leaf))RecordCreationAt(dir,OperationRootLease.RootId,Root,Digest(PrivateRead(Path.Combine(dir,"decision.json"),65536)),leaf,created);return new{status="PASS",leaf=leaf,sha256=created.Sha256,fileIdentity=created.FileIdentity,rootId=OperationRootLease.RootId,flushed=true};}
@@ -245,15 +309,16 @@ public static class JudojuAdminNative {
     Require(entries.Count<=512,"JOURNAL_CAPACITY");var verified=new List<Dictionary<string,object>>();
     foreach(var entry in entries){
       CheckJournalEntry(entry);int generation=(int)entry["generation"];string phase=Text(entry,"phase");
-      int latest=verified.Count==0?0:(int)verified.Last()["generation"];
+      int latest=verified.Count==0?0:verified.Max(x=>(int)x["generation"]);
       var same=verified.Where(x=>(int)x["generation"]==generation).ToArray();var last=same.LastOrDefault();
       Require(!same.Any(x=>Text(x,"phase")==phase),"JOURNAL_DUPLICATE_PHASE");
-      if(phase=="BEFORE_AUTH")Require(generation==latest+1&&(verified.Count==0||new[]{"COMPLETE","RESIDUAL","CLOSED"}.Contains(Text(verified.Last(),"phase"))),"JOURNAL_SEQUENCE");
+      var latestEntry=verified.LastOrDefault(x=>(int)x["generation"]==latest);
+      if(phase=="BEFORE_AUTH")Require(generation==latest+1&&(latestEntry==null||new[]{"COMPLETE","RESIDUAL","CLOSED"}.Contains(Text(latestEntry,"phase"))),"JOURNAL_SEQUENCE");
       else {
-        Require(last!=null&&generation==latest,"JOURNAL_SEQUENCE");string previous=Text(last,"phase");
+        Require(last!=null&&(generation==latest||phase=="CLOSED"),"JOURNAL_SEQUENCE");string previous=Text(last,"phase");
         Require(phase=="BEFORE_OPEN"&&previous=="BEFORE_AUTH"||phase=="COMPLETE"&&previous=="BEFORE_OPEN"||phase=="RESIDUAL"&&new[]{"BEFORE_AUTH","BEFORE_OPEN"}.Contains(previous)||phase=="CLOSED"&&new[]{"COMPLETE","RESIDUAL"}.Contains(previous),"JOURNAL_SEQUENCE");
       }
-      foreach(string field in new[]{"authSessionId","capabilityHash"}){var known=same.FirstOrDefault(x=>x[field]!=null);if(known!=null)Require(Object.Equals(known[field],entry[field]),"JOURNAL_BINDING_CONFLICT");}
+      foreach(string field in new[]{"authSessionId","capabilityHash"}){var known=same.FirstOrDefault(x=>x[field]!=null);Require(phase!="CLOSED"||known!=null,"JOURNAL_BINDING_CONFLICT");if(known!=null)Require(Object.Equals(known[field],entry[field]),"JOURNAL_BINDING_CONFLICT");}
       verified.Add(entry);
     }
   }
@@ -369,8 +434,9 @@ public static class JudojuAdminNative {
     long start=Int64.Parse(Text(launch,"setupStartQpc")),end=Int64.Parse(Text(launch,"setupDeadlineQpc")),now=Stopwatch.GetTimestamp();
     Require(start>=0&&end-start==checked(Stopwatch.Frequency*300L)&&now>=start&&now<end,"NATIVE_SETUP_EXHAUSTED");
   }
-  static long ActualRemaining(out long now) {
-    string dir=ActualRoot(false);var l=ActualJson("launch-consumed.json");Require(l.Count==14&&l.Keys.All(k=>new[]{"launchEffect","ownerUserId","decisionSha256","serverTime","expiresAt","requestQpc","frequency","proofSha256","configSha256","operatorPid","operatorCreated","operatorImage","setupStartQpc","setupDeadlineQpc"}.Contains(k)),"LAUNCH_SCHEMA");
+  static readonly string[] LeaseLeaves=new[]{"launch-consumed.json","activation-expected.json","activation-proof.json","admin-server.json"};
+  static long ActualRemaining(PrivateSnapshot snapshot,out long now) {
+    var l=snapshot.Object("launch-consumed.json");Require(l.Count==14&&l.Keys.All(k=>new[]{"launchEffect","ownerUserId","decisionSha256","serverTime","expiresAt","requestQpc","frequency","proofSha256","configSha256","operatorPid","operatorCreated","operatorImage","setupStartQpc","setupDeadlineQpc"}.Contains(k)),"LAUNCH_SCHEMA");
     Require(Text(l,"ownerUserId")==SelectedOwner&&System.Text.RegularExpressions.Regex.IsMatch(Text(l,"launchEffect"),"^[0-9a-f-]{36}$"),"LAUNCH_OWNER");
     long start=Int64.Parse(Text(l,"requestQpc")),frequency=Int64.Parse(Text(l,"frequency")),current=Stopwatch.GetTimestamp();
     Require(frequency==Stopwatch.Frequency&&start>=0&&current>=start,"MONOTONIC_UNKNOWN");
@@ -379,27 +445,27 @@ public static class JudojuAdminNative {
     Require(expires>server&&(expires-server).TotalMilliseconds<=1800000,"SERVER_LEASE");
     now=server.ToUnixTimeMilliseconds()+(long)Math.Ceiling((current-start)*1000.0/frequency);
     long remaining=expires.ToUnixTimeMilliseconds()-now;Require(remaining>0&&remaining<=1800000,"LEASE_EXPIRED");
-    Dictionary<string,object> expected=ActualJson("activation-expected.json"),proof=ActualJson("activation-proof.json"),config=ActualJson("admin-server.json");
+    Dictionary<string,object> expected=snapshot.Object("activation-expected.json"),proof=snapshot.Object("activation-proof.json"),config=snapshot.Object("admin-server.json");
     Require(Text(expected,"ownerUserId")==SelectedOwner&&Text(proof,"ownerUserId")==SelectedOwner&&Text(config,"ownerUserId")==SelectedOwner,"SELECTED_OWNER");
     Require(!(bool)proof["fixture"]&&!(bool)config["fixture"]&&!(bool)expected["fixture"],"ACTUAL_ONLY");
     Require(Text(l,"decisionSha256")==Text(expected,"activationDecisionSha256")&&Text(proof,"activationDecisionSha256")==Text(l,"decisionSha256"),"LEASE_DECISION");
-    Require(Text(l,"proofSha256")==Digest(PrivateRead(Path.Combine(dir,"activation-proof.json"),65536))&&Text(l,"configSha256")==Digest(PrivateRead(Path.Combine(dir,"admin-server.json"),16384)),"LEASE_BYTES");
+    Require(Text(l,"proofSha256")==Digest(snapshot.Bytes["activation-proof.json"])&&Text(l,"configSha256")==Digest(snapshot.Bytes["admin-server.json"]),"LEASE_BYTES");
     var proofEnd=DateTimeOffset.ParseExact(Text(proof,"expiresAt"),"yyyy-MM-dd'T'HH:mm:ss.fff'Z'",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.AssumeUniversal);
     Require(expires<=proofEnd,"PROOF_LEASE");return remaining;
   }
   static object ActualRead(Dictionary<string,object> p) {
     Require(p.Count==0,"ACTUAL_READ_ARGUMENTS");string dir=ActualRoot(false);
-    using(var parents=new Held(HoldParents(dir))){
-      var h=ActualJson("host-runtime.json");Require(h.Count==5,"HOST_SCHEMA");
-      var l=ActualJson("launch-consumed.json");string effect=Text(l,"launchEffect"),jobName="Local\\JudojuAdminC2-"+effect;
-      Require(Text(h,"jobName")==jobName&&Text(h,"launchEffect")==effect&&Text(h,"launchSha256")==Digest(PrivateRead(Path.Combine(dir,"launch-consumed.json"),65536)),"HOST_BINDING");
+    using(var parents=new Held(HoldParents(dir)))using(var snapshot=new PrivateSnapshot(dir,LeaseLeaves.Concat(new[]{"host-runtime.json","decision.json","approval.json","rendered.sql"}).ToArray())){
+      var h=snapshot.Object("host-runtime.json");Require(h.Count==5,"HOST_SCHEMA");
+      var l=snapshot.Object("launch-consumed.json");string effect=Text(l,"launchEffect"),jobName="Local\\JudojuAdminC2-"+effect;
+      Require(Text(h,"jobName")==jobName&&Text(h,"launchEffect")==effect&&Text(h,"launchSha256")==Digest(snapshot.Bytes["launch-consumed.json"]),"HOST_BINDING");
       IntPtr job=OpenJobObject(4,false,jobName),owner=IntPtr.Zero,originalOperator=IntPtr.Zero;
       try {
         originalOperator=OpenBoundOperator(l,false);Require(job!=IntPtr.Zero,"LIVE_JOB_REQUIRED");bool belongs;Require(IsProcessInJob(Process.GetCurrentProcess().Handle,job,out belongs)&&belongs,"CURRENT_PROCESS_JOB");
         int ownerPid=Convert.ToInt32(h["ownerPid"]);owner=OpenProcess(SYNCHRONIZE|QUERY,false,ownerPid);long creation,exit,kernel,user;
         Require(owner!=IntPtr.Zero&&WaitForSingleObject(owner,0)==258&&GetProcessTimes(owner,out creation,out exit,out kernel,out user)&&creation.ToString()==Text(h,"ownerCreated"),"LIVE_OWNER_REQUIRED");
-        long now;long remaining=ActualRemaining(out now);var files=new Dictionary<string,string>();
-        foreach(string leaf in new[]{"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql"})files[leaf]=Convert.ToBase64String(PrivateRead(Path.Combine(dir,leaf),524288));
+        long now;long remaining=ActualRemaining(snapshot,out now);var files=new Dictionary<string,string>();
+        foreach(string leaf in LeaseLeaves.Concat(new[]{"decision.json","approval.json","rendered.sql"}))files[leaf]=Convert.ToBase64String(snapshot.Bytes[leaf]);
         return new{status="PASS",files=files,authoritativeNow=now,remainingMs=remaining,launchEffect=effect,ownerPid=ownerPid,ownerCreated=Text(h,"ownerCreated")};
       }finally{if(originalOperator!=IntPtr.Zero)CloseHandle(originalOperator);if(owner!=IntPtr.Zero)CloseHandle(owner);if(job!=IntPtr.Zero)CloseHandle(job);}
     }
@@ -533,31 +599,32 @@ public static class JudojuAdminNative {
     Components(target,false);Require((GetFileAttributes(target)&DIRECTORY)!=0,"OWN_DIRECTORY");return target;
   }
   static object Supervise(Dictionary<string,object> p) {
-    IntPtr consumingOperator=IntPtr.Zero;Dictionary<string,object> consumingLaunch=null;
+    IntPtr consumingOperator=IntPtr.Zero;Dictionary<string,object> consumingLaunch=null;PrivateSnapshot consumingFiles=null;
     try{
     var watch=Stopwatch.StartNew();
     string mode=Text(p,"mode");Require(mode=="Fixture"||mode=="FixtureBrowser"||mode=="Preview"||mode=="Actual","FIXED_MODE");
     string fault=p.ContainsKey("fault")?Text(p,"fault"):"NONE",pause=p.ContainsKey("pause")?Text(p,"pause"):"NONE";
     Require(new[]{"NONE","BeforeCreate","AfterCreate","BeforeResume","HandshakeTimeout","ReaderFailure","ReportFailure"}.Contains(fault),"FIXED_FAULT");Require(new[]{"NONE","BeforeCreate","Suspended","Handshake","Descendant"}.Contains(pause),"FIXED_PAUSE");
     Require(mode!="Preview"&&mode!="Actual"||fault=="NONE"&&pause=="NONE","PREVIEW_FAULT_REJECTED");
-    long actualBudget=0,actualNow=0;if(mode=="Actual"){Require(p.Count==1,"ACTUAL_SUPERVISE_ARGUMENTS");actualBudget=ActualRemaining(out actualNow);consumingLaunch=ActualJson("launch-consumed.json");consumingOperator=OpenBoundOperator(consumingLaunch,true);RequireSetupDeadline(consumingLaunch);}
+    long actualBudget=0,actualNow=0;if(mode=="Actual"){Require(p.Count==1,"ACTUAL_SUPERVISE_ARGUMENTS");consumingFiles=new PrivateSnapshot(ActualRoot(false),LeaseLeaves);actualBudget=ActualRemaining(consumingFiles,out actualNow);consumingLaunch=consumingFiles.Object("launch-consumed.json");consumingOperator=OpenBoundOperator(consumingLaunch,true);RequireSetupDeadline(consumingLaunch);}
     Preflight();if(mode=="Actual"){Require(WaitForSingleObject(consumingOperator,0)==258,"CONSUMING_OPERATOR_EXITED");RequireSetupDeadline(consumingLaunch);}
     string dir=OwnDirectory(OwnDirectory(Root,".local-data"),"admin-c1b");
     Components(Path.Combine(dir,"supervisor.lock"),true);
-    IntPtr job=IntPtr.Zero,attrs=IntPtr.Zero,jobs=IntPtr.Zero,handles=IntPtr.Zero,read=IntPtr.Zero,write=IntPtr.Zero,environment=IntPtr.Zero;SafeFileHandle input=null;ProcessInfo child=new ProcessInfo();bool hasChild=false,clean=false;string failure=null;StreamReader reader=null;
+    IntPtr job=IntPtr.Zero,attrs=IntPtr.Zero,jobs=IntPtr.Zero,handles=IntPtr.Zero,read=IntPtr.Zero,write=IntPtr.Zero,environment=IntPtr.Zero;SafeFileHandle input=null;ProcessInfo child=new ProcessInfo();bool hasChild=false,clean=false,jobClean=false;bool? childExitObserved=null,portClosedObserved=null;string failure=null;StreamReader reader=null;
     // Holding this handle never permits deleting another run's lock after an expiry.
     using(FileStream ownLock=new FileStream(Path.Combine(dir,"supervisor.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)) {
       Info(ownLock.SafeFileHandle);Components(Path.Combine(dir,"supervisor.lock"),false);
       try {
         // No listener is killed. The entry also treats EADDRINUSE as a fatal own-run failure.
         var listeners=System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners();
-        Require(!listeners.Any(x=>x.Port==62333&&(x.Address.Equals(System.Net.IPAddress.Parse("127.0.0.2"))||x.Address.Equals(System.Net.IPAddress.Any))),"PORT_COLLISION");
+        portClosedObserved=!listeners.Any(x=>x.Port==62333&&(x.Address.Equals(System.Net.IPAddress.Parse("127.0.0.2"))||x.Address.Equals(System.Net.IPAddress.Any)));
+        Require(portClosedObserved==true,"PORT_COLLISION");
         if(mode=="Actual") {
           Require(WaitForSingleObject(consumingOperator,0)==258,"CONSUMING_OPERATOR_EXITED");RequireSetupDeadline(consumingLaunch);
-          var launch=ActualJson("launch-consumed.json");string effect=Text(launch,"launchEffect"),jobName="Local\\JudojuAdminC2-"+effect;
+          var launch=consumingLaunch;string effect=Text(launch,"launchEffect"),jobName="Local\\JudojuAdminC2-"+effect;
           job=PrivateJob(jobName);long ownCreation,ownExit,ownKernel,ownUser;
           Require(GetProcessTimes(Process.GetCurrentProcess().Handle,out ownCreation,out ownExit,out ownKernel,out ownUser),"OWNER_CREATION");
-          using(var held=new Held(HoldParents(ActualRoot(false))))SecureCreate(Path.Combine(ActualRoot(false),"host-runtime.json"),Encoding.UTF8.GetBytes(Json.Serialize(new{jobName=jobName,ownerPid=Process.GetCurrentProcess().Id,ownerCreated=ownCreation.ToString(),launchEffect=effect,launchSha256=Digest(PrivateRead(Path.Combine(ActualRoot(false),"launch-consumed.json"),65536))})),false);
+          using(var held=new Held(HoldParents(ActualRoot(false))))SecureCreate(Path.Combine(ActualRoot(false),"host-runtime.json"),Encoding.UTF8.GetBytes(Json.Serialize(new{jobName=jobName,ownerPid=Process.GetCurrentProcess().Id,ownerCreated=ownCreation.ToString(),launchEffect=effect,launchSha256=Digest(consumingFiles.Bytes["launch-consumed.json"])})),false);
         } else job=CreateJobObject(IntPtr.Zero,null);Require(job!=IntPtr.Zero,"JOB_CREATE");
         var limit=new ExtendedLimit();limit.Basic.Flags=0x2000;Require(SetInformationJobObject(job,9,ref limit,Marshal.SizeOf(limit)),"KILL_ON_CLOSE");
         Emit(new {eventName="phase",phase="BeforeCreate",pid=Process.GetCurrentProcess().Id});
@@ -610,21 +677,24 @@ public static class JudojuAdminNative {
           bool terminated=TerminateJobObject(job,0);var deadline=Stopwatch.StartNew();Accounting accounting=new Accounting();bool queried=false;
           while(deadline.ElapsedMilliseconds<5000) { queried=QueryInformationJobObject(job,1,out accounting,Marshal.SizeOf(typeof(Accounting)),IntPtr.Zero);if(queried&&accounting.active==0)break;Thread.Sleep(20); }
           uint remaining=(uint)Math.Max(0,5000-deadline.ElapsedMilliseconds);
-          clean=terminated&&queried&&accounting.active==0&&(!hasChild||WaitForSingleObject(child.Process,remaining)==0);
-          if(hasChild&&mode!="Fixture") {
-            int[] ports=mode=="Preview"||mode=="Actual"?new[]{62333}:new[]{62334,62335,62336};
-            bool listening=System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(x=>ports.Contains(x.Port)&&(x.Address.Equals(System.Net.IPAddress.Parse("127.0.0.2"))||x.Address.Equals(System.Net.IPAddress.Loopback)||x.Address.Equals(System.Net.IPAddress.Any)));
-            clean=clean&&!listening;
-          }
+          childExitObserved=hasChild?(bool?)(WaitForSingleObject(child.Process,remaining)==0):null;
+          clean=terminated&&queried&&accounting.active==0&&(!hasChild||childExitObserved==true);
           CloseHandle(job);job=IntPtr.Zero;
         } else clean=!hasChild;
+        jobClean=clean;
+        try {
+          int[] ports=mode=="FixtureBrowser"?new[]{62334,62335,62336}:new[]{62333};
+          portClosedObserved=!System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(x=>ports.Contains(x.Port)&&(x.Address.Equals(System.Net.IPAddress.Parse("127.0.0.2"))||x.Address.Equals(System.Net.IPAddress.Loopback)||x.Address.Equals(System.Net.IPAddress.Any)));
+        }catch{portClosedObserved=null;if(failure==null)failure="PORT_OBSERVATION_FAILED";}
+        if(portClosedObserved==false&&failure==null)failure="PORT_STILL_LISTENING";
+        if(hasChild&&mode!="Fixture")clean=clean&&portClosedObserved==true;
         if(child.Thread!=IntPtr.Zero)CloseHandle(child.Thread);if(child.Process!=IntPtr.Zero)CloseHandle(child.Process);
         if(reader!=null)reader.Dispose();if(read!=IntPtr.Zero)CloseHandle(read);if(write!=IntPtr.Zero)CloseHandle(write);if(input!=null)input.Dispose();
         if(attrs!=IntPtr.Zero){DeleteProcThreadAttributeList(attrs);Marshal.FreeHGlobal(attrs);}if(jobs!=IntPtr.Zero)Marshal.FreeHGlobal(jobs);if(handles!=IntPtr.Zero)Marshal.FreeHGlobal(handles);if(environment!=IntPtr.Zero)Marshal.FreeHGlobal(environment);
       }
     }
-    return new {status=failure==null&&clean?"PASS":"HOLD",reason=failure??(clean?"TTL_COMPLETE":"UNKNOWN_RESIDUAL"),cleanupObserved=clean,created=hasChild,mode=mode,actualConfigChecked=mode=="Actual",actualKeysRead=mode=="Actual"?2:0,actualKeyReadScope="DISTINCT_CONFIG_API_KEY_VALUES",actualProviderKeyRequests=0};
-    }finally{if(consumingOperator!=IntPtr.Zero)CloseHandle(consumingOperator);}
+    return new {status=failure==null&&clean?"PASS":"HOLD",reason=failure??(clean?"TTL_COMPLETE":"UNKNOWN_RESIDUAL"),cleanupObserved=clean,jobCleanupObserved=jobClean,created=hasChild,childExitedObserved=childExitObserved,portClosedObserved=portClosedObserved,mode=mode,actualConfigChecked=mode=="Actual",actualKeysRead=mode=="Actual"?2:0,actualKeyReadScope="DISTINCT_CONFIG_API_KEY_VALUES",actualProviderKeyRequests=0};
+    }finally{if(consumingOperator!=IntPtr.Zero)CloseHandle(consumingOperator);if(consumingFiles!=null)consumingFiles.Dispose();}
   }
   static object DeathTest(Dictionary<string,object> p) {
     string phase=Text(p,"phase");Require(new[]{"BeforeCreate","Suspended","Handshake","Descendant","AfterLaunchAck"}.Contains(phase),"FIXED_DEATH_PHASE");

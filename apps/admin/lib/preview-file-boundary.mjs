@@ -72,7 +72,17 @@ export function nativeActualBoundary(operation,payload={},options={}){
   if(r.error||r.status!==0)boundaryHold('ACTUAL_NATIVE_FAILED');
   let result;try{result=JSON.parse(r.stdout.trim().split(/\r?\n/).at(-1));}catch{boundaryHold('ACTUAL_NATIVE_RESPONSE');}
   if(operation==='DeleteActualSecrets'&&result?.status==='HOLD'&&Array.isArray(result.files)&&result.files.length===3)return result;
+  if(operation==='Supervise')return actualSupervisorReceipt(result);
   if(result?.status!=='PASS')boundaryHold('ACTUAL_NATIVE_HOLD');return result;
+}
+export function actualSupervisorReceipt(result){
+  if(!result||!['PASS','HOLD'].includes(result.status)||result.mode!=='Actual'
+    ||typeof result.cleanupObserved!=='boolean'||typeof result.jobCleanupObserved!=='boolean'||typeof result.created!=='boolean'||![true,false,null].includes(result.childExitedObserved)
+    ||![true,false,null].includes(result.portClosedObserved)||!result.created&&result.childExitedObserved!==null
+    ||result.status==='PASS'&&(!result.created||!result.cleanupObserved||!result.jobCleanupObserved||result.childExitedObserved!==true||result.portClosedObserved!==true))boundaryHold('ACTUAL_SUPERVISOR_RECEIPT');
+  return Object.freeze({status:result.status,mode:'Actual',created:result.created,cleanupObserved:result.cleanupObserved,
+    jobCleanupObserved:result.jobCleanupObserved,childExitedObserved:result.childExitedObserved,portClosedObserved:result.portClosedObserved,
+    reason:typeof result.reason==='string'&&/^[A-Z_]{3,80}$/.test(result.reason)?result.reason:'HOST_UNCONFIRMED'});
 }
 export function nativeActualJournal(operation,payload,signal){
   if(process.platform!=='win32'||!['ReadActualJournal','AppendActualJournal'].includes(operation))return Promise.reject(new Error('ADMIN_PREVIEW_HOLD:ACTUAL_JOURNAL_OPERATION'));

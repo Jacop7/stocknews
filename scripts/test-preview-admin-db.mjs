@@ -41,7 +41,25 @@ if(preparingImage){
  writeFileSync(path.join(out,'result.json'),JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));process.exit(0);
 }
 writeFileSync(path.join(out,'intent.json'),JSON.stringify({productId:'judoju-news',run,name,image,network:'none',ports:[],phase:'CREATE_INTENT'}));
-let cid,cleanupConfirmed=false;const checks=[];
+let cid,cleanupConfirmed=false;const checks=[],ownedClients=[];let postStopClient=null;
+function managedClient(child,label,completionMs=15000){
+ const disposition={label,pid:child.pid??null,terminationRequested:false,closeObserved:false,exitCode:null,signal:null,pipesClosed:false,status:'OPEN'};
+ let closed=false,resolveClose,stopTask=null,timer;
+ const close=new Promise(resolve=>{resolveClose=resolve;});
+ const waitClose=async ms=>{if(closed)return true;let t;try{return await Promise.race([close.then(()=>true),new Promise(resolve=>{t=setTimeout(()=>resolve(false),ms);})]);}finally{clearTimeout(t);}};
+ child.on('error',()=>{});
+ child.on('close',(code,signal)=>{closed=true;clearTimeout(timer);Object.assign(disposition,{closeObserved:true,exitCode:code,signal,pipesClosed:true,status:'CLOSED'});resolveClose({code,signal});});
+ for(const stream of [child.stdin,child.stdout,child.stderr])stream?.on('error',()=>{});
+ const terminate=()=>stopTask??=(async()=>{
+  if(!closed){disposition.terminationRequested=true;try{child.kill('SIGTERM');}catch{}}
+  if(!await waitClose(3000)){try{child.kill('SIGKILL');}catch{}await waitClose(3000);}
+  if(!closed){for(const stream of [child.stdin,child.stdout,child.stderr])stream?.destroy();child.unref();Object.assign(disposition,{status:'UNCONFIRMED',pipesClosed:[child.stdin,child.stdout,child.stderr].every(s=>!s||s.destroyed)});}
+  return {...disposition};
+ })();
+ const done=Promise.race([close,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('C2_CLIENT_COMPLETION_TIMEOUT')),completionMs);})])
+  .catch(async error=>{await terminate();throw error;}).finally(()=>clearTimeout(timer));done.catch(()=>{});
+ const result={child,close,done,terminate,disposition};ownedClients.push(result);return result;
+}
 function inspect(){const c=JSON.parse(must(docker(['inspect',cid,'--format','{{json .}}']),'OWNED_INSPECT'));assert.equal(c.Id,cid);assert.equal(c.Config.Image,imageReference);assert.ok(acceptedImageIds.includes(c.Image));assert.equal(c.Name,'/'+name);assert.equal(c.Config.Labels['com.judoju.product'],'judoju-news');assert.equal(c.Config.Labels['com.judoju.cloud11a.run'],run);assert.equal(c.HostConfig.NetworkMode,'none');assert.equal(c.HostConfig.ReadonlyRootfs,true);assert.deepEqual(c.HostConfig.PortBindings,{});assert.ok(c.Mounts.every(m=>m.Type==='tmpfs'));return c;}
 function sql(source){inspect();return must(docker(['exec','-i',cid,'psql','-X','-h','/tmp','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-Atq'],source),'ISOLATED_SQL');}
 const ownUser=actualOwner.id,authSession=randomUUID(),claim={role:'authenticated',sub:ownUser,session_id:authSession};
@@ -207,18 +225,16 @@ try{
  function liveClient(label,source){
   const app='c2-'+run+'-'+createHash('sha256').update(label).digest('hex').slice(0,16);assert.ok(Buffer.byteLength(app)<=63);
   const child=spawn(exe,['--context',context,'exec','-e','PGAPPNAME='+app,'-i',cid,'psql','-X','-h','/tmp','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-Atq'],{cwd:root,env,windowsHide:true,stdio:['pipe','pipe','pipe']});
-  let output='',errors='',settled=false,resolveDone,rejectReady;
-  const rawDone=new Promise(resolve=>{resolveDone=resolve;});let completionTimer;
-  const done=Promise.race([rawDone,new Promise((_,reject)=>{completionTimer=setTimeout(()=>reject(Error('C2_CLIENT_COMPLETION_TIMEOUT')),15000);})]).finally(()=>clearTimeout(completionTimer));done.catch(()=>{});
+   let output='',errors='',rejectReady;const managed=managedClient(child,label);
+   const done=managed.done.then(({code})=>({code,output,errors}));done.catch(()=>{});
   const marker='C2_LOCK_HELD_'+label;
   const ready=new Promise((resolve,reject)=>{
    rejectReady=reject;const timer=setTimeout(()=>reject(Error('C2_CLIENT_MARKER_TIMEOUT')),10000);
    child.stdout.on('data',x=>{output+=x.toString();if(output.length>1048576){clearTimeout(timer);reject(Error('C2_CLIENT_OUTPUT_LIMIT'));child.stdin.end('rollback;\n');}if(output.includes(marker)){clearTimeout(timer);resolve();}});
    child.on('close',()=>{clearTimeout(timer);if(!output.includes(marker))reject(Error('C2_CLIENT_BEFORE_MARKER'));});
   });
-  ready.catch(()=>{});child.stderr.on('data',x=>{errors+=x.toString().slice(0,4096);});child.on('error',()=>{rejectReady(Error('C2_CLIENT_ERROR'));if(!settled){settled=true;resolveDone({code:-1,output,errors});}});
-  child.on('close',code=>{if(!settled){settled=true;resolveDone({code,output,errors});}});
-  child.stdin.on('error',()=>{});child.stdin.write(source+';select '+q(marker)+';\n');return {app,child,ready,done};
+   ready.catch(()=>{});child.stderr.on('data',x=>{errors=(errors+x.toString()).slice(0,4096);});child.on('error',()=>{rejectReady(Error('C2_CLIENT_ERROR'));});
+   child.stdin.on('error',()=>{});child.stdin.write(source+';select '+q(marker)+';\n');return {app,child,ready,done,managed};
  }
  async function capabilityWait(label,role,change,expectedCipher=null){
   const cap='b'.repeat(64),cipher='FIXTURE_ENCRYPTED_NOT_REAL_TOKEN';
@@ -351,11 +367,24 @@ try{
  pass('Reference companies339 preserved; no cron, network, actual keys or hosted DB calls');
  const stalled=liveClient('real-stalled-client','begin');await stalled.ready;stalled.child.stdin.end('select pg_sleep(3600);rollback;\n');
  await assert.rejects(stalled.done,/C2_CLIENT_COMPLETION_TIMEOUT/);
- pass('Real stalled owned SQL client has bounded completion; outer owned container stop/remove remains mandatory',{completionDeadlineMs:15000});
+ assert.equal(stalled.managed.disposition.closeObserved,true);assert.equal(stalled.managed.disposition.pipesClosed,true);
+ pass('Real stalled owned SQL client times out, is terminated and has an observed close event independently of container cleanup',{completionDeadlineMs:15000,client:{...stalled.managed.disposition}});
+ // An actual local process stands in for a wedged CLI which does not exit when
+ // its server/container stops. It has no network, DB or credential access.
+ postStopClient=managedClient(spawn(process.execPath,['-e',"process.stdout.write('C2_LOCAL_CLIENT_READY\\n');setInterval(()=>{},1000)"],{cwd:root,env,windowsHide:true,stdio:['pipe','pipe','pipe']}),'local-client-survives-container-stop',60000);
+ await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('LOCAL_CLIENT_START_TIMEOUT')),5000);postStopClient.child.stdout.once('data',()=>{clearTimeout(timer);resolve();});postStopClient.close.then(()=>{clearTimeout(timer);reject(Error('LOCAL_CLIENT_EARLY_EXIT'));});});
 
 }finally{
- if(cid){const c=inspect();if(c.State.Running)must(docker(['stop','--time','5',cid]),'OWNED_STOP');inspect();must(docker(['rm',cid]),'OWNED_REMOVE');cleanupConfirmed=true;}
- writeFileSync(path.join(out,'result.json'),JSON.stringify({productId:'judoju-news',run,checks,cleanupConfirmed,actualRemoteRequests:0,actualKeysRead:0,auth:'STUB_NOT_HOSTED_AUTH',network:'none',ports:[]},null,2));
+ try{if(cid){const c=inspect();if(c.State.Running)must(docker(['stop','--time','5',cid]),'OWNED_STOP');inspect();must(docker(['rm',cid]),'OWNED_REMOVE');cleanupConfirmed=true;}}
+ finally{
+  const survivedStop=postStopClient&&cleanupConfirmed&&postStopClient.disposition.status==='OPEN';
+  await Promise.all(ownedClients.map(client=>client.terminate()));
+  const clientCleanupConfirmed=ownedClients.every(client=>client.disposition.closeObserved&&client.disposition.pipesClosed);
+  if(postStopClient&&survivedStop&&postStopClient.disposition.closeObserved)pass('A local CLI mechanism fixture remains open after container removal, then bounded owned termination confirms process and pipe closure',{fixture:'LOCAL_PROCESS_NOT_DOCKER_WEDGE',client:{...postStopClient.disposition}});
+  writeFileSync(path.join(out,'result.json'),JSON.stringify({productId:'judoju-news',run,checks,cleanupConfirmed,clientCleanupConfirmed,clients:ownedClients.map(x=>({...x.disposition})),actualRemoteRequests:0,actualKeysRead:0,auth:'STUB_NOT_HOSTED_AUTH',network:'none',ports:[]},null,2));
+  assert.equal(clientCleanupConfirmed,true,'Client closure is required independently of container removal');
+  if(postStopClient)assert.equal(survivedStop,true,'The local fixture must actually remain alive across container removal');
+ }
 }
 assert.equal(cleanupConfirmed,true);
 console.log(JSON.stringify({status:'PASS',stage:'CLOUD11A_ISOLATED_SQL',checks:checks.length,cleanupConfirmed,actualRemoteRequests:0,actualKeysRead:0,result:path.relative(root,path.join(out,'result.json')).replaceAll('\\','/'),limitations:'Fresh network-none PostgreSQL/Auth stub. Direct SQL roles do not certify hosted Auth or secret gateway mapping.'}));
