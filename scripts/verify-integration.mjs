@@ -14,6 +14,7 @@ const checks = [
   ['Four-workstream regression tests', [
     '--experimental-strip-types', '--test', '--test-concurrency=2',
     'tests/list-body-queue.test.mjs',
+    'tests/sec-submissions.test.ts',
     'tests/proposal-outbox.test.mjs',
     'tests/originality-screen.test.ts',
     'tests/draft-originality.test.mjs',
