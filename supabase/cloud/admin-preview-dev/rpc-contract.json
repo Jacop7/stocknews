@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "stage": "CLOUD11A",
+  "physicalEnvironment": "dev",
+  "logicalEnvironment": "preview",
+  "projectRef": "nxfpfvsdwbziowkxsxnh",
+  "active": false,
+  "actualRemoteRequests": 0,
+  "actualKeysRead": 0,
+  "grantsPerformed": 0,
+  "rpc": [
+    {
+      "name": "m1_check_editor",
+      "signature": "",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_editor_articles",
+      "signature": "",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_get_draft",
+      "signature": "uuid",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_operation_status",
+      "signature": "uuid,text",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_create_draft",
+      "signature": "uuid",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_save_draft",
+      "signature": "uuid,bigint,jsonb",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_save_draft",
+      "signature": "uuid,bigint,jsonb,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_preview_draft",
+      "signature": "uuid,bigint,bigint,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_publish_draft",
+      "signature": "uuid,bigint,bigint,bigint,bigint,text",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_set_state",
+      "signature": "uuid,bigint,text,text",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_sectors",
+      "signature": "",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_index",
+      "signature": "int,int",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_tree",
+      "signature": "bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_sector",
+      "signature": "uuid,bigint,int,int",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_companies",
+      "signature": "int,int,text",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_company",
+      "signature": "uuid,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_group",
+      "signature": "uuid,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_membership",
+      "signature": "uuid,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_editor_impact",
+      "signature": "uuid,bigint",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_apply",
+      "signature": "bigint,text,text,uuid,jsonb",
+      "role": "authenticated"
+    },
+    {
+      "name": "catalog_operation_status",
+      "signature": "bigint,text,text,uuid,jsonb",
+      "role": "authenticated"
+    },
+    {
+      "name": "m1_open_admin_session",
+      "signature": "uuid,uuid,text,text,timestamptz",
+      "role": "service_role"
+    },
+    {
+      "name": "m1_read_admin_session",
+      "signature": "text",
+      "role": "service_role"
+    },
+    {
+      "name": "m1_close_admin_session",
+      "signature": "text",
+      "role": "service_role"
+    }
+  ],
+  "publicReadRpc": [
+    {
+      "name": "catalog_public_articles",
+      "signature": "bigint,uuid[],text,int,timestamptz,timestamptz,uuid"
+    },
+    {
+      "name": "catalog_public_company_sectors",
+      "signature": "bigint,uuid,int,int"
+    },
+    {
+      "name": "catalog_public_saved",
+      "signature": "bigint,uuid[]"
+    },
+    {
+      "name": "catalog_public_search_companies",
+      "signature": "bigint,text,int,int,text,uuid"
+    },
+    {
+      "name": "catalog_public_search_news",
+      "signature": "bigint,text,int,timestamptz,timestamptz,uuid"
+    },
+    {
+      "name": "catalog_public_sector_page",
+      "signature": "uuid,bigint,int,int"
+    },
+    {
+      "name": "catalog_public_tree",
+      "signature": "bigint"
+    },
+    {
+      "name": "m1_public_article",
+      "signature": "uuid"
+    },
+    {
+      "name": "m1_public_identity",
+      "signature": ""
+    }
+  ],
+  "modifiedExistingFunction": "private.active_admin_user(uuid,uuid)",
+  "preservedExistingPreviewGuards": [
+    "private.assert_initialized()",
+    "private.catalog_sector_selectable(uuid,bigint,text)",
+    "private.m1_assert_editor()"
+  ],
+  "M2": false,
+  "realPublicationEnabled": false,
+  "workerConnected": false,
+  "templateSha256": "4ea72889524fad606e76b600c6dc9afdf92c56549a84513c27caacf3b05476e9"
+}

@@ -1,0 +1,64 @@
+// MAIN_ADMIN_C1B source transition and application-boundary checks; never an execution/credential authority.
+import assert from 'node:assert/strict';
+import {readFileSync,realpathSync,lstatSync,existsSync,readdirSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+import {allowedHostedPullRef} from './native-release-policy.mjs';
+import {parallel4Readiness} from './parallel4-readiness.mjs';
+const root=realpathSync(fileURLToPath(new URL('../',import.meta.url))),base='da836420133e2f4b5405f77e6af39b966131cc1d',feature='feat/main-admin-c1b';
+let checks=0;const check=(v,label)=>{assert.ok(v,label);checks++;},sha=b=>createHash('sha256').update(b).digest('hex');
+function git(args,input){const r=spawnSync('git',['-c','core.quotepath=false','-C',root,...args],{input,windowsHide:true,maxBuffer:64*1024*1024});assert.ifError(r.error);return {code:r.status,text:r.stdout.toString('utf8').trim(),bytes:r.stdout};}
+function read(file){let at=root;const parts=file.split('/');check(parts.every(p=>p&&p!=='.'&&p!=='..'&&!p.includes('\\')&&!p.includes(':')),'Relative source');for(const [i,p] of parts.entries()){at=path.join(at,p);const s=lstatSync(at);check(!s.isSymbolicLink()&&(i===parts.length-1?s.isFile():s.isDirectory()),'Owned regular source '+file);}const relative=path.relative(root,realpathSync(at));check(!relative.startsWith('..')&&!path.isAbsolute(relative),'Internal source');return readFileSync(at);}
+const json=f=>JSON.parse(read(f));
+check(realpathSync(git(['rev-parse','--show-toplevel']).text)===root,'Independent product root');
+check(lstatSync(path.join(root,'.git')).isDirectory()&&!lstatSync(path.join(root,'.git')).isSymbolicLink(),'Own Git only; no worktree');
+check(realpathSync(path.resolve(root,git(['rev-parse','--git-common-dir']).text))===path.join(root,'.git'),'No shared Git');
+check(!existsSync(path.join(root,'.git/objects/info/alternates'))&&!existsSync(path.join(root,'.gitmodules')),'No borrowed Git');
+check(git(['config','--local','--name-only','--get-regexp','^(include\\.|includeif\\.|core\\.hookspath$)']).code===1,'No inherited hooks');
+for(const k of ['GIT_DIR','GIT_WORK_TREE','GIT_COMMON_DIR','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES'])check(!process.env[k],'No Git routing '+k);
+check(git(['remote']).text==='origin','Only own remote');for(const args of [['remote','get-url','--all','origin'],['remote','get-url','--push','--all','origin']])check(git(args).text==='https://github.com/Jacop7/stocknews.git','Authorized remote');
+const baseline='docs/stages/stage-admin-c1b-baseline.json';check(sha(read(baseline))==='ae7e9c2c54c5ee6c477446ba84e11c60f0281e4281bd076894b7cd29e644b5cd','Frozen 519-file authority');
+const b=json(baseline);check(b.baseCommit===base&&b.baseCount===33&&b.feature===feature&&Object.keys(b.files).length===519&&Object.keys(b.refs).length===47&&b.mutableFiles.length===10&&b.newFiles.length===14,'Exact transition scope');
+const head=git(['rev-parse','HEAD']).text,branch=git(['branch','--show-current']).text,parents=git(['rev-list','--parents','-n','1','HEAD']).text.split(/\s+/).slice(1),count=Number(git(['rev-list','--count','HEAD']).text);
+const hosted=process.env.GITHUB_ACTIONS==='true'&&process.env.GITHUB_REPOSITORY==='Jacop7/stocknews',isBase=head===base&&count===33,isChild=count===34&&parents.length===1&&parents[0]===base;
+const other=parents.length===2?parents.find(p=>p!==b.refs['refs/heads/main']):null;
+const isHostedMerge=hosted&&count===35&&parents.length===2&&new Set(parents).size===2&&parents.includes(b.refs['refs/heads/main'])&&other&&git(['rev-list','--parents','-n','1',other]).text.split(/\s+/).slice(1).join(' ')===base&&git(['rev-parse',head+'^{tree}']).text===git(['rev-parse',other+'^{tree}']).text;
+check(isBase||isChild||isHostedMerge,'Reviewed base, one exact feature child or equal-tree hosted PR merge');
+check(branch===feature||isBase&&branch==='feat/main-parallel-p3'||hosted&&!branch&&head===process.env.GITHUB_SHA,'Owned preparation feature');
+check(git(['rev-list','--max-parents=0','HEAD']).text==='f7dce3a9e05c39580f23a210c3ac9d2514c38b74','New product ancestry');
+const refs=new Map(git(['for-each-ref','--format=%(refname) %(objectname)']).text.split(/\r?\n/).filter(Boolean).map(s=>s.split(' '))),allowed=new Set([...Object.keys(b.refs),'refs/heads/'+feature,'refs/remotes/origin/'+feature]);
+const pullRef=allowedHostedPullRef(process.env,head,r=>refs.get(r)??null);if(pullRef)allowed.add(pullRef);
+for(const [ref,oid] of refs){check(allowed.has(ref),'Declared ref '+ref);if(Object.hasOwn(b.refs,ref))check(oid===b.refs[ref],'Frozen historical ref '+ref);else check(oid===base||oid===head||isHostedMerge&&oid===other,'Only preparation ref');}
+if(!hosted)for(const [ref,oid] of Object.entries(b.refs))check(refs.get(ref)===oid,'Historical ref retained '+ref);
+const actual=git(['ls-files','--cached','--others','--exclude-standard','-z']).bytes.toString().split('\0').filter(Boolean).sort();assert.deepEqual(actual,[...Object.keys(b.files),...b.newFiles].sort());checks++;
+const entries=git(['ls-tree','-r','-z','--full-tree',base]).bytes.toString().split('\0').filter(Boolean).map(x=>{const [meta,file]=x.split('\t'),[mode,type,oid]=meta.split(' ');check(mode==='100644'&&type==='blob'&&Object.hasOwn(b.files,file),'Historical regular blob');return {file,oid};});check(entries.length===519,'519 base blobs');
+const batch=git(['cat-file','--batch'],entries.map(x=>x.oid).join('\n')+'\n');check(batch.code===0,'Historical bytes');let offset=0;const original=new Map();
+for(const e of entries){const end=batch.bytes.indexOf(10,offset),[oid,type,n]=batch.bytes.subarray(offset,end).toString().split(' '),size=Number(n);check(oid===e.oid&&type==='blob'&&Number.isSafeInteger(size),'Original object');offset=end+1;const bytes=batch.bytes.subarray(offset,offset+size);check(size===b.files[e.file].bytes&&sha(bytes)===b.files[e.file].sha256,'Exact da8364 '+e.file);original.set(e.file,bytes);if(!b.mutableFiles.includes(e.file))check(read(e.file).equals(bytes),'Unchanged '+e.file);offset+=size+1;}
+check(offset===batch.bytes.length,'Complete original stream');
+const preparation='docs/stages/stage-admin-c1b-preparation.json',prep=json(preparation),pins=[...b.mutableFiles,...b.newFiles].filter(f=>f!==preparation).sort();assert.deepEqual(Object.keys(prep.sourcePins).sort(),pins);checks++;
+for(const f of pins)check(sha(read(f))===prep.sourcePins[f],'Exact candidate '+f);
+const expectedAddition={"stage": "MAIN_ADMIN_C1B", "state": "HOST_FIXTURE_SUPERVISOR_NOT_ACTIVATED", "planManifest": "96c4cf288eb1d3af5d84cedacb604293a46177f4dc45cf333941c7bfdb52214e", "actualKeysRead": 0, "actualRemoteRequests": 0, "actualAuthCalls": 0, "DBMutations": 0, "workerConnected": false, "M2": false};
+for(const [k,v] of Object.entries(expectedAddition))check(prep[k]===v,'Not activated '+k);
+const status=json('docs/development-status.json'),addition=status.adminC1bPreparation;delete status.adminC1bPreparation;assert.deepEqual(status,JSON.parse(original.get('docs/development-status.json')));assert.deepEqual(addition,expectedAddition);checks+=2;
+const pkg=json('package.json'),oldPackage=JSON.parse(original.get('package.json'));
+for(const suffix of ['config-writer','supervisor','host']){const k='test:admin-preview-'+suffix;check(pkg.scripts[k]==='node --test tests/admin-preview-'+suffix+'.test.mjs','New test '+k);delete pkg.scripts[k];}
+for(const k of ['build:admin','export:android','export:ios']){check(pkg.scripts[k]==='node scripts/admin-preview-policy.mjs '+k,'Official wrapper '+k);pkg.scripts[k]=oldPackage.scripts[k];}assert.deepEqual(pkg,oldPackage);checks++;
+for(const f of ['apps/admin/lib/admin-profile.mjs','apps/admin/lib/runtime-preview.mjs','tests/preview-admin.test.mjs','tests/admin-preview-lifecycle.test.mjs'])check(read(f).toString()===original.get(f).toString().replaceAll('127.0.0.1:62333','127.0.0.2:62333'),'Host-only change '+f);
+check(read('apps/admin/lib/preview-admin-config.mjs').toString().includes('export function loadPreviewAdminConfig(){fail();}'),'ACTUAL before any I/O');
+check(read('AGENTS.md').toString()===original.get('AGENTS.md').toString()+"\n- MAIN_ADMIN_C1B는 MAIN 직접 관리자 host·fixture 설정 writer·소유 Windows Job 준비다. 실제 loader는 private I/O 전 비활성화하고 official framework 실행은 metadata 환경 경계와 controlled env를 먼저 적용한다. ACTUAL/Auth/DB/권한/게시/worker를 활성화하지 않으며 전체 native 시험·DUAL·백업 후 커밋한다. 기존 P3·원격 HOLD와 운영상 격리 한계를 유지한다.\n",'Append-only instructions');
+const verify=read('scripts/verify.mjs').toString(),oldVerify=original.get('scripts/verify.mjs').toString();
+for(const literal of oldVerify.matchAll(/'((?:test:|check:|build:|export:)[^']+)'/g))check(verify.includes(literal[0]),'Preserved full verification '+literal[1]);
+check(verify.indexOf('assertEnvironmentBoundary();')<verify.indexOf('spawnSync(')&&verify.includes('env:verifierEnvironment')&&!verify.includes('env:{...process.env'),'Guard and controlled env precede tools');
+check(verify.includes("c1b?'verify-admin-c1b-foundation.mjs':p3?")&&read('scripts/verify-foundation.mjs').toString().includes("if(status.adminC1bPreparation?.stage==='MAIN_ADMIN_C1B')"),'Current guard before historical guards');
+const native=read('scripts/admin-preview-native.cs').toString();check(native.includes('new IntPtr(0x2000d)')&&native.includes('CREATE_WITH_JOB_LIST')&&!native.includes('extern bool AssignProcessToJobObject'),'Creation-time job binding');
+check(native.includes('TerminateJobObject(job,0)')&&native.includes('QueryInformationJobObject(job,1')&&native.includes('jobHandleDuplicated=false'),'Owned cleanup observation');
+check(!read('scripts/admin-preview-supervisor.ps1').toString().includes('ExecutionPolicy'),'No policy override');
+const markers=['SYNTHETIC_K1_COMPLETED_RANKING','pipeline-ranking.ts','SYNTHETIC_K1_METADATA_INTAKE_A1','metadata-intake.ts','SYNTHETIC_SOURCE_RECEIPT_R1','source-receipts.ts','SYNTHETIC_ACQUISITION_A1','acquisition-store.ts','SYNTHETIC_COLLECTOR_INVENTORY_P1','inventory.ts','BLOCKED_SITE_RECIPE_P1','site-recipes.ts','SYNTHETIC_HOME_WORKER_P1','completed-adapter.ts','SYNTHETIC_PARTITION_JOURNAL_P2','partition-contracts.ts','partition-journal.ts','SYNTHETIC_RANKABLE_BINDING_B1','rankable-batch.ts','rankable-adapter.ts','SYNTHETIC_EVENT_ROUTING_A2','event-routing.ts','COLLECTION_READ_P3','collection-read-boundary.ts','collection-read-contracts.ts','pilot-listing.ts','ANALYSIS_INPUT_P3','analysis-input.ts','HOME_BOUND_P3','bound-ports.ts','bound-dispatch.ts','bound-read.ts'];
+const adminOnly=['ADMIN_PREVIEW_FILE_C1B','ADMIN_PREVIEW_POLICY_C1B','ADMIN_PREVIEW_WRITER_C1B','ADMIN_PREVIEW_NATIVE_C1B','ADMIN_PREVIEW_ENTRY_C1B','preview-file-boundary.mjs','preview-config-writer.mjs','ADMIN_PREVIEW_DEADLINE_P3','preview-deadline.mjs','createPreviewDeadlineTools','readPreviewJson'];
+for(const f of actual.filter(f=>f.startsWith('apps/')&&/\.(?:[cm]?js|tsx?)$/.test(f))){const text=read(f).toString();for(const marker of markers)check(!text.includes(marker),'No worker in apps '+f);if(f.startsWith('apps/mobile/'))for(const marker of adminOnly)check(!text.includes(marker),'Admin helper absent consumer '+f);if(/^\s*['"]use client['"]/.test(text))for(const marker of adminOnly)check(!text.includes(marker),'Admin helper absent client '+f);}
+const attrs=git(['check-attr','-z','filter','ident','working-tree-encoding','--',...actual]);check(attrs.code===0,'Source attributes');const parts=attrs.bytes.toString().split('\0');assert.equal(parts.pop(),'');for(let n=0;n<parts.length;n+=3)check(['unset','unspecified'].includes(parts[n+2]),'No source transforms');
+let artifactFiles=0;
+if(process.argv.includes('--artifacts'))for(const folder of ['apps/admin/.next/server','apps/admin/.next/static','apps/mobile/dist/android','apps/mobile/dist/ios']){const start=path.join(root,folder);check(existsSync(start),'Built artifact '+folder);const forbidden=folder==='apps/admin/.next/server'?markers:[...markers,...adminOnly];function scan(dir){for(const e of readdirSync(dir,{withFileTypes:true})){const f=path.join(dir,e.name);check(!lstatSync(f).isSymbolicLink(),'Owned artifact');if(e.isDirectory())scan(f);else if(/\.(?:js|json|map|hbc|bundle)$/.test(e.name)){const bytes=readFileSync(f);for(const marker of forbidden)check(!bytes.includes(Buffer.from(marker)),'Internal marker absent '+marker);artifactFiles++;}}}scan(start);}
+check(parallel4Readiness().state==='HOLD_NOT_ACTIVATED','No remote author activation');console.log(JSON.stringify({status:'PASS',stage:'MAIN_ADMIN_C1B_NOT_ACTIVATED',checks,baselineFiles:519,mutableFiles:10,newFiles:14,productGroups:49,artifactFiles,actualRemoteRequests:0,workerConnected:false,M2:false,limitations:'Offline fixture source integration and VM route fixtures only; not OS isolation, real authority/collection/AI/DB/publication/native device/durable operation.'}));

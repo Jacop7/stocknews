@@ -14,10 +14,12 @@ interface MemoryCard {
 export interface RankingState {
  sampleKind:'SYNTHETIC';policyVersion:typeof HOME_RANKING_POLICY;cutoff:string;contextInput:HomeContextInput;
  records:MemoryCard[];pools:Record<Lane,string[]>;seen:{issueId:string;publishedAt:string;}[];
+ highComparisonVersion?:string;
 }
 export interface HomeRankingInput {
  mode:'LOCAL_SYNTHETIC';sampleKind:'SYNTHETIC';policyVersion:typeof HOME_RANKING_POLICY;context:ContextInput;
  priority:PriorityInput;sectors:{issueId:string;primarySectorId:string|null;}[];previous:RankingState|null;
+ highComparisonVersion?:string;
 }
 export interface HomeRankingDraft {
  status:'DRAFT_SYNTHETIC'|'INVALID_INPUT'|'LIVE_NOT_ENABLED'|'CONTEXT_UNAVAILABLE';reason:string;
@@ -74,7 +76,7 @@ function numericScore(r:MemoryCard,cutoff:string):number {
 }
 function previousState(v:unknown,cutoff:string):RankingState|null|false {
  if(v===null)return null;
- if(!object(v)||!keys(v,['sampleKind','policyVersion','cutoff','contextInput','records','pools','seen'])||v.sampleKind!=='SYNTHETIC'||v.policyVersion!==HOME_RANKING_POLICY||!Number.isFinite(time(v.cutoff))||time(v.cutoff)>=time(cutoff)||!Array.isArray(v.records)||v.records.length>300||!object(v.pools)||!keys(v.pools,lanes)||!Array.isArray(v.seen)||v.seen.length>600)return false;
+ if(!object(v)||!keys(v,['sampleKind','policyVersion','cutoff','contextInput','records','pools','seen',...(Object.hasOwn(v,'highComparisonVersion')?['highComparisonVersion']:[])])||Object.hasOwn(v,'highComparisonVersion')&&!id(v.highComparisonVersion)||v.sampleKind!=='SYNTHETIC'||v.policyVersion!==HOME_RANKING_POLICY||!Number.isFinite(time(v.cutoff))||time(v.cutoff)>=time(cutoff)||!Array.isArray(v.records)||v.records.length>300||!object(v.pools)||!keys(v.pools,lanes)||!Array.isArray(v.seen)||v.seen.length>600)return false;
  const context=deriveHomeContext(v.contextInput);if(context.status!=='DRAFT_SYNTHETIC'||time(context.value.cutoff)!==time(v.cutoff))return false;
  const previousCutoff=stamp(v.cutoff as string);
  const signals=context.value.signals,ids=new Set<string>(),stories=new Set<string>();
@@ -98,7 +100,7 @@ function previousState(v:unknown,cutoff:string):RankingState|null|false {
  if(pools.C.some((s,n)=>n>0&&tiers.indexOf(byId.get(s)!.tier)<tiers.indexOf(byId.get(pools.C[n-1])!.tier)))return false;
  const seenIds=new Set<string>(),seen:RankingState['seen']=[];
  for(const s of v.seen){if(!object(s)||!keys(s,['issueId','publishedAt'])||!id(s.issueId)||seenIds.has(s.issueId)||!Number.isFinite(time(s.publishedAt))||time(s.publishedAt)>time(v.cutoff)||time(s.publishedAt)+HOUR<=time(v.cutoff)||byId.has(s.issueId)&&time(byId.get(s.issueId)!.publishedAt)!==time(s.publishedAt))return false;seenIds.add(s.issueId);seen.push({issueId:s.issueId,publishedAt:stamp(s.publishedAt as string)});}
- return {sampleKind:'SYNTHETIC',policyVersion:HOME_RANKING_POLICY,cutoff:previousCutoff,contextInput:canonicalContext(v.contextInput as HomeContextInput),records,pools,seen};
+ return {sampleKind:'SYNTHETIC',policyVersion:HOME_RANKING_POLICY,cutoff:previousCutoff,contextInput:canonicalContext(v.contextInput as HomeContextInput),records,pools,seen,...(Object.hasOwn(v,'highComparisonVersion')?{highComparisonVersion:v.highComparisonVersion as string}:{})};
 }
 function memory(card:HomeCard):MemoryCard {
  return {issueId:card.issueId,storyId:card.storyId,role:card.role,tier:card.tier,score:card.score,materialChangeAt:stamp(card.materialChangeAt),publishedAt:stamp(card.publishedAt),primarySectorId:card.primarySectorId,I:card.components.I,T:card.components.T,M:card.components.M,P:card.components.P};
@@ -106,7 +108,7 @@ function memory(card:HomeCard):MemoryCard {
 function highSignature(context:HomeContext,records:MemoryCard[]):string {
  return JSON.stringify([HOME_RANKING_POLICY,context.catalogVersion,context.evaluationSetVersion,context.signals.T,context.signals.P,records.filter(r=>r.tier==='HIGH').sort((a,b)=>codepoint(a.issueId,b.issueId)).map(r=>[r.issueId,r.storyId,r.role,r.tier,r.materialChangeAt])]);
 }
-function stabilize(pool:MemoryCard[],lane:Lane,previous:RankingState|null,context:HomeContext,highSame:boolean,diagnostics:HomeRankingDraft['diagnostics']):string[] {
+function stabilize(pool:MemoryCard[],lane:Lane,previous:RankingState|null,context:HomeContext,highSame:boolean,diagnostics:HomeRankingDraft['diagnostics'],highCompatible:boolean):string[] {
  const oldContext=previous?deriveHomeContext(previous.contextInput):null;
  const same=oldContext?.status==='DRAFT_SYNTHETIC'&&oldContext.value.contextKey===context.contextKey;
  const oldRows=new Map(previous?.records.map(r=>[r.issueId,r])??[]),oldPool=previous?.pools[lane]??[];
@@ -114,7 +116,7 @@ function stabilize(pool:MemoryCard[],lane:Lane,previous:RankingState|null,contex
  const order:MemoryCard[]=[];
  for(const tier of tiers){
   const current=pool.filter(r=>r.tier===tier).sort(basic);
-  if(!previous||!(same||tier==='HIGH'&&highSame)){order.push(...current);continue;}
+  if(!previous||!(tier==='HIGH'?highCompatible&&(same||highSame):same)){order.push(...current);continue;}
   const currentMap=new Map(current.map(r=>[r.issueId,r]));
   const urgent=new Set(current.filter(r=>{const p=oldRows.get(r.issueId);return !p||!oldPool.includes(r.issueId)||p.tier!==r.tier||p.role!==r.role||p.storyId!==r.storyId||time(r.materialChangeAt)>time(p.materialChangeAt);}).map(r=>r.issueId));
   const stable=oldPool.filter(s=>currentMap.has(s)&&!urgent.has(s)).map(s=>currentMap.get(s)!);
@@ -149,7 +151,7 @@ function selectC(pool:string[],cards:Map<string,HomeCard>,cutoff:string,seen:Set
 function rank(raw:unknown):HomeRankingDraft {
  if(!object(raw))return empty('INVALID_INPUT','ROOT');
  if(raw.mode!=='LOCAL_SYNTHETIC'||raw.sampleKind!=='SYNTHETIC')return empty('LIVE_NOT_ENABLED','MODE');
- if(!keys(raw,['mode','sampleKind','policyVersion','context','priority','sectors','previous'])||raw.policyVersion!==HOME_RANKING_POLICY||!object(raw.context)||!keys(raw.context,['mode','sampleKind','cutoff','policyVersion','catalogVersion','comparisonSetVersion','evaluationSetVersion','calendar'])||!object(raw.priority)||!Array.isArray(raw.sectors))return empty('INVALID_INPUT','INPUT_SHAPE');
+ if(!keys(raw,['mode','sampleKind','policyVersion','context','priority','sectors','previous',...(Object.hasOwn(raw,'highComparisonVersion')?['highComparisonVersion']:[])])||Object.hasOwn(raw,'highComparisonVersion')&&!id(raw.highComparisonVersion)||raw.policyVersion!==HOME_RANKING_POLICY||!object(raw.context)||!keys(raw.context,['mode','sampleKind','cutoff','policyVersion','catalogVersion','comparisonSetVersion','evaluationSetVersion','calendar'])||!object(raw.priority)||!Array.isArray(raw.sectors))return empty('INVALID_INPUT','INPUT_SHAPE');
  const initialContext=deriveHomeContext({...raw.context,signals:{T:false,M:false,P:false}});
  if(initialContext.status!=='DRAFT_SYNTHETIC')return empty(initialContext.status==='LIVE_NOT_ENABLED'?'LIVE_NOT_ENABLED':initialContext.status==='CONTEXT_UNAVAILABLE'?'CONTEXT_UNAVAILABLE':'INVALID_INPUT',initialContext.reason);
  const priority=raw.priority as unknown as PriorityInput;
@@ -186,17 +188,18 @@ function rank(raw:unknown):HomeRankingDraft {
  const records=[...cards.values()].map(memory).sort((a,b)=>codepoint(a.issueId,b.issueId)),previousById=new Map(previous?.records.map(r=>[r.issueId,r])??[]),seenOld=new Map(previous?.seen.map(s=>[s.issueId,s.publishedAt])??[]);
  for(const r of records){const old=previousById.get(r.issueId)?.publishedAt??seenOld.get(r.issueId);if(old!==undefined&&old!==r.publishedAt)return empty('INVALID_INPUT','FIRST_PUBLICATION_CHANGED');}
  const oldContext=previous?deriveHomeContext(previous.contextInput):null;
- const highSame=!!previous&&oldContext?.status==='DRAFT_SYNTHETIC'&&highSignature(context.value,records)===highSignature(oldContext.value,previous.records);
+ const highCompatible=!!previous&&previous.highComparisonVersion===raw.highComparisonVersion;
+ const highSame=highCompatible&&oldContext?.status==='DRAFT_SYNTHETIC'&&highSignature(context.value,records)===highSignature(oldContext.value,previous!.records);
  if(highSame&&oldContext?.status==='DRAFT_SYNTHETIC'&&oldContext.value.contextKey!==context.value.contextKey)result.diagnostics.push({code:'HIGH_NONPRICE_CONTINUITY'});
- const A=stabilize(records.filter(r=>r.role==='A'),'A',previous,context.value,highSame,result.diagnostics),pickedA=new Set(A.slice(0,2));
- const B=stabilize(records.filter(r=>r.tier==='HIGH'&&!pickedA.has(r.issueId)),'B',previous,context.value,highSame,result.diagnostics),pickedB=new Set(B.slice(0,3));
- const C=stabilize(records.filter(r=>!pickedA.has(r.issueId)&&!pickedB.has(r.issueId)),'C',previous,context.value,highSame,result.diagnostics);
+ const A=stabilize(records.filter(r=>r.role==='A'),'A',previous,context.value,highSame,result.diagnostics,highCompatible),pickedA=new Set(A.slice(0,2));
+ const B=stabilize(records.filter(r=>r.tier==='HIGH'&&!pickedA.has(r.issueId)),'B',previous,context.value,highSame,result.diagnostics,highCompatible),pickedB=new Set(B.slice(0,3));
+ const C=stabilize(records.filter(r=>!pickedA.has(r.issueId)&&!pickedB.has(r.issueId)),'C',previous,context.value,highSame,result.diagnostics,highCompatible);
  const now=time(priority.cutoff),seen=new Map((previous?.seen??[]).filter(s=>time(s.publishedAt)+HOUR>now).map(s=>[s.issueId,s.publishedAt]));
  const pickedC=selectC(C,cards,priority.cutoff,new Set(seen.keys()),result.diagnostics);
  for(const s of [...pickedA,...pickedB,...pickedC]){const c=cards.get(s)!;if(time(c.publishedAt)+HOUR>now)seen.set(s,c.publishedAt);}
  if(seen.size>600)return empty('INVALID_INPUT','SEEN_LIMIT');
  result.context=context.value;result.signals=scored.signals;result.lanes={A:[...pickedA].map(s=>cards.get(s)!),B:[...pickedB].map(s=>cards.get(s)!),C:pickedC.map(s=>cards.get(s)!)};
- result.state={sampleKind:'SYNTHETIC',policyVersion:HOME_RANKING_POLICY,cutoff:priority.cutoff,contextInput,records,pools:{A,B,C},seen:[...seen].sort((a,b)=>codepoint(a[0],b[0])).map(([issueId,publishedAt])=>({issueId,publishedAt}))};
+ result.state={sampleKind:'SYNTHETIC',policyVersion:HOME_RANKING_POLICY,cutoff:priority.cutoff,contextInput,records,pools:{A,B,C},seen:[...seen].sort((a,b)=>codepoint(a[0],b[0])).map(([issueId,publishedAt])=>({issueId,publishedAt})),...(Object.hasOwn(raw,'highComparisonVersion')?{highComparisonVersion:raw.highComparisonVersion as string}:{})};
  result.diagnostics.sort((a,b)=>codepoint(a.code,b.code)||codepoint(a.issueId??'',b.issueId??'')||(a.slot??0)-(b.slot??0));return result;
 }
 /** Previous state is synthetic input, not an authenticated database completion receipt. */

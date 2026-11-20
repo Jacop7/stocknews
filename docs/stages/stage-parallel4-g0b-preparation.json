@@ -1,0 +1,34 @@
+{
+  "stage": "PARALLEL4_G0B",
+  "state": "SOURCE_PREPARED_REVIEW_PENDING_NOT_ACTIVATED",
+  "planManifest": "c51acaca9a89bcfa74623607998b1c9643fa50f3a34347af733ff89ff1930d3d",
+  "executionEnabled": false,
+  "forksCreated": 0,
+  "actualKeysRead": 0,
+  "actualRemoteRequests": 0,
+  "adminConnected": false,
+  "workerConnected": false,
+  "fullG0Complete": false,
+  "M2": false,
+  "changedDomains": [
+    "packages/domain/src/home-ranking.ts"
+  ],
+  "sourcePins": {
+    "AGENTS.md": "353ccc81f2683792070b714a5d9b7fc4864b5735b861bf61039d4fa04435200d",
+    "docs/development-status.json": "9b25375595ffc565a948257d6c89f63f406e9bd025392d2ed6b58bd5d0ca0ce1",
+    "docs/stages/stage-parallel4-g0b-baseline.json": "3e55761e2c8de95dc046720e7a6dc8791590be95d009dd4cded43ba3ee6bd1a3",
+    "docs/stages/stage-parallel4-g0b-notes.md": "7f2373dc611416a8ab880ddf49ef4bd4b9a2b344a716f6c44d3073c6efd03705",
+    "package.json": "0f4a95baa22fdaaab0947793e24ca8d725d667f264e3717c446577fb9ff5a939",
+    "packages/contracts/src/pipeline-k1-memory.ts": "3b870401d0ee88bcb46ce59513ae67a09dd26339d13e3de5ea3ffe928c44cf97",
+    "packages/contracts/src/pipeline-memory.ts": "48d245078a3fd10849281a821d702579134baf182567c69a763dcde170857ad8",
+    "packages/contracts/src/pipeline-semantics.ts": "a0199ced671619a5f024f8fc9173d055b6dfd278ddc67569ecd5219131d8ad1a",
+    "packages/domain/src/home-ranking.ts": "acd24ae251115d4ef22d515d4506ebf7b1bbe263d01121c69a011d0bb55bc3c5",
+    "packages/domain/src/issue-priority.ts": "7ef3f6bb2784ea5699dc602465b3f913dcfff0d84e354043369854615e45edc5",
+    "packages/domain/src/pipeline-ranking.ts": "e29e96d32acf22c84f3d2d02944ef8712b6ae14f77104de43fca2d02c27eb62a",
+    "scripts/verify-foundation.mjs": "58e30ce23369f7964d519744d2358783e71d37e24e84ea337e1092c8cf2c6fc8",
+    "scripts/verify-parallel4-g0b-foundation.mjs": "8437fdb6cc86d3234bde2b5c198e04390162f1fb7cc967599a89e796411c09f0",
+    "scripts/verify.mjs": "2443853645ee5417a19e781b5816115833f92b192aba9a58eb9a8593a594b0df",
+    "tests/pipeline-ranking.test.ts": "db6ca068d6ea58efa60c009f1f81ab0e77b1f2a8c075b4fd6db739c8ebcea476",
+    "tests/pipeline-semantics.test.ts": "6ea786a1b2483fe2b80497451f75ceecfd614c470bb2f8f842446d0ea0d4956b"
+  }
+}

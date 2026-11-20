@@ -8,7 +8,43 @@ import { spawnSync } from 'node:child_process';
 const root = realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const status = JSON.parse(readFileSync(path.join(root, 'docs/development-status.json'), 'utf8'));
 const stage = status.currentStage;
-if(status.cloudPublicReadActivationPreparation?.stage==='CLOUD10B'){
+if(status.adminC2Preparation?.stage==='MAIN_ADMIN_C2'){
+  await import('./verify-admin-c2-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelNextPreparation?.stage==='MAIN_PARALLEL_NEXT'){
+  await import('./verify-parallel-next-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelDurablePreparation?.stage==='MAIN_PARALLEL_P4'){
+  await import('./verify-parallel-p4-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.adminC1bPreparation?.stage==='MAIN_ADMIN_C1B'){
+  await import('./verify-admin-c1b-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelOperationalBoundaries?.stage==='MAIN_PARALLEL_P3'){
+  await import('./verify-parallel-p3-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelProgressBinding?.stage==='MAIN_PARALLEL_P2'){
+  await import('./verify-parallel-p2-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelSourceImplementation?.stage==='MAIN_PARALLEL_P1'){
+  await import('./verify-parallel-p1-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.sourceReceiptPreparation?.stage==='MAIN_SOURCE_R1'){
+  await import('./verify-source-r1-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.mainAiMetadataPreparation?.stage==='MAIN_AI_A1'){
+  await import('./verify-main-ai-a1-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelContractSemanticsPreparation?.stage==='PARALLEL4_G0B'){
+  await import('./verify-parallel4-g0b-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.parallelDevelopmentPreparation?.stage==='PARALLEL4_G0A'){
+  await import('./verify-parallel4-g0-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.cloudAdminPreviewPreparation?.stage==='CLOUD11A'){
+  await import('./verify-cloud11a-foundation.mjs');
+  await import('./verify-stage3-providers.mjs');
+} else if(status.cloudPublicReadActivationPreparation?.stage==='CLOUD10B'){
   await import('./verify-cloud10b-foundation.mjs');
   await import('./verify-stage3-providers.mjs');
 } else if(status.cloudPreviewReadPreparation?.stage==='CLOUD10A'){
