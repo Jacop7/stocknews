@@ -24,6 +24,7 @@ CHECKS = {
 }
 TIMEOUT = 90
 WORKER_WAIT = 2 * (TIMEOUT + 10) + 35
+NO_CONSOLE_WINDOW = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
 
 class LockBusy(RuntimeError):
@@ -32,8 +33,8 @@ class LockBusy(RuntimeError):
 
 def git(root, *args):
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")}
-    return subprocess.check_output(["git", "-C", str(root), *args], env=env,
-                                   text=True, timeout=10).strip()
+    return subprocess.check_output(["git", "-C", str(root), *args], env=env, stdin=subprocess.DEVNULL,
+                                   text=True, timeout=10, creationflags=NO_CONSOLE_WINDOW).strip()
 
 
 def read_json(path):
@@ -219,7 +220,8 @@ def run_check(root, node, lane, log, environment, lock=None):
             with os.fdopen(descriptor, "wb") as output, inherited_lock(lock) as options:
                 result = subprocess.run(args, cwd=root, env=environment, stdin=subprocess.DEVNULL,
                                         stdout=output, stderr=subprocess.STDOUT,
-                                        timeout=TIMEOUT + 10 if watchdog else TIMEOUT, **options)
+                                        timeout=TIMEOUT + 10 if watchdog else TIMEOUT,
+                                        creationflags=NO_CONSOLE_WINDOW, **options)
             if watchdog and result.returncode in (124, 137):
                 raise subprocess.TimeoutExpired(args, TIMEOUT)
             # Copy a snapshot so delayed output in a descendant cannot change a recorded proof.
@@ -274,7 +276,8 @@ def check_worker(root, state_dir, revision, lane, attempt):
                 store_json(receipt, {"status": "RETRYABLE", "attempt": attempt,
                                      "details": {"reason": "NODE_NOT_FOUND"}})
                 return 0
-            version = subprocess.check_output([node, "--version"], env=env, text=True, timeout=10).strip()
+            version = subprocess.check_output([node, "--version"], env=env, stdin=subprocess.DEVNULL,
+                                              text=True, timeout=10, creationflags=NO_CONSOLE_WINDOW).strip()
             if version != "v" + (root / ".node-version").read_text(encoding="utf-8").strip():
                 store_json(receipt, {"status": "RETRYABLE", "attempt": attempt,
                                      "details": {"reason": "PINNED_NODE_REQUIRED"}})

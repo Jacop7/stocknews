@@ -170,6 +170,14 @@ with app.exclusive(pathlib.Path(sys.argv[2])) as lock, app.inherited_lock(lock) 
             status, detail = app.run_check(self.root, "node", "ai", self.root / "test.log", {})
         self.assertEqual((status, detail["attempts"], invocation.call_count), ("RETRYABLE", 2, 2))
 
+    @unittest.skipUnless(os.name == "nt", "Windows console allocation")
+    def test_background_git_does_not_allocate_a_console(self):
+        with patch.object(app.subprocess, "check_output", return_value=self.revision) as invocation:
+            self.assertEqual(app.git(self.root, "rev-parse", "HEAD"), self.revision)
+        options = invocation.call_args.kwargs
+        self.assertEqual(options["creationflags"], app.subprocess.CREATE_NO_WINDOW)
+        self.assertEqual(options["stdin"], app.subprocess.DEVNULL)
+
     def test_activation_wait_stale_and_attempt_are_distinct(self):
         local = self.root / ".local-data"
         decision = local / "cloud-admin/decision.json"
