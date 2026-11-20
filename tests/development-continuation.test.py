@@ -1,8 +1,10 @@
 import importlib.util
 from datetime import datetime, timedelta, timezone
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import threading
+import time
 import unittest
 from unittest.mock import patch
 
@@ -114,6 +116,41 @@ class ContinuationTests(unittest.TestCase):
             child.wait(timeout=5)
         with app.exclusive(lock_path):
             pass
+
+    @unittest.skipUnless(os.name == "nt", "Windows Job Object")
+    def test_windows_worker_exit_releases_a_lock_held_by_its_stalled_child(self):
+        lock_path = self.state_dir / "orphan.lock"
+        ready = self.state_dir / "worker-ready"
+        worker_code = """
+import importlib.util, pathlib, subprocess, sys, time
+spec = importlib.util.spec_from_file_location("continuation", sys.argv[1])
+app = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(app)
+app.protect_windows_worker()
+with app.exclusive(pathlib.Path(sys.argv[2])) as lock, app.inherited_lock(lock) as options:
+    subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], **options)
+    pathlib.Path(sys.argv[3]).touch()
+    time.sleep(30)
+"""
+        worker = app.subprocess.Popen([app.sys.executable, "-B", "-c", worker_code,
+                                       str(source), str(lock_path), str(ready)])
+        try:
+            deadline = time.monotonic() + 10
+            while not ready.exists() and worker.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.025)
+            self.assertTrue(ready.exists(), "worker did not start its stalled child")
+        finally:
+            if worker.poll() is None:
+                worker.kill()
+            worker.wait(timeout=5)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            try:
+                with app.exclusive(lock_path):
+                    return
+            except app.LockBusy:
+                time.sleep(0.025)
+        self.fail("A child still held the lock after worker termination")
 
     def test_missing_proof_at_reporting_time_returns_nonzero(self):
         state = {"commit": self.revision, "lanes": {}}

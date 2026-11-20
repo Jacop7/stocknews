@@ -23,7 +23,7 @@ CHECKS = {
     "admin-local": ["preview-admin-sql.test.mjs"],
 }
 TIMEOUT = 90
-WORKER_WAIT = 2 * TIMEOUT + 35
+WORKER_WAIT = 2 * (TIMEOUT + 10) + 35
 
 
 class LockBusy(RuntimeError):
@@ -107,6 +107,48 @@ def inherited_lock(lock):
         yield {"pass_fds": (lock,)}
 
 
+def protect_windows_worker():
+    """Keep the job handle in this worker until process exit."""
+    import ctypes
+    from ctypes import wintypes
+
+    class BasicLimits(ctypes.Structure):
+        _fields_ = [
+            ("process_time", ctypes.c_int64), ("job_time", ctypes.c_int64),
+            ("flags", wintypes.DWORD), ("working_set_min", ctypes.c_size_t),
+            ("working_set_max", ctypes.c_size_t), ("active_processes", wintypes.DWORD),
+            ("affinity", ctypes.c_size_t), ("priority", wintypes.DWORD), ("scheduling", wintypes.DWORD),
+        ]
+
+    class ExtendedLimits(ctypes.Structure):
+        _fields_ = [
+            ("basic", BasicLimits), ("io_counters", ctypes.c_uint64 * 6),
+            ("process_memory", ctypes.c_size_t), ("job_memory", ctypes.c_size_t),
+            ("peak_process_memory", ctypes.c_size_t), ("peak_job_memory", ctypes.c_size_t),
+        ]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateJobObjectW.argtypes = [wintypes.LPVOID, wintypes.LPCWSTR]
+    kernel.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD]
+    kernel.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    job = kernel.CreateJobObjectW(None, None)
+    if not job:
+        raise ctypes.WinError(ctypes.get_last_error())
+    limits = ExtendedLimits()
+    limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    extended_limit_information = 9
+    if (not kernel.SetInformationJobObject(job, extended_limit_information, ctypes.byref(limits), ctypes.sizeof(limits))
+            or not kernel.AssignProcessToJobObject(job, kernel.GetCurrentProcess())):
+        error = ctypes.get_last_error()
+        kernel.CloseHandle(job)
+        raise ctypes.WinError(error)
+    # The OS closes the non-inheritable handle and terminates the job's children
+    # even if this process never reaches Python cleanup.
+
+
 def now():
     return datetime.now(timezone.utc)
 
@@ -162,13 +204,24 @@ def run_check(root, node, lane, log, environment, lock=None):
     args = [node, "--experimental-strip-types", "--experimental-vm-modules",
             "--test", "--test-isolation=none", "--test-timeout=60000",
             *[f"tests/{name}" for name in CHECKS[lane]]]
+    # On POSIX, the independent timeout process retains the check's deadline
+    # after an unexpected worker exit. Windows uses the worker's Job Object.
+    watchdog = None
+    if os.name != "nt":
+        watchdog = shutil.which("gtimeout") or shutil.which("timeout")
+        if watchdog is None:
+            return "RETRYABLE", {"reason": "GNU_TIMEOUT_REQUIRED"}
+        args = [watchdog, "--kill-after=5s", f"{TIMEOUT}s", *args]
     for attempt in range(2):
         descriptor, name = tempfile.mkstemp(prefix=log.stem + "-", suffix=".raw", dir=log.parent)
         raw_output = Path(name)
         try:
             with os.fdopen(descriptor, "wb") as output, inherited_lock(lock) as options:
                 result = subprocess.run(args, cwd=root, env=environment, stdin=subprocess.DEVNULL,
-                                        stdout=output, stderr=subprocess.STDOUT, timeout=TIMEOUT, **options)
+                                        stdout=output, stderr=subprocess.STDOUT,
+                                        timeout=TIMEOUT + 10 if watchdog else TIMEOUT, **options)
+            if watchdog and result.returncode in (124, 137):
+                raise subprocess.TimeoutExpired(args, TIMEOUT)
             # Copy a snapshot so delayed output in a descendant cannot change a recorded proof.
             shutil.copyfile(raw_output, log)
             return ("PASSED" if result.returncode == 0 else "FAILED",
@@ -249,6 +302,7 @@ def wait_for_check(root, state_dir, revision, lane, attempt):
     receipt = state_dir / f"{revision}-{lane}-{attempt}.result.json"
     deadline = time.monotonic() + WORKER_WAIT
     worker = None
+    restarted = False
     while time.monotonic() < deadline:
         result = read_json(receipt)
         if result is not None:
@@ -260,7 +314,9 @@ def wait_for_check(root, state_dir, revision, lane, attempt):
             worker = subprocess.Popen(command, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL, **options)
         elif worker.poll() not in (None, 0, 3):
-            return None
+            if restarted:
+                return None
+            restarted, worker = True, None
         time.sleep(0.25)
     return None
 
@@ -329,6 +385,8 @@ def main():
         if args.action == "_worker":
             if args.revision != revision or not args.lane or not args.attempt or args.attempt < 1 or dirty:
                 return 2
+            if os.name == "nt":
+                protect_windows_worker()
             return finish_worker(ROOT, state_dir, revision, args.lane, args.attempt)
         state_file = state_dir / f"{revision}.json"
         if args.action == "resume":

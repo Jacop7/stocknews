@@ -1,6 +1,6 @@
 # 개발 작업 재개
 
-프로젝트 Git 작업 트리에서 Python 3.11 이상과 `.node-version`에 지정된 Node.js로 실행한다.
+프로젝트 Git 작업 트리에서 Python 3.11 이상과 `.node-version`에 지정된 Node.js로 실행한다. Windows에서는 Job Object를 사용한다. POSIX에서는 GNU `timeout`이 필요하다.
 
 ```powershell
 python -B scripts/development-continuation.py resume
@@ -11,4 +11,4 @@ python -B scripts/development-continuation.py status
 
 `developmentDb`는 공통 체크아웃의 개발 DB 적용 기록을 관찰한다. 승인 입력 대기, 준비 만료, 적용 시도 후 원격 결과 확인을 따로 표시한다. 이 상태를 확인하는 동안 로컬 검사는 계속 실행할 수 있다. 승인 또는 예약 기록이 있으면 기존 개발 DB 검증기로 실제 결과를 확인한다. `admin-local`은 작업 트리에서 실행 가능한 SQL 계약 검사이며, Windows 네이티브 검사와 실제 Supabase 연결은 원래 관리자 검증 경로에서 확인한다. 나머지 작업의 실운영 검증도 각 절차에서 확인한다.
 
-PC나 터미널을 다시 열면 같은 작업 트리에서 `resume`을 실행한다. 검사 자식 프로세스에도 잠금을 넘기므로, 실행기 또는 워커가 먼저 종료되면 살아 있는 검사가 잠금을 놓은 뒤 이어서 처리한다. DB 쓰기와 검수 제출은 각각 기존 실행기로 처리한다.
+PC나 터미널을 다시 열면 같은 작업 트리에서 `resume`을 실행한다. 실행기만 종료된 경우 기존 워커 결과를 회수한다. 워커가 종료되면 Windows는 해당 검사를 정리하고, POSIX에서는 독립 시간 제한이 검사를 정리한다. 기존 검사가 잠금을 놓으면 검증을 이어간다. DB 쓰기와 검수 제출은 각각 기존 실행기로 처리한다.
