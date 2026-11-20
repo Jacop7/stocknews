@@ -41,7 +41,7 @@ test('proposal and draft outbox commit together and exact receipts survive resta
     const peer = await openWriter();
     const observer = await db.openSession('ai_outbox_observer', 'ai_outbox_observer');
     const sqlCall = (where, name, args) => {
-      assert.ok(['ai_proposal_save_v1', 'ai_proposal_lookup_v1'].includes(name));
+      assert.ok(['ai_proposal_save_v1', 'ai_proposal_lookup_v1', 'ai_proposal_read_pending_v1'].includes(name));
       const common = [quote(args.p_effect), quote(args.p_request_digest)];
       if (name === 'ai_proposal_save_v1') common.push(quote(JSON.stringify(args.p_proposal))+'::jsonb');
       return where.execute(`select ai_proposal_api.${name}(${common.join(',')});`).then(JSON.parse);
@@ -71,6 +71,18 @@ test('proposal and draft outbox commit together and exact receipts survive resta
     assert.equal(saved.state,'PENDING_DRAFT');
     assert.deepEqual(replay,saved);
     assert.deepEqual(await client.lookup(saved.effectKey,saved.requestDigest),saved);
+    const pending = await client.readPending(saved.effectKey,saved.requestDigest);
+    assert.equal(pending.state,'PENDING_DRAFT');
+    assert.equal(pending.proposal.expectedDraftRevision,'4');
+    assert.deepEqual(pending.proposal.claimIds,['claim-two','claim-one']);
+    assert.equal((await client.readPending(saved.effectKey,'0'.repeat(64))).state,'CONFLICT');
+    await assert.rejects(observer.execute(
+      "select ai_proposal_api.ai_proposal_read_pending_v1('proposal:fixture-one',repeat('a',64));"), {code:'FORBIDDEN'});
+    const corruptRead = new AiProposalOutboxV1(async (name,args) => {
+      const raw = await sqlCall(session,name,args);
+      return {...raw,proposal:{...raw.proposal,expectedDraftRevision:'5'}};
+    });
+    assert.equal((await corruptRead.readPending(saved.effectKey,saved.requestDigest)).state,'UNKNOWN');
     assert.equal((await client.save(analysis,{...binding,expectedDraftRevision:'5'})).state,'CONFLICT');
     assert.equal(db.ownerSql('select count(*) from ai_proposal_private.proposals;'),'1');
     assert.equal(db.ownerSql('select count(*) from ai_proposal_private.draft_outbox;'),'1');
@@ -99,6 +111,7 @@ test('proposal and draft outbox commit together and exact receipts survive resta
     await db.restartServer();
     session = await openWriter();
     assert.deepEqual(await client.lookup(unknown.effectKey,unknown.requestDigest),recovered);
+    assert.deepEqual(await client.readPending(saved.effectKey,saved.requestDigest),pending);
 
     db.ownerSql('alter table ai_proposal_private.draft_outbox add constraint fixture_reject_new check (false) not valid;');
     const failed = await client.save({...analysis,effectKey:'proposal:outbox-failed'},binding);

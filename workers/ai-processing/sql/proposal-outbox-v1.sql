@@ -144,9 +144,27 @@ begin
 end;
 $$;
 
+create function ai_proposal_api.ai_proposal_read_pending_v1(p_effect text,p_request_digest text)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare
+  receipt jsonb;
+  pending_proposal jsonb;
+begin
+  receipt := ai_proposal_api.ai_proposal_lookup_v1(p_effect,p_request_digest);
+  if receipt->>'state' <> 'PENDING_DRAFT' then
+    return receipt;
+  end if;
+  select p.proposal into strict pending_proposal from ai_proposal_private.proposals p
+    where p.proposal_id=(receipt->>'proposalId')::uuid;
+  return receipt || pg_catalog.jsonb_build_object('proposal',pending_proposal);
+end;
+$$;
+
 revoke all on function ai_proposal_api.ai_proposal_save_v1(text,text,jsonb),
-  ai_proposal_api.ai_proposal_lookup_v1(text,text) from public;
+  ai_proposal_api.ai_proposal_lookup_v1(text,text),
+  ai_proposal_api.ai_proposal_read_pending_v1(text,text) from public;
 grant execute on function ai_proposal_api.ai_proposal_save_v1(text,text,jsonb),
-  ai_proposal_api.ai_proposal_lookup_v1(text,text) to ai_proposal_executor_v1;
+  ai_proposal_api.ai_proposal_lookup_v1(text,text),
+  ai_proposal_api.ai_proposal_read_pending_v1(text,text) to ai_proposal_executor_v1;
 
 commit;

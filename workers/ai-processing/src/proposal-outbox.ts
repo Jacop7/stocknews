@@ -8,7 +8,7 @@ import {collectorBodyHashV1} from '../../collectors/src/collector-db-canonical-v
 import type {AnalysisRunResult} from './analysis-run.ts';
 
 type OutboxCall = (
-  operation: 'ai_proposal_save_v1' | 'ai_proposal_lookup_v1',
+  operation: 'ai_proposal_save_v1' | 'ai_proposal_lookup_v1' | 'ai_proposal_read_pending_v1',
   args: Readonly<Record<string, unknown>>,
 ) => Promise<unknown>;
 
@@ -40,6 +40,28 @@ function ids(value: unknown): string[] {
   return result;
 }
 
+function decodeProposal(raw: unknown) {
+  const p = collectorRecordV1(raw);
+  collectorExactV1(p, ['issueId', 'action', 'angleCode', 'issueVersion', 'expectedDraftRevision', 'claimIds',
+    'pathIds', 'inputDigest', 'bodyDigest', 'policyDigest', 'catalogDigest', 'modelRequestDigest',
+    'analysisValidationDigest']);
+  const action = p.action;
+  if (action !== 'UPDATE' && action !== 'CORRECTION') invalid();
+  return {
+    issueId: collectorUuidV1(p.issueId), action, angleCode: id(p.angleCode), issueVersion: id(p.issueVersion),
+    expectedDraftRevision: collectorDecimalV1(p.expectedDraftRevision, 0n),
+    claimIds: ids(p.claimIds), pathIds: ids(p.pathIds),
+    inputDigest: collectorDigestV1(p.inputDigest), bodyDigest: collectorDigestV1(p.bodyDigest),
+    policyDigest: collectorDigestV1(p.policyDigest), catalogDigest: collectorDigestV1(p.catalogDigest),
+    modelRequestDigest: collectorDigestV1(p.modelRequestDigest),
+    analysisValidationDigest: collectorDigestV1(p.analysisValidationDigest),
+  };
+}
+
+export type PendingDraftProposalRead =
+  | (Extract<ProposalOutboxReceipt, {state: 'PENDING_DRAFT'}> & {proposal: ReturnType<typeof decodeProposal>})
+  | Exclude<ProposalOutboxReceipt, {state: 'PENDING_DRAFT'}>;
+
 /**
  * The caller supplies the current, already validated source and draft bindings.
  * No article text, body locator, or publication instructions are projected.
@@ -65,21 +87,21 @@ function project(raw: AnalysisRunResult, binding: DraftBinding) {
   collectorExactV1(bound, ['inputDigest', 'bodyDigest', 'policyDigest', 'catalogDigest', 'expectedDraftRevision']);
   return {
     effectKey: id(analysis.effectKey),
-    proposal: {
+    proposal: decodeProposal({
       issueId,
       action: routing.action,
-      angleCode: id(routing.angleCode),
-      issueVersion: id(target[0].issueVersion),
-      expectedDraftRevision: collectorDecimalV1(bound.expectedDraftRevision, 0n),
-      claimIds: ids(routing.claimIds),
-      pathIds: ids(routing.pathIds),
-      inputDigest: collectorDigestV1(bound.inputDigest),
-      bodyDigest: collectorDigestV1(bound.bodyDigest),
-      policyDigest: collectorDigestV1(bound.policyDigest),
-      catalogDigest: collectorDigestV1(bound.catalogDigest),
-      modelRequestDigest: collectorDigestV1(routing.requestDigest),
-      analysisValidationDigest: collectorDigestV1(analysis.validationRequestDigest),
-    },
+      angleCode: routing.angleCode,
+      issueVersion: target[0].issueVersion,
+      expectedDraftRevision: bound.expectedDraftRevision,
+      claimIds: routing.claimIds,
+      pathIds: routing.pathIds,
+      inputDigest: bound.inputDigest,
+      bodyDigest: bound.bodyDigest,
+      policyDigest: bound.policyDigest,
+      catalogDigest: bound.catalogDigest,
+      modelRequestDigest: routing.requestDigest,
+      analysisValidationDigest: analysis.validationRequestDigest,
+    }),
   };
 }
 
@@ -114,6 +136,28 @@ export class AiProposalOutboxV1 {
     return this.readReceipt('ai_proposal_lookup_v1', effectKey, requestDigest, {
       p_effect: effectKey, p_request_digest: requestDigest,
     });
+  }
+
+  /** Read an exact pending proposal for later draft validation. This does not reserve or apply it. */
+  async readPending(effectKey: string, requestDigest: string): Promise<PendingDraftProposalRead> {
+    effectKey = id(effectKey);
+    requestDigest = collectorDigestV1(requestDigest);
+    try {
+      const raw = await this.#call('ai_proposal_read_pending_v1', {p_effect:effectKey, p_request_digest:requestDigest});
+      const receipt = collectorRecordV1(collectorDataV1(raw));
+      if (receipt.effectKey !== effectKey || receipt.requestDigest !== requestDigest) invalid();
+      if (receipt.state === 'CONFLICT' || receipt.state === 'NOT_FOUND') {
+        collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest']);
+        return {state:receipt.state, effectKey, requestDigest};
+      }
+      collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest', 'proposalId', 'proposal']);
+      if (receipt.state !== 'PENDING_DRAFT') invalid();
+      const proposal = decodeProposal(receipt.proposal);
+      if (digest({effectKey, proposal}) !== requestDigest) invalid();
+      return {state:'PENDING_DRAFT', effectKey, requestDigest, proposalId:collectorUuidV1(receipt.proposalId), proposal};
+    } catch {
+      return {state:'UNKNOWN', effectKey, requestDigest};
+    }
   }
 
   private async readReceipt(operation: Parameters<OutboxCall>[0], effectKey: string,
