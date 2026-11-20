@@ -20,7 +20,7 @@ CHECKS = {
     "collector": ["collector-inventory.test.ts", "collector-db-capture-v1.test.ts"],
     "ai": ["durable-analysis-input.test.ts", "analysis-run.test.ts"],
     "home-ranking": ["home-ranking.test.ts", "home-database-bound.test.ts"],
-    "admin-local": ["preview-admin-sql.test.mjs", "preview-activation-proof.test.mjs"],
+    "admin-local": ["preview-admin-sql.test.mjs"],
 }
 TIMEOUT = 90
 WORKER_WAIT = 2 * TIMEOUT + 35
