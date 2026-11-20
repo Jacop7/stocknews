@@ -5,6 +5,7 @@ import { pinnedHttps, probe } from './probe.mjs';
 export const htmlListVersion = 'html-list-v1';
 export const htmlListPurposes = Object.freeze(['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION']);
 const maxHtmlBytes = 512 * 1024;
+export const maxWatchHtmlBytes = 2 * 1024 * 1024;
 const maxCandidates = 100;
 const articleTypes = ['Article', 'NewsArticle', 'ReportageNewsArticle'];
 const htmlNamespace = 'http://www.w3.org/1999/xhtml';
@@ -67,8 +68,9 @@ function articleMarkup(node) {
 }
 
 /** Returns same-origin discovery candidates from supplied HTML. Does not follow article links. */
-export function parseHtmlList(html, listUrl) {
-  if (typeof html !== 'string' || Buffer.byteLength(html) > maxHtmlBytes) throw new Error('HTML_LIST_SIZE');
+export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > maxWatchHtmlBytes ||
+      typeof html !== 'string' || Buffer.byteLength(html) > maxBytes) throw new Error('HTML_LIST_SIZE');
   const source = new URL(normalizeArticleUrl(listUrl));
   const document = parse(html, { scriptingEnabled: true });
   const candidates = new Map();

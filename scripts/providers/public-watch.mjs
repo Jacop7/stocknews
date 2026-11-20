@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import robotsParser from 'robots-parser';
-import { parseHtmlList } from './html-list.mjs';
+import { maxWatchHtmlBytes, parseHtmlList } from './html-list.mjs';
 import { normalizeArticleUrl } from './policy.mjs';
 import { pinnedHttps } from './probe.mjs';
 
@@ -11,10 +11,35 @@ const latestWatchInterval = cacheTime - 2 * 60 * 1000;
 const timeoutMs = 4500;
 const robotsLimit = 512 * 1024;
 const htmlLimit = 512 * 1024;
+const largeListings = new Set([
+  'https://www.cnbc.com/markets/',
+  'https://www.cnbc.com/earnings/',
+  'https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls1',
+  'https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls2&viewclass=',
+]);
 const text = bytes => new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 
-function httpFailure(response, reason) {
-  return { reason, httpStatus: response.status, retryAfter: response.retryAfter ?? null };
+function redirectOrigin(location, from) {
+  if (typeof location !== 'string' || !location) return null;
+  try {
+    return new URL(normalizeArticleUrl(new URL(location, from).href)).origin;
+  } catch {
+    return null;
+  }
+}
+
+function failureCode(error) {
+  if (error.message === 'RESPONSE_TOO_LARGE' || error.message === 'HTML_LIST_SIZE') return 'RESPONSE_TOO_LARGE';
+  if (error.code === 'ECONNRESET') return 'CONNECTION_RESET';
+  if (error.name === 'TimeoutError' || error.code === 'ABORT_ERR' || error.message === 'REQUEST_TIMEOUT' ||
+      error.code === 'ETIMEDOUT') return 'TIMEOUT';
+  if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') return 'DNS_FAILED';
+  if (error.message === 'NON_PUBLIC_DNS') return 'NON_PUBLIC_DNS';
+  if (error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA') return 'INVALID_UTF8';
+  if (/^(ERR_TLS_|ERR_SSL_|CERT_|UNABLE_TO_VERIFY_|UNABLE_TO_GET_ISSUER_CERT|DEPTH_ZERO_|SELF_SIGNED_CERT_IN_CHAIN)/.test(error.code ?? '')) {
+    return 'TLS_FAILED';
+  }
+  return 'REQUEST_FAILED';
 }
 
 export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = {}) {
@@ -26,7 +51,10 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = 
   async function watch(endpoint, limits = {}) {
     let requests = 0;
     let delayMs = 0;
-    const result = (status, details = {}) => ({ status, requests, delayMs, ...details });
+    let stage = 'ROBOTS';
+    let response;
+    const result = (status, details = {}) => ({ status, requests, delayMs, stage, ...details });
+    const responseDetails = () => ({ httpStatus: response.status, retryAfter: response.retryAfter ?? null });
     async function fetchBounded(url, maxBytes) {
       requests++;
       const timeout = Math.min(timeoutMs, limits.timeoutMs ?? timeoutMs);
@@ -40,45 +68,57 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = 
         robotsCache.delete(origin);
         const robotsUrl = origin + '/robots.txt';
         const maxBytes = Math.min(robotsLimit, limits.maxBytes ?? robotsLimit);
-        const response = await fetchBounded(robotsUrl, maxBytes);
+        response = await fetchBounded(robotsUrl, maxBytes);
         let rules;
         if ([401, 403, 451].includes(response.status)) {
-          robotsCache.set(origin, { expires: now() + cacheTime, denied: true });
-          return result('ROBOTS_DENIED');
+          robotsCache.set(origin, { expires: now() + cacheTime, denied: true, httpStatus: response.status });
+          return result('ROBOTS_DENIED', { reason: 'ROBOTS_ACCESS_DENIED', ...responseDetails() });
         }
         if ([404, 410].includes(response.status)) {
           rules = robotsParser(robotsUrl, '');
         } else {
-          if (response.status !== 200) return result('FAILED', httpFailure(response, 'ROBOTS_UNAVAILABLE'));
-          if (!Buffer.isBuffer(response.body) || response.body.length > maxBytes ||
-              !/^text\/plain(?:\s*;|$)/i.test(response.contentType ?? '')) return result('ROBOTS_UNREADABLE');
+          if (response.status !== 200) return result('FAILED', { reason: 'ROBOTS_HTTP_FAILED', ...responseDetails(),
+            redirectOrigin: redirectOrigin(response.location, robotsUrl) });
+          if (!Buffer.isBuffer(response.body) || response.body.length > maxBytes) {
+            return result('ROBOTS_UNREADABLE', { reason: 'RESPONSE_TOO_LARGE', ...responseDetails() });
+          }
+          if (!/^text\/plain(?:\s*;|$)/i.test(response.contentType ?? '')) {
+            return result('ROBOTS_UNREADABLE', { reason: 'ROBOTS_CONTENT_TYPE', ...responseDetails() });
+          }
           rules = robotsParser(robotsUrl, text(response.body));
         }
         const seconds = rules.getCrawlDelay(userAgent);
         delayMs = Number.isSafeInteger(Math.ceil(seconds * 1000)) && seconds > 0 ? Math.ceil(seconds * 1000) : 0;
         robotsCache.set(origin, { expires: now() + cacheTime, rules, delayMs });
         return result(Math.max(delayMs, limits.hostDelay ?? 0) >= latestWatchInterval ?
-          'ROBOTS_INTERVAL_CONFLICT' : 'ROBOTS_READY');
+          'ROBOTS_INTERVAL_CONFLICT' : 'ROBOTS_READY', responseDetails());
       }
 
-      if (cached.denied || cached.rules.isAllowed(url, userAgent) !== true) return result('ROBOTS_DENIED');
+      if (cached.denied) return result('ROBOTS_DENIED', { reason: 'ROBOTS_ACCESS_DENIED', httpStatus: cached.httpStatus });
+      if (cached.rules.isAllowed(url, userAgent) !== true) return result('ROBOTS_DENIED', { reason: 'ROBOTS_RULE_DISALLOWED' });
       delayMs = cached.delayMs;
       if (Math.max(delayMs, limits.hostDelay ?? 0) >= latestWatchInterval) return result('ROBOTS_INTERVAL_CONFLICT');
-      const maxBytes = Math.min(htmlLimit, limits.maxBytes ?? htmlLimit);
-      const response = await fetchBounded(url, maxBytes);
+      stage = 'PAGE';
+      const pageLimit = largeListings.has(url) ? maxWatchHtmlBytes : htmlLimit;
+      const maxBytes = Math.min(pageLimit, limits.maxBytes ?? pageLimit);
+      response = await fetchBounded(url, maxBytes);
       if (response.status !== 200) {
         const reason = [301, 302, 303, 307, 308].includes(response.status) ? 'REDIRECT_LIMIT' : 'WATCH_HTTP_FAILED';
-        return result('FAILED', httpFailure(response, reason));
+        return result('FAILED', { reason, ...responseDetails(), redirectOrigin: redirectOrigin(response.location, url) });
       }
-      if (!Buffer.isBuffer(response.body) || response.body.length > maxBytes ||
-          !/^text\/html(?:\s*;|$)/i.test(response.contentType ?? '')) return result('WATCH_NOT_HTML');
-      const { candidates } = parseHtmlList(text(response.body), url);
-      if (!candidates.length) return result('WATCH_PAGE_OK');
+      if (!Buffer.isBuffer(response.body) || response.body.length > maxBytes) {
+        return result('WATCH_FAILED', { reason: 'RESPONSE_TOO_LARGE', ...responseDetails() });
+      }
+      if (!/^text\/html(?:\s*;|$)/i.test(response.contentType ?? '')) {
+        return result('WATCH_NOT_HTML', { reason: 'PAGE_CONTENT_TYPE', ...responseDetails() });
+      }
+      const { candidates } = parseHtmlList(text(response.body), url, maxBytes);
+      if (!candidates.length) return result('WATCH_PAGE_OK', { reason: 'NO_ARTICLE_CANDIDATES', ...responseDetails() });
       const index = candidates.map(({ url, title }) => JSON.stringify([url, title])).sort();
       const digest = createHash('sha256').update(JSON.stringify(index)).digest('hex');
-      return result('WATCH_LIST_OK', { digest });
-    } catch {
-      return result('WATCH_FAILED');
+      return result('WATCH_LIST_OK', { digest, ...responseDetails() });
+    } catch (error) {
+      return result('WATCH_FAILED', { reason: failureCode(error), httpStatus: response?.status ?? null });
     }
   };
   watch.requiresRobots = endpoint => !cachedRules(endpoint.url);

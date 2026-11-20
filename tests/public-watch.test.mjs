@@ -17,12 +17,16 @@ test('only robots-authorized paths are fetched with an honest user agent and no 
     seen.push(url);
     assert.match(options.userAgent, /^JudojuNewsMonitor\//);
     if (url.endsWith('/robots.txt')) return response('User-agent: *\nDisallow: /market\nAllow: /market/open\nCrawl-delay: 3', 'text/plain');
-    return { ...response('', 'text/html', 302), location: origin + '/login' };
+    return { ...response('', 'text/html', 302), location: origin + '/login?session=secret#fragment' };
   } });
   assert.equal((await watch(endpoint)).delayMs, 3000);
   assert.equal((await watch(endpoint)).status, 'ROBOTS_DENIED');
   const redirected = await watch({ ...endpoint, url: endpoint.url + '/open' });
   assert.equal(redirected.reason, 'REDIRECT_LIMIT');
+  assert.equal(redirected.stage, 'PAGE');
+  assert.equal(redirected.httpStatus, 302);
+  assert.equal(redirected.redirectOrigin, origin);
+  assert.ok(!JSON.stringify(redirected).includes('secret'));
   assert.deepEqual(seen, [origin + '/robots.txt', endpoint.url + '/open']);
 });
 
@@ -35,6 +39,8 @@ test('worker observes unaffiliated public lists and stores only an operational f
     response('', 'text/plain', 404) : response(html) });
   const cycle = () => runCollectorCycle(db, { endpoints: [endpoint], routes, profiles: [], watch, now: () => time });
   assert.deepEqual(await cycle(), { registered: 1, eligible: 0, watchEligible: 1, requests: 1, observed: 0, watched: 0, changed: 0 });
+  const robots = db.prepare('SELECT stage,http_status FROM watch_diagnostics').get();
+  assert.deepEqual({ ...robots }, { stage: 'ROBOTS', http_status: 404 });
   time += minute;
   assert.deepEqual(await cycle(), { registered: 1, eligible: 0, watchEligible: 1, requests: 1, observed: 0, watched: 1, changed: 0 });
   time += 5 * minute;
@@ -160,4 +166,49 @@ test('worker holds a crawl delay that leaves too little freshness for its pollin
   time += 2 * 24 * 60 * minute;
   assert.equal((await cycle()).requests, 0);
   assert.equal(db.prepare('SELECT status FROM schedules').get().status, 'ROBOTS_INTERVAL_CONFLICT');
+});
+
+test('larger pages are accepted only on the selected listings, within the source budget', async () => {
+  const base = 'https://www.cnbc.com';
+  const body = ' '.repeat(530_000) + card('News', 'article');
+  const limits = [];
+  const watch = createPublicWatch({ transport: async (url, options) => {
+    limits.push(options.maxBytes);
+    return url.endsWith('/robots.txt') ? response('', 'text/plain', 404) : response(body);
+  } });
+  const selected = { url: base + '/markets/' };
+  assert.equal((await watch(selected)).status, 'ROBOTS_READY');
+  assert.equal((await watch(selected)).status, 'WATCH_LIST_OK');
+  assert.equal((await watch(selected, { maxBytes: 200_000 })).reason, 'RESPONSE_TOO_LARGE');
+  assert.equal((await watch({ url: base + '/other/' })).reason, 'RESPONSE_TOO_LARGE');
+  assert.deepEqual(limits, [524288, 2097152, 200000, 524288]);
+});
+
+test('the worker records connection resets and pauses after three consecutive failures', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  let time = Date.parse('2026-11-20T00:00:00Z');
+  const watch = createPublicWatch({ now: () => time, transport: async () => {
+    throw Object.assign(new Error('Connection reset; example response withheld'), { code: 'ECONNRESET' });
+  } });
+  const cycle = () => runCollectorCycle(db, { endpoints: [endpoint], routes, profiles: [], watch, now: () => time });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    assert.equal((await cycle()).requests, 1);
+    time += 15 * minute;
+  }
+  assert.equal((await cycle()).requests, 0);
+  assert.equal(db.prepare('SELECT status FROM schedules').get().status, 'WATCH_CONNECTION_HOLD');
+  assert.deepEqual({ ...db.prepare('SELECT stage,reason,connection_resets FROM watch_diagnostics').get() },
+    { stage: 'ROBOTS', reason: 'CONNECTION_RESET', connection_resets: 3 });
+});
+
+test('certificate chain failures have a stable TLS code without exposing error details', async () => {
+  for (const code of ['UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'SELF_SIGNED_CERT_IN_CHAIN']) {
+    const watch = createPublicWatch({ transport: async () => {
+      throw Object.assign(new Error('untrusted issuer detail'), { code });
+    } });
+    const result = await watch(endpoint);
+    assert.equal(result.reason, 'TLS_FAILED');
+    assert.ok(!JSON.stringify(result).includes('untrusted issuer detail'));
+  }
 });

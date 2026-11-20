@@ -40,6 +40,10 @@ export function openCollectorStore(path) {
       endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, digest TEXT NOT NULL,
       checked_at INTEGER NOT NULL, changed_at INTEGER
     ) STRICT;
+    CREATE TABLE IF NOT EXISTS watch_diagnostics (
+      endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, checked_at INTEGER NOT NULL,
+      stage TEXT, reason TEXT, http_status INTEGER, redirect_origin TEXT, connection_resets INTEGER NOT NULL
+    ) STRICT;
   `);
   return db;
 }
@@ -175,13 +179,24 @@ function nextHostCheck(db, host, endpointId, result, success, time) {
 
 function record(db, source, result, time, reservation, current) {
   const { endpoint, profile, binding, host } = source;
-  const accessHold = [401,402,403,404,410,451].includes(result.httpStatus) || result.reason === 'REDIRECT_LIMIT';
+  const robotsHandled = ['ROBOTS_READY', 'ROBOTS_DENIED', 'ROBOTS_INTERVAL_CONFLICT'].includes(result.status);
+  const accessHold = !robotsHandled &&
+    ([401,402,403,404,410,451].includes(result.httpStatus) || result.reason === 'REDIRECT_LIMIT');
   const success = ['CANDIDATES', 'PARTIAL', 'WATCH_LIST_OK', 'WATCH_PAGE_OK'].includes(result.status);
   return transaction(db, () => {
-    const next = time + (result.status === 'ROBOTS_READY' ? minute : success ? 5 * minute : recoveryGap);
+    let resets = 0;
+    if (source.watch && result.reason === 'CONNECTION_RESET') {
+      const prior = db.prepare('SELECT connection_resets FROM watch_diagnostics WHERE endpoint_id=? AND binding=? AND stage=?')
+        .get(endpoint.endpoint_id, binding, result.stage);
+      resets = Math.min((prior?.connection_resets ?? 0) + 1, 3);
+    }
+    const connectionHold = resets >= 3;
+    const delayUntilNext = connectionHold ? 60 * minute : result.status === 'ROBOTS_READY' ? minute :
+      success ? 5 * minute : recoveryGap;
+    const status = accessHold ? 'ACCESS_HOLD' : connectionHold ? 'WATCH_CONNECTION_HOLD' : result.status;
     const settled = db.prepare(`UPDATE schedules SET next_at=?,status=?
       WHERE endpoint_id=? AND binding=? AND next_at=? AND status='RESERVED'`)
-      .run(next, accessHold ? 'ACCESS_HOLD' : result.status, endpoint.endpoint_id, binding, reservation);
+      .run(time + delayUntilNext, status, endpoint.endpoint_id, binding, reservation);
     if (settled.changes !== 1) return 0;
     const delay = result.delayMs > 0 ? Math.min(Number.MAX_SAFE_INTEGER, time + result.delayMs) : 0;
     // A successful robots refresh consumes its slot without asserting that the listing recovered.
@@ -189,7 +204,14 @@ function record(db, source, result, time, reservation, current) {
     const hostWait = Math.max(delay, recovery);
     if (hostWait) db.prepare('UPDATE hosts SET next_at=max(next_at,?) WHERE host=?').run(hostWait, host);
     if (source.watch) {
-      if (result.status !== 'WATCH_LIST_OK' || current?.binding !== binding) return 0;
+      if (current?.binding !== binding) return 0;
+      db.prepare(`INSERT INTO watch_diagnostics VALUES (?,?,?,?,?,?,?,?)
+        ON CONFLICT(endpoint_id) DO UPDATE SET binding=excluded.binding,checked_at=excluded.checked_at,
+        stage=excluded.stage,reason=excluded.reason,http_status=excluded.http_status,
+        redirect_origin=excluded.redirect_origin,connection_resets=excluded.connection_resets`)
+        .run(endpoint.endpoint_id, binding, time, result.stage ?? null, result.reason ?? null,
+          result.httpStatus ?? null, result.redirectOrigin ?? null, resets);
+      if (result.status !== 'WATCH_LIST_OK') return 0;
       const prior = db.prepare('SELECT digest,binding,changed_at FROM public_watch WHERE endpoint_id=?').get(endpoint.endpoint_id);
       const changed = prior?.binding === binding && prior.digest !== result.digest;
       db.prepare(`INSERT INTO public_watch VALUES (?,?,?,?,?)
@@ -228,6 +250,10 @@ function prune(db, sources, time) {
     const removeWatch = db.prepare('DELETE FROM public_watch WHERE endpoint_id=?');
     for (const row of db.prepare('SELECT endpoint_id,binding FROM public_watch').all()) {
       if (watchBindings.get(row.endpoint_id) !== row.binding) removeWatch.run(row.endpoint_id);
+    }
+    const removeDiagnostic = db.prepare('DELETE FROM watch_diagnostics WHERE endpoint_id=?');
+    for (const row of db.prepare('SELECT endpoint_id,binding FROM watch_diagnostics').all()) {
+      if (watchBindings.get(row.endpoint_id) !== row.binding) removeDiagnostic.run(row.endpoint_id);
     }
     const removeRateRoute = db.prepare('DELETE FROM rate_limited_routes WHERE host=? AND endpoint_id=?');
     const schedule = db.prepare('SELECT binding,status FROM schedules WHERE endpoint_id=?');
