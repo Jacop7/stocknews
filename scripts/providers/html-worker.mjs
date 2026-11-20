@@ -5,6 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { collectHtmlList, htmlListPurposes, htmlListVersion } from './html-list.mjs';
 import { identityForUrl, normalizeArticleUrl, permissionDecision } from './policy.mjs';
+import { createPublicWatch } from './public-watch.mjs';
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
@@ -35,6 +36,10 @@ export function openCollectorStore(path) {
       binding TEXT NOT NULL, first_seen INTEGER NOT NULL, expires_at INTEGER NOT NULL,
       PRIMARY KEY (endpoint_id, url)
     ) STRICT;
+    CREATE TABLE IF NOT EXISTS public_watch (
+      endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, digest TEXT NOT NULL,
+      checked_at INTEGER NOT NULL, changed_at INTEGER
+    ) STRICT;
   `);
   return db;
 }
@@ -57,7 +62,32 @@ function registeredSource(endpoint, profile, time) {
       !Number.isFinite(profile.timeout_ms) || profile.timeout_ms <= 0 ||
       !Number.isSafeInteger(time + hostDelay)) return null;
   const binding = JSON.stringify([profile.id, profile.version, endpoint.config_version, identityForUrl(url)]);
-  return { endpoint, profile, host, binding, hostDelay };
+  return { endpoint, profile, host, binding, hostDelay, urlIdentity: identityForUrl(url) };
+}
+
+function publicSource(endpoint, profile, watchIds) {
+  if (!watchIds.has(endpoint.endpoint_id) ||
+      !['RIGHTS_HOLD', 'TECH_TEST', 'SHADOW', 'ACTIVE'].includes(endpoint.status) ||
+      ['DENIED', 'REVOKED'].includes(profile?.status) || profile?.revoked_at ||
+      htmlListPurposes.some(purpose => profile?.purposes?.[purpose] === 'DENY')) return null;
+  let url;
+  try { url = normalizeArticleUrl(endpoint.url); }
+  catch { return null; }
+  const host = new URL(url).hostname;
+  const urlIdentity = identityForUrl(url);
+  const configuredRate = endpoint.max_rps;
+  const hostDelay = Math.max(5000, Number.isFinite(configuredRate) && configuredRate > 0 ? Math.ceil(1000 / configuredRate) : 0);
+  if (!Number.isSafeInteger(hostDelay)) return null;
+  let limits;
+  if (profile?.status === 'VERIFIED') {
+    if (!profile.allowed_hosts?.includes(host) || !profile.methods?.includes('GET') ||
+        !Number.isSafeInteger(profile.max_bytes) || profile.max_bytes < 1 ||
+        !Number.isSafeInteger(profile.timeout_ms) || profile.timeout_ms < 1 ||
+        !Number.isInteger(profile.max_requests) || profile.max_requests < 1) return null;
+    limits = { maxBytes: profile.max_bytes, timeoutMs: profile.timeout_ms };
+  }
+  return { endpoint, profile, host, hostDelay, limits, watch: true, urlIdentity,
+    binding: JSON.stringify(['public-watch', endpoint.config_version, urlIdentity]) };
 }
 
 function transaction(db, write) {
@@ -72,18 +102,34 @@ function transaction(db, write) {
   }
 }
 
-function reserve(db, source, time, hostDelay) {
+function hasAccessHold(prior, urlIdentity) {
+  return prior?.status === 'ACCESS_HOLD' && JSON.parse(prior.binding).at(-1) === urlIdentity;
+}
+
+function countRateCheck(db, host, time) {
+  return db.prepare(`UPDATE host_rate_episodes
+    SET rechecks=rechecks+1, daily_since=CASE WHEN rechecks+1>=? THEN coalesce(daily_since,?) ELSE daily_since END
+    WHERE host=? RETURNING rechecks`).get(maxFastRechecks, time, host);
+}
+
+function reserve(db, source, time, hostDelay, robotsPreflight) {
   return transaction(db, () => {
     const { endpoint, host, binding } = source;
     const prior = db.prepare('SELECT binding,next_at,status FROM schedules WHERE endpoint_id=?').get(endpoint.endpoint_id);
-    if (prior?.binding === binding && (prior.status === 'ACCESS_HOLD' || prior.next_at > time)) return null;
+    if (hasAccessHold(prior, source.urlIdentity) ||
+        (prior?.binding === binding && (prior.status === 'ROBOTS_INTERVAL_CONFLICT' || prior.next_at > time))) return null;
     const hostSlot = db.prepare('SELECT next_at FROM hosts WHERE host=?').get(host);
     if (hostSlot && hostSlot.next_at > time) return null;
     const pause = db.prepare('SELECT daily_since FROM host_rate_episodes WHERE host=?').get(host);
     if (pause?.daily_since != null && time >= pause.daily_since + 14 * day) return null;
-    const rateLimit = db.prepare(`UPDATE host_rate_episodes
-      SET rechecks=rechecks+1, daily_since=CASE WHEN rechecks+1>=? THEN coalesce(daily_since,?) ELSE daily_since END
-      WHERE host=? RETURNING rechecks`).get(maxFastRechecks, time, host);
+    // Daily recovery allows a single request. A stale robots policy needs both a refresh and a list GET.
+    if (robotsPreflight && pause?.daily_since != null) {
+      db.prepare(`INSERT INTO schedules VALUES (?,?,?,'WATCH_ROBOTS_FRESHNESS_HOLD')
+        ON CONFLICT(endpoint_id) DO UPDATE SET binding=excluded.binding,next_at=excluded.next_at,status=excluded.status`)
+        .run(endpoint.endpoint_id, binding, time + day);
+      return null;
+    }
+    const rateLimit = countRateCheck(db, host, time);
     const recoveryDelay = !rateLimit ? 0 : rateLimit.rechecks >= maxFastRechecks ? day : recoveryGap;
     const reservation = time + 5 * minute;
     db.prepare(`INSERT INTO hosts VALUES (?,?) ON CONFLICT(host) DO UPDATE SET next_at=excluded.next_at`)
@@ -127,19 +173,31 @@ function nextHostCheck(db, host, endpointId, result, success, time) {
   return Math.max(time + (rateLimit.rechecks >= maxFastRechecks ? day : recoveryGap), retryAt);
 }
 
-function record(db, source, result, time, reservation) {
+function record(db, source, result, time, reservation, current) {
   const { endpoint, profile, binding, host } = source;
-  const current = registeredSource(endpoint, profile, time);
   const accessHold = [401,402,403,404,410,451].includes(result.httpStatus) || result.reason === 'REDIRECT_LIMIT';
-  const success = result.status === 'CANDIDATES' || result.status === 'PARTIAL';
+  const success = ['CANDIDATES', 'PARTIAL', 'WATCH_LIST_OK', 'WATCH_PAGE_OK'].includes(result.status);
   return transaction(db, () => {
-    const next = time + (success ? 5 * minute : recoveryGap);
-    const settled = db.prepare(`UPDATE schedules SET next_at=max(next_at,?),status=?
+    const next = time + (result.status === 'ROBOTS_READY' ? minute : success ? 5 * minute : recoveryGap);
+    const settled = db.prepare(`UPDATE schedules SET next_at=?,status=?
       WHERE endpoint_id=? AND binding=? AND next_at=? AND status='RESERVED'`)
       .run(next, accessHold ? 'ACCESS_HOLD' : result.status, endpoint.endpoint_id, binding, reservation);
     if (settled.changes !== 1) return 0;
-    const hostWait = nextHostCheck(db, host, endpoint.endpoint_id, result, success, time);
+    const delay = result.delayMs > 0 ? Math.min(Number.MAX_SAFE_INTEGER, time + result.delayMs) : 0;
+    // A successful robots refresh consumes its slot without asserting that the listing recovered.
+    const recovery = result.status === 'ROBOTS_READY' ? 0 : nextHostCheck(db, host, endpoint.endpoint_id, result, success, time);
+    const hostWait = Math.max(delay, recovery);
     if (hostWait) db.prepare('UPDATE hosts SET next_at=max(next_at,?) WHERE host=?').run(hostWait, host);
+    if (source.watch) {
+      if (result.status !== 'WATCH_LIST_OK' || current?.binding !== binding) return 0;
+      const prior = db.prepare('SELECT digest,binding,changed_at FROM public_watch WHERE endpoint_id=?').get(endpoint.endpoint_id);
+      const changed = prior?.binding === binding && prior.digest !== result.digest;
+      db.prepare(`INSERT INTO public_watch VALUES (?,?,?,?,?)
+        ON CONFLICT(endpoint_id) DO UPDATE SET binding=excluded.binding,digest=excluded.digest,
+        checked_at=excluded.checked_at,changed_at=excluded.changed_at`)
+        .run(endpoint.endpoint_id, binding, result.digest, time, changed ? time : prior?.changed_at ?? null);
+      return Number(changed);
+    }
     if (!current || current.binding !== binding) {
       db.prepare('DELETE FROM candidates WHERE endpoint_id=? AND binding=?').run(endpoint.endpoint_id, binding);
       return 0;
@@ -158,18 +216,26 @@ function record(db, source, result, time, reservation) {
 }
 
 function prune(db, sources, time) {
-  const bindings = new Map(sources.map(source => [source.endpoint.endpoint_id, source.binding]));
-  const hosts = new Map(sources.map(source => [source.endpoint.endpoint_id, source.host]));
+  const bindings = new Map(sources.filter(source => !source.watch).map(source => [source.endpoint.endpoint_id, source.binding]));
+  const watchBindings = new Map(sources.filter(source => source.watch).map(source => [source.endpoint.endpoint_id, source.binding]));
+  const byId = new Map(sources.map(source => [source.endpoint.endpoint_id, source]));
   transaction(db, () => {
     db.prepare('DELETE FROM candidates WHERE expires_at<=?').run(time);
     const remove = db.prepare('DELETE FROM candidates WHERE endpoint_id=? AND binding=?');
     for (const row of db.prepare('SELECT DISTINCT endpoint_id,binding FROM candidates').all()) {
       if (bindings.get(row.endpoint_id) !== row.binding) remove.run(row.endpoint_id, row.binding);
     }
+    const removeWatch = db.prepare('DELETE FROM public_watch WHERE endpoint_id=?');
+    for (const row of db.prepare('SELECT endpoint_id,binding FROM public_watch').all()) {
+      if (watchBindings.get(row.endpoint_id) !== row.binding) removeWatch.run(row.endpoint_id);
+    }
     const removeRateRoute = db.prepare('DELETE FROM rate_limited_routes WHERE host=? AND endpoint_id=?');
-    const accessHeld = db.prepare("SELECT 1 FROM schedules WHERE endpoint_id=? AND binding=? AND status='ACCESS_HOLD'");
+    const schedule = db.prepare('SELECT binding,status FROM schedules WHERE endpoint_id=?');
     for (const row of db.prepare('SELECT host,endpoint_id FROM rate_limited_routes').all()) {
-      if (hosts.get(row.endpoint_id) !== row.host || accessHeld.get(row.endpoint_id, bindings.get(row.endpoint_id))) {
+      const source = byId.get(row.endpoint_id);
+      const prior = source && schedule.get(row.endpoint_id);
+      if (source?.host !== row.host || hasAccessHold(prior, source.urlIdentity) ||
+          (prior?.binding === source.binding && prior.status === 'ROBOTS_INTERVAL_CONFLICT')) {
         removeRateRoute.run(row.host, row.endpoint_id);
       }
     }
@@ -180,12 +246,20 @@ function prune(db, sources, time) {
   });
 }
 
-export async function runCollectorCycle(db, { endpoints, profiles, now = Date.now, collect = collectHtmlList }) {
+export async function runCollectorCycle(db, { endpoints, profiles, routes = [], now = Date.now, collect = collectHtmlList, watch }) {
   const time = now();
   const byId = new Map(profiles.map(profile => [profile.id, profile]));
-  const sources = endpoints.map(endpoint => registeredSource(endpoint, byId.get(endpoint.permission_profile_id), time)).filter(Boolean);
+  const watchIds = new Set(watch ? routes.filter(route => ['NEWS', 'REPORT'].includes(route.effective_kind))
+    .flatMap(route => route.endpoint_ids) : []);
+  const resolveSource = (endpoint, at) => {
+    const profile = byId.get(endpoint.permission_profile_id);
+    return registeredSource(endpoint, profile, at) ?? publicSource(endpoint, profile, watchIds);
+  };
+  const sources = endpoints.map(endpoint => resolveSource(endpoint, time)).filter(Boolean);
   prune(db, sources, time);
-  const stats = { registered: endpoints.length, eligible: sources.length, requests: 0, observed: 0 };
+  const eligible = sources.filter(source => !source.watch).length;
+  const stats = { registered: endpoints.length, eligible, requests: 0, observed: 0 };
+  if (watch) Object.assign(stats, { watchEligible: sources.length - eligible, watched: 0, changed: 0 });
   const delays = new Map();
   for (const source of sources) delays.set(source.host, Math.max(source.hostDelay, delays.get(source.host) ?? 0));
   const bySchedule = new Map(db.prepare('SELECT endpoint_id,binding,next_at FROM schedules').all().map(row => [row.endpoint_id, row]));
@@ -199,13 +273,22 @@ export async function runCollectorCycle(db, { endpoints, profiles, now = Date.no
   let attempts = 0;
   for (const source of sources) {
     const start = now();
-    if (registeredSource(source.endpoint, source.profile, start)?.binding !== source.binding) continue;
-    const reservation = reserve(db, source, start, delays.get(source.host));
+    if (resolveSource(source.endpoint, start)?.binding !== source.binding) continue;
+    const robotsPreflight = source.watch && watch.requiresRobots?.(source.endpoint) === true;
+    const reservation = reserve(db, source, start, delays.get(source.host), robotsPreflight);
     if (reservation === null) continue;
-    const result = await collect({ endpoint: source.endpoint, profile: source.profile, execute: true,
+    const result = source.watch ? await watch(source.endpoint, { ...source.limits, hostDelay: delays.get(source.host) }) : await collect({
+      endpoint: source.endpoint, profile: source.profile, execute: true,
       now: () => new Date(now()).toISOString() });
     stats.requests += result.requests;
-    stats.observed += record(db, source, result, now(), reservation);
+    const finished = now();
+    const recorded = record(db, source, result, finished, reservation, resolveSource(source.endpoint, finished));
+    if (source.watch) {
+      if (['WATCH_LIST_OK', 'WATCH_PAGE_OK'].includes(result.status)) stats.watched++;
+      stats.changed += recorded;
+    } else {
+      stats.observed += recorded;
+    }
     if (++attempts >= 8) break;
   }
   return stats;
@@ -213,19 +296,20 @@ export async function runCollectorCycle(db, { endpoints, profiles, now = Date.no
 
 function loadRegistry() {
   const read = name => JSON.parse(readFileSync(new URL('../../data/providers/' + name, import.meta.url), 'utf8'));
-  return { endpoints: read('routes.json').endpoints, profiles: read('permission-profiles.json').profiles };
+  return { ...read('routes.json'), profiles: read('permission-profiles.json').profiles };
 }
 
 async function main() {
   const directory = process.env.JUDOJU_COLLECTOR_DIRECTORY ?? '.local-data/html-collector';
   mkdirSync(directory, { recursive: true });
   const db = openCollectorStore(join(directory, 'collection.sqlite'));
+  const watch = process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
   const stopping = new AbortController();
   process.once('SIGTERM', () => stopping.abort());
   process.once('SIGINT', () => stopping.abort());
   try {
     do {
-      const stats = await runCollectorCycle(db, loadRegistry());
+      const stats = await runCollectorCycle(db, { ...loadRegistry(), watch });
       writeFileSync(join(directory, 'heartbeat'), String(Date.now()));
       console.log(JSON.stringify({ event: 'HTML_COLLECTION_CYCLE', ...stats }));
       if (process.argv[2] === '--once' || stopping.signal.aborted) break;

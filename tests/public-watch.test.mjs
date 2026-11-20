@@ -1,0 +1,163 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { createPublicWatch } from '../scripts/providers/public-watch.mjs';
+import { openCollectorStore, runCollectorCycle } from '../scripts/providers/html-worker.mjs';
+
+const minute = 60_000;
+const origin = 'https://publisher.example';
+const endpoint = { endpoint_id: 'watch-1', config_version: '1', status: 'RIGHTS_HOLD', url: origin + '/market' };
+const routes = [{ effective_kind: 'NEWS', endpoint_ids: [endpoint.endpoint_id] }];
+const response = (body, contentType = 'text/html', status = 200) => ({ status, contentType, body: Buffer.from(body) });
+const card = (title, url) => `<article><h2><a href="/${url}">${title}</a></h2></article>`;
+
+test('only robots-authorized paths are fetched with an honest user agent and no redirect follow-up', async () => {
+  const seen = [];
+  const watch = createPublicWatch({ transport: async (url, options) => {
+    seen.push(url);
+    assert.match(options.userAgent, /^JudojuNewsMonitor\//);
+    if (url.endsWith('/robots.txt')) return response('User-agent: *\nDisallow: /market\nAllow: /market/open\nCrawl-delay: 3', 'text/plain');
+    return { ...response('', 'text/html', 302), location: origin + '/login' };
+  } });
+  assert.equal((await watch(endpoint)).delayMs, 3000);
+  assert.equal((await watch(endpoint)).status, 'ROBOTS_DENIED');
+  const redirected = await watch({ ...endpoint, url: endpoint.url + '/open' });
+  assert.equal(redirected.reason, 'REDIRECT_LIMIT');
+  assert.deepEqual(seen, [origin + '/robots.txt', endpoint.url + '/open']);
+});
+
+test('worker observes unaffiliated public lists and stores only an operational fingerprint and times', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  let time = Date.parse('2026-11-20T00:00:00Z');
+  let html = card('A', 'a') + card('B', 'b');
+  const watch = createPublicWatch({ now: () => time, transport: async url => url.endsWith('/robots.txt') ?
+    response('', 'text/plain', 404) : response(html) });
+  const cycle = () => runCollectorCycle(db, { endpoints: [endpoint], routes, profiles: [], watch, now: () => time });
+  assert.deepEqual(await cycle(), { registered: 1, eligible: 0, watchEligible: 1, requests: 1, observed: 0, watched: 0, changed: 0 });
+  time += minute;
+  assert.deepEqual(await cycle(), { registered: 1, eligible: 0, watchEligible: 1, requests: 1, observed: 0, watched: 1, changed: 0 });
+  time += 5 * minute;
+  html = card('B', 'b') + card('A', 'a');
+  assert.equal((await cycle()).changed, 0);
+  time += 5 * minute;
+  html = card('B 영업이익 증가', 'b');
+  assert.equal((await cycle()).changed, 1);
+  const operational = db.prepare('SELECT * FROM public_watch').get();
+  assert.equal(operational.changed_at, time);
+  assert.match(operational.digest, /^[0-9a-f]{64}$/);
+  assert.ok(!JSON.stringify(operational).includes('영업이익'));
+  assert.equal(db.prepare('SELECT count(*) n FROM candidates').get().n, 0);
+});
+
+test('published registry queues public news and reports while keeping Telegram connectors separate', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const read = name => JSON.parse(readFileSync(new URL('../data/providers/' + name, import.meta.url), 'utf8'));
+  const stats = await runCollectorCycle(db, { ...read('routes.json'), ...read('permission-profiles.json'),
+    watch: async item => {
+      assert.notEqual(new URL(item.url).hostname, 't.me');
+      return { status: 'ROBOTS_READY', requests: 1 };
+    } });
+  assert.equal(stats.registered, 112);
+  assert.equal(stats.watchEligible, 57);
+  assert.equal(stats.eligible, 0);
+  assert.equal(stats.requests, 8);
+});
+
+test('a grant denial for public machine access blocks even the robots request', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const held = { ...endpoint, permission_profile_id: 'fixture-denial' };
+  const result = await runCollectorCycle(db, {
+    endpoints: [held], routes,
+    profiles: [{ id: 'fixture-denial', purposes: { MACHINE_ACCESS: 'DENY' } }],
+    watch: () => assert.fail('unexpected public request'),
+  });
+  assert.equal(result.watchEligible, 0);
+  assert.equal(result.requests, 0);
+});
+
+function granted() {
+  const scopes = ['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION', 'STORAGE'];
+  const source = { ...endpoint, status: 'ACTIVE', permission_profile_id: 'profile', permission_profile_version: '1',
+    adapter_version: 'html-list-v1', enabled_scopes: scopes, max_rps: 1 };
+  const profile = { id: 'profile', endpoint_id: source.endpoint_id, version: '1', status: 'VERIFIED', evidence: ['fixture'],
+    verified_at: '2026-11-19T00:00:00Z', expires_at: '2026-12-20T00:00:00Z',
+    purposes: Object.fromEntries(scopes.map(scope => [scope, 'ALLOW'])), methods: ['GET'],
+    allowed_hosts: [new URL(origin).hostname], max_bytes: 32768, timeout_ms: 1200, max_requests: 1, retention_days: 1 };
+  return { source, profile };
+}
+
+test('an existing HTTP access hold survives a change from collection to public watch', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const { source, profile } = granted();
+  let time = Date.parse('2026-11-20T00:00:00Z');
+  const config = { endpoints: [source], routes, profiles: [profile], now: () => time,
+    collect: async () => ({ status: 'FAILED', httpStatus: 403, requests: 1 }) };
+  assert.equal((await runCollectorCycle(db, config)).requests, 1);
+  profile.purposes.STORAGE = 'DENY';
+  time += 10 * minute;
+  const held = await runCollectorCycle(db, { ...config, watch: () => assert.fail('access hold lost') });
+  assert.equal(held.watchEligible, 1);
+  assert.equal(held.requests, 0);
+});
+
+test('public fallback inherits a verified host, spacing and response budget', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const { source, profile } = granted();
+  source.max_rps = 0.001;
+  profile.max_bytes = 64;
+  profile.timeout_ms = 1000;
+  profile.purposes.STORAGE = 'DENY';
+  let time = Date.parse('2026-11-20T00:00:00Z');
+  const config = { endpoints: [source], routes, profiles: [profile], now: () => time };
+  const watch = createPublicWatch({ now: () => time, transport: async (url, limits) => {
+    assert.equal(limits.maxBytes, 64);
+    assert.equal(limits.timeoutMs, 1000);
+    return url.endsWith('/robots.txt') ? response('', 'text/plain', 404) : response(card('A', 'a'));
+  } });
+  assert.equal((await runCollectorCycle(db, { ...config, watch })).requests, 1);
+  time += 999_000;
+  assert.equal((await runCollectorCycle(db, { ...config, watch })).requests, 0);
+  time += 1000;
+  assert.equal((await runCollectorCycle(db, { ...config, watch })).watched, 1);
+});
+
+test('daily recovery with stale robots rules holds across restarts instead of requesting robots repeatedly', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const start = Date.parse('2026-11-20T00:00:00Z');
+  let offset = 0;
+  const now = () => start + offset * minute;
+  const createWatch = () => createPublicWatch({ now, transport: async url => url.endsWith('/robots.txt') ?
+    response('User-agent: *\nAllow: /', 'text/plain') : response('', 'text/html', 429) });
+  let watch = createWatch();
+  const cycle = () => runCollectorCycle(db, { endpoints: [endpoint], routes, profiles: [], watch, now });
+  for (offset of [0, 1, 16, 31, 46]) assert.equal((await cycle()).requests, 1);
+  offset = 24 * 60 + 46;
+  watch = createWatch();
+  assert.equal((await cycle()).requests, 0);
+  offset += 15;
+  assert.equal((await cycle()).requests, 0);
+  offset += 24 * 60;
+  assert.equal((await cycle()).requests, 0);
+  assert.equal(db.prepare('SELECT status FROM schedules').get().status, 'WATCH_ROBOTS_FRESHNESS_HOLD');
+});
+
+test('worker holds a crawl delay that leaves too little freshness for its polling cadence', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  let time = Date.parse('2026-11-20T00:00:00Z');
+  const watch = createPublicWatch({ now: () => time, transport: async url => {
+    assert.equal(url, origin + '/robots.txt');
+    return response('User-agent: *\nAllow: /\nCrawl-delay: 86399', 'text/plain');
+  } });
+  const cycle = () => runCollectorCycle(db, { endpoints: [endpoint], routes, profiles: [], watch, now: () => time });
+  assert.equal((await cycle()).requests, 1);
+  time += 2 * 24 * 60 * minute;
+  assert.equal((await cycle()).requests, 0);
+  assert.equal(db.prepare('SELECT status FROM schedules').get().status, 'ROBOTS_INTERVAL_CONFLICT');
+});

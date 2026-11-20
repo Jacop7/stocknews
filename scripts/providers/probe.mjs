@@ -19,13 +19,13 @@ async function abortable(promise,signal){
   const stopped=new Promise((_,reject)=>{abort=()=>reject(new Error('REQUEST_TIMEOUT'));signal.addEventListener('abort',abort,{once:true});});
   try{return await Promise.race([promise,stopped]);}finally{signal.removeEventListener('abort',abort);}
 }
-export async function pinnedHttps(url,{timeoutMs,maxBytes,signal,resolvedAddresses}){
+export async function pinnedHttps(url,{timeoutMs,maxBytes,signal,resolvedAddresses,userAgent='JudojuNews-ProviderProbe/0.1'}){
   const host=new URL(url).hostname;
   const answers=resolvedAddresses??(isIP(host)?[{address:host,family:isIP(host)}]:await abortable(dns.lookup(host,{all:true}),signal));
   if(!answers.length||answers.some(x=>!publicAddress(x.address)))throw new Error('NON_PUBLIC_DNS');
   const selected=answers[0];
   return await new Promise((resolve,reject)=>{
-    const req=https.request(url,{method:'GET',signal,headers:{'User-Agent':'JudojuNews-ProviderProbe/0.1'},lookup:(_host,options,cb)=>options.all?cb(null,[selected]):cb(null,selected.address,selected.family)},res=>{
+    const req=https.request(url,{method:'GET',signal,headers:{'User-Agent':userAgent},lookup:(_host,options,cb)=>options.all?cb(null,[selected]):cb(null,selected.address,selected.family)},res=>{
       const metadata={status:res.statusCode,location:res.headers.location??null,retryAfter:res.headers['retry-after']??null,contentType:res.headers['content-type']??null};
       res.on('error',reject);
       if(metadata.status<200||metadata.status>=300){

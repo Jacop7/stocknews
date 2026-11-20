@@ -5,7 +5,7 @@ WORKDIR /opt/judoju
 COPY package.json pnpm-lock.yaml ./
 RUN corepack pnpm install --prod --frozen-lockfile --ignore-scripts
 
-COPY scripts/providers/html-list.mjs scripts/providers/html-worker.mjs scripts/providers/probe.mjs scripts/providers/policy.mjs scripts/providers/budget.mjs ./scripts/providers/
+COPY scripts/providers/html-list.mjs scripts/providers/html-worker.mjs scripts/providers/public-watch.mjs scripts/providers/probe.mjs scripts/providers/policy.mjs scripts/providers/budget.mjs ./scripts/providers/
 COPY data/providers/routes.json data/providers/permission-profiles.json ./data/providers/
 RUN install -d -o node -g node /data
 ENV JUDOJU_COLLECTOR_DIRECTORY=/data
