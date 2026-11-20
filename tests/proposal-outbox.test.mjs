@@ -314,9 +314,12 @@ test('collected article flows to a proposal and editor draft with durable exact 
     const requestWithSectors = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['technology','power']}};
     const reordered = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['power','technology']}};
     let analysisInvocations = 0;
-    const countedRunner = {async run(effect,request) {
-      analysisInvocations++;
-      return runner.run(effect,request);
+    const countedRunner = {runWithDispatchGate(effect,request,authorize) {
+      return runner.runWithDispatchGate(effect,request,async()=>{
+        const allowed=await authorize();
+        if (allowed) analysisInvocations++;
+        return allowed;
+      });
     }};
     const durable = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(session,args));
     const independent = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(intentPeer,args));
@@ -342,8 +345,9 @@ test('collected article flows to a proposal and editor draft with durable exact 
     }
     const alternate = routingKey => alternateRequests.get(routingKey);
     const lostReserve = createDurableSyntheticAnalysis(countedRunner,async args=>{
-      await callIntent(session,args);
-      throw Error('Reservation reply lost');
+      const reply=await callIntent(session,args);
+      if (args.p_operation==='RESERVE') throw Error('Reservation reply lost');
+      return reply;
     });
     assert.equal((await lostReserve.run(alternate('lost-reserve'),draft)).state,'UNKNOWN');
     assert.equal((await independent.run(alternate('lost-reserve'),draft)).state,'INDETERMINATE');
@@ -375,7 +379,8 @@ test('collected article flows to a proposal and editor draft with durable exact 
       p_operation:'OBSERVE',p_effect:stored.effectKey,p_work_digest:stored.workDigest,p_nonce:null,
       p_proposal_digest:null,p_proposal:null,
     }),{code:'FORBIDDEN'});
-    const awaitingEvidence = createDurableSyntheticAnalysis({async run(effectKey) {
+    const awaitingEvidence = createDurableSyntheticAnalysis({async runWithDispatchGate(effectKey,_request,authorize) {
+      assert.ok(await authorize());
       return {...analysis,effectKey,disposition:'REQUEST_EVIDENCE'};
     }},args=>callIntent(session,args));
     assert.equal((await awaitingEvidence.run(alternate('awaiting-evidence'),draft)).state,'HELD');
@@ -508,6 +513,22 @@ test('collected article flows to a proposal and editor draft with durable exact 
       from private.issues i join private.editor_drafts d on d.issue_id=i.id where i.id=${quote(savedAngleDraft.issueId)};`)),
       {storyId:existingStoryId,angle:'power-equipment-capacity',state:'DRAFT',first:null,material:null,draft:angleContent});
 
+    db.ownerSql('alter table ai_proposal_private.analysis_intents drop constraint fixture_reject_finish;');
+    const pendingBody=await collected.capturePending();
+    capturedDocuments.set(pendingBody.source.deliveryId,pendingBody.documentId);
+    const waitingRequest={...analysisRequest,source:{...analysisRequest.source,source:pendingBody.source}};
+    const waiting=await durable.run(waitingRequest,draft);
+    assert.equal(waiting.state,'AWAITING_INPUT');
+    assert.equal(waiting.reason,'CURRENT_INPUT_REQUIRED');
+    assert.equal((await independent.observe(waitingRequest,draft)).state,'NOT_FOUND');
+    assert.equal(analysisInvocations,7);
+    await pendingBody.attachBody();
+    const recoveredInput=await durable.run(waitingRequest,draft);
+    assert.equal(recoveredInput.state,'PROPOSAL_STORED');
+    assert.equal(recoveredInput.effectKey,waiting.effectKey);
+    assert.equal(analysisInvocations,8);
+    assert.deepEqual(await independent.run(waitingRequest,draft),recoveredInput);
+
     await Promise.all([session,editor,notEditor,editorPeer,intentPeer].map(open=>open.close()));
     await db.restartServer();
     session = await openWriter();
@@ -518,7 +539,8 @@ test('collected article flows to a proposal and editor draft with durable exact 
     assert.equal((await restarted.observe(alternate('rolled-back'),draft)).state,'INDETERMINATE');
     assert.deepEqual(await restarted.observe(duplicateRequest,draft),duplicateAngle);
     assert.deepEqual(await restarted.run(angleRequest,draft),angle);
-    assert.equal(analysisInvocations,7);
+    assert.deepEqual(await restarted.run(waitingRequest,draft),recoveredInput);
+    assert.equal(analysisInvocations,8);
     const restartedEditor=await db.openSession('ai_outbox_editor','authenticated');
     assert.deepEqual(await createSyntheticAngleEditor(args=>callAngle(restartedEditor,args)).apply(angle),savedAngleDraft);
   } finally {

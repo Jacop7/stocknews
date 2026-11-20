@@ -62,6 +62,31 @@ function runner(f:ReturnType<typeof fixture>, overrides:Partial<AnalysisFixtureM
 const request=(f:ReturnType<typeof fixture>,routingKey:string|null='event1')=>({source:f.request,routingKey});
 function move(f:ReturnType<typeof fixture>,time:string) {f.dto={...f.dto,store:{...f.dto.store,checkedAt:time}};}
 
+test('the durable gate rechecks source rights before the first model call',async()=>{
+  const f=fixture(),r=runner(f);
+  let reservations=0;
+  const stopped=await r.runWithDispatchGate('analysis:'+'a'.repeat(64),request(f),async()=>{
+    reservations++;
+    move(f,until);
+    return true;
+  });
+  assert.equal(stopped.disposition,'HOLD');
+  assert.equal(stopped.reason,'CURRENT_INPUT_REQUIRED');
+  assert.equal(reservations,1);
+  assert.equal(r.metadataCalls,0);
+  assert.equal(r.routingCalls,0);
+});
+
+test('only the gated runner can handle a durable analysis effect key',async()=>{
+  const f=fixture(),r=runner(f,{async metadata(){throw Error('provider acknowledgement lost');}});
+  const key='analysis:'+'b'.repeat(64);
+  await assert.rejects(r.run(key,request(f)), /ANALYSIS_INPUT_BINDING_INVALID/);
+  await assert.rejects(r.runWithDispatchGate('direct',request(f),async()=>true), /ANALYSIS_INPUT_BINDING_INVALID/);
+  assert.equal((await r.runWithDispatchGate(key,request(f),async()=>true)).reason,'MODEL_RESPONSE_UNKNOWN');
+  await assert.rejects(r.run(key,request(f)), /ANALYSIS_INPUT_BINDING_INVALID/);
+  assert.equal(r.metadataCalls,1);
+});
+
 test('owned original bytes bind UUID, title, lead, body reference, grant and K1 versions through both models',async()=>{
   const f=fixture();let seenRevision:PipelineSourceRevision|undefined;
   const r=runner(f,{

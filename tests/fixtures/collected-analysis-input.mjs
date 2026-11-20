@@ -64,7 +64,7 @@ export async function collectAnalysisInput(db, article) {
   const text = 'SYNTHETIC ' + JSON.stringify(article);
   const bytes = new TextEncoder().encode(text);
   const bodyHash = collectorBodyHashV1(bytes);
-  const capture = async () => {
+  const capturePending = async () => {
     const deliveryId = randomUUID();
     const observedAt = (await reader.readIdentity()).checkedAt;
     const delivered = await executor.putDelivery(command('PUT_DELIVERY', {
@@ -74,21 +74,27 @@ export async function collectAnalysisInput(db, article) {
       sourceTimes:{resolutionState:'KNOWN',timeQuality:'KNOWN',publishedAt:collectorKnownV1(observedAt),updatedAt:collectorUnknownV1()},
     }));
     const bodyId = randomUUID();
-    await executor.attachBody(command('ATTACH_BODY', {
+    const bodyCommand=command('ATTACH_BODY', {
       grant, deliveryId, bodyId, purpose:'ORIGINAL_ACCESS', contentEncoding:'identity',
       rawHashAlg:COLLECTOR_RAW_HASH_ALG_V1, rawHash:bodyHash, bodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, bodyHash,
       rawByteLength:String(bytes.length), decodedByteLength:String(bytes.length), rawBytesBase64:Buffer.from(bytes).toString('base64'),
-    }));
+    });
     return {
       documentId:delivered.outcome.documentId,
+      attachBody:()=>executor.attachBody(bodyCommand),
       source:{
         stableStoreId, storeEpoch, deliveryId, expectedBodyId:bodyId, expectedBodyHash:bodyHash,
         expectedBodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, expectedSourcePolicyVersion:sourcePolicyVersion,
       },
     };
   };
+  const capture=async()=>{
+    const {attachBody,...delivery}=await capturePending();
+    await attachBody();
+    return delivery;
+  };
   return {
     port:createDurableAnalysisInputPort(createOwnedCollectorDbReadPortV1(reader)),
-    expiresAt, text, capture, ...await capture(),
+    expiresAt, text, capture, capturePending, ...await capture(),
   };
 }

@@ -181,8 +181,9 @@ export function createSyntheticAnalysisRunner(
     if (job.bindingDigest !== null && semanticDigest(current.metadata) !== job.bindingDigest) invalid();
     return current;
   }
-  async function run(effectKey: string, raw: AnalysisRunRequest): Promise<AnalysisRunResult> {
-    if (!pipelineId(effectKey)) invalid();
+  async function run(effectKey: string, raw: AnalysisRunRequest, authorizeDispatch?:()=>Promise<boolean>): Promise<AnalysisRunResult> {
+    // The direct fixture runner cannot seed or replay a durable journal key.
+    if (!pipelineId(effectKey) || /^analysis:[a-f0-9]{64}$/.test(effectKey)!==Boolean(authorizeDispatch)) invalid();
     let request: AnalysisRunRequest;
     try {
       const data = collectorRecordV1(copy(raw));
@@ -215,6 +216,7 @@ export function createSyntheticAnalysisRunner(
     const finish = (value: AnalysisRunResult, unknown = false) => {
       job.result = copy(value);
       job.phase = unknown ? 'UNKNOWN' : 'COMPLETE';
+      if (authorizeDispatch) jobs.delete(effectKey);
       return copy(value);
     };
     try {
@@ -224,8 +226,16 @@ export function createSyntheticAnalysisRunner(
       let current = await read(job);
       if (instant(current.checkedAt) < instant(first.checkedAt)) invalid();
       job.bindingDigest = semanticDigest(current.metadata);
-      const metadataRequest = prepareMetadataRequest(current.metadata);
+      let metadataRequest = prepareMetadataRequest(current.metadata);
       if (metadataRequest.state !== 'READY_FOR_METADATA_MODEL') return finish(result(effectKey, metadataRequest.result.reason));
+      if (authorizeDispatch) {
+        if (!await authorizeDispatch()) return finish(result(effectKey,'DURABLE_DISPATCH_NOT_AUTHORIZED'));
+        const latest=await read(job);
+        if (instant(latest.checkedAt) < instant(current.checkedAt)) invalid();
+        current=latest;
+        metadataRequest=prepareMetadataRequest(current.metadata);
+        if (metadataRequest.state !== 'READY_FOR_METADATA_MODEL') return finish(result(effectKey,metadataRequest.result.reason));
+      }
       let proposal: unknown;
       try {proposal = await modelCalls[0](copy({request: metadataRequest.request, requestDigest: metadataRequest.requestDigest}));}
       catch {return finish(result(effectKey, 'MODEL_RESPONSE_UNKNOWN'), true);}
@@ -271,7 +281,11 @@ export function createSyntheticAnalysisRunner(
     }
   }
   return Object.freeze({
-    run,
+    run: (effectKey:string,request:AnalysisRunRequest)=>run(effectKey,request),
+    runWithDispatchGate(effectKey:string,request:AnalysisRunRequest,authorizeDispatch:()=>Promise<boolean>) {
+      if (typeof authorizeDispatch!=='function') invalid();
+      return run(effectKey,request,authorizeDispatch);
+    },
     lookup(effectKey: string) {
       if (!pipelineId(effectKey)) invalid();
       const job = jobs.get(effectKey);

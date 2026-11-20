@@ -20,11 +20,12 @@ type RequestIdentity = {effectKey:string;workDigest:string};
 type IntentState = 'INDETERMINATE'|'HELD'|'NO_PROPOSAL'|'CONFLICT'|'NOT_FOUND'|'UNKNOWN';
 export type AnalysisIntentReceipt = RequestIdentity & (
   {state:IntentState} | {state:'PROPOSAL_STORED';proposalId:string;proposalDigest:string} |
+  {state:'AWAITING_INPUT';reason:string} |
   {state:'ANGLE_PENDING';angleId:string;angleDigest:string;candidate:AngleCandidate}
 );
 type Reservation = AnalysisIntentReceipt | RequestIdentity & {state:'START_ONCE'};
 type CommittedIntentCall = (args:Readonly<Record<string,unknown>>) => Promise<unknown>;
-type Runner = Pick<ReturnType<typeof createSyntheticAnalysisRunner>,'run'>;
+type Runner = Pick<ReturnType<typeof createSyntheticAnalysisRunner>,'runWithDispatchGate'>;
 
 function work(raw:AnalysisRunRequest, draft:DraftContext) {
   const request = collectorRecordV1(collectorDataV1(raw));
@@ -62,7 +63,7 @@ function work(raw:AnalysisRunRequest, draft:DraftContext) {
   };
 }
 
-/** Only a fresh, committed reservation authorizes invoking the trusted fixture runner. */
+/** Preflight can run again. A fresh committed reservation authorizes the first model call. */
 export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:CommittedIntentCall) {
   async function call(operation:Operation, identity:RequestIdentity, nonce:string|null=null,
     command?:ProposalCommand):Promise<Reservation> {
@@ -108,11 +109,22 @@ export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:Comm
   return Object.freeze({
     async run(raw:AnalysisRunRequest,draft:DraftContext):Promise<AnalysisIntentReceipt> {
       const {identity,request,binding}=work(raw,draft);
-      const nonce = randomUUID();
-      const reserved = await call('RESERVE',identity,nonce);
-      if (reserved.state!=='START_ONCE') return reserved;
+      const existing=terminal(await call('OBSERVE',identity));
+      if (existing.state!=='NOT_FOUND') return existing;
+      const nonce=randomUUID();
+      let reservation:Promise<Reservation>|undefined;
       try {
-        const result = await runner.run(identity.effectKey,request);
+        const result=await runner.runWithDispatchGate(identity.effectKey,request,async()=>{
+          reservation ??= call('RESERVE',identity,nonce);
+          return (await reservation).state==='START_ONCE';
+        });
+        if (!reservation) {
+          // A peer may have reserved while this runner was checking the original.
+          const latest=terminal(await call('OBSERVE',identity));
+          return latest.state==='NOT_FOUND'?{...identity,state:'AWAITING_INPUT',reason:result.reason}:latest;
+        }
+        const reserved=await reservation;
+        if (reserved.state!=='START_ONCE') return reserved;
         if (result.effectKey!==identity.effectKey || result.reason==='MODEL_RESPONSE_UNKNOWN' ||
             result.reason==='RUNNING') return {...identity,state:'INDETERMINATE'};
         if (result.disposition==='PLAN' && (result.routing?.action==='UPDATE' || result.routing?.action==='CORRECTION')) {
@@ -127,7 +139,7 @@ export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:Comm
         }
         return terminal(await call('HOLD',identity,nonce));
       } catch {
-        return {...identity,state:'INDETERMINATE'};
+        return {...identity,state:reservation?'INDETERMINATE':'UNKNOWN'};
       }
     },
     async observe(raw:AnalysisRunRequest,draft:DraftContext):Promise<AnalysisIntentReceipt> {

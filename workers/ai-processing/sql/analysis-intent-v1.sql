@@ -139,7 +139,11 @@ begin
     end if;
   end if;
 
-  select * into intent from ai_proposal_private.analysis_intents where effect_key=p_effect for update;
+  if p_operation='OBSERVE' then
+    select * into intent from ai_proposal_private.analysis_intents where effect_key=p_effect;
+  else
+    select * into intent from ai_proposal_private.analysis_intents where effect_key=p_effect for update;
+  end if;
   if not found then
     return base || '{"state":"NOT_FOUND"}'::jsonb;
   end if;
