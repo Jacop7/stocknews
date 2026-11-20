@@ -25,10 +25,13 @@ class ContinuationTests(unittest.TestCase):
         (self.root / ".node-version").write_text("24.15.0", encoding="utf-8")
 
     def resume(self, checks, retry_failed=False):
+        def receive(root, state_dir, revision, lane, attempt):
+            log = state_dir / f"{revision}-{lane}-{attempt}.log"
+            status, details = checks(root, lane, log)
+            return {"status": status, "details": details, "attempt": attempt}
+
         with patch.object(app, "snapshot", return_value=(self.revision, False)), \
-             patch.object(app.shutil, "which", return_value="node"), \
-             patch.object(app.subprocess, "check_output", return_value="v24.15.0"), \
-             patch.object(app, "run_check", side_effect=checks):
+             patch.object(app, "wait_for_check", side_effect=receive):
             return app.resume(self.root, self.state_dir, self.revision, self.state_file, retry_failed)
 
     @staticmethod
@@ -39,7 +42,7 @@ class ContinuationTests(unittest.TestCase):
     def test_failed_lane_runs_in_parallel_and_other_proofs_are_reused(self):
         all_started = threading.Barrier(len(app.CHECKS), timeout=5)
 
-        def check(_root, _node, lane, log, _environment):
+        def check(_root, lane, log):
             all_started.wait()
             return self.result(log, "FAILED" if lane == "collector" else "PASSED")
 
@@ -50,7 +53,7 @@ class ContinuationTests(unittest.TestCase):
         self.assertEqual(self.resume(lambda *_: self.fail("Check was repeated")), state)
         retried = []
 
-        def recover(_root, _node, name, log, _environment):
+        def recover(_root, name, log):
             retried.append(name)
             return self.result(log, "PASSED")
 
@@ -59,20 +62,34 @@ class ContinuationTests(unittest.TestCase):
 
     def test_interrupted_lane_and_missing_pass_evidence_resume(self):
         state = {"commit": self.revision, "lanes": {}}
-        app.record(state, "collector", "RUNNING")
-        app.record(state, "ai", "RUNNING")
-        app.record(state, "ai", "PASSED", log="missing.log", logSha256="invalid")
+        app.record(state, "collector", "RUNNING", attempt=1)
+        app.record(state, "ai", "RUNNING", attempt=1)
+        app.record(state, "ai", "PASSED", attempt=1, log="missing.log", logSha256="invalid")
         for lane in ("home-ranking", "admin-local"):
             app.record(state, lane, "FAILED")
         app.store_json(self.state_file, state)
 
-        def recover(_root, _node, _name, log, _environment):
+        def recover(_root, _name, log):
             return self.result(log, "PASSED")
 
         state = self.resume(recover)
-        for name, event in (("collector", "INTERRUPTED"), ("ai", "EVIDENCE_MISSING_OR_CHANGED")):
-            self.assertIn(event, [row["status"] for row in state["lanes"][name]["events"]])
-            self.assertEqual(state["lanes"][name]["status"], "PASSED")
+        self.assertEqual([event["attempt"] for event in state["lanes"]["collector"]["events"]], [1, 1])
+        self.assertIn("EVIDENCE_MISSING_OR_CHANGED", [row["status"] for row in state["lanes"]["ai"]["events"]])
+        self.assertTrue(all(state["lanes"][name]["status"] == "PASSED" for name in ("collector", "ai")))
+
+    def test_new_supervisor_joins_existing_worker_and_collects_result_without_spawning(self):
+        state = {"commit": self.revision, "lanes": {}}
+        app.record(state, "collector", "RUNNING", attempt=1)
+        app.store_json(self.state_file, state)
+        prefix = self.state_dir / f"{self.revision}-collector-1"
+        with app.exclusive(prefix.with_suffix(".lock")):
+            self.assertEqual(app.check_worker(self.root, self.state_dir, self.revision, "collector", 1), 3)
+        status, details = self.result(prefix.with_suffix(".log"), "PASSED")
+        app.store_json(prefix.with_suffix(".result.json"), {"status": status, "details": details, "attempt": 1})
+        with patch.object(app.subprocess, "Popen") as launch:
+            result = app.wait_for_check(self.root, self.state_dir, self.revision, "collector", 1)
+            launch.assert_not_called()
+        self.assertEqual(result["status"], "PASSED")
 
     def test_duplicate_process_cannot_acquire_lock_and_exit_releases_it(self):
         lock = self.state_dir / "run.lock"
@@ -82,6 +99,17 @@ class ContinuationTests(unittest.TestCase):
                     self.fail("Duplicate runner acquired the lock")
         with app.exclusive(lock):
             pass
+
+    def test_missing_proof_at_reporting_time_returns_nonzero(self):
+        state = {"commit": self.revision, "lanes": {}}
+        for lane in app.CHECKS:
+            app.record(state, lane, "PASSED", attempt=1, log="missing.log", logSha256="missing")
+        with patch.object(app, "snapshot", return_value=(self.revision, False)), \
+             patch.object(app, "state_location", return_value=(self.root, self.state_dir)), \
+             patch.object(app, "resume", return_value=state), \
+             patch.object(app.sys, "argv", ["development-continuation", "resume"]), \
+             patch("builtins.print"):
+            self.assertEqual(app.main(), 1)
 
     def test_transient_timeout_is_bounded_then_retried(self):
         timeout = app.subprocess.TimeoutExpired("node", 1)

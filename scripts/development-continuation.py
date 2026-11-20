@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -19,13 +20,20 @@ CHECKS = {
     "collector": ["collector-inventory.test.ts", "collector-db-capture-v1.test.ts"],
     "ai": ["durable-analysis-input.test.ts", "analysis-run.test.ts"],
     "home-ranking": ["home-ranking.test.ts", "home-database-bound.test.ts"],
-    "admin-local": ["preview-admin.test.mjs", "preview-activation-proof.test.mjs"],
+    "admin-local": ["preview-admin-sql.test.mjs", "preview-activation-proof.test.mjs"],
 }
 TIMEOUT = 90
+WORKER_WAIT = 2 * TIMEOUT + 35
+
+
+class LockBusy(RuntimeError):
+    pass
 
 
 def git(root, *args):
-    return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith("GIT_")}
+    return subprocess.check_output(["git", "-C", str(root), *args], env=env,
+                                   text=True, timeout=10).strip()
 
 
 def read_json(path):
@@ -36,18 +44,17 @@ def read_json(path):
 
 
 def store_json(path, value):
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
-                                     delete=False) as temporary:
-        staged = Path(temporary.name)
-        try:
+    descriptor, name = tempfile.mkstemp(dir=path.parent)
+    staged = Path(name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
             json.dump(value, temporary, indent=2)
             temporary.write("\n")
             temporary.flush()
             os.fsync(temporary.fileno())
-            temporary.close()
-            staged.replace(path)
-        finally:
-            staged.unlink(missing_ok=True)
+        staged.replace(path)
+    finally:
+        staged.unlink(missing_ok=True)
 
 
 @contextmanager
@@ -61,7 +68,7 @@ def exclusive(path):
                 import fcntl
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as error:
-            raise RuntimeError("A local continuation run already holds the lock.") from error
+            raise LockBusy("A local continuation run already holds the lock.") from error
         yield
 
 
@@ -73,6 +80,7 @@ def record(state, lane, status, **details):
     row = state["lanes"].setdefault(lane, {"events": []})
     row["events"].append({"status": status, "at": now().isoformat(), **details})
     row["status"] = status
+    row.pop("next", None)
 
 
 def evidence_digest(log):
@@ -82,7 +90,7 @@ def evidence_digest(log):
 
 def has_pass_evidence(state_dir, revision, lane, row):
     event = row["events"][-1]
-    expected_name = f"{revision}-{lane}-{len(row['events']) - 1}.log"
+    expected_name = f"{revision}-{lane}-{event['attempt']}.log"
     if event.get("log") != expected_name:
         return False
     try:
@@ -119,23 +127,96 @@ def run_check(root, node, lane, log, environment):
     args = [node, "--experimental-strip-types", "--experimental-vm-modules",
             "--test", "--test-isolation=none", *[f"tests/{name}" for name in CHECKS[lane]]]
     for attempt in range(2):
+        descriptor, name = tempfile.mkstemp(prefix=log.stem + "-", suffix=".raw", dir=log.parent)
+        raw_output = Path(name)
         try:
-            with log.open("ab") as output:
+            with os.fdopen(descriptor, "wb") as output:
                 result = subprocess.run(args, cwd=root, env=environment, stdin=subprocess.DEVNULL,
                                         stdout=output, stderr=subprocess.STDOUT, timeout=TIMEOUT)
+            # Copy a snapshot so delayed output in a descendant cannot change a recorded proof.
+            shutil.copyfile(raw_output, log)
             return ("PASSED" if result.returncode == 0 else "FAILED",
                     {"exitCode": result.returncode, "attempts": attempt + 1, "log": log.name,
                      "logSha256": evidence_digest(log)})
         except (OSError, subprocess.TimeoutExpired) as error:
             if attempt == 1:
-                return "RETRYABLE", {"reason": type(error).__name__, "attempts": 2, "log": log.name}
+                return "RETRYABLE", {"reason": type(error).__name__, "attempts": 2}
             time.sleep(1)
+        finally:
+            try:
+                raw_output.unlink(missing_ok=True)
+            except PermissionError:
+                # A timed-out child's descendant can still own the raw output handle on Windows.
+                pass
 
 
 def snapshot(root):
     revision = git(root, "rev-parse", "HEAD")
     dirty = bool(git(root, "status", "--porcelain", "--untracked-files=normal"))
     return revision, dirty
+
+
+def state_location(root):
+    checkout = Path(git(root, "rev-parse", "--path-format=absolute", "--git-common-dir")).parent
+    return checkout, checkout / ".local-data/development-continuation"
+
+
+def local_test_environment():
+    keys = {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "COMSPEC", "PATHEXT"}
+    return {key: value for key, value in os.environ.items() if key.upper() in keys}
+
+
+def check_worker(root, state_dir, revision, lane, attempt):
+    state = read_json(state_dir / f"{revision}.json")
+    row = state and state["lanes"].get(lane)
+    if not row or row["status"] != "RUNNING" or row["events"][-1]["attempt"] != attempt:
+        return 2
+    prefix = state_dir / f"{revision}-{lane}-{attempt}"
+    receipt = prefix.with_suffix(".result.json")
+    try:
+        with exclusive(prefix.with_suffix(".lock")):
+            if receipt.is_file():
+                return 0
+            if snapshot(root) != (revision, False):
+                return 2
+            env = local_test_environment()
+            node = shutil.which("node")
+            if node is None:
+                store_json(receipt, {"status": "RETRYABLE", "attempt": attempt,
+                                     "details": {"reason": "NODE_NOT_FOUND"}})
+                return 0
+            version = subprocess.check_output([node, "--version"], env=env, text=True, timeout=10).strip()
+            if version != "v" + (root / ".node-version").read_text(encoding="utf-8").strip():
+                store_json(receipt, {"status": "RETRYABLE", "attempt": attempt,
+                                     "details": {"reason": "PINNED_NODE_REQUIRED"}})
+                return 0
+            status, details = run_check(root, node, lane, prefix.with_suffix(".log"), env)
+            if snapshot(root) != (revision, False):
+                return 2
+            store_json(receipt, {"status": status, "details": details, "attempt": attempt})
+            return 0
+    except LockBusy:
+        return 3
+
+
+def wait_for_check(root, state_dir, revision, lane, attempt):
+    receipt = state_dir / f"{revision}-{lane}-{attempt}.result.json"
+    deadline = time.monotonic() + WORKER_WAIT
+    worker = None
+    while time.monotonic() < deadline:
+        result = read_json(receipt)
+        if result is not None:
+            return result
+        if worker is None:
+            command = [sys.executable, "-B", str(Path(__file__).resolve()), "_worker",
+                       "--revision", revision, "--lane", lane, "--attempt", str(attempt)]
+            options = {"creationflags": subprocess.DETACHED_PROCESS} if os.name == "nt" else {"start_new_session": True}
+            worker = subprocess.Popen(command, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL, **options)
+        elif worker.poll() not in (None, 0, 3):
+            return None
+        time.sleep(0.25)
+    return None
 
 
 def resume(root, state_dir, revision, state_file, retry_failed):
@@ -146,7 +227,7 @@ def resume(root, state_dir, revision, state_file, retry_failed):
         state = read_json(state_file) or {"commit": revision, "lanes": {}}
         if state["commit"] != revision:
             raise RuntimeError("Check state does not match the selected commit.")
-        lanes = []
+        lanes = {}
         for lane in CHECKS:
             row = state["lanes"].get(lane, {})
             previous = row.get("status")
@@ -155,47 +236,54 @@ def resume(root, state_dir, revision, state_file, retry_failed):
                     continue
                 record(state, lane, "EVIDENCE_MISSING_OR_CHANGED")
             if previous == "RUNNING":
-                record(state, lane, "INTERRUPTED")
+                lanes[lane] = row["events"][-1]["attempt"]
+                continue
             if previous == "FAILED" and not retry_failed:
                 continue
-            lanes.append(lane)
+            attempt = sum(event["status"] == "RUNNING" for event in row.get("events", [])) + 1
+            record(state, lane, "RUNNING", attempt=attempt)
+            lanes[lane] = attempt
         if not lanes:
             return state
-        environment = {k: v for k, v in os.environ.items()
-                       if k.upper() in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP"}}
-        node = shutil.which("node")
-        if node is None:
-            raise RuntimeError("Node.js is required for local checks.")
-        version = subprocess.check_output([node, "--version"], env=environment, text=True, timeout=10).strip()
-        if version != "v" + (root / ".node-version").read_text(encoding="utf-8").strip():
-            raise RuntimeError("Use the Node.js version pinned in .node-version.")
-
+        store_json(state_file, state)
         with ThreadPoolExecutor(max_workers=len(lanes)) as pool:
-            jobs = {}
-            for lane in lanes:
-                record(state, lane, "RUNNING")
-                store_json(state_file, state)
-                log = state_dir / f"{revision}-{lane}-{len(state['lanes'][lane]['events'])}.log"
-                jobs[pool.submit(run_check, root, node, lane, log, environment)] = lane
+            jobs = {pool.submit(wait_for_check, root, state_dir, revision, lane, attempt): lane
+                    for lane, attempt in lanes.items()}
             for job in as_completed(jobs):
-                status, details = job.result()
+                lane = jobs[job]
+                try:
+                    result = job.result()
+                except (OSError, ValueError):
+                    result = None
+                if result is None:
+                    # Keep this attempt ID so the next run can join an existing worker.
+                    state["lanes"][lane]["next"] = "Resume to collect this attempt or restart its worker."
+                    store_json(state_file, state)
+                    continue
                 if snapshot(root) != (revision, False):
                     raise RuntimeError("Checkout changed during verification. Resume from a clean commit.")
-                record(state, jobs[job], status, **details)
+                if result["attempt"] != lanes[lane]:
+                    raise RuntimeError("Worker result does not match the current attempt.")
+                record(state, lane, result["status"], attempt=result["attempt"], **result["details"])
                 store_json(state_file, state)
         return state
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("resume", "status"))
+    parser.add_argument("action", choices=("resume", "status", "_worker"))
     parser.add_argument("--retry-failed", action="store_true", help="Run a deterministic failed check again.")
+    parser.add_argument("--revision", help=argparse.SUPPRESS)
+    parser.add_argument("--lane", choices=CHECKS, help=argparse.SUPPRESS)
+    parser.add_argument("--attempt", type=int, help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
         revision, dirty = snapshot(ROOT)
-        git_dir = Path(git(ROOT, "rev-parse", "--path-format=absolute", "--git-common-dir"))
-        checkout = git_dir.parent
-        state_dir = checkout / ".local-data/development-continuation"
+        checkout, state_dir = state_location(ROOT)
+        if args.action == "_worker":
+            if args.revision != revision or not args.lane or not args.attempt or args.attempt < 1 or dirty:
+                return 2
+            return check_worker(ROOT, state_dir, revision, args.lane, args.attempt)
         state_file = state_dir / f"{revision}.json"
         if args.action == "resume":
             state = resume(ROOT, state_dir, revision, state_file, args.retry_failed)
@@ -209,7 +297,7 @@ def main():
             lanes[lane] = row
         report = {**state, "lanes": lanes, "checkoutDirty": dirty, "developmentDb": admin_status(checkout, now())}
         print(json.dumps(report, indent=2))
-        if args.action == "resume" and any(row["status"] != "PASSED" for row in state["lanes"].values()):
+        if args.action == "resume" and any(row["status"] != "PASSED" for row in lanes.values()):
             return 1
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
