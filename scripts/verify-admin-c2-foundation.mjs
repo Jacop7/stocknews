@@ -11,7 +11,7 @@ import {parallel4Readiness} from './parallel4-readiness.mjs';
 
 const root=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
 const baselineFile='docs/stages/stage-admin-c2-baseline.json';
-const baselineSha='7034a6f27930623d80743923023c8340b9102cb6a698d147f1b2bb79fa5493db';
+const baselineSha='19cba535270a006b412550e426d4d25da15caa43bbc219b2563bb8bd14410889';
 const base='bab66bc09af2ef181b0ebfff6bc73f2ca0fe4d12',feature='feat/admin-c2-actual';
 // Preserve both exact checkpoints; only validated linear C2 corrections may follow the repair.
 const ciCheckpoint='2564630b955dafac373fa925691f9a4d4f765d67';

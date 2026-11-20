@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {closeSync,mkdtempSync,openSync,readFileSync,rmdirSync,unlinkSync,writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {renderAdminPreviewSql,previewSqlOwnerEmailSha256} from '../scripts/admin-preview-sql.mjs';
 import {actualOwner,actualHash,actualCanonical,validateActualOwner,makeActualDecision,checkActualApproval,
-  launchStatement,validateLaunchAck,checkLiveLease,makeLoginJournalEntry,appendLoginJournal,validateLoginJournal,createActualSetupBudget,actualSetupAllowance} from '../apps/admin/lib/preview-actual-lifecycle.mjs';
-import {actualRequestSpec,selectActualKeyMetadata,validateAuthOwner,bindStoredActualDecision} from '../scripts/admin-preview-actual-setup.mjs';
+  launchStatement,validateLaunchAck,checkLiveLease,makeLoginJournalEntry,appendLoginJournal,validateLoginJournal,createActualSetupBudget,actualSetupAllowance,
+  actualDecisionVersion,dashboardKeyMode,validateDashboardKeyInput,validateDashboardKeySelection} from '../apps/admin/lib/preview-actual-lifecycle.mjs';
+import {actualRequestSpec,validateAuthOwner,bindStoredActualDecision} from '../scripts/admin-preview-actual-setup.mjs';
 import {createPreviewFixtureRoot,verifyPrivatePreviewFixture,nativeBoundary,actualSupervisorReceipt,controlledEnvironment} from '../apps/admin/lib/preview-file-boundary.mjs';
 import vm from 'node:vm';
 import {seal,unseal,AdminError,hash} from '../apps/admin/lib/runtime-local.mjs';
@@ -14,13 +16,20 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {allowedHostedPullRef} from '../scripts/native-release-policy.mjs';
 import {createServer} from 'node:net';
 import {spawnSync} from 'node:child_process';
+import {PassThrough} from 'node:stream';
 
 const syntheticEmail='owner@judoju-c2.invalid';
 const syntheticOwner={...actualOwner,emailSha256:actualHash(syntheticEmail)};
 const template=readFileSync(new URL('../supabase/cloud/admin-preview-dev/activation-template.sql',import.meta.url),'utf8');
+const selection={keyAcquisition:dashboardKeyMode,publishableKeyName:'Fixture public',secretKeyName:'Fixture secret'};
+const fixtureKeys={PAT:'SYNTHETIC_OPERATOR_CANARY',SECRET:'sb_secret_SYNTHETIC_CANARY_NEVER_REAL',PUBLISHABLE:'sb_publishable_SYNTHETIC_CANARY_NEVER_REAL'};
 const fixture=()=>makeActualDecision(template,{effectKey:'11111111-1111-4111-8111-111111111111',
   expiresAt:'2026-11-18T03:00:00.000Z',implementationManifestSha256:'b'.repeat(64),prestateSha256:'c'.repeat(64),
-  publishableKeyId:'publishable-fixture-id',secretKeyId:'secret-fixture-id',observedAt:'2026-11-18T01:00:00.000Z'},renderAdminPreviewSql);
+  ...selection,observedAt:'2026-11-18T01:00:00.000Z'},renderAdminPreviewSql);
+function dashboardInput(decisionSha256){
+  return {schemaVersion:actualDecisionVersion,projectRef:'nxfpfvsdwbziowkxsxnh',decisionSha256,...selection,
+    operatorConfirmed:true,publishableKey:fixtureKeys.PUBLISHABLE,secretKey:fixtureKeys.SECRET};
+}
 const owner=()=>({id:actualOwner.id,created_at:actualOwner.createdAt,confirmed_at:'2026-11-17T19:44:19.140779+00:00',
   anonymous:false,sso:false,deleted:false,banned:false,email_sha256:actualOwner.emailSha256,metadata_email_only:true,identity_count:1,email_identity_count:1});
 const ack=b=>({launchEffect:b.decision.launchEffect,ownerUserId:actualOwner.id,decisionSha256:b.decisionSha256,serverTime:'2026-11-18T01:01:00.000Z',expiresAt:'2026-11-18T01:31:00.000Z'});
@@ -33,13 +42,14 @@ test('Decision binds exact final SQL without hashing a decision into itself',()=
   assert.ok(b.sql.includes(b.decisionSha256));assert.ok(!b.sql.includes(b.sqlSha256));
   const p=renderAdminPreviewSql(template,{ownerUserId:actualOwner.id,effectKey:b.decision.effectKey,expiresAt:b.decision.expiresAt,implementationManifestSha256:b.decision.implementationManifestSha256,decisionSha256:'0'.repeat(64)});
   assert.equal(actualHash(p.sql),b.decision.sqlPreimageSha256);
-  const changed=makeActualDecision(template,{effectKey:b.decision.effectKey,expiresAt:b.decision.expiresAt,implementationManifestSha256:'b'.repeat(64),prestateSha256:'c'.repeat(64),publishableKeyId:'different-id',secretKeyId:'secret-fixture-id',observedAt:b.decision.observedAt},renderAdminPreviewSql);
+  const changed=makeActualDecision(template,{effectKey:b.decision.effectKey,expiresAt:b.decision.expiresAt,implementationManifestSha256:'b'.repeat(64),prestateSha256:'c'.repeat(64),...selection,publishableKeyName:'Different label',observedAt:b.decision.observedAt},renderAdminPreviewSql);
   assert.notEqual(b.decisionSha256,changed.decisionSha256);
 });
 test('User approval is separate and cannot approve a different owner, implementation or SQL',()=>{
-  const b=fixture(),a={schemaVersion:1,ownerUserId:actualOwner.id,decisionSha256:b.decisionSha256,sqlSha256:b.sqlSha256,implementationManifestSha256:b.decision.implementationManifestSha256,confirmationReference:'fixture:user-action:123',confirmedAt:'2026-11-18T01:00:01.000Z'};
+  const b=fixture(),a={schemaVersion:actualDecisionVersion,ownerUserId:actualOwner.id,decisionSha256:b.decisionSha256,sqlSha256:b.sqlSha256,implementationManifestSha256:b.decision.implementationManifestSha256,confirmationReference:'fixture:user-action:123',confirmedAt:'2026-11-18T01:00:01.000Z'};
   assert.equal(checkActualApproval(a,b).sqlSha256,b.sqlSha256);
   for(const key of ['ownerUserId','decisionSha256','sqlSha256','implementationManifestSha256','confirmationReference'])assert.throws(()=>checkActualApproval({...a,[key]:'wrong'},b),/HOLD/);
+  assert.throws(()=>checkActualApproval({...a,schemaVersion:1},b),/APPROVAL/);
   assert.throws(()=>checkActualApproval({...a,confirmedAt:b.decision.expiresAt},b),/HOLD/);
 });
 test('First launch uses fixed parameterized server CAS, never a caller-supplied SQL URL or fresh launch ID',()=>{
@@ -79,12 +89,9 @@ test('Untrusted accessors/proxies and noncanonical time do not execute or enter 
   assert.throws(()=>validateActualOwner(new Proxy(owner(),{})),/DATA/);
   assert.throws(()=>makeActualDecision(template,{...fixture().decision,observedAt:'2026-11-18T01:00:00Z'},renderAdminPreviewSql),/HOLD/);
 });
-test('Management/Auth request paths cannot change project, reveal all keys or assign another user/field',()=>{
+test('Management/Auth request paths cannot change project, retrieve keys or assign another user/field',()=>{
   const binding=fixture();
-  assert.ok(actualRequestSpec('KEY_METADATA').url.endsWith('/nxfpfvsdwbziowkxsxnh/api-keys?reveal=false'));
-  assert.ok(actualRequestSpec('KEY_VALUE',{binding,keyId:binding.decision.secretKeyId}).url.endsWith('/secret-fixture-id?reveal=true'));
-  for(const keyId of ['other-id','../other-project','secret-fixture-id?reveal=true'])assert.throws(()=>actualRequestSpec('KEY_VALUE',{binding,keyId}),/HOLD/);
-  for(const op of ['DELETE_USER','ROTATE_KEY','FIND_OTHER_PROJECTS','GET_URL','SIGN_UP','INVITE'])assert.throws(()=>actualRequestSpec(op),/HOLD/);
+  for(const op of ['KEY_METADATA','KEY_VALUE','DELETE_USER','ROTATE_KEY','FIND_OTHER_PROJECTS','GET_URL','SIGN_UP','INVITE'])assert.throws(()=>actualRequestSpec(op),/HOLD/);
   const role=actualRequestSpec('AUTH_ROLE',{body:{app_metadata:{app_role:'admin',product_id:'judoju-news'}}});
   assert.equal(role.method,'PUT');assert.equal(role.credential,'SECRET');assert.ok(role.url.endsWith('/'+actualOwner.id));
   assert.throws(()=>actualRequestSpec('AUTH_ROLE',{body:{app_metadata:{app_role:'admin',product_id:'judoju-news',extra:true}}}),/HOLD/);
@@ -92,10 +99,35 @@ test('Management/Auth request paths cannot change project, reveal all keys or as
   assert.throws(()=>actualRequestSpec('APPLY_SQL',{binding,body:{query:binding.sql+' '}}),/HOLD/);
   assert.throws(()=>actualRequestSpec('INSPECT',{body:{query:'select * from unrelated',parameters:[]}}),/HOLD/);
   assert.equal(bindStoredActualDecision(template,binding.decision,binding.sql).sqlSha256,binding.sqlSha256);
+  assert.throws(()=>bindStoredActualDecision(template,{...binding.decision,schemaVersion:1},binding.sql),/STORED_DECISION_VERSION/);
 });
-test('Key selection is metadata-only and ambiguous/revealed-secret results stop before private storage',()=>{
-  assert.deepEqual(selectActualKeyMetadata([{name:'fixture public',id:'p',type:'publishable'},{name:'fixture secret',id:'s',type:'secret'}]),{publishableKeyId:'p',secretKeyId:'s'});
-  for(const input of [[],[{id:'p',type:'publishable'},{id:'s',type:'secret'},{id:'s2',type:'secret'}],[{id:'p',type:'publishable'},{id:'s',type:'secret',api_key:'sb_secret_SYNTHETIC_NOT_A_REAL_KEY'}]])assert.throws(()=>selectActualKeyMetadata(input),/HOLD/);
+test('Dashboard input binds the selected names, project, decision and explicit confirmation',()=>{
+  const b=fixture(),input=dashboardInput(b.decisionSha256);
+  assert.deepEqual(validateDashboardKeyInput(input,b),{publishable:fixtureKeys.PUBLISHABLE,secret:fixtureKeys.SECRET});
+  for(const bad of [{operatorConfirmed:false},{projectRef:'other'},{decisionSha256:'f'.repeat(64)},{publishableKeyName:'Other'},{secretKeyName:'Other'},{schemaVersion:1},{source:'batch'}]){
+    assert.throws(()=>validateDashboardKeyInput({...input,...bad},b),/HOLD/);
+  }
+  for(const secretKey of ['',fixtureKeys.PUBLISHABLE,fixtureKeys.SECRET+'\n','sb_secret_partial','sb_secret_********','fixture.example.synthetic_signature']){
+    assert.throws(()=>validateDashboardKeyInput({...input,secretKey},b),/DASHBOARD_KEY_FORMAT/);
+  }
+});
+test('Windows inherited stdin accepts an anonymous pipe and denies a redirected file without reading it',{skip:process.platform!=='win32'},()=>{
+  const operator=new URL('../scripts/admin-preview-actual-setup.mjs',import.meta.url).href;
+  const source=`import {isDashboardInputPipe} from ${JSON.stringify(operator)}; console.log(isDashboardInputPipe(process.stdin));`;
+  const args=['--input-type=module','-e',source];
+  const options={env:controlledEnvironment(),windowsHide:true,timeout:10000,encoding:'utf8'};
+  const pipe=spawnSync(process.execPath,args,{...options,input:'SYNTHETIC_ONLY'});
+  assert.equal(pipe.status,0);assert.equal(pipe.stdout.trim(),'true');
+  const directory=mkdtempSync(path.join(tmpdir(),'judoju-c2-stdin-fixture-'));
+  const file=path.join(directory,'synthetic.txt');
+  writeFileSync(file,'SYNTHETIC_ONLY',{flag:'wx'});
+  try{
+    const fd=openSync(file,'r');
+    try{
+      const redirected=spawnSync(process.execPath,args,{...options,stdio:[fd,'pipe','pipe']});
+      assert.equal(redirected.status,0);assert.equal(redirected.stdout.trim(),'false');
+    }finally{closeSync(fd);}
+  }finally{unlinkSync(file);rmdirSync(directory);}
 });
 test('Auth confirmation uses synthetic module-injected owner and observed server time',async()=>{
   const f=await operatorSimulation(null,{inspectOnly:true});
@@ -124,10 +156,10 @@ test('Native Windows private-file engine proves protected ACL, exclusive writes,
 // Operator simulation: all provider/native responses below are asserted fixtures, never ACTUAL branding or I/O.
 async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenario=null,sessionCount=12,cli=false,hostReceipt=null}={}){
   const root=fileURLToPath(new URL('../',import.meta.url)),files=new Map(),calls=[];
-  const canaries={PAT:'SYNTHETIC_OPERATOR_CANARY',SECRET:'sb_secret_SYNTHETIC_CANARY',PUBLISHABLE:'sb_publishable_SYNTHETIC_CANARY'};
+  const canaries=fixtureKeys;
   const state={auth:false,sql:false,enabled:false,membership:false,consumed:false,host:false,clock:100000,inspections:0,inventoryCalls:0,inventoryResponseBytes:[],cleanupAuth:!['AUTH_ABSENT'].includes(sessionScenario),cleanupApp:!['MISSING_APP','AUTH_ABSENT'].includes(sessionScenario)};
   let ticks=0,freshInspectionTicks=0;
-  const fixturePerformance={now(){if(failure==='BUDGET_BEFORE_KEY'&&state.inspections>=2&&++freshInspectionTicks===2)ticks=300000;return ticks;}};
+  const fixturePerformance={now(){if(failure==='BUDGET_BEFORE_KEY'&&state.inspections>=3&&++freshInspectionTicks===2)ticks=300000;return ticks;}};
   const knownSession='33333333-3333-4333-8333-333333333333',knownHash='9'.repeat(64);
   const knownToken=[Buffer.from(JSON.stringify({alg:'SYNTHETIC'})).toString('base64url'),Buffer.from(JSON.stringify({sub:actualOwner.id,session_id:knownSession})).toString('base64url'),Buffer.from('SYNTHETIC_SIGNATURE_NOT_REAL').toString('base64url')].join('.');
   const many=sessionScenario==='LARGE_SESSIONS';
@@ -192,18 +224,26 @@ async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenari
   const fetcher=async(url,init)=>{
     const body=init.body===undefined?undefined:JSON.parse(init.body);calls.push({kind:'HTTP',url,method:init.method,body});
     const u=new URL(url);assert.ok(['api.supabase.com','nxfpfvsdwbziowkxsxnh.supabase.co'].includes(u.hostname));
+    assert.equal(init.redirect,'error');
     if(u.hostname==='api.supabase.com'){assert.equal(init.headers.Authorization,'Bearer '+canaries.PAT);assert.ok(u.pathname.startsWith('/v1/projects/nxfpfvsdwbziowkxsxnh/'));}
     const answer=data=>new Response(JSON.stringify(data),{status:200});
-    if(u.pathname.endsWith('/api-keys')&&u.search==='?reveal=false')return answer([{name:'fixture public',id:'p',type:'publishable'},{name:'fixture secret',id:'s',type:'secret'}]);
-    if(u.pathname.endsWith('/api-keys/p'))return answer({id:'p',type:'publishable','api_key':canaries.PUBLISHABLE});
-    if(u.pathname.endsWith('/api-keys/s'))return answer({id:'s',type:'secret','api_key':canaries.SECRET});
     if(u.pathname.endsWith('/admin/users/'+actualOwner.id)){
       assert.equal(init.headers.apikey,canaries.SECRET);assert.equal(init.headers.Authorization,undefined);
-      if(init.method==='GET')return answer(user());
+      if(init.method==='GET'){
+        if(failure==='SECRET_REDIRECT')return Response.redirect('https://unrelated.invalid/never',302);
+        if(failure==='SECRET_HTTP_401')return new Response(null,{status:401});
+        return answer(user());
+      }
       assert.equal(init.method,'PUT');assert.deepEqual(body,{app_metadata:{app_role:'admin',product_id:'judoju-news'}});state.auth=true;
       if(failure==='AUTH_UNKNOWN')throw Error(canaries.PAT+canaries.SECRET);return answer(user());
     }
-    if(u.pathname.endsWith('/rpc/m1_public_identity'))return answer({productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',bootstrapId:null,contract:'M1'});
+    if(u.pathname.endsWith('/rpc/m1_public_identity')){
+      assert.equal(init.headers.apikey,canaries.PUBLISHABLE);assert.equal(init.headers.Authorization,undefined);
+      assert.deepEqual(body,{});
+      if(failure==='PUBLISHABLE_REDIRECT')return Response.redirect('https://unrelated.invalid/never',302);
+      if(failure==='PUBLISHABLE_HTTP_401')return new Response(null,{status:401});
+      return answer({productId:failure==='WRONG_IDENTITY'?'other':'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',bootstrapId:null,contract:'M1'});
+    }
     if(u.pathname.endsWith('/rpc/m1_read_admin_session')){assert.equal(init.headers.apikey,canaries.SECRET);return answer(null);}
     if(u.pathname.endsWith('/auth/v1/logout')){
       assert.equal(init.headers.apikey,canaries.PUBLISHABLE);assert.equal(state.enabled,false);
@@ -215,7 +255,20 @@ async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenari
     }
     const query=body?.query??'';
     if(query.includes('function_baseline_drift')){
-      assert.equal(JSON.parse(body.parameters[0]).length,state.sql?178:177);assert.equal(body.parameters[1],syntheticOwner.emailSha256);return answer([baseRow(state.sql)]);
+      assert.equal(JSON.parse(body.parameters[0]).length,state.sql?178:177);assert.equal(body.parameters[1],syntheticOwner.emailSha256);
+      const row=baseRow(state.sql);
+      if(failure==='APPROVAL_CHANGED_BEFORE_INPUT'&&state.inspections===2){
+        const changed=JSON.parse(files.get('approval.json'));
+        changed.confirmationReference='fixture:changed:approval';
+        files.set('approval.json',actualCanonical(changed));
+      }
+      if(failure==='HOSTED_DRIFT_DURING_INPUT'&&state.inspections===3){
+        row.selected_owner_candidates[0].confirmed_at='2026-11-17T19:44:20.000000+00:00';
+      }
+      if(failure==='APPROVAL_EXPIRED_DURING_INPUT'&&state.inspections===3){
+        row.server_observed_at=JSON.parse(files.get('decision.json')).expiresAt;
+      }
+      return answer([row]);
     }
     if(query.includes('create table private.admin_preview_control(')){
       assert.equal(state.auth,true);state.sql=true;state.enabled=true;state.membership=true;
@@ -254,7 +307,13 @@ async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenari
     }
     throw Error('UNEXPECTED_FIXTURE_HTTP');
   };
-  const context=vm.createContext({Buffer,Uint8Array,URL,Response,AbortSignal,fetch:fetcher,console:{log(){throw Error('NO_FIXTURE_LOGGING');}},process:{argv:[],versions:{node:'24.15.0'},env:{}},performance:fixturePerformance});
+  class FixturePipe extends PassThrough {}
+  const stdin=failure==='INPUT_REGULAR_FILE'?new PassThrough():new FixturePipe();
+  if(failure==='INPUT_TTY')stdin.isTTY=true;
+  const fixtureSetTimeout=failure==='INPUT_TIMEOUT'?(callback=>setTimeout(callback,1)):setTimeout;
+  const context=vm.createContext({Buffer,Uint8Array,URL,Response,AbortSignal,AbortController,TextDecoder,fetch:fetcher,
+    setTimeout:fixtureSetTimeout,clearTimeout,console:{log(){throw Error('NO_FIXTURE_LOGGING');}},
+    process:{argv:[],versions:{node:'24.15.0'},env:{},stdin},performance:fixturePerformance});
   context.nativeBridge=(op,p,options)=>JSON.stringify(native(op,JSON.parse(JSON.stringify(p)),options));
   const nativeFn=vm.runInContext('(op,p,options)=>JSON.parse(nativeBridge(op,p,options))',context);
   const admin=await import('../apps/admin/lib/preview-admin-config.mjs');const {editorFunctions,serverFunctions}=admin;
@@ -267,6 +326,7 @@ async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenari
       if(id==='config')return synthetic(id,{previewOwnerIdentity:vm.runInContext('()=>Object.freeze('+JSON.stringify(syntheticOwner)+')',context),previewProject:admin.previewProject,previewApi:admin.previewApi,editorFunctions:vm.runInContext(JSON.stringify(admin.editorFunctions),context),serverFunctions:vm.runInContext(JSON.stringify(admin.serverFunctions),context),uuid:admin.uuid});
       if(id==='policy')return synthetic(id,{assertEnvironmentBoundary:()=>{}});
       if(id==='local')return synthetic(id,{unseal});
+      if(id==='node:net')return synthetic(id,{Socket:FixturePipe});
       if(id==='node:fs')return synthetic(id,{readFileSync:p=>{assert.equal(path.resolve(p),path.join(root,'supabase/cloud/admin-preview-dev/activation-template.sql'));return template;},realpathSync:p=>p,lstatSync:()=>({isSymbolicLink:()=>false})});
       if(id.startsWith('node:'))return synthetic(id,await import(id));
       const m=new vm.SourceTextModule(readFileSync(id,'utf8'),{context,identifier:id,initializeImportMeta(meta){meta.url=pathToFileURL(id).href;}});
@@ -282,20 +342,45 @@ async function operatorSimulation(failure=null,{inspectOnly=false,sessionScenari
   }
   const main=await load(path.join(root,'scripts/admin-preview-actual-setup.mjs'));await main.evaluate();
   if(inspectOnly)return {validateOwner:(raw,opts,undefinedSso=false)=>{const args=vm.runInContext('JSON.parse('+JSON.stringify(JSON.stringify([raw,opts]))+')',context);if(undefinedSso)Object.defineProperty(args[0],'is_sso_user',{value:undefined,enumerable:true});return main.namespace.validateAuthOwner(...args);}};
-  const prepared=await main.namespace.runActualOperator(vm.runInContext('["prepare","'+ 'b'.repeat(64)+'"]',context));
+  const args=['prepare','b'.repeat(64),selection.publishableKeyName,selection.secretKeyName];
+  const prepared=await main.namespace.runActualOperator(args);
   assert.equal(prepared.status,'AWAITING_EXACT_USER_APPROVAL');
-  assert.equal(calls.filter(x=>x.kind==='HTTP'&&x.url.endsWith('reveal=true')).length,0);
+  assert.equal(calls.filter(x=>x.kind==='HTTP'&&x.url.includes('/api-keys')).length,0);
   assert.equal(state.auth,false);assert.equal(state.sql,false);
   const d=JSON.parse(files.get('decision.json'));
-  files.set('approval.json',actualCanonical({schemaVersion:1,decisionSha256:actualHash(actualCanonical(d)),sqlSha256:actualHash(files.get('rendered.sql')),implementationManifestSha256:'b'.repeat(64),ownerUserId:actualOwner.id,confirmationReference:'fixture:user-action:accepted',confirmedAt:'2026-11-18T01:00:01.000Z'}));
+  files.set('approval.json',actualCanonical({schemaVersion:actualDecisionVersion,decisionSha256:actualHash(actualCanonical(d)),sqlSha256:actualHash(files.get('rendered.sql')),implementationManifestSha256:'b'.repeat(64),ownerUserId:actualOwner.id,confirmationReference:'fixture:user-action:accepted',confirmedAt:'2026-11-18T01:00:01.000Z'}));
+  const output=[];
+  context.console={log(value){
+    assert.equal(typeof value,'string');
+    output.push(value);
+    const message=JSON.parse(value);
+    if(message.status!=='AWAITING_DASHBOARD_KEYS')return;
+    assert.equal(message.decisionSha256,prepared.decisionSha256);
+    assert.equal(message.projectRef,prepared.projectRef);
+    assert.equal(message.keyAcquisition,dashboardKeyMode);
+    assert.equal(files.has('effect-input-intent.json'),true);
+    calls.push({kind:'INPUT'});
+    if(failure==='INPUT_TIMEOUT')return;
+    if(failure==='INPUT_CANCEL')return stdin.end();
+    if(failure==='INPUT_OVERSIZED')return stdin.end(Buffer.alloc(2049,65));
+    if(failure==='APPROVAL_CHANGED_DURING_INPUT'){
+      const changed=JSON.parse(files.get('approval.json'));changed.confirmationReference='fixture:changed:approval';
+      files.set('approval.json',actualCanonical(changed));
+    }
+    const input=dashboardInput(prepared.decisionSha256);
+    if(failure==='INPUT_UNCONFIRMED')input.operatorConfirmed=false;
+    stdin.end(Buffer.from(JSON.stringify(input)));
+  }};
   let result,cliCode=null;
   if(cli){
-    const output=[];context.console={log:value=>{assert.equal(typeof value,'string');output.push(value);}};
     context.process.argv=['C:/Program Files/nodejs/node.exe',path.join(root,'scripts/admin-preview-actual-setup.mjs'),'apply'];
     const entry=new vm.SourceTextModule(readFileSync(path.join(root,'scripts/admin-preview-actual-setup.mjs'),'utf8'),{context,identifier:path.join(root,'scripts/admin-preview-actual-setup.mjs'),initializeImportMeta(meta){meta.url=pathToFileURL(path.join(root,'scripts/admin-preview-actual-setup.mjs')).href;}});
-    await entry.link(resolveImport);await entry.evaluate();assert.equal(output.length,1);result=JSON.parse(output[0]);cliCode=context.process.exitCode??0;
+    await entry.link(resolveImport);await entry.evaluate();assert.ok(output.length===1||output.length===2);result=JSON.parse(output.at(-1));cliCode=context.process.exitCode??0;
   }else result=await main.namespace.runActualOperator(vm.runInContext('["apply"]',context));
-  for(const canary of Object.values(canaries))assert.ok(!JSON.stringify(result).includes(canary));
+  for(const canary of [...Object.values(canaries),syntheticEmail]){
+    assert.ok(!JSON.stringify(result).includes(canary));
+    assert.ok(output.every(line=>!line.includes(canary)));
+  }
   for(const [leaf,value]of files)if(leaf!=='admin-server.json')for(const canary of Object.values(canaries))assert.ok(!value.includes(canary));
   return {state,files,calls,result,cliCode,again:()=>main.namespace.runActualOperator(vm.runInContext('["apply"]',context))};
 }
@@ -303,7 +388,35 @@ test('Operator simulation preserves approval-first key reads and ends with fence
   const f=await operatorSimulation();assert.equal(f.result.status,'DEV_HOST_CLOSED');assert.equal(f.state.enabled,false);assert.equal(f.state.membership,false);
   assert.equal(f.files.has('admin-server.json'),false);assert.equal(f.files.has('launch-consumed.json'),true);
   assert.equal(f.calls.filter(x=>x.kind==='HTTP'&&x.method==='PUT').length,1);
+  const input=f.calls.findIndex(x=>x.kind==='INPUT');
+  const publicCheck=f.calls.findIndex(x=>x.url?.endsWith('/rpc/m1_public_identity'));
+  const ownerCheck=f.calls.findIndex(x=>x.method==='GET'&&x.url?.includes('/auth/v1/admin/users/'));
+  const write=f.calls.findIndex(x=>x.method==='PUT');
+  assert.ok(input>=0&&input<publicCheck&&publicCheck<ownerCheck&&ownerCheck<write);
+  assert.equal(f.calls.some(x=>x.url?.includes('/api-keys')),false);
   await assert.rejects(f.again(),/PREVIOUS_EFFECT_OR_UNKNOWN/);
+});
+test('Dashboard cancellation, input drift and gateway denial stop before privileged effects',async()=>{
+  const failures=['FUTURE_APPROVAL','INPUT_TTY','INPUT_REGULAR_FILE','INPUT_TIMEOUT','INPUT_CANCEL','INPUT_OVERSIZED','INPUT_UNCONFIRMED',
+    'APPROVAL_CHANGED_BEFORE_INPUT','APPROVAL_CHANGED_DURING_INPUT','HOSTED_DRIFT_DURING_INPUT','APPROVAL_EXPIRED_DURING_INPUT',
+    'WRONG_IDENTITY','PUBLISHABLE_HTTP_401','SECRET_HTTP_401','PUBLISHABLE_REDIRECT','SECRET_REDIRECT'];
+  for(const failure of failures){
+    const f=await operatorSimulation(failure);
+    assert.equal(f.result.status,'HOLD',failure);
+    assert.equal(f.state.auth,false,failure);
+    assert.equal(f.state.sql,false,failure);
+    assert.equal(f.state.host,false,failure);
+    assert.equal(f.files.has('admin-server.json'),false,failure);
+    assert.equal(f.calls.some(x=>x.url?.includes('/api-keys')||x.url?.includes('unrelated.invalid')),false,failure);
+    if(['FUTURE_APPROVAL','INPUT_TTY','INPUT_REGULAR_FILE','APPROVAL_CHANGED_BEFORE_INPUT'].includes(failure)){
+      assert.equal(f.calls.some(x=>x.kind==='INPUT'),false,failure);
+    }
+    if(['HOSTED_DRIFT_DURING_INPUT','APPROVAL_EXPIRED_DURING_INPUT'].includes(failure)){
+      assert.equal(f.calls.filter(x=>x.kind==='INPUT').length,1,failure);
+      assert.equal(f.calls.some(x=>x.url?.endsWith('/rpc/m1_public_identity')||x.url?.includes('/auth/v1/admin/users/')),false,failure);
+    }
+    await assert.rejects(f.again(),/PREVIOUS_EFFECT_OR_UNKNOWN/);
+  }
 });
 test('Unknown Auth, SQL, private write or launch outcomes never retry, invert Auth or start another host',async()=>{
   for(const failure of ['AUTH_UNKNOWN','SQL_UNKNOWN','CONFIG_UNKNOWN','LAUNCH_UNKNOWN']){
@@ -333,18 +446,21 @@ test('Cross-phase and persisted journal substitutions, gaps and duplicate frames
  }
  assert.throws(()=>validateLoginJournal([e,e]),/DUPLICATE_FRAME/);assert.throws(()=>validateLoginJournal([open]),/SEQUENCE/);
 });
-test('Metadata whitelist validates the whole list before returning any selection',()=>{
- const pair=[{id:'p',name:'fixture public',type:'publishable'},{id:'s',name:'fixture secret',type:'secret'}];
- const full=pair.map(x=>({...x,api_key:null,prefix:'sb_'+x.type+'_',description:null,hash:'a'.repeat(64),secret_jwt_template:null,inserted_at:'2026-11-18T00:00:00.000Z',updated_at:null}));
- assert.equal(selectActualKeyMetadata(full).secretKeyId,'s');
- assert.equal(selectActualKeyMetadata([...pair,{type:'legacy',name:'anon',id:null,api_key:null}]).publishableKeyId,'p');
- for(const mutation of [{api_key:'***'},{api_key:'sb_secret_SYNTHETIC_NOT_A_REAL_KEY'},{description:'sb_secret_SYNTHETIC_NOT_A_REAL_KEY'},{extra:'sb_secret_SYNTHETIC_NOT_A_REAL_KEY'},{secret_jwt_template:{}},{hash:'bad'},{type:null},{id:null},{name:''},{name:'bad\nname'},{prefix:'sb_secret_bad'},{inserted_at:'2026-02-30T00:00:00.000Z'}])assert.throws(()=>selectActualKeyMetadata([pair[0],{...pair[1],...mutation}]),/HOLD/);
- assert.throws(()=>selectActualKeyMetadata([...pair,{type:'legacy',name:'service_role',api_key:'eyJleGFtcGxl.eyJleGFtcGxl.c3ludGhldGljU2lnbmF0dXJl'}]),/HOLD/);
- let calls=0;const getter={...pair[1]};Object.defineProperty(getter,'api_key',{enumerable:true,get(){calls++;return null;}});assert.throws(()=>selectActualKeyMetadata([pair[0],getter]),/HOLD/);assert.equal(calls,0);
+test('Dashboard selection accepts exact labels and never incorporates a pasted credential or legacy ID into the decision',()=>{
+ assert.deepEqual(validateDashboardKeySelection(selection),selection);
+ for(const secretKeyName of ['',' bad','bad\nname',fixtureKeys.SECRET,'sbp_fcTEST_TOKEN','eyJleGFtcGxl.eyJleGFtcGxl.c3ludGhldGljU2lnbmF0dXJl']){
+  assert.throws(()=>validateDashboardKeySelection({...selection,secretKeyName}),/HOLD/);
+ }
+ assert.throws(()=>validateDashboardKeySelection({...selection,secretKeyId:'old-id'}),/HOLD/);
+ for(const key of ['publishableKeyName','secretKeyName'])for(const material of [fixtureKeys.PUBLISHABLE,fixtureKeys.SECRET,'sbp_fcTEST_TOKEN','eyJleGFtcGxl.eyJleGFtcGxl.c3ludGhldGljU2lnbmF0dXJl']){
+  assert.throws(()=>validateDashboardKeySelection({...selection,[key]:'Dashboard '+material}),/DASHBOARD_SELECTION/);
+ }
+ let calls=0;const getter={...selection};Object.defineProperty(getter,'secretKeyName',{enumerable:true,get(){calls++;return 'bad';}});
+ assert.throws(()=>validateDashboardKeySelection(getter),/HOLD/);assert.equal(calls,0);
 });
 
 test('Fresh approval and strict SQL floor plus full setup reserve precede credential effects',()=>{
- const base=fixture(),approval={schemaVersion:1,decisionSha256:base.decisionSha256,sqlSha256:base.sqlSha256,implementationManifestSha256:base.decision.implementationManifestSha256,ownerUserId:actualOwner.id,confirmationReference:'fixture:user-action:timing',confirmedAt:'2026-11-18T01:00:01.000Z'};
+ const base=fixture(),approval={schemaVersion:actualDecisionVersion,decisionSha256:base.decisionSha256,sqlSha256:base.sqlSha256,implementationManifestSha256:base.decision.implementationManifestSha256,ownerUserId:actualOwner.id,confirmationReference:'fixture:user-action:timing',confirmedAt:'2026-11-18T01:00:01.000Z'};
  assert.throws(()=>createActualSetupBudget(base,approval,'2026-11-18T01:00:00.000Z',1000,1100),/APPROVAL_FUTURE/);
  for(const left of [600000,1200000,1800000,2105000]){
   const b={...base,decision:{...base.decision,expiresAt:new Date(Date.parse('2026-11-18T01:00:02.000Z')+left+100).toISOString()}};
@@ -404,7 +520,7 @@ test('Advancing setup clock before key, Auth or SQL dispatch preserves NOT_ATTEM
   const f=await operatorSimulation(failure);assert.equal(f.result.status,'HOLD',failure);
   assert.equal(f.state.sql,false);assert.equal(f.state.host,false);assert.equal(f.result.components.sql,'NOT_ATTEMPTED');assert.equal(f.result.components.fence,'NOT_ATTEMPTED');
   assert.equal(f.calls.filter(x=>x.kind==='HTTP'&&x.body?.query?.startsWith('with fence_lock')).length,0);
-  if(failure==='BUDGET_BEFORE_KEY'){assert.equal(f.result.components.keys.publishable,'NOT_ATTEMPTED');assert.equal(f.calls.filter(x=>x.kind==='HTTP'&&x.url.endsWith('reveal=true')).length,0);}
+  if(failure==='BUDGET_BEFORE_KEY'){assert.equal(f.result.components.keys.publishable,'NOT_ATTEMPTED');assert.equal(f.calls.filter(x=>x.kind==='HTTP'&&x.url.endsWith('/rpc/m1_public_identity')).length,0);}
   if(failure==='BUDGET_AFTER_AUTH_INTENT'){assert.equal(f.result.components.auth,'NOT_ATTEMPTED');assert.equal(f.state.auth,false);}
   if(failure==='BUDGET_AFTER_SQL_INTENT'){assert.equal(f.result.components.auth,'ACKNOWLEDGED');assert.equal(f.state.auth,true);}
  }
@@ -582,7 +698,7 @@ test('ACTUAL loader rejects returned config bytes that differ from the launch di
  const {editorFunctions,serverFunctions}=await import('../apps/admin/lib/preview-admin-config.mjs');
  const {validatePreviewActivationProof}=await import('../apps/admin/lib/preview-activation-proof.mjs');
  const expected={ownerUserId:actualOwner.id,fixture:false,activationDecisionSha256:b.decisionSha256,implementationManifestSha256:b.decision.implementationManifestSha256,sqlSha256:b.sqlSha256};
- const approval={schemaVersion:1,ownerUserId:actualOwner.id,decisionSha256:b.decisionSha256,sqlSha256:b.sqlSha256,implementationManifestSha256:b.decision.implementationManifestSha256,confirmationReference:'fixture:action:accepted',confirmedAt:'2026-11-18T01:00:01.000Z'};
+ const approval={schemaVersion:actualDecisionVersion,ownerUserId:actualOwner.id,decisionSha256:b.decisionSha256,sqlSha256:b.sqlSha256,implementationManifestSha256:b.decision.implementationManifestSha256,confirmationReference:'fixture:action:accepted',confirmedAt:'2026-11-18T01:00:01.000Z'};
  const proof={schemaVersion:1,stage:'CLOUD11A',state:'ADMIN_CONNECTION_ACTIVATED',productId:'judoju-news',projectRef:'nxfpfvsdwbziowkxsxnh',organizationRef:'qfzgicohgpuogehdyzfx',ownerUserId:actualOwner.id,fixture:false,approvedAt:approval.confirmedAt,expiresAt:b.decision.expiresAt,activationDecisionSha256:b.decisionSha256,implementationManifestSha256:b.decision.implementationManifestSha256,sqlSha256:b.sqlSha256,M2:false,realPublicationEnabled:false,workerEnabled:false,editorFunctions,serverFunctions};
  const proofBytes=Buffer.from(actualCanonical(proof));
  const config={schemaVersion:1,productId:'judoju-news',environment:'preview',sampleKind:'SYNTHETIC',projectRef:'nxfpfvsdwbziowkxsxnh',apiUrl:'https://nxfpfvsdwbziowkxsxnh.supabase.co',origin:'http://127.0.0.2:62333',ownerUserId:actualOwner.id,publishableKey:'sb_publishable_SYNTHETIC_NOT_REAL',secretKey:'sb_secret_SYNTHETIC_NOT_REAL',encryptionKey:'d'.repeat(64),proofSha256:actualHash(proofBytes),fixture:false};
@@ -594,7 +710,8 @@ test('ACTUAL loader rejects returned config bytes that differ from the launch di
   const context=vm.createContext({Buffer,performance});const clone=x=>JSON.parse(JSON.stringify(x));
   const stubs={
    'boundary':{nativeBoundary(){throw Error('NO_NATIVE');},nativeActualBoundary(op){assert.equal(op,'ReadActual');return clone(receipt);}},
-   'lifecycle':{actualOwner,actualCanonical:x=>actualCanonical(clone(x)),actualHash,checkActualApproval:(a,v)=>checkActualApproval(clone(a),clone(v))},
+   'lifecycle':{actualOwner,actualDecisionVersion,validateDashboardKeySelection:x=>validateDashboardKeySelection(clone(x)),
+    actualCanonical:x=>actualCanonical(clone(x)),actualHash,checkActualApproval:(a,v)=>checkActualApproval(clone(a),clone(v))},
    'proof':{validatePreviewActivationProof:(p,e,t)=>validatePreviewActivationProof(clone(p),clone(e),t)},
    'local':{AdminError},
    'node:fs':{readFileSync(){throw Error('NO_PRIVATE_IO');},lstatSync(){throw Error('NO_PRIVATE_IO');},realpathSync(){throw Error('NO_PRIVATE_IO');}}

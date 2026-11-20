@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {nativeBoundary,nativeActualBoundary} from './preview-file-boundary.mjs';
 import {validatePreviewActivationProof} from './preview-activation-proof.mjs';
-import {actualOwner,actualCanonical,actualHash,checkActualApproval} from './preview-actual-lifecycle.mjs';
+import {actualOwner,actualCanonical,actualHash,checkActualApproval,actualDecisionVersion,validateDashboardKeySelection} from './preview-actual-lifecycle.mjs';
 import {AdminError} from './runtime-local.mjs';
 // Hoisted data-only getter: safe from either side of the config/lifecycle import cycle.
 export function previewOwnerIdentity(){return Object.freeze({id:'e85049b7-7306-42ad-ac16-6c4bf5e82212',emailSha256:'7bd88947e82eccad28360716d82f516c01b90733dd82ba1fe3bce5ba50c36f8d',createdAt:'2026-11-17T19:44:19.125036+00:00'});}
@@ -74,10 +74,11 @@ export function loadPreviewAdminConfig(){
       ||Date.parse(launch.expiresAt)!==r.authoritativeNow+r.remainingMs)fail();
     const expected=JSON.parse(files['activation-expected.json']),c=JSON.parse(files['admin-server.json']);
     const d=JSON.parse(files['decision.json']),approval=JSON.parse(files['approval.json']);
-    const decisionKeys=['schemaVersion','productId','projectRef','organizationRef','ownerUserId','ownerEmailSha256','effectKey','expiresAt','implementationManifestSha256','publishableKeyId','secretKeyId','prestateSha256','observedAt','launchEffect','templateSha256','sqlPreimageSha256'];
-    if(Object.keys(d).sort().join('|')!==decisionKeys.sort().join('|')||d.schemaVersion!==1||d.productId!=='judoju-news'||d.projectRef!==previewProject
+    const decisionKeys=['schemaVersion','productId','projectRef','organizationRef','ownerUserId','ownerEmailSha256','effectKey','expiresAt','implementationManifestSha256','keyAcquisition','publishableKeyName','secretKeyName','prestateSha256','observedAt','launchEffect','templateSha256','sqlPreimageSha256'];
+    if(Object.keys(d).sort().join('|')!==decisionKeys.sort().join('|')||d.schemaVersion!==actualDecisionVersion||d.productId!=='judoju-news'||d.projectRef!==previewProject
       ||d.organizationRef!=='qfzgicohgpuogehdyzfx'||d.ownerUserId!==actualOwner.id||d.ownerEmailSha256!==actualOwner.emailSha256
       ||d.effectKey!==d.launchEffect||d.launchEffect!==r.launchEffect||!uuid.test(d.effectKey??''))fail();
+    validateDashboardKeySelection({keyAcquisition:d.keyAcquisition,publishableKeyName:d.publishableKeyName,secretKeyName:d.secretKeyName});
     const decisionSha256=actualHash(actualCanonical(d)),sql=files['rendered.sql'].toString('utf8'),sqlSha256=actualHash(files['rendered.sql']);
     if(launch.decisionSha256!==decisionSha256)fail();
     const sentinel="'"+decisionSha256+"'";

@@ -285,7 +285,7 @@ public static class JudojuAdminNative {
   const int ActualMaxJournalFiles=4*ActualMaxLoginGenerations;
   const int ActualMaxInventoryObservations=3*ActualMaxLoginGenerations;
   static readonly string[] ActualOperationLeaves={"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql","launch-consumed.json",
-    "effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"};
+    "effect-input-intent.json","effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"};
   static readonly string[] ActualInternalLeaves={"actual-owner.json","journal.lock","host-runtime.json","effect-secret-cleanup.json"};
   static int ActualStatusFileLimit {get{return ActualOperationLeaves.Length+ActualInternalLeaves.Length+SecretLeaves.Length
     +ActualMaxJournalFiles+2*(ActualMaxLoginGenerations+ActualMaxInventoryObservations);}}

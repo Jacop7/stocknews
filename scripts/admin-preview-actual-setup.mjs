@@ -3,10 +3,13 @@ import {readFileSync,realpathSync,lstatSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {randomBytes,randomUUID} from 'node:crypto';
+import {Socket} from 'node:net';
+import {addAbortSignal} from 'node:stream';
 import {nativeActualBoundary,assertOwnedInvocation} from '../apps/admin/lib/preview-file-boundary.mjs';
 import {previewApi,previewProject,editorFunctions,serverFunctions} from '../apps/admin/lib/preview-admin-config.mjs';
 import {actualOwner,actualCanonical,actualHash,actualTime,copyActualData,validateActualOwner,makeActualDecision,checkActualApproval,
-  launchStatement,validateLaunchAck,createActualSetupBudget,actualSetupAllowance,validateLoginJournal} from '../apps/admin/lib/preview-actual-lifecycle.mjs';
+  launchStatement,validateLaunchAck,createActualSetupBudget,actualSetupAllowance,validateLoginJournal,
+  dashboardKeyMode,actualDecisionVersion,actualLimits,validateDashboardKeySelection,validateDashboardKeyInput} from '../apps/admin/lib/preview-actual-lifecycle.mjs';
 import {renderAdminPreviewSql} from './admin-preview-sql.mjs';
 import {assertEnvironmentBoundary} from './admin-preview-policy.mjs';
 import {unseal} from '../apps/admin/lib/runtime-local.mjs';
@@ -14,7 +17,6 @@ import {unseal} from '../apps/admin/lib/runtime-local.mjs';
 const management='https://api.supabase.com/v1/projects/'+previewProject;
 const sourceRoot=fileURLToPath(new URL('../',import.meta.url));
 const hold=code=>{throw Error('ADMIN_C2_HOLD:'+code);};
-const identifier=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
 const parse=b=>JSON.parse(b.toString('utf8'));
 // A legal DB ciphertext can contain 32768 characters requiring six JSON bytes
 // each. One row plus fixed UUID/hash/boolean fields fits the 262144-byte cap.
@@ -24,18 +26,15 @@ function setupNative(op,payload,budget,onDispatch=()=>{}){const options=budget?{
 function nativeWrite(leaf,bytes,budget=null,onDispatch=()=>{}){return setupNative('WriteActualFile',{leaf,bytes:Buffer.from(bytes).toString('base64')},budget,onDispatch);}
 const writeJson=(name,data,budget=null)=>nativeWrite(name,actualCanonical(data),budget);
 function templateText(){const p=path.join(sourceRoot,'supabase/cloud/admin-preview-dev/activation-template.sql');if(lstatSync(p).isSymbolicLink()||realpathSync(p)!==p)hold('TEMPLATE_PATH');return readFileSync(p,'utf8');}
-function argumentsFromDecision(d){return {effectKey:d.effectKey,expiresAt:d.expiresAt,implementationManifestSha256:d.implementationManifestSha256,publishableKeyId:d.publishableKeyId,secretKeyId:d.secretKeyId,prestateSha256:d.prestateSha256,observedAt:d.observedAt};}
 export function bindStoredActualDecision(template,raw,sql){
-  const b=makeActualDecision(template,argumentsFromDecision(raw),renderAdminPreviewSql);
+  if(raw.schemaVersion!==actualDecisionVersion)hold('STORED_DECISION_VERSION');
+  const {effectKey,expiresAt,implementationManifestSha256,keyAcquisition,publishableKeyName,secretKeyName,prestateSha256,observedAt}=raw;
+  const b=makeActualDecision(template,{effectKey,expiresAt,implementationManifestSha256,keyAcquisition,publishableKeyName,secretKeyName,prestateSha256,observedAt},renderAdminPreviewSql);
   if(actualCanonical(b.decision)!==actualCanonical(raw)||b.sql!==sql)hold('STORED_DECISION');return b;
 }
-export function actualRequestSpec(op,{binding,keyId,body}={}){
+export function actualRequestSpec(op,{binding,body}={}){
   let url,method='POST',credential='PAT';
-  if(op==='KEY_METADATA'){url=management+'/api-keys?reveal=false';method='GET';}
-  else if(op==='KEY_VALUE'){
-    if(!binding||!identifier(keyId)||![binding.decision.publishableKeyId,binding.decision.secretKeyId].includes(keyId))hold('KEY_ID');
-    url=management+'/api-keys/'+keyId+'?reveal=true';method='GET';
-  }else if(op==='INSPECT'){
+  if(op==='INSPECT'){
     if(![inspectSql,activatedInspectSql()].includes(body?.query)||!Array.isArray(body.parameters)||body.parameters.length!==2||body.parameters[1]!==actualOwner.emailSha256)hold('INSPECT_BODY');
     url=management+'/database/query/read-only';
   }
@@ -87,39 +86,6 @@ async function request(op,values,credentials,onDispatch=()=>{}){
     finally{try{void Promise.resolve(reader.cancel()).catch(()=>{});}catch{}reader.releaseLock();}
     return JSON.parse(Buffer.concat(chunks,total).toString('utf8'));
   }catch(error){if(error instanceof Error&&/^ADMIN_C2_HOLD:HTTP_[1-5][0-9]{2}$/.test(error.message))throw error;hold('REQUEST_UNCONFIRMED');} // Never include response bodies, URLs with data, tokens or provider error objects.
-}
-export function selectActualKeyMetadata(raw){
-  const data=copyActualData(raw);
-  if(!Array.isArray(data)||data.length>32)hold('KEY_METADATA_UNSUPPORTED');
-  const fields=['api_key','id','type','prefix','name','description','hash','secret_jwt_template','inserted_at','updated_at'];
-  const credential=/(?:sb_(?:secret|publishable)_[A-Za-z0-9_-]+|sbp_[A-Za-z0-9_-]+|[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{16,})/;
-  function scan(value,field=''){
-    if(typeof value==='string'){
-      if(field==='prefix'&&['sb_publishable_','sb_secret_'].includes(value))return;
-      if(credential.test(value))hold('UNEXPECTED_KEY_DISCLOSURE');
-    }else if(value&&typeof value==='object')for(const [k,v]of Object.entries(value))scan(v,k);
-  }
-  scan(data);
-  const text=(v,min,max)=>typeof v==='string'&&v.isWellFormed()&&!/\p{Cc}/u.test(v)&&Array.from(v).length>=min&&Array.from(v).length<=max;
-  const rows=[],ids=new Set();
-  for(const x of data){
-    if(!x||Array.isArray(x)||Object.keys(x).some(k=>!fields.includes(k))||!['publishable','secret','legacy'].includes(x.type)||!text(x.name,1,120))hold('KEY_METADATA_UNSUPPORTED');
-    const modern=x.type!=='legacy';
-    if(modern?!identifier(x.id):x.id!=null&&!['anon','service_role'].includes(x.id))hold('KEY_METADATA_UNSUPPORTED');
-    if(x.id!=null){if(ids.has(x.id))hold('KEY_METADATA_DUPLICATE');ids.add(x.id);}
-    for(const k of ['api_key','secret_jwt_template'])if(Object.hasOwn(x,k)&&x[k]!==null)hold('KEY_METADATA_UNSUPPORTED');
-    if(x.prefix!=null&&x.prefix!==(modern?'sb_'+x.type+'_':null))hold('KEY_METADATA_UNSUPPORTED');
-    if(x.description!=null&&!text(x.description,0,240)||x.hash!=null&&(typeof x.hash!=='string'||!/^[0-9a-f]{64}$/.test(x.hash)))hold('KEY_METADATA_UNSUPPORTED');
-    for(const k of ['inserted_at','updated_at'])if(x[k]!=null)actualTime(x[k]);
-    if(modern)rows.push({id:x.id,type:x.type});
-  }
-  const p=rows.filter(x=>x.type==='publishable'),s=rows.filter(x=>x.type==='secret');
-  if(p.length!==1||s.length!==1||p[0].id===s[0].id)hold('KEY_SELECTION_AMBIGUOUS');
-  return Object.freeze({publishableKeyId:p[0].id,secretKeyId:s[0].id});
-}
-function selectedKey(raw,id,type){
-  if(!raw||raw.id!==id||raw.type!==type||typeof raw.api_key!=='string'||raw.api_key.length>4096
-    ||!(type==='publishable'?/^sb_publishable_[A-Za-z0-9_-]+$/:/^sb_secret_[A-Za-z0-9_-]+$/).test(raw.api_key))hold('KEY_VALUE');return raw.api_key;
 }
 export function validateAuthOwner(raw,{roleApplied=false,serverTime,ownerObservation}={}){
   // Supabase Auth hides IsSSOUser from JSON (json:"-"); current read-only DB identity is authoritative.
@@ -297,14 +263,57 @@ function credentials(){
   const r=nativeActualBoundary('ReadOperatorToken',{});const token=Buffer.from(r.bytes,'base64').toString('utf8').trim();
   if(!token||token.length>8192||!/^[\x21-\x7e]+$/.test(token))hold('OPERATOR_TOKEN');return {PAT:token};
 }
-async function prepare(manifest){
+async function prepare(manifest,publishableKeyName,secretKeyName){
   if(!/^[0-9a-f]{64}$/.test(manifest??''))hold('IMPLEMENTATION_MANIFEST');
+  const selection=validateDashboardKeySelection({keyAcquisition:dashboardKeyMode,publishableKeyName,secretKeyName});
   const c=credentials(),template=templateText();
-  const state=await inspect(c,template),keys=selectActualKeyMetadata(await request('KEY_METADATA',{},c));
-  const b=makeActualDecision(template,{observedAt:state.observedAt,prestateSha256:state.prestateSha256,...keys,effectKey:randomUUID(),implementationManifestSha256:manifest,expiresAt:new Date(Date.parse(state.observedAt)+7200000).toISOString()},renderAdminPreviewSql);
+  const state=await inspect(c,template);
+  const b=makeActualDecision(template,{observedAt:state.observedAt,prestateSha256:state.prestateSha256,...selection,effectKey:randomUUID(),implementationManifestSha256:manifest,expiresAt:new Date(Date.parse(state.observedAt)+7200000).toISOString()},renderAdminPreviewSql);
   nativeActualBoundary('CreateActual',{});writeJson('decision.json',b.decision);nativeWrite('rendered.sql',b.sql);
   return {status:'AWAITING_EXACT_USER_APPROVAL',decisionSha256:b.decisionSha256,sqlSha256:b.sqlSha256,implementationManifestSha256:manifest,
-    ownerUserId:actualOwner.id,projectRef:previewProject,expiresAt:b.decision.expiresAt,...keys,actualKeyValuesRead:0,authWrites:0,sqlWrites:0};
+    ownerUserId:actualOwner.id,projectRef:previewProject,expiresAt:b.decision.expiresAt,...selection,actualKeyValuesRead:0,authWrites:0,sqlWrites:0};
+}
+export function isDashboardInputPipe(input){
+  // On Node/Windows a redirected file is an fs.ReadStream. Anonymous/named
+  // pipes use net.Socket without a TCP peer. The launcher owns the writer.
+  return input instanceof Socket && input.readable && !input.isTTY
+    && input.remoteAddress===undefined && input.remoteFamily===undefined && input.remotePort===undefined;
+}
+async function readDashboardKeys(binding,timeoutMs){
+  const input=process.stdin;
+  if(!isDashboardInputPipe(input)||!Number.isSafeInteger(timeoutMs)||timeoutMs<=0)hold('DASHBOARD_INPUT_CHANNEL');
+  const chunks=[];
+  let size=0,bytes;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    addAbortSignal(controller.signal,input);
+    const {keyAcquisition,publishableKeyName,secretKeyName}=binding.decision;
+    console.log(JSON.stringify({status:'AWAITING_DASHBOARD_KEYS',schemaVersion:actualDecisionVersion,
+      projectRef:previewProject,decisionSha256:binding.decisionSha256,keyAcquisition,publishableKeyName,secretKeyName}));
+    for await(const chunk of input){
+      if(!Buffer.isBuffer(chunk))hold('DASHBOARD_INPUT_FORMAT');
+      chunks.push(chunk);
+      size+=chunk.length;
+      if(size>2048||chunks.length>64)hold('DASHBOARD_INPUT_SIZE');
+    }
+    if(size===0)hold('DASHBOARD_INPUT_CANCELLED');
+    bytes=Buffer.concat(chunks,size);
+    return validateDashboardKeyInput(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)),binding);
+  }catch(error){
+    if(controller.signal.aborted)hold('DASHBOARD_INPUT_TIMEOUT');
+    const code=operatorFailureCode(error);
+    hold(code==='UNCONFIRMED'?'DASHBOARD_INPUT_FORMAT':code);
+  }finally{
+    clearTimeout(timer);
+    bytes?.fill(0);
+    for(const chunk of chunks)chunk.fill(0);
+    input.destroy();
+  }
+}
+function requirePublicIdentity(identity){
+  if(identity?.productId!=='judoju-news'||identity.environment!=='preview'||identity.sampleKind!=='SYNTHETIC'
+    ||identity.bootstrapId!==null||identity.contract!=='M1')hold('PUBLIC_IDENTITY');
 }
 const secretLeaves=['admin-server.json','activation-proof.json','activation-expected.json'];
 function secretCreationAck(raw,leaf,bytes,rootId){
@@ -324,30 +333,56 @@ function operatorFailureCode(error){const match=/^(?:ADMIN_C2_HOLD|ADMIN_ACTUAL_
 async function apply(){
   const template=templateText(),d=parse(nativeRead('decision.json')),b=bindStoredActualDecision(template,d,nativeRead('rendered.sql').toString('utf8'));
   const approval=checkActualApproval(parse(nativeRead('approval.json')),b);
-  const files=nativeActualBoundary('ActualStatus',{}).files;
-  if(!Array.isArray(files)||actualCanonical(files)!==actualCanonical(['actual-owner.json','approval.json','decision.json','rendered.sql'].sort()))hold('PREVIOUS_EFFECT_OR_UNKNOWN');
+  const expectedFiles=['actual-owner.json','approval.json','decision.json','rendered.sql'];
+  const requireFiles=names=>{
+    const files=nativeActualBoundary('ActualStatus',{}).files;
+    if(!Array.isArray(files)||actualCanonical(files)!==actualCanonical([...names].sort()))hold('PREVIOUS_EFFECT_OR_UNKNOWN');
+  };
+  const requireUnchangedApproval=()=>{
+    if(actualHash(nativeRead('decision.json'))!==b.decisionSha256
+      ||actualHash(nativeRead('rendered.sql'))!==b.sqlSha256
+      ||actualCanonical(parse(nativeRead('approval.json')))!==actualCanonical(approval))hold('DASHBOARD_APPROVAL_CHANGED');
+  };
+  requireFiles(expectedFiles);
   const c=credentials();let phase='BEFORE_AUTH',sqlMayExist=false,encryptionKey=null,privateRootId=null;
   const components={keys:{publishable:'NOT_ATTEMPTED',secret:'NOT_ATTEMPTED'},auth:'NOT_ATTEMPTED',authVerification:'NOT_ATTEMPTED',sql:'NOT_ATTEMPTED',files:Object.fromEntries(secretLeaves.map(leaf=>[leaf,{creation:'NOT_ATTEMPTED',cleanup:'NOT_ATTEMPTED'}])),launch:'NOT_ATTEMPTED',host:'NOT_ATTEMPTED',localStop:'NOT_ATTEMPTED',fence:'NOT_ATTEMPTED',sessions:'NOT_ATTEMPTED',cleanup:'NOT_ATTEMPTED'};
   const sessionCleanup={knownSessions:0,knownHashes:0,authResidualUnconfirmed:true,inventory:'NOT_ATTEMPTED',inventoryObservations:0,sessionDispositions:[]};
   try{
+    const inputStart=Math.floor(performance.now());
+    const before=await inspect(c,template);
+    if(before.prestateSha256!==d.prestateSha256)hold('PRESTATE_CHANGED');
+    const inputObservedAt=Math.floor(performance.now());
+    const inputBudget=createActualSetupBudget(b,approval,before.observedAt,inputStart,inputObservedAt);
+    requireFiles(expectedFiles);
+    requireUnchangedApproval();
+    mark('input-intent',b);
+    const availableForInput=inputBudget.proofEnd-inputBudget.authoritativeNow
+      -(Math.floor(performance.now())-inputObservedAt)-actualLimits.initialSetupHeadroomMs;
+    const keys=await readDashboardKeys(b,Math.min(120000,availableForInput));
+    c.PUBLISHABLE=keys.publishable;
+    c.SECRET=keys.secret;
+    keys.publishable=null;
+    keys.secret=null;
     const setupStart=Math.floor(performance.now());
+    requireFiles([...expectedFiles,'effect-input-intent.json']);
+    requireUnchangedApproval();
     const operator=nativeActualBoundary('OperatorIdentity',{}),operatorReceived=Math.floor(performance.now());
     if(!Number.isSafeInteger(operator.pid)||operator.pid<=0||typeof operator.created!=='string'||!/^\d+$/.test(operator.created)||operator.image!=='C:\\Program Files\\nodejs\\node.exe'||typeof operator.qpc!=='string'||!/^\d+$/.test(operator.qpc)||typeof operator.frequency!=='string'||!/^\d+$/.test(operator.frequency)||BigInt(operator.frequency)<=0n)hold('OPERATOR_IDENTITY');
     const setupStartQpc=BigInt(operator.qpc)-(BigInt(operatorReceived-setupStart)*BigInt(operator.frequency)+999n)/1000n;
     if(setupStartQpc<0n)hold('OPERATOR_MONOTONIC');
     const state=await inspect(c,template);if(state.prestateSha256!==d.prestateSha256||Date.parse(state.observedAt)>=Date.parse(d.expiresAt))hold('PRESTATE_CHANGED');
     c.setupBudget=createActualSetupBudget(b,approval,state.observedAt,setupStart,Math.floor(performance.now()));
-    c.PUBLISHABLE=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.publishableKeyId},c,()=>{components.keys.publishable='UNCONFIRMED';}),d.publishableKeyId,'publishable');components.keys.publishable='ACKNOWLEDGED';
-    c.SECRET=selectedKey(await request('KEY_VALUE',{binding:b,keyId:d.secretKeyId},c,()=>{components.keys.secret='UNCONFIRMED';}),d.secretKeyId,'secret');components.keys.secret='ACKNOWLEDGED';
-    validateAuthOwner(await request('AUTH_GET',{},c),{serverTime:state.observedAt,ownerObservation:state.ownerObservation});
+    requirePublicIdentity(await request('IDENTITY',{body:{}},c,()=>{components.keys.publishable='UNCONFIRMED';}));
+    components.keys.publishable='ACKNOWLEDGED';
+    validateAuthOwner(await request('AUTH_GET',{},c,()=>{components.keys.secret='UNCONFIRMED';}),{serverTime:state.observedAt,ownerObservation:state.ownerObservation});
+    components.keys.secret='ACKNOWLEDGED';
     mark('auth-intent',b,'INTENT',null,c.setupBudget);
     await request('AUTH_ROLE',{body:{app_metadata:{app_role:'admin',product_id:'judoju-news'}}},c,()=>{phase='AUTH_UNCONFIRMED';components.auth='UNCONFIRMED';});components.auth='ACKNOWLEDGED';components.authVerification='UNCONFIRMED';
     validateAuthOwner(await request('AUTH_GET',{},c),{roleApplied:true,serverTime:state.observedAt,ownerObservation:state.ownerObservation});components.authVerification='VERIFIED';phase='AUTH_ACKNOWLEDGED';mark('auth-ack',b,'ACKNOWLEDGED',null,c.setupBudget);
     mark('sql-intent',b,'INTENT',null,c.setupBudget);
     await request('APPLY_SQL',{binding:b,body:{query:b.sql}},c,()=>{phase='SQL_UNCONFIRMED';sqlMayExist=true;components.sql='UNCONFIRMED';});components.sql='ACKNOWLEDGED';phase='SQL_ACKNOWLEDGED';mark('sql-ack',b,'ACKNOWLEDGED',null,c.setupBudget);
     const after=await inspect(c,template,{activated:true});
-    const id=await request('IDENTITY',{body:{}},c);
-    if(id?.productId!=='judoju-news'||id.environment!=='preview'||id.sampleKind!=='SYNTHETIC'||id.bootstrapId!==null||id.contract!=='M1')hold('PUBLIC_IDENTITY');
+    requirePublicIdentity(await request('IDENTITY',{body:{}},c));
     const first=await request('SERVER_PROBE',{body:{p_hash:randomBytes(32).toString('hex')}},c);if(first!==null)hold('SERVER_ROLE_MAPPING');
     encryptionKey=randomBytes(32).toString('hex');
     const expected={ownerUserId:actualOwner.id,fixture:false,activationDecisionSha256:b.decisionSha256,implementationManifestSha256:d.implementationManifestSha256,sqlSha256:b.sqlSha256};
@@ -403,7 +438,7 @@ async function apply(){
 export async function runActualOperator(argv){
   assertOwnedInvocation();assertEnvironmentBoundary();if(process.versions.node!=='24.15.0')hold('NODE');
   for(const key of ['NODE_OPTIONS','NODE_EXTRA_CA_CERTS','NODE_TLS_REJECT_UNAUTHORIZED','NODE_USE_ENV_PROXY','HTTP_PROXY','HTTPS_PROXY','ALL_PROXY'])if(process.env[key])hold('NETWORK_ENVIRONMENT');
-  if(argv.length===2&&argv[0]==='prepare')return prepare(argv[1]);
+  if(argv.length===4&&argv[0]==='prepare')return prepare(argv[1],argv[2],argv[3]);
   if(argv.length===1&&argv[0]==='apply')return apply();
   if(argv.length===1&&argv[0]==='status')return status();
   hold('FIXED_COMMAND');

@@ -8,7 +8,8 @@ export const actualOrganization='qfzgicohgpuogehdyzfx';
 export const actualHost='http://127.0.0.2:62333';
 export const actualLimits=Object.freeze({hostMs:1800000,proofMs:86400000,responseBytes:262144,loginEntries:128,setupMs:300000,sqlFloorMs:1800000,setupMarginMs:5000,initialSetupHeadroomMs:2105000});
 const hex=/^[0-9a-f]{64}$/;
-const keyId=/^[A-Za-z0-9_-]{1,128}$/;
+export const dashboardKeyMode='DASHBOARD_STDIN';
+export const actualDecisionVersion=2;
 const fail=code=>{throw new Error('ADMIN_ACTUAL_HOLD:'+code);};
 export const actualHash=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function copyActualData(value,seen=new Set(),depth=0){
@@ -48,16 +49,47 @@ export function validateActualOwner(raw){
     ||u.metadata_email_only!==true||u.identity_count!==1||u.email_identity_count!==1)fail('OWNER');
   return Object.freeze(u);
 }
+function dashboardKeyName(value){
+  return typeof value==='string' && /^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/.test(value)
+    && value.trim()===value && !/(?:sb_publishable_|sb_secret_|sbp_)/i.test(value)
+    && !/[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{16,}/.test(value);
+}
+export function validateDashboardKeySelection(selection){
+  const chosen=copyActualData(selection);
+  exact(chosen,['keyAcquisition','publishableKeyName','secretKeyName']);
+  if(chosen.keyAcquisition!==dashboardKeyMode || !dashboardKeyName(chosen.publishableKeyName)
+    || !dashboardKeyName(chosen.secretKeyName))fail('DASHBOARD_SELECTION');
+  return Object.freeze(chosen);
+}
+export function validateDashboardKeyInput(raw,binding){
+  const input=copyActualData(raw);
+  exact(input,['schemaVersion','projectRef','decisionSha256','keyAcquisition','publishableKeyName',
+    'secretKeyName','operatorConfirmed','publishableKey','secretKey']);
+  const selection=validateDashboardKeySelection({
+    keyAcquisition:input.keyAcquisition,publishableKeyName:input.publishableKeyName,secretKeyName:input.secretKeyName,
+  });
+  if(input.schemaVersion!==actualDecisionVersion || input.projectRef!==previewProject
+    || input.decisionSha256!==binding.decisionSha256 || input.operatorConfirmed!==true
+    || selection.keyAcquisition!==binding.decision.keyAcquisition
+    || selection.publishableKeyName!==binding.decision.publishableKeyName
+    || selection.secretKeyName!==binding.decision.secretKeyName)fail('DASHBOARD_CONFIRMATION');
+  const publishable=input.publishableKey,secret=input.secretKey;
+  if(typeof publishable!=='string'||typeof secret!=='string'
+    || !/^sb_publishable_[A-Za-z0-9_-]{22,256}$/.test(publishable)
+    || !/^sb_secret_[A-Za-z0-9_-]{22,256}$/.test(secret))fail('DASHBOARD_KEY_FORMAT');
+  return {publishable,secret};
+}
 export function makeActualDecision(template,raw,render){
   const p=copyActualData(raw);
-  exact(p,['effectKey','expiresAt','implementationManifestSha256','publishableKeyId','secretKeyId','prestateSha256','observedAt']);
+  exact(p,['effectKey','expiresAt','implementationManifestSha256','keyAcquisition','publishableKeyName','secretKeyName','prestateSha256','observedAt']);
+  validateDashboardKeySelection({keyAcquisition:p.keyAcquisition,publishableKeyName:p.publishableKeyName,secretKeyName:p.secretKeyName});
   if(!uuid.test(p.effectKey??'')||![p.implementationManifestSha256,p.prestateSha256].every(x=>typeof x==='string'&&hex.test(x))
-    ||!keyId.test(p.publishableKeyId??'')||!keyId.test(p.secretKeyId??'')||p.publishableKeyId===p.secretKeyId||typeof template!=='string'||typeof render!=='function')fail('DECISION');
+    ||typeof template!=='string'||typeof render!=='function')fail('DECISION');
   const observed=actualTime(p.observedAt),end=actualTime(p.expiresAt);
   if(end<=observed+1800000||end-observed>actualLimits.proofMs)fail('WINDOW');
   const args={ownerUserId:actualOwner.id,ownerEmailSha256:actualOwner.emailSha256,effectKey:p.effectKey,expiresAt:p.expiresAt,implementationManifestSha256:p.implementationManifestSha256};
   const pre=render(template,{...args,decisionSha256:'0'.repeat(64)});
-  const decision=Object.freeze({schemaVersion:1,productId:'judoju-news',projectRef:previewProject,organizationRef:actualOrganization,
+  const decision=Object.freeze({schemaVersion:actualDecisionVersion,productId:'judoju-news',projectRef:previewProject,organizationRef:actualOrganization,
     ownerUserId:actualOwner.id,ownerEmailSha256:actualOwner.emailSha256,...p,launchEffect:p.effectKey,
     templateSha256:actualHash(template),sqlPreimageSha256:actualHash(pre.sql)});
   const decisionSha256=actualHash(actualCanonical(decision));
@@ -67,7 +99,8 @@ export function makeActualDecision(template,raw,render){
 export function checkActualApproval(raw,binding){
   const a=copyActualData(raw);
   exact(a,['schemaVersion','decisionSha256','sqlSha256','implementationManifestSha256','ownerUserId','confirmationReference','confirmedAt']);
-  if(a.schemaVersion!==1||a.decisionSha256!==binding.decisionSha256||a.sqlSha256!==binding.sqlSha256
+  if(a.schemaVersion!==actualDecisionVersion||binding.decision.schemaVersion!==actualDecisionVersion
+    ||a.decisionSha256!==binding.decisionSha256||a.sqlSha256!==binding.sqlSha256
     ||a.implementationManifestSha256!==binding.decision.implementationManifestSha256||a.ownerUserId!==actualOwner.id
     ||typeof a.confirmationReference!=='string'||!/^[A-Za-z0-9:._/-]{8,240}$/.test(a.confirmationReference))fail('APPROVAL');
   const t=actualTime(a.confirmedAt);
