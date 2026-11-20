@@ -1,4 +1,5 @@
--- Apply as one transaction in a fresh, isolated P4 fixture database.
+-- Run this file standalone in a fresh, isolated P4 fixture database.
+begin;
 do $$
 begin
   if session_user <> 'postgres'
@@ -147,3 +148,5 @@ revoke all on function ai_proposal_api.ai_proposal_save_v1(text,text,jsonb),
   ai_proposal_api.ai_proposal_lookup_v1(text,text) from public;
 grant execute on function ai_proposal_api.ai_proposal_save_v1(text,text,jsonb),
   ai_proposal_api.ai_proposal_lookup_v1(text,text) to ai_proposal_executor_v1;
+
+commit;

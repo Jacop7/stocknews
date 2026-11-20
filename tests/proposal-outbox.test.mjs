@@ -17,16 +17,24 @@ test('proposal and draft outbox commit together and exact receipts survive resta
   const db = new MainOwnedP4Postgres('COLLECTOR_DB_CAPTURE_V1', source);
   try {
     await db.start();
-    assert.throws(() => db.ownerSql(sql), /P4_DOCKER_COMMAND_FAILED/);
     db.ownerSql(`
       create role ai_proposal_executor_v1 nologin nosuperuser nocreatedb nocreaterole nobypassrls;
       create role ai_outbox_writer login inherit;
       create role ai_outbox_observer login;
       grant ai_proposal_executor_v1 to ai_outbox_writer with inherit true,set false,admin false;
-      begin;
-      select set_config('judoju.ai_proposal_fixture_v1',current_database(),true);
+    `);
+    const withoutStopOnError = await db.openSession('postgres', 'ai_outbox_fixture_bootstrap');
+    try {
+      // The harness deliberately continues past errors in this session, as plain psql -f does.
+      await withoutStopOnError.execute(sql);
+    } finally {
+      await withoutStopOnError.close();
+    }
+    assert.equal(db.ownerSql(`select count(*) from pg_namespace
+      where nspname in ('ai_proposal_private','ai_proposal_api');`),'0');
+    db.ownerSql(`
+      select set_config('judoju.ai_proposal_fixture_v1',current_database(),false);
       ${sql}
-      commit;
     `);
     const openWriter = () => db.openSession('ai_outbox_writer', 'ai_proposal_executor_v1');
     let session = await openWriter();
