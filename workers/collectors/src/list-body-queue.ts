@@ -13,6 +13,7 @@ const RPC = {
   claim: 'collector_list_queue_claim_v1',
   settle: 'collector_list_queue_settle_v1',
   checkpoint: 'collector_list_queue_checkpoint_v1',
+  observe: 'collector_list_queue_observe_v1',
 } as const;
 
 export type CollectorQueueCallV1 = (
@@ -28,6 +29,13 @@ export type StagedCollectorPageV1 = {
   manifestDigest: string;
   version: string;
   cursorRef: string | null;
+};
+export type CollectorPageObservationV1 = {
+  total: number;
+  settled: number;
+  leased: number;
+  unclaimed: number;
+  checkpoint: StagedCollectorPageV1 | null;
 };
 export type CollectorQueueDecisionV1 =
   | { kind: 'HOLD' }
@@ -84,6 +92,18 @@ function stagedPage(raw: StagedCollectorPageV1): StagedCollectorPageV1 {
     version: collectorDecimalV1(page.version, 1n),
     cursorRef: cursor(page.cursorRef),
   };
+}
+
+function checkpointReceipt(raw:unknown, expected:StagedCollectorPageV1):StagedCollectorPageV1 {
+  const receipt=record(raw,['pageId','version','cursorRef','manifestDigest']);
+  if (receipt.pageId!==expected.pageId || receipt.manifestDigest!==expected.manifestDigest ||
+      receipt.version!==expected.version || receipt.cursorRef!==expected.cursorRef) collectorRejectV1('EFFECT_CONFLICT');
+  return expected;
+}
+
+function jobCount(raw:unknown):number {
+  if (typeof raw!=='number' || !Number.isInteger(raw) || raw<0 || raw>100) collectorRejectV1();
+  return raw;
 }
 
 export class CollectorListQueueV1 {
@@ -185,13 +205,21 @@ export class CollectorListQueueV1 {
   }
 
   async checkpoint(raw: StagedCollectorPageV1): Promise<StagedCollectorPageV1> {
-    const {pageId, manifestDigest: digest, version, cursorRef: next} = stagedPage(raw);
-    return this.#request(RPC.checkpoint, {p_page:pageId, p_manifest:digest}, value => {
-      const r = record(value, ['pageId', 'version', 'cursorRef', 'manifestDigest']);
-      if (r.pageId !== pageId || r.manifestDigest !== digest || r.version !== version || r.cursorRef !== next) {
-        collectorRejectV1('EFFECT_CONFLICT');
-      }
-      return {pageId, manifestDigest:digest, version, cursorRef:next};
+    const page=stagedPage(raw);
+    return this.#request(RPC.checkpoint, {p_page:page.pageId,p_manifest:page.manifestDigest},
+      value=>checkpointReceipt(value,page));
+  }
+
+  /** Observe stored progress before deciding whether to resume any collector work. */
+  async observePage(raw:StagedCollectorPageV1):Promise<CollectorPageObservationV1> {
+    const page=stagedPage(raw);
+    return this.#request(RPC.observe, {p_page:page.pageId,p_manifest:page.manifestDigest}, value=>{
+      const r=record(value,['pageId','manifestDigest','checkpoint','total','settled','leased']);
+      if (r.pageId!==page.pageId || r.manifestDigest!==page.manifestDigest) collectorRejectV1('EFFECT_CONFLICT');
+      const total=jobCount(r.total),settled=jobCount(r.settled),leased=jobCount(r.leased);
+      if (total===0 || settled+leased>total) collectorRejectV1();
+      const checkpoint=r.checkpoint===null?null:checkpointReceipt(r.checkpoint,page);
+      return {total,settled,leased,unclaimed:total-settled-leased,checkpoint};
     });
   }
 

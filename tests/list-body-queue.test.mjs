@@ -85,7 +85,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
       if (rpc === 'collector_store_identity_v1') {
         return actor.execute('select collector_api.collector_store_identity_v1();').then(JSON.parse);
       }
-      const method = /^collector_list_queue_(stage|claim|settle|checkpoint)_v1$/.exec(rpc)?.[1];
+      const method = /^collector_list_queue_(stage|claim|settle|checkpoint|observe)_v1$/.exec(rpc)?.[1];
       assert.ok(method);
       return call(actor, method, Object.entries(args).map(([key,value]) => {
         assert.match(key, /^p_[a-z_]+$/);
@@ -115,6 +115,10 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     const staged = await queue.stage({partition:'partition',source:'source',endpoint:'endpoint',grant:binding,
       policyVersion:'policy-v1',pageId:page,version:'0',cursorRef:null,nextCursorRef:'next-page',items:[firstText,secondText]});
     const {manifestDigest} = staged;
+    assert.deepEqual(await queue.observePage(staged),{total:2,settled:0,leased:0,unclaimed:2,checkpoint:null});
+    await assert.rejects(call(observer,'observe',[literal(page),literal(manifestDigest)]));
+    await assert.rejects(call(actor,'observe',[literal(page),literal('0'.repeat(64))]),/observe: HASH_MISMATCH/);
+    assert.equal(db.ownerSql('select count(*) from collector_private.list_queue_lease_v1'),'0');
     assert.deepEqual(await stage(actor), {manifestDigest});
     await assert.rejects(stage(actor,[{...firstText,title:'changed'}]));
     await assert.rejects(checkpoint(manifestDigest));
@@ -125,6 +129,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     await delay(1100);
     const currentClaim = await queue.claim(page,currentToken,30);
     assert.equal(currentClaim.deliveryId,first);
+    assert.deepEqual(await queue.observePage(staged),{total:2,settled:0,leased:2,unclaimed:0,checkpoint:null});
     await assert.rejects(claim(actor,expiredToken,30));
     const skipProof = db.ownerSql('select collector_private.digest_v1(' + json({
       decision:'SKIP_BODY',policyVersion:'policy-v1',...firstText,
@@ -176,6 +181,12 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     },installation.storeIdentity);
     await assert.rejects(corruptReply.checkpoint(staged), {code:'COMMIT_UNKNOWN'});
     assert.equal(acknowledgements,1);
+    assert.deepEqual(await queue.observePage(staged),{total:2,settled:2,leased:0,unclaimed:0,checkpoint:staged});
+    const invalidObservation=new CollectorListQueueV1(async(rpc,params)=>{
+      const result=await queueCall(rpc,params);
+      return rpc==='collector_list_queue_observe_v1'?{...result,leased:1}:result;
+    },installation.storeIdentity);
+    await assert.rejects(invalidObservation.observePage(staged),{code:'COMMIT_UNKNOWN'});
     await assert.rejects(corruptReply.checkpoint(staged), {code:'COMMIT_UNKNOWN'});
     assert.equal(acknowledgements,2);
     const saved = await queue.checkpoint(staged);
@@ -192,6 +203,25 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
       }
       assert.fail('Expected a blocked collector claim');
     };
+    const concurrentPage=randomUUID();
+    const concurrent=await queue.stage({partition:'observation-race',source:'source',endpoint:'endpoint',grant:binding,
+      policyVersion:'policy-v1',pageId:concurrentPage,version:'0',cursorRef:null,nextCursorRef:null,items:[firstText,secondText]});
+    assert.equal((await queue.claim(concurrentPage,randomUUID(),2)).deliveryId,first);
+    const longLease=randomUUID();
+    assert.equal((await queue.claim(concurrentPage,longLease,30)).deliveryId,second);
+    const secondSkip=db.ownerSql('select collector_private.digest_v1(' + json({
+      decision:'SKIP_BODY',policyVersion:'policy-v1',...secondText,
+    }) + ');');
+    await lockOwner.execute('begin;');
+    await call(lockOwner,'settle',[literal(concurrentPage),literal(second),literal(longLease),
+      literal('SKIP_BODY'),literal(secondSkip),'null']);
+    const afterWriter=queue.observePage(concurrent);
+    afterWriter.catch(()=>{});
+    await waitForBlock();
+    await delay(2100);
+    await lockOwner.execute('commit;');
+    assert.deepEqual(await afterWriter,{total:2,settled:1,leased:0,unclaimed:1,checkpoint:null});
+
     await lockOwner.execute('begin;');
     await lockOwner.execute("select pg_advisory_xact_lock(hashtextextended('collector/D/source/one',0));");
     db.ownerSql("update collector_private.collector_grant_v1 set expires_at=clock_timestamp()+interval '2 seconds';");
@@ -232,6 +262,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     db.ownerSql("update collector_private.collector_grant_v1 set event='REVOKE',revoked_at=clock_timestamp();");
     await assert.rejects(claim(actor,randomUUID(),30));
     await assert.rejects(checkpoint(manifestDigest));
+    await assert.rejects(call(actor,'observe',[literal(page),literal(manifestDigest)]),/observe: RIGHTS_HOLD/);
   } finally {
     await db.close();
   }

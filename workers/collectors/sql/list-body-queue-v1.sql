@@ -379,14 +379,51 @@ begin
 end
 $$;
 
+-- Read a staged page and its historical checkpoint without claiming or settling any work.
+create function collector_api.collector_list_queue_observe_v1(p_page uuid,p_manifest text)
+returns jsonb language plpgsql volatile security definer set search_path='' as $$
+declare
+  part collector_private.list_queue_partition_v1;
+  result jsonb;
+  observed_at timestamptz;
+begin
+  if p_page is null then perform collector_private.fail_v1('INVALID_INPUT'); end if;
+  perform collector_private.hash_v1(pg_catalog.to_jsonb(p_manifest));
+  select q.* into strict part from collector_private.list_queue_partition_v1 q
+    join collector_private.list_queue_page_v1 p using (partition_id) where p.page_id=p_page;
+  perform collector_private.list_queue_authorize_v1(part.source_id,part.endpoint_id,part.store_epoch,
+    part.grant_binding,array['DISCOVERY','STORAGE']);
+  -- Queue writes lock the partition before changing jobs or checkpoint state.
+  perform 1 from collector_private.list_queue_partition_v1 where partition_id=part.partition_id for share;
+  perform collector_private.list_queue_authorize_v1(part.source_id,part.endpoint_id,part.store_epoch,
+    part.grant_binding,array['DISCOVERY','STORAGE']);
+  observed_at:=pg_catalog.clock_timestamp();
+  select pg_catalog.jsonb_build_object('pageId',p.page_id,'manifestDigest',p.manifest_digest,
+    'checkpoint',p.checkpoint,'total',pg_catalog.count(*),
+    'settled',pg_catalog.count(*) filter(where j.outcome is not null),
+    'leased',pg_catalog.count(*) filter(where j.outcome is null and j.lease_expires_at>observed_at))
+    into result
+    from collector_private.list_queue_page_v1 p
+    join collector_private.list_queue_page_item_v1 i using (page_id,partition_id)
+    join collector_private.list_queue_job_v1 j using (partition_id,delivery_id)
+    where p.page_id=p_page group by p.page_id;
+  if result->>'manifestDigest' is distinct from p_manifest then
+    perform collector_private.fail_v1('HASH_MISMATCH');
+  end if;
+  return result;
+end
+$$;
+
 revoke all on function collector_api.collector_list_queue_stage_v1(
   text, text, text, bigint, jsonb, text, uuid, bigint, text, text, jsonb),
   collector_api.collector_list_queue_claim_v1(uuid, uuid, integer),
   collector_api.collector_list_queue_settle_v1(uuid, uuid, uuid, text, text, uuid),
-  collector_api.collector_list_queue_checkpoint_v1(uuid, text) from public;
+  collector_api.collector_list_queue_checkpoint_v1(uuid, text),
+  collector_api.collector_list_queue_observe_v1(uuid, text) from public;
 grant execute on function collector_api.collector_list_queue_stage_v1(
   text, text, text, bigint, jsonb, text, uuid, bigint, text, text, jsonb),
   collector_api.collector_list_queue_claim_v1(uuid, uuid, integer),
   collector_api.collector_list_queue_settle_v1(uuid, uuid, uuid, text, text, uuid),
-  collector_api.collector_list_queue_checkpoint_v1(uuid, text) to collector_executor_v1;
+  collector_api.collector_list_queue_checkpoint_v1(uuid, text),
+  collector_api.collector_list_queue_observe_v1(uuid, text) to collector_executor_v1;
 commit;
