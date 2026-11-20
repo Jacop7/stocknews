@@ -82,6 +82,17 @@ function instant(value: string): number {
   if (!Number.isFinite(at)) invalid();
   return at;
 }
+
+// Collector identifiers allow path separators. Keep the pipeline's stricter ID
+// contract and reserve the digest prefix so a raw ID cannot impersonate an alias.
+function collectorPipelineId(value: KnownV1<string>): string {
+  const raw = known(value);
+  const prefix = 'collector-id-sha256:';
+  return pipelineId(raw) && !raw.startsWith(prefix)
+    ? raw
+    : prefix + createHash('sha256').update(raw).digest('hex');
+}
+
 function binding(input: DurableAnalysisInputV1): Binding {
   const text = input.content.text;
   if (!text.startsWith('SYNTHETIC ')) invalid();
@@ -102,9 +113,9 @@ function binding(input: DurableAnalysisInputV1): Binding {
   };
   const revision = validateSourceRevision({
     ...versions, sourceDocumentId: source.identity.documentId, revisionId: source.identity.deliveryId,
-    sourceId: known(source.identity.sourceId), endpointId: known(source.identity.endpointId),
-    nativeId: known(source.identity.nativeId), publisherId: known(source.provenance.publisherId),
-    originId: known(source.provenance.originId), independenceGroupId: known(source.provenance.independenceGroupId),
+    sourceId: collectorPipelineId(source.identity.sourceId), endpointId: collectorPipelineId(source.identity.endpointId),
+    nativeId: collectorPipelineId(source.identity.nativeId), publisherId: collectorPipelineId(source.provenance.publisherId),
+    originId: collectorPipelineId(source.provenance.originId), independenceGroupId: collectorPipelineId(source.provenance.independenceGroupId),
     canonicalUrl: 'https://fixture.invalid/document/' + source.identity.documentId,
     collectedAt: known(source.observation.deliveryAcceptedAt), publishedAt: known(source.sourceTime.publishedAt),
     updatedAt: source.sourceTime.updatedAt.state === 'KNOWN' ? source.sourceTime.updatedAt.value : null,

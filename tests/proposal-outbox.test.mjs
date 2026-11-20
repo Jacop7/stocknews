@@ -1,16 +1,19 @@
 import assert from 'node:assert/strict';
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {MainOwnedP4Postgres} from '../scripts/test-main-p4-integration.mjs';
 import {AiProposalOutboxV1} from '../workers/ai-processing/src/proposal-outbox.ts';
+import {createSyntheticAnalysisRunner} from '../workers/ai-processing/src/analysis-run.ts';
+import {EVENT_ROUTING_SCHEMA} from '../workers/ai-processing/src/event-routing.ts';
+import {collectAnalysisInput,collectorSql} from './fixtures/collected-analysis-input.mjs';
 
 const source = 'workers/ai-processing/sql/proposal-outbox-v1.sql';
 const sql = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
 const draftApply = readFileSync(new URL('../workers/ai-processing/sql/proposal-draft-apply-v1.sql', import.meta.url), 'utf8');
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => quote(JSON.stringify(value)) + '::jsonb';
-const binding = {
+const draftBinding = {
   inputDigest:'a'.repeat(64), bodyDigest:'b'.repeat(64), policyDigest:'c'.repeat(64),
   catalogDigest:'d'.repeat(64), expectedDraftRevision:'4',
 };
@@ -61,10 +64,64 @@ function installCatalogFixture(db, editorId, issueId) {
   `);
 }
 
-test('proposal and draft outbox commit together and exact receipts survive restart', {timeout:90_000}, async () => {
-  const db = new MainOwnedP4Postgres('COLLECTOR_DB_CAPTURE_V1', source);
+test('collected article flows to a proposal and editor draft with durable exact receipts', {timeout:120_000}, async () => {
+  const db = new MainOwnedP4Postgres('COLLECTOR_DB_CAPTURE_V1', collectorSql);
   try {
     await db.start();
+    const article = {title:'SYNTHETIC 전력 수요 계약',lead:'국내 전력 설비에 미치는 영향',body:'NO_RAW_BODY_COPY'};
+    const collected = await collectAnalysisInput(db,article);
+    const issueId = randomUUID();
+    const comparison = {issueId,issueVersion:'8',sameDirection:true,updateSufficient:true};
+    const versions = {analysisPolicyVersion:'policy-v1',catalogVersion:'catalog-v1',
+      promptVersion:'prompt-v1',generatorVersion:'generator-v1'};
+    const analysisRequest = {source:{source:collected.source,versions,sectorIds:['power']},routingKey:'event1'};
+    const runner = createSyntheticAnalysisRunner(collected.port, {
+      async metadata({request,requestDigest}) {
+        assert.equal(request.source.title,article.title);
+        assert.equal(request.source.lead,article.lead);
+        assert.equal(request.source.sourceDocumentId,collected.documentId);
+        assert.equal(request.source.revisionId,collected.source.deliveryId);
+        assert.equal(Object.hasOwn(request.source,'body'),false);
+        return {requestDigest,classification:'RELEVANT_EVENT',newCatalyst:'YES',koreanImpact:'SECTOR',
+          sectorIds:['power'],confidence:'CLEAR',
+          reasonSpans:[{field:'title',start:0,end:article.title.length,quote:article.title}]};
+      },
+      async routing({request,requestDigest,content}) {
+        assert.equal(content.text,collected.text);
+        assert.equal(request.revisions[0].contentHash,collected.source.expectedBodyHash);
+        assert.equal(request.revisions[0].endpointId,
+          'collector-id-sha256:' + createHash('sha256').update('fixture-analysis/articles').digest('hex'));
+        return {requestDigest,proposedAction:'UPDATE',targetIssueId:issueId,angleCode:'results',
+          claimIds:request.claims.map(claim=>claim.claimId),pathIds:[],comparisons:request.delta.comparisons,
+          independentTitleSubstance:false,materialDifference:false,correctionClaimRefs:[]};
+      },
+    }, (_key, revision) => {
+      const {contractVersion,sampleKind,policyVersion,catalogVersion,sourcePolicyVersion} = revision;
+      const knownAt = revision.collectedAt;
+      return {
+        schema:EVENT_ROUTING_SCHEMA,deadlineAt:collected.expiresAt,storyId:'story1',storyVersion:'story-v1',
+        canonicalEventKey:'event1',issueSetVersion:'issue-set-v1',completeIssueIds:[issueId],
+        issues:[{issueId,issueVersion:'8',angleCode:'results',factKeys:['old-fact'],pathKeys:[],evidenceClaimIds:[]}],
+        decision:{contractVersion,sampleKind,policyVersion,catalogVersion,sourcePolicyVersion,
+          decisionId:'decision1',inputRevisionIds:[revision.revisionId],storyCandidateKey:'event1',issueCandidateKey:issueId,
+          decision:'COLLECT',action:'UPDATE',reason:'SYNTHETIC new contract facts',wakeCondition:null,deadline:null,knownAt,
+          evidence:['claim-two','claim-one'].map(claimId=>({claimId,revisionId:revision.revisionId,originId:revision.originId,
+            groupId:revision.independenceGroupId,official:true,verified:true})),
+          generatorVersion:versions.generatorVersion,promptVersion:versions.promptVersion,evidenceVersion:'evidence1'},
+        claims:[
+          {claimId:'claim-two',factKey:'contract-term',kind:'DETAIL',knownAt},
+          {claimId:'claim-one',factKey:'contract-size',kind:'DETAIL',knownAt},
+        ],
+        paths:[],corrections:[],
+        delta:{evidenceVersion:'evidence1',storyVersion:'story-v1',knownAt,independentTitleSubstance:false,
+          materialDifference:false,comparisons:[comparison]},
+        promptVersion:versions.promptVersion,generatorVersion:versions.generatorVersion,
+      };
+    });
+    const analysis = await runner.run('proposal:fixture-one',analysisRequest);
+    assert.equal(analysis.disposition,'PLAN',analysis.reason);
+    assert.equal(analysis.routing.action,'UPDATE');
+    const binding = {...draftBinding,bodyDigest:collected.source.expectedBodyHash};
     db.ownerSql(`
       create role ai_proposal_executor_v1 nologin nosuperuser nocreatedb nocreaterole nobypassrls;
       create role ai_outbox_writer login inherit;
@@ -101,21 +158,6 @@ test('proposal and draft outbox commit together and exact receipts survive resta
     };
     const client = new AiProposalOutboxV1((name,args) => sqlCall(session,name,args));
     const peerClient = new AiProposalOutboxV1((name,args) => sqlCall(peer,name,args));
-    const issueId = randomUUID();
-    const analysis = {
-      schema:'SYNTHETIC_ANALYSIS_RUN_V1', sampleKind:'SYNTHETIC', disposition:'PLAN',
-      fixtureAssertionOnly:true, providerExecutionEnabled:false, persistence:'MEMORY_FIXTURE_ONLY',
-      publicationAuthorized:false, changesPublicTimestamps:false,
-      effectKey:'proposal:fixture-one', validationRequestDigest:'e'.repeat(64),
-      metadata:{body:'NO_RAW_BODY_COPY'},
-      routing:{
-        schema:'SYNTHETIC_EVENT_ROUTING_A2', sampleKind:'SYNTHETIC', disposition:'PLAN',
-        fixtureAssertionOnly:true, executionEnabled:false, publicationAuthorized:false,
-        changesPublicTimestamps:false, action:'UPDATE', angleCode:'results', targetIssueId:issueId,
-        expectedIssueVersions:[{issueId,issueVersion:'8'}], claimIds:['claim-two','claim-one'],
-        pathIds:[], requestDigest:'f'.repeat(64),
-      },
-    };
     await assert.rejects(client.save({...analysis,disposition:'HOLD'},binding), /AI_PROPOSAL_OUTBOX_INVALID/);
     await assert.rejects(observer.execute(
       "select ai_proposal_api.ai_proposal_lookup_v1('proposal:fixture-one',repeat('a',64));"), {code:'FORBIDDEN'});
@@ -127,6 +169,8 @@ test('proposal and draft outbox commit together and exact receipts survive resta
     const pending = await client.readPending(saved.effectKey,saved.requestDigest);
     assert.equal(pending.state,'PENDING_DRAFT');
     assert.equal(pending.proposal.expectedDraftRevision,'4');
+    assert.equal(pending.proposal.bodyDigest,collected.source.expectedBodyHash);
+    assert.equal(pending.proposal.analysisValidationDigest,analysis.validationRequestDigest);
     assert.deepEqual(pending.proposal.claimIds,['claim-two','claim-one']);
     assert.equal((await client.readPending(saved.effectKey,'0'.repeat(64))).state,'CONFLICT');
     await assert.rejects(observer.execute(
