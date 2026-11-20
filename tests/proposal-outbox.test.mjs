@@ -8,12 +8,14 @@ import {createSyntheticAnalysisRunner} from '../workers/ai-processing/src/analys
 import {EVENT_ROUTING_SCHEMA} from '../workers/ai-processing/src/event-routing.ts';
 import {createDurableSyntheticAnalysis} from '../workers/ai-processing/src/analysis-intent.ts';
 import {screenCollectedDraft} from '../workers/ai-processing/src/draft-originality.ts';
+import {createSyntheticAngleEditor} from '../workers/ai-processing/src/angle-draft.ts';
 import {collectAnalysisInput,collectorSql} from './fixtures/collected-analysis-input.mjs';
 
 const source = 'workers/ai-processing/sql/proposal-outbox-v1.sql';
 const sql = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
 const draftApply = readFileSync(new URL('../workers/ai-processing/sql/proposal-draft-apply-v1.sql', import.meta.url), 'utf8');
 const intentSql = readFileSync(new URL('../workers/ai-processing/sql/analysis-intent-v1.sql', import.meta.url), 'utf8');
+const angleDraftSql = readFileSync(new URL('../workers/ai-processing/sql/angle-draft-apply-v1.sql', import.meta.url), 'utf8');
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => quote(JSON.stringify(value)) + '::jsonb';
 const draftBinding = {
@@ -75,6 +77,7 @@ test('collected article flows to a proposal and editor draft with durable exact 
     const collected = await collectAnalysisInput(db,article);
     const capturedDocuments = new Map([[collected.source.deliveryId,collected.documentId]]);
     const issueId = randomUUID();
+    const existingStoryId = randomUUID();
     const comparison = {issueId,issueVersion:'8',sameDirection:true,updateSufficient:true};
     const versions = {analysisPolicyVersion:'policy-v1',catalogVersion:'catalog-v1',
       promptVersion:'prompt-v1',generatorVersion:'generator-v1'};
@@ -104,7 +107,7 @@ test('collected article flows to a proposal and editor draft with durable exact 
       const {contractVersion,sampleKind,policyVersion,catalogVersion,sourcePolicyVersion} = revision;
       const knownAt = revision.collectedAt;
       const newAngle=key.startsWith('new-angle-');
-      const storyId=key==='new-angle-rollback'?'story-with-rollback':'story1';
+      const storyId=key==='new-angle-rollback'?'story-with-rollback':existingStoryId;
       return {
         schema:EVENT_ROUTING_SCHEMA,deadlineAt:collected.expiresAt,storyId,storyVersion:'story-v1',
         canonicalEventKey:'event1',issueSetVersion:'issue-set-v1',completeIssueIds:[issueId],
@@ -439,6 +442,72 @@ test('collected article flows to a proposal and editor draft with durable exact 
       (select count(*) from ai_proposal_private.proposals),
       (select count(*) from ai_proposal_private.draft_outbox))::text;`),articleCounts);
 
+    // Mirror the story FK, unique angle and initialization defaults used by the product tables.
+    db.ownerSql(`
+      create table private.stories(id uuid primary key,event_key text not null unique);
+      insert into private.stories values(${quote(existingStoryId)},'event1');
+      alter table private.issues
+        add column story_id uuid references private.stories(id),add column angle_key text,
+        add column first_published_at timestamptz,add column material_change_at timestamptz,
+        alter column id set default pg_catalog.gen_random_uuid(),alter column revision set default 0,
+        alter column publication_state set default 'DRAFT',add unique(story_id,angle_key);
+      update private.issues set story_id=${quote(existingStoryId)},angle_key='results' where id=${quote(issueId)};
+      alter table private.issues alter column story_id set not null,alter column angle_key set not null;
+      select set_config('judoju.ai_proposal_fixture_v1',current_database(),false);
+      ${angleDraftSql}
+    `);
+    const callAngle = (where,args) => where.execute(`select ai_proposal_api.ai_angle_apply_draft_v1(
+      ${[args.p_effect,args.p_work_digest,args.p_candidate_digest,args.p_angle_id].map(quote).join(',')});`).then(JSON.parse);
+    const angleEditor=createSyntheticAngleEditor(args=>callAngle(editor,args));
+    const angleParams={p_effect:angle.effectKey,p_work_digest:angle.workDigest,
+      p_candidate_digest:angle.angleDigest,p_angle_id:angle.angleId};
+    await assert.rejects(callAngle(session,angleParams),{code:'FORBIDDEN'});
+    await assert.rejects(callAngle(notEditor,angleParams),{code:'FORBIDDEN'});
+    assert.equal((await angleEditor.apply(angle)).state,'STALE_CONTEXT');
+    const angleContent={...content,title:'증설 계획이 국내 공급 일정에 미칠 영향',
+      summary:'국내 장비 공급 여력은 신규 공장의 생산 속도에 좌우될 가능성이 있다.'};
+    const wording=await screenCollectedDraft(collected.port,[angleRequest.source],angleContent,wordingPolicy);
+    assert.equal(wording.state,'NO_LITERAL_MATCH');
+    assert.equal(wording.checkedSources[0].bodyDigest,angle.candidate.bodyDigest);
+    assert.equal(wording.draftDigest,createHash('sha256').update(JSON.stringify(angleContent)).digest('hex'));
+    db.ownerSql(`insert into ai_proposal_private.angle_draft_context values (
+      ${quote(angle.angleId)},${quote(angle.effectKey)},${quote(angle.angleDigest)},'event1',2,7,
+      ${quote(collected.expiresAt)},${json(angleContent)});`);
+    assert.equal((await angleEditor.apply(duplicateAngle)).state,'STALE_CONTEXT');
+    assert.equal((await angleEditor.apply({...angle,angleId:randomUUID()})).state,'CONFLICT');
+    assert.equal(db.ownerSql('select count(*) from private.issues'),'1');
+    assert.equal(db.ownerSql('select count(*) from ai_proposal_private.angle_draft_receipts'),'0');
+    db.ownerSql(`update private.issues set revision=9 where id=${quote(issueId)};`);
+    assert.equal((await angleEditor.apply(angle)).state,'REVISION_CONFLICT');
+    db.ownerSql(`update private.issues set revision=8 where id=${quote(issueId)};
+      alter table ai_proposal_private.angle_draft_receipts add constraint test_no_receipt check (false) not valid;`);
+    assert.equal((await angleEditor.apply(angle)).state,'UNKNOWN');
+    assert.equal(db.ownerSql('select count(*) from private.issues'),'1');
+    assert.equal(db.ownerSql('select count(*) from private.editor_drafts'),'1');
+    db.ownerSql('alter table ai_proposal_private.angle_draft_receipts drop constraint test_no_receipt;');
+    const lostAngleDraft=createSyntheticAngleEditor(async args=>{
+      await callAngle(editorPeer,args);
+      throw Error('Angle draft reply lost');
+    });
+    const [savedAngleDraft,uncertainDraft]=await Promise.all([angleEditor.apply(angle),lostAngleDraft.apply(angle)]);
+    assert.equal(savedAngleDraft.state,'ANGLE_DRAFT_CREATED');
+    assert.equal(uncertainDraft.state,'UNKNOWN');
+    assert.deepEqual(await angleEditor.apply(angle),savedAngleDraft);
+    const already=await angleEditor.apply(duplicateAngle);
+    assert.equal(already.state,'ANGLE_ALREADY_DRAFTED');
+    assert.equal(already.issueId,savedAngleDraft.issueId);
+    const wrongIssueAck=createSyntheticAngleEditor(async args=>{
+      const reply=await callAngle(editor,args);
+      return {...reply,issueId};
+    });
+    assert.equal((await wrongIssueAck.apply(angle)).state,'UNKNOWN');
+    assert.equal(db.ownerSql('select count(*) from private.stories'),'1');
+    assert.equal(db.ownerSql('select count(*) from private.issues'),'2');
+    assert.deepEqual(JSON.parse(db.ownerSql(`select json_build_object('storyId',i.story_id,'angle',i.angle_key,
+      'state',i.publication_state,'first',i.first_published_at,'material',i.material_change_at,'draft',d.content)
+      from private.issues i join private.editor_drafts d on d.issue_id=i.id where i.id=${quote(savedAngleDraft.issueId)};`)),
+      {storyId:existingStoryId,angle:'power-equipment-capacity',state:'DRAFT',first:null,material:null,draft:angleContent});
+
     await Promise.all([session,editor,notEditor,editorPeer,intentPeer].map(open=>open.close()));
     await db.restartServer();
     session = await openWriter();
@@ -450,6 +519,8 @@ test('collected article flows to a proposal and editor draft with durable exact 
     assert.deepEqual(await restarted.observe(duplicateRequest,draft),duplicateAngle);
     assert.deepEqual(await restarted.run(angleRequest,draft),angle);
     assert.equal(analysisInvocations,7);
+    const restartedEditor=await db.openSession('ai_outbox_editor','authenticated');
+    assert.deepEqual(await createSyntheticAngleEditor(args=>callAngle(restartedEditor,args)).apply(angle),savedAngleDraft);
   } finally {
     await db.close();
   }
