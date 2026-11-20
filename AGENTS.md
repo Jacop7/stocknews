@@ -1,3 +1,6 @@
+- Do not pause to ask for confirmation during multi-step tasks.
+- Proceed autonomously until implementation, debugging, and verification are fully complete.
+
 # 주도주뉴스 제품 작업 지침
 
 - 이 저장소는 완전 신규 제품이다. 식자재 관리앱 코드/설정/데이터/DB/인증/키/worker/Docker/배포를 읽어 가져오거나 연결하지 않는다.
