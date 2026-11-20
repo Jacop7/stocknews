@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {test} from 'node:test';
 import {MainOwnedP4Postgres, prepareCollectorInstallContext} from '../scripts/test-main-p4-integration.mjs';
+import {CollectorListQueueV1} from '../workers/collectors/src/list-body-queue.ts';
 
 const literal = value => value === null ? 'null' : "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => literal(JSON.stringify(value)) + '::jsonb';
@@ -30,7 +31,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     const page = randomUUID(), first = randomUUID(), second = randomUUID(), original = randomUUID();
     const documentA = randomUUID(), documentB = randomUUID(), body = randomUUID();
     const epoch = installation.storeIdentity.storeEpoch;
-    const firstText = {deliveryId: first, title: '제목 하나', lead: '머리말'};
+    const firstText = {deliveryId: first, title: '\t', lead: '머리말'};
     const secondText = {deliveryId: second, title: '제목 둘', lead: ''};
     const bodyProof = 'b'.repeat(64);
     const stamp = "collector_private.stamp_v1(clock_timestamp()+interval '1 hour')";
@@ -79,6 +80,18 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
         throw new Error(name + ': ' + error.message, {cause:error});
       }
     };
+    const queueCall = (rpc, args) => {
+      if (rpc === 'collector_store_identity_v1') {
+        return actor.execute('select collector_api.collector_store_identity_v1();').then(JSON.parse);
+      }
+      const method = /^collector_list_queue_(stage|claim|settle|checkpoint)_v1$/.exec(rpc)?.[1];
+      assert.ok(method);
+      return call(actor, method, Object.entries(args).map(([key,value]) => {
+        assert.match(key, /^p_[a-z_]+$/);
+        return key+' => '+(key==='p_items'||key==='p_grant' ? json(value) : literal(value));
+      }));
+    };
+    const queue = new CollectorListQueueV1(queueCall,installation.storeIdentity);
     const stage = (session, items = [firstText, secondText]) => call(session, 'stage', [
       "'partition'","'source'","'endpoint'",epoch,json(binding),"'policy-v1'",literal(page),0,'null',"'next-page'",json(items),
     ]);
@@ -93,23 +106,27 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
       ('source','one',${literal(documentA)},'TEST','fixture','{}',${epoch},clock_timestamp(),'blocked-one');`);
     await assert.rejects(stage(actor), /stage: TOMBSTONED/);
     db.ownerSql("delete from collector_private.collector_tombstone_v1 where native_id='one';");
-    const {manifestDigest} = await stage(actor);
+    const staged = await queue.stage({partition:'partition',source:'source',endpoint:'endpoint',grant:binding,
+      policyVersion:'policy-v1',pageId:page,version:'0',cursorRef:null,nextCursorRef:'next-page',items:[firstText,secondText]});
+    const {manifestDigest} = staged;
     assert.deepEqual(await stage(actor), {manifestDigest});
     await assert.rejects(stage(actor,[{...firstText,title:'changed'}]));
     await assert.rejects(checkpoint(manifestDigest));
     const expiredToken = randomUUID(), secondToken = randomUUID(), currentToken = randomUUID();
-    const leased = await claim(actor,expiredToken,1);
+    const leased = await queue.claim(page,expiredToken,1);
     assert.deepEqual(await claim(other,expiredToken,10),leased);
     assert.equal((await claim(other,secondToken,45)).deliveryId,second);
     await delay(1100);
-    assert.equal((await claim(actor,currentToken,30)).deliveryId,first);
+    const currentClaim = await queue.claim(page,currentToken,30);
+    assert.equal(currentClaim.deliveryId,first);
     await assert.rejects(claim(actor,expiredToken,30));
     const skipProof = db.ownerSql('select collector_private.digest_v1(' + json({
       decision:'SKIP_BODY',policyVersion:'policy-v1',...firstText,
     }) + ');');
     await assert.rejects(settle(first,expiredToken,'SKIP_BODY',skipProof));
     await assert.rejects(settle(first,currentToken,'SKIP_BODY','d'.repeat(64)));
-    const skipped = await settle(first,currentToken,'SKIP_BODY',skipProof);
+    const skipped = await queue.skipBody(page,currentToken,currentClaim);
+    assert.equal(skipped.proof,skipProof);
     assert.deepEqual(await settle(first,currentToken,'SKIP_BODY',skipProof), skipped);
     await assert.rejects(settle(second,secondToken,'BODY_STORED','d'.repeat(64),body));
     db.ownerSql(`update collector_private.collector_delivery_v1
@@ -117,7 +134,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     await assert.rejects(settle(second,secondToken,'BODY_STORED',bodyProof,body), /settle: RIGHTS_HOLD/);
     db.ownerSql(`update collector_private.collector_delivery_v1
       set data=data||'{"providerRevisionRef":"revision-one"}' where delivery_id=${literal(original)};`);
-    assert.equal((await settle(second,secondToken,'BODY_STORED',bodyProof,body)).outcome,'BODY_STORED');
+    assert.equal((await queue.bodyStored(page,secondToken,second,body,bodyProof)).outcome,'BODY_STORED');
     await actor.close();
     await other.close();
     await observer.close();
@@ -139,7 +156,20 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     assert.equal((await settle(second,replacementToken,'BODY_STORED',replacementProof,replacementBody)).bodyId,replacementBody);
     assert.equal(db.ownerSql(`select receipt->>'bodyId' from collector_private.list_queue_lease_v1
       where lease_token=${literal(secondToken)};`),body);
-    const saved = await checkpoint(manifestDigest);
+    let acknowledgements = 0;
+    const corruptReply = new CollectorListQueueV1(async (rpc, params) => {
+      const result = await queueCall(rpc,params);
+      if (rpc === 'collector_list_queue_checkpoint_v1') {
+        acknowledgements++;
+        return acknowledgements === 1 ? {...result,cursorRef:null} : {...result,version:'2'};
+      }
+      return result;
+    },installation.storeIdentity);
+    await assert.rejects(corruptReply.checkpoint(staged), {code:'COMMIT_UNKNOWN'});
+    assert.equal(acknowledgements,1);
+    await assert.rejects(corruptReply.checkpoint(staged), {code:'COMMIT_UNKNOWN'});
+    assert.equal(acknowledgements,2);
+    const saved = await queue.checkpoint(staged);
     assert.deepEqual(saved, {pageId:page,version:'1',cursorRef:'next-page',manifestDigest});
     assert.deepEqual(await checkpoint(manifestDigest),saved);
     const waitingPage = randomUUID();
