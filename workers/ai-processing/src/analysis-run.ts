@@ -16,6 +16,7 @@ import {
   prepareEventRoutingRequest, acceptEventRoutingProposal,
   type EventRoutingContext, type EventRoutingResult,
 } from './event-routing.ts';
+import {readSyntheticArticleEnvelope} from './article-envelope.ts';
 
 interface Hash {update(value: string): Hash; digest(encoding: 'hex'): string;}
 declare const process: {getBuiltinModule(name: 'node:crypto'): {createHash(name: 'sha256'): Hash}};
@@ -94,14 +95,7 @@ function collectorPipelineId(value: KnownV1<string>): string {
 }
 
 function binding(input: DurableAnalysisInputV1): Binding {
-  const text = input.content.text;
-  if (!text.startsWith('SYNTHETIC ')) invalid();
-  const envelope = collectorRecordV1(JSON.parse(text.slice(10)));
-  collectorExactV1(envelope, ['title', 'lead', 'body']);
-  if (typeof envelope.title !== 'string' || !envelope.title || envelope.title.length > 500 || envelope.title.trim() !== envelope.title
-    || typeof envelope.lead !== 'string' || envelope.lead.length > 4000
-    || typeof envelope.body !== 'string' || !envelope.body.trim()
-    || JSON.stringify({title: envelope.title, lead: envelope.lead, body: envelope.body}) !== text.slice(10)) invalid();
+  const envelope = readSyntheticArticleEnvelope(input.content.text);
   const source = input.source;
   const grant = known(known(source.grants.current).grant);
   const permissionVersion = 'grant-' + createHash('sha256')

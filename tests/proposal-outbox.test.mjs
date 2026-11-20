@@ -7,6 +7,7 @@ import {AiProposalOutboxV1} from '../workers/ai-processing/src/proposal-outbox.t
 import {createSyntheticAnalysisRunner} from '../workers/ai-processing/src/analysis-run.ts';
 import {EVENT_ROUTING_SCHEMA} from '../workers/ai-processing/src/event-routing.ts';
 import {createDurableSyntheticAnalysis} from '../workers/ai-processing/src/analysis-intent.ts';
+import {screenCollectedDraft} from '../workers/ai-processing/src/draft-originality.ts';
 import {collectAnalysisInput,collectorSql} from './fixtures/collected-analysis-input.mjs';
 
 const source = 'workers/ai-processing/sql/proposal-outbox-v1.sql';
@@ -238,11 +239,25 @@ test('collected article flows to a proposal and editor draft with durable exact 
     const setContext = (proposalId,proposal,draftContent) => db.ownerSql(`
       insert into ai_proposal_private.draft_apply_context values
         (${quote(proposalId)},${json(proposal)},2,7,clock_timestamp()+interval '10 minutes',${json(draftContent)})
-      on conflict (proposal_id) do update set current_proposal=excluded.current_proposal;
+      on conflict (proposal_id) do update
+        set current_proposal=excluded.current_proposal,draft_content=excluded.draft_content;
     `);
-    setContext(saved.proposalId,{...pending.proposal,bodyDigest:'0'.repeat(64)},content);
+    const wordingPolicy = {version:'fixture-ko-v1',headlineCharacters:12,passageCharacters:24};
+    const reviewedContext = async draftContent => {
+      const snapshot = structuredClone(draftContent);
+      const proof = await screenCollectedDraft(collected.port,[analysisRequest.source],snapshot,wordingPolicy);
+      if (proof.state==='NO_LITERAL_MATCH') {
+        assert.equal(proof.checkedSources[0].bodyDigest,pending.proposal.bodyDigest);
+        assert.equal(proof.draftDigest,createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'));
+        setContext(saved.proposalId,pending.proposal,snapshot);
+      }
+      return proof.state;
+    };
+    assert.equal(await reviewedContext({...content,title:article.title}),'HOLD_SHARED_WORDING');
     assert.equal((await editorClient.applyDraft(saved.effectKey,saved.requestDigest)).state,'STALE_CONTEXT');
-    setContext(saved.proposalId,pending.proposal,content);
+    setContext(saved.proposalId,{...pending.proposal,bodyDigest:'0'.repeat(64)},{...content,title:article.title});
+    assert.equal((await editorClient.applyDraft(saved.effectKey,saved.requestDigest)).state,'STALE_CONTEXT');
+    assert.equal(await reviewedContext(content),'NO_LITERAL_MATCH');
     db.ownerSql('alter table ai_proposal_private.draft_outbox add constraint fixture_reject_receipt check (applied_draft_revision is null) not valid;');
     assert.equal((await editorClient.applyDraft(saved.effectKey,saved.requestDigest)).state,'UNKNOWN');
     assert.equal(db.ownerSql('select revision from private.editor_drafts;'),'4');
