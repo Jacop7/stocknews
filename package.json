@@ -10,6 +10,7 @@
   },
   "scripts": {
     "verify": "node scripts/verify.mjs",
+    "verify:integration": "node scripts/verify-integration.mjs",
     "check:foundation": "node scripts/verify-foundation.mjs",
     "check:toolchain": "node scripts/verify-toolchain.mjs",
     "dev:mobile": "corepack pnpm --filter @judoju/mobile dev",
