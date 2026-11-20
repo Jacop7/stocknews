@@ -7,18 +7,20 @@ import {
 import {collectorBodyHashV1} from '../../collectors/src/collector-db-canonical-v1.ts';
 import type {AnalysisRunRequest,createSyntheticAnalysisRunner} from './analysis-run.ts';
 import {prepareSyntheticProposalCommand,type DraftBinding} from './proposal-outbox.ts';
+import {angleCandidateDigest,decodeAngleCandidate,prepareAngleCandidate,type AngleCandidate} from './angle-candidate.ts';
 
 declare const process: {getBuiltinModule(name:'node:crypto'): {randomUUID():string}};
 const {randomUUID} = process.getBuiltinModule('node:crypto');
 const encoder = new TextEncoder();
 const digest = (value:unknown) => collectorBodyHashV1(encoder.encode(pipelineCanonical(value)));
 type DraftContext = Omit<DraftBinding,'inputDigest'|'bodyDigest'>;
-type Operation = 'RESERVE'|'OBSERVE'|'FINISH'|'HOLD';
-type ProposalCommand = ReturnType<typeof prepareSyntheticProposalCommand>;
+type Operation = 'RESERVE'|'OBSERVE'|'FINISH'|'HOLD'|'QUEUE_ANGLE';
+type ProposalCommand = ReturnType<typeof prepareSyntheticProposalCommand> | ReturnType<typeof prepareAngleCandidate>;
 type RequestIdentity = {effectKey:string;workDigest:string};
 type IntentState = 'INDETERMINATE'|'HELD'|'NO_PROPOSAL'|'CONFLICT'|'NOT_FOUND'|'UNKNOWN';
 export type AnalysisIntentReceipt = RequestIdentity & (
-  {state:IntentState} | {state:'PROPOSAL_STORED';proposalId:string;proposalDigest:string}
+  {state:IntentState} | {state:'PROPOSAL_STORED';proposalId:string;proposalDigest:string} |
+  {state:'ANGLE_PENDING';angleId:string;angleDigest:string;candidate:AngleCandidate}
 );
 type Reservation = AnalysisIntentReceipt | RequestIdentity & {state:'START_ONCE'};
 type CommittedIntentCall = (args:Readonly<Record<string,unknown>>) => Promise<unknown>;
@@ -72,7 +74,16 @@ export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:Comm
       });
       const reply = collectorRecordV1(collectorDataV1(raw));
       if (reply.effectKey!==effectKey || reply.workDigest!==workDigest) throw new Error('AI_ANALYSIS_INTENT_MISMATCH');
-      if (reply.state==='PROPOSAL_STORED') {
+      if (reply.state==='ANGLE_PENDING' && ['RESERVE','OBSERVE','QUEUE_ANGLE'].includes(operation)) {
+        collectorExactV1(reply,['state','effectKey','workDigest','angleId','angleDigest','candidate']);
+        const candidate=decodeAngleCandidate(reply.candidate);
+        const angleDigest=collectorDigestV1(reply.angleDigest);
+        if (angleCandidateDigest(effectKey,candidate)!==angleDigest || (command && angleDigest!==command.requestDigest)) {
+          throw new Error('AI_ANALYSIS_INTENT_MISMATCH');
+        }
+        return {...identity,state:reply.state,angleId:collectorUuidV1(reply.angleId),angleDigest,candidate};
+      }
+      if (reply.state==='PROPOSAL_STORED' && ['RESERVE','OBSERVE','FINISH'].includes(operation)) {
         collectorExactV1(reply,['state','effectKey','workDigest','proposalId','proposalDigest']);
         const proposalDigest = collectorDigestV1(reply.proposalDigest);
         if (command && proposalDigest!==command.requestDigest) throw new Error('AI_ANALYSIS_INTENT_MISMATCH');
@@ -80,6 +91,9 @@ export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:Comm
       }
       collectorExactV1(reply,['state','effectKey','workDigest']);
       const state = reply.state;
+      if (operation==='QUEUE_ANGLE' && state!=='NOT_FOUND' && state!=='CONFLICT') {
+        throw new Error('AI_ANALYSIS_INTENT_MISMATCH');
+      }
       if (operation==='RESERVE' && state==='START_ONCE') return {...identity,state};
       if (state==='NOT_FOUND' || state==='CONFLICT' || state==='NO_PROPOSAL' ||
           state==='HELD' || state==='INDETERMINATE') return {...identity,state};
@@ -104,6 +118,9 @@ export function createDurableSyntheticAnalysis(runner:Runner, callCommitted:Comm
         if (result.disposition==='PLAN' && (result.routing?.action==='UPDATE' || result.routing?.action==='CORRECTION')) {
           const command = prepareSyntheticProposalCommand(result,binding);
           return terminal(await call('FINISH',identity,nonce,command));
+        }
+        if (result.disposition==='PLAN' && result.routing?.action==='NEW_ANGLE') {
+          return terminal(await call('QUEUE_ANGLE',identity,nonce,prepareAngleCandidate(result,binding)));
         }
         if (result.disposition==='PASS' || (result.disposition==='PLAN' && result.routing?.action==='NO_CHANGE')) {
           return terminal(await call('FINISH',identity,nonce));
