@@ -29,6 +29,7 @@ create table ai_proposal_private.proposals (
 
 create table ai_proposal_private.draft_outbox (
   proposal_id uuid primary key references ai_proposal_private.proposals(proposal_id),
+  applied_draft_revision bigint check (applied_draft_revision > 0),
   created_at timestamptz not null default pg_catalog.clock_timestamp()
 );
 
@@ -43,7 +44,7 @@ begin
     raise exception 'AI_PROPOSAL_OUTBOX_INVALID';
   end if;
   reply := pg_catalog.jsonb_build_object('effectKey',p_effect,'requestDigest',p_request_digest);
-  select p.proposal_id,p.request_digest into found_row
+  select p.proposal_id,p.request_digest,o.applied_draft_revision into found_row
   from ai_proposal_private.proposals p
   join ai_proposal_private.draft_outbox o using (proposal_id)
   where p.effect_key=p_effect;
@@ -52,6 +53,10 @@ begin
   end if;
   if found_row.request_digest <> p_request_digest then
     return reply || '{"state":"CONFLICT"}'::jsonb;
+  end if;
+  if found_row.applied_draft_revision is not null then
+    return reply || pg_catalog.jsonb_build_object('state','DRAFT_APPLIED','proposalId',found_row.proposal_id,
+      'draftRevision',found_row.applied_draft_revision::text);
   end if;
   return reply || pg_catalog.jsonb_build_object('state','PENDING_DRAFT','proposalId',found_row.proposal_id);
 end;

@@ -7,8 +7,11 @@ import {
 import {collectorBodyHashV1} from '../../collectors/src/collector-db-canonical-v1.ts';
 import type {AnalysisRunResult} from './analysis-run.ts';
 
+type OutboxOperation =
+  'ai_proposal_save_v1' | 'ai_proposal_lookup_v1' | 'ai_proposal_read_pending_v1' | 'ai_proposal_apply_draft_v1';
+
 type OutboxCall = (
-  operation: 'ai_proposal_save_v1' | 'ai_proposal_lookup_v1' | 'ai_proposal_read_pending_v1',
+  operation: OutboxOperation,
   args: Readonly<Record<string, unknown>>,
 ) => Promise<unknown>;
 
@@ -22,7 +25,8 @@ type DraftBinding = {
 
 export type ProposalOutboxReceipt =
   | {state: 'PENDING_DRAFT'; effectKey: string; requestDigest: string; proposalId: string}
-  | {state: 'CONFLICT' | 'NOT_FOUND' | 'UNKNOWN'; effectKey: string; requestDigest: string};
+  | {state: 'DRAFT_APPLIED'; effectKey: string; requestDigest: string; proposalId: string; draftRevision: string}
+  | {state: 'CONFLICT' | 'NOT_FOUND' | 'UNKNOWN' | 'STALE_CONTEXT' | 'REVISION_CONFLICT'; effectKey: string; requestDigest: string};
 
 function invalid(): never {
   throw new Error('AI_PROPOSAL_OUTBOX_INVALID');
@@ -113,6 +117,22 @@ function digest({effectKey, proposal: p}: ReturnType<typeof project>): string {
   return collectorBodyHashV1(new TextEncoder().encode(preimage));
 }
 
+function decodeTerminal(receipt: Record<string, unknown>, effectKey: string, requestDigest: string,
+  operation: OutboxOperation): Exclude<ProposalOutboxReceipt, {state:'PENDING_DRAFT'}> {
+  const state = receipt.state;
+  if (state === 'DRAFT_APPLIED') {
+    collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest', 'proposalId', 'draftRevision']);
+    return {state, effectKey, requestDigest, proposalId:collectorUuidV1(receipt.proposalId),
+      draftRevision:collectorDecimalV1(receipt.draftRevision,1n)};
+  }
+  if (state === 'CONFLICT' || (operation !== 'ai_proposal_save_v1' && state === 'NOT_FOUND') ||
+      (operation === 'ai_proposal_apply_draft_v1' && (state === 'STALE_CONTEXT' || state === 'REVISION_CONFLICT'))) {
+    collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest']);
+    return {state, effectKey, requestDigest};
+  }
+  return invalid();
+}
+
 export class AiProposalOutboxV1 {
   #call: OutboxCall;
 
@@ -138,6 +158,15 @@ export class AiProposalOutboxV1 {
     });
   }
 
+  /** Uses an editor transport. The fixture authority must have prepared an exact current draft context. */
+  async applyDraft(effectKey: string, requestDigest: string): Promise<ProposalOutboxReceipt> {
+    effectKey = id(effectKey);
+    requestDigest = collectorDigestV1(requestDigest);
+    return this.readReceipt('ai_proposal_apply_draft_v1', effectKey, requestDigest, {
+      p_effect:effectKey, p_request_digest:requestDigest,
+    });
+  }
+
   /** Read an exact pending proposal for later draft validation. This does not reserve or apply it. */
   async readPending(effectKey: string, requestDigest: string): Promise<PendingDraftProposalRead> {
     effectKey = id(effectKey);
@@ -146,12 +175,9 @@ export class AiProposalOutboxV1 {
       const raw = await this.#call('ai_proposal_read_pending_v1', {p_effect:effectKey, p_request_digest:requestDigest});
       const receipt = collectorRecordV1(collectorDataV1(raw));
       if (receipt.effectKey !== effectKey || receipt.requestDigest !== requestDigest) invalid();
-      if (receipt.state === 'CONFLICT' || receipt.state === 'NOT_FOUND') {
-        collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest']);
-        return {state:receipt.state, effectKey, requestDigest};
-      }
+      if (receipt.state !== 'PENDING_DRAFT') return decodeTerminal(receipt, effectKey, requestDigest,
+        'ai_proposal_read_pending_v1');
       collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest', 'proposalId', 'proposal']);
-      if (receipt.state !== 'PENDING_DRAFT') invalid();
       const proposal = decodeProposal(receipt.proposal);
       if (digest({effectKey, proposal}) !== requestDigest) invalid();
       return {state:'PENDING_DRAFT', effectKey, requestDigest, proposalId:collectorUuidV1(receipt.proposalId), proposal};
@@ -160,23 +186,18 @@ export class AiProposalOutboxV1 {
     }
   }
 
-  private async readReceipt(operation: Parameters<OutboxCall>[0], effectKey: string,
+  private async readReceipt(operation: OutboxOperation, effectKey: string,
     requestDigest: string, args: Record<string, unknown>): Promise<ProposalOutboxReceipt> {
     try {
       // Pass an independent snapshot. PostgreSQL checks the digest before accepting it.
       const wire = JSON.parse(pipelineCanonical(args)) as Record<string, unknown>;
       const receipt = collectorRecordV1(collectorDataV1(await this.#call(operation, wire)));
       if (receipt.effectKey !== effectKey || receipt.requestDigest !== requestDigest) invalid();
-      if (receipt.state === 'PENDING_DRAFT') {
+      if (receipt.state === 'PENDING_DRAFT' && operation !== 'ai_proposal_apply_draft_v1') {
         collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest', 'proposalId']);
         return {state: receipt.state, effectKey, requestDigest, proposalId: collectorUuidV1(receipt.proposalId)};
       }
-      if (receipt.state === 'CONFLICT' ||
-          (operation === 'ai_proposal_lookup_v1' && receipt.state === 'NOT_FOUND')) {
-        collectorExactV1(receipt, ['state', 'effectKey', 'requestDigest']);
-        return {state: receipt.state, effectKey, requestDigest};
-      }
-      invalid();
+      return decodeTerminal(receipt, effectKey, requestDigest, operation);
     } catch {
       // A lost response does not authorize a new effect key or model call.
       return {state:'UNKNOWN', effectKey, requestDigest};
