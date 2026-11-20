@@ -3,7 +3,7 @@ import { normalizeArticleUrl, permissionDecision } from './policy.mjs';
 import { pinnedHttps, probe } from './probe.mjs';
 
 export const htmlListVersion = 'html-list-v1';
-const purposes = ['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION'];
+export const htmlListPurposes = Object.freeze(['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION']);
 const maxHtmlBytes = 512 * 1024;
 const maxCandidates = 100;
 const articleTypes = ['Article', 'NewsArticle', 'ReportageNewsArticle'];
@@ -121,10 +121,10 @@ export function parseHtmlList(html, listUrl) {
 /** Runs one exact listing fetch through existing HTTPS, permission and request budget checks. */
 export async function collectHtmlList({ endpoint, profile, execute = false, now = () => new Date().toISOString(),
   transport = pinnedHttps, ...probeOptions }) {
-  const output = (status, reason, requests = 0, candidates = []) =>
-    ({ endpointId: endpoint.endpoint_id, status, reason, requests, candidates });
-  const checkPermission = () => permissionDecision(profile, endpoint, purposes, now()) ??
-    (endpoint.adapter_version !== htmlListVersion || !purposes.every(purpose => endpoint.enabled_scopes?.includes(purpose)) ?
+  const output = (status, reason, requests = 0, candidates = [], response = {}) =>
+    ({ endpointId: endpoint.endpoint_id, status, reason, requests, candidates, ...response });
+  const checkPermission = () => permissionDecision(profile, endpoint, htmlListPurposes, now()) ??
+    (endpoint.adapter_version !== htmlListVersion || !htmlListPurposes.every(purpose => endpoint.enabled_scopes?.includes(purpose)) ?
       'HTML_ADAPTER_OR_SCOPE_UNVERIFIED' : null);
   const checkFetch = (url, limits) => {
     const current = checkPermission();
@@ -145,7 +145,7 @@ export async function collectHtmlList({ endpoint, profile, execute = false, now 
   let observed;
   let dispatchBlocked;
   const result = await probe({
-    ...probeOptions, endpoint, profile, purposes, execute, now,
+    ...probeOptions, endpoint, profile, purposes: htmlListPurposes, execute, now,
     limits: { timeoutMs: 5000, maxBytes: maxHtmlBytes, maxHops: 0 },
     transport: async (url, limits) => {
       dispatchBlocked = checkFetch(url, limits);
@@ -156,7 +156,12 @@ export async function collectHtmlList({ endpoint, profile, execute = false, now 
     },
   });
   if (dispatchBlocked) return output('BLOCKED', dispatchBlocked);
-  if (result.status !== 'HTTP_OK_UNPARSED') return output(result.status, result.reason, result.requests);
+  if (result.status !== 'HTTP_OK_UNPARSED') {
+    return output(result.status, result.reason, result.requests, [], {
+      httpStatus: result.httpStatus ?? null,
+      retryAfter: result.retryAfter ?? null,
+    });
+  }
   const { url, limits, response } = observed;
   const current = checkFetch(url, limits);
   if (current) return output('BLOCKED', current, result.requests);

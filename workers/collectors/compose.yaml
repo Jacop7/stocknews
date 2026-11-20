@@ -1,0 +1,24 @@
+name: judoju-news-html-collector
+services:
+  collector:
+    image: judoju-news-html-collector:dev
+    build:
+      context: ../..
+      dockerfile: workers/collectors/Dockerfile
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    volumes:
+      - candidates:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "const f=require('node:fs'); const t=Number(f.readFileSync('/data/heartbeat','utf8')); if(!t||Date.now()-t>180000)process.exit(1)"]
+      interval: 15s
+      timeout: 3s
+      retries: 4
+    stop_grace_period: 45s
+volumes:
+  candidates:
+    labels:
+      com.judoju.product: judoju-news

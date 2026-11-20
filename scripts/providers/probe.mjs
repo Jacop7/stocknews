@@ -26,9 +26,16 @@ export async function pinnedHttps(url,{timeoutMs,maxBytes,signal,resolvedAddress
   const selected=answers[0];
   return await new Promise((resolve,reject)=>{
     const req=https.request(url,{method:'GET',signal,headers:{'User-Agent':'JudojuNews-ProviderProbe/0.1'},lookup:(_host,options,cb)=>options.all?cb(null,[selected]):cb(null,selected.address,selected.family)},res=>{
+      const metadata={status:res.statusCode,location:res.headers.location??null,retryAfter:res.headers['retry-after']??null,contentType:res.headers['content-type']??null};
+      res.on('error',reject);
+      if(metadata.status<200||metadata.status>=300){
+        resolve({...metadata,body:Buffer.alloc(0)});
+        res.destroy();
+        return;
+      }
       let bytes=0;const parts=[];
       res.on('data',chunk=>{bytes+=chunk.length;if(bytes>maxBytes){res.destroy(new Error('RESPONSE_TOO_LARGE'));return;}parts.push(chunk);});
-      res.on('error',reject);res.on('end',()=>resolve({status:res.statusCode,location:res.headers.location??null,retryAfter:res.headers['retry-after']??null,contentType:res.headers['content-type']??null,body:Buffer.concat(parts)}));
+      res.on('end',()=>resolve({...metadata,body:Buffer.concat(parts)}));
     });
     req.setTimeout(timeoutMs,()=>req.destroy(new Error('REQUEST_TIMEOUT')));req.on('error',reject);req.end();
   });
@@ -59,7 +66,7 @@ export async function probe({endpoint,profile,purposes=['DISCOVERY','MACHINE_ACC
         if(!budget.consume(host))return result('BLOCKED','REQUEST_BUDGET_EXHAUSTED');
         requests++;response=await abortable(transport(url,{timeoutMs,maxBytes,signal:controller.signal,resolvedAddresses:answers}),controller.signal);
       }finally{release();}
-      if(!Buffer.isBuffer(response.body)||response.body.length>maxBytes)return result('FAILED','RESPONSE_TOO_LARGE');
+      if(!Buffer.isBuffer(response.body)||response.body.length>maxBytes)return result('FAILED','RESPONSE_TOO_LARGE',{httpStatus:response.status,retryAfter:response.retryAfter??null});
       if([301,302,303,307,308].includes(response.status)){
         if(hop===limits.maxHops)return result('FAILED','REDIRECT_LIMIT');
         if(!response.location)return result('FAILED','REDIRECT_LOCATION_MISSING');

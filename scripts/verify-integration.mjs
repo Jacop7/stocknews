@@ -15,6 +15,7 @@ const checks = [
     '--experimental-strip-types', '--test', '--test-concurrency=2',
     'tests/list-body-queue.test.mjs',
     'tests/html-list.test.mjs',
+    'tests/html-worker.test.mjs',
     'tests/sec-submissions.test.ts',
     'tests/sec-pilot.test.mjs',
     'tests/proposal-outbox.test.mjs',
