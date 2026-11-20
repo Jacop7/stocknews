@@ -71,7 +71,7 @@ begin
   if pg_catalog.jsonb_typeof(p_candidate->'issueVersions') is distinct from 'array' then
     raise exception 'AI_ANGLE_CANDIDATE_INVALID';
   end if;
-  if pg_catalog.jsonb_array_length(p_candidate->'issueVersions') not between 1 and 100 then
+  if pg_catalog.jsonb_array_length(p_candidate->'issueVersions') > 100 then
     raise exception 'AI_ANGLE_CANDIDATE_INVALID';
   end if;
   seen := array[]::text[];
@@ -98,7 +98,9 @@ begin
     end loop;
     if field='claimIds' then claim_list:=seen; else path_list:=seen; end if;
   end loop;
-  if pg_catalog.cardinality(claim_list)=0 then raise exception 'AI_ANGLE_CANDIDATE_INVALID'; end if;
+  if pg_catalog.cardinality(claim_list)=0 or
+    (pg_catalog.cardinality(issue_list)=0 and pg_catalog.cardinality(path_list)=0)
+  then raise exception 'AI_ANGLE_CANDIDATE_INVALID'; end if;
   canonical := pg_catalog.concat_ws(pg_catalog.chr(10),'AI_ANGLE_CANDIDATE_V1',
     p_effect,p_candidate->>'storyId',p_candidate->>'storyVersion',p_candidate->>'angleCode',
     pg_catalog.array_to_string(issue_list,';'),pg_catalog.array_to_string(claim_list,','),pg_catalog.array_to_string(path_list,','),

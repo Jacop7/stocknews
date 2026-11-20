@@ -18,6 +18,46 @@ function prop(c=ctx(),action:EventRoutingProposal['proposedAction']='UPDATE'):Ev
 }
 function newAngle():EventRoutingContext {const c=ctx();c.delta.independentTitleSubstance=true;c.delta.materialDifference=true;c.delta.comparisons[0].sameDirection=false;c.delta.comparisons[0].updateSufficient=false;return c;}
 function correction():EventRoutingContext {const c=ctx();c.corrections=[{issueId:'issue1',oldFactKey:'fact-old',correctedByClaimId:'claim1'}];return c;}
+function firstIssue():EventRoutingContext {
+  const c=ctx();
+  c.completeIssueIds=[];c.issues=[];c.delta.comparisons=[];
+  c.decision.action='NEW_ANGLE';c.decision.issueCandidateKey=null;
+  c.delta.independentTitleSubstance=true;c.delta.materialDifference=true;
+  c.claims[0].kind='FACT';
+  c.paths=[{pathId:'korea-path',pathKey:'domestic-impact',sectorId:'power',claimIds:['claim1'],knownAt:now}];
+  return c;
+}
+test('an empty complete story with a current fact and Korean path can plan its first private issue',()=>{
+  const c=firstIssue(),p={...prop(c,'NEW_ANGLE'),targetIssueId:null};
+  const result=acceptEventRoutingProposal(c,p);
+  assert.equal(result.reason,'INITIAL_ISSUE_UNDER_EMPTY_STORY');
+  assert.equal(result.action,'NEW_ANGLE');
+  assert.deepEqual(result.expectedIssueVersions,[]);
+  assert.equal(result.publicationAuthorized,false);
+  assert.equal(result.changesPublicTimestamps,false);
+  for(const action of ['NO_CHANGE','UPDATE','CORRECTION'] as const){
+    assert.equal(acceptEventRoutingProposal(c,{...p,proposedAction:action}).disposition,'HOLD');
+  }
+  assert.equal(acceptEventRoutingProposal(c,{...p,targetIssueId:'nonexistent'}).disposition,'HOLD');
+});
+test('the first issue holds before model routing when facts, the linked Korean path or the complete set are absent',()=>{
+  for(const change of [
+    (c:EventRoutingContext)=>{c.decision.action='UPDATE';},
+    (c:EventRoutingContext)=>{c.decision.issueCandidateKey='missing';},
+    (c:EventRoutingContext)=>{c.claims[0].kind='DETAIL';},
+    (c:EventRoutingContext)=>{c.paths=[];},
+    (c:EventRoutingContext)=>{c.delta.independentTitleSubstance=false;},
+    (c:EventRoutingContext)=>{c.delta.materialDifference=false;},
+    (c:EventRoutingContext)=>{c.eligibility[0].analysisAllowed=false;},
+  ]){const c=firstIssue();change(c);assert.equal(prepareEventRoutingRequest(c).state,'HOLD');}
+  const c=firstIssue();
+  c.claims.push({...c.claims[0],claimId:'detail',kind:'DETAIL'});
+  c.decision.evidence.push({...c.decision.evidence[0],claimId:'detail'});
+  c.paths[0].claimIds=['detail'];
+  assert.equal(prepareEventRoutingRequest(c).state,'HOLD');
+  assert.throws(()=>prepareEventRoutingRequest({...firstIssue(),issueSetVersion:null}));
+  assert.throws(()=>prepareEventRoutingRequest({...firstIssue(),completeIssueIds:['not-empty']}));
+});
 test('deterministic digest binds whole request; detached fixture preparation has no publication authority',()=>{const c=ctx(),old=structuredClone(c),a=prepareEventRoutingRequest(c),b=prepareEventRoutingRequest(c);assert.deepEqual(a,b);assert.equal(a.state,'READY_FOR_ROUTING_MODEL');if(a.state!=='READY_FOR_ROUTING_MODEL')return;assert.equal(a.requestDigest,hash(a.request));a.request.issues[0].factKeys.push('tampered');assert.deepEqual(c,old);const r=acceptEventRoutingProposal(c,prop(c));assert.equal(r.action,'UPDATE');assert.equal(r.fixtureAssertionOnly,true);assert.equal(r.publicationAuthorized,false);assert.equal(r.changesPublicTimestamps,false);r.expectedIssueVersions[0].issueVersion='tampered';assert.equal(c.issues[0].issueVersion,'article1');});
 test('ordinary new details UPDATE existing issue, never new Story or publication timestamp',()=>{const c=ctx(),r=acceptEventRoutingProposal(c,prop(c));assert.equal(r.action,'UPDATE');assert.equal(r.targetIssueId,'issue1');assert.equal(r.expectedStoryVersion,'story-v1');assert.equal(r.reason,'EXISTING_DETAIL_FIRST');assert.ok(!('materialChangeAt'in r));});
 test('same facts, wording and price-only changes do not create a new issue',()=>{for(const kind of ['FACT','PRICE','WORDING'] as const){const c=ctx();c.claims[0].kind=kind;if(kind==='FACT')c.claims[0].factKey='fact-old';assert.equal(acceptEventRoutingProposal(c,prop(c,'NO_CHANGE')).action,'NO_CHANGE');assert.equal(acceptEventRoutingProposal(c,prop(c)).action,'NO_CHANGE');const n={...prop(c,'NEW_ANGLE'),targetIssueId:null,angleCode:'new-angle'};assert.equal(acceptEventRoutingProposal(c,n).disposition,'HOLD');}});

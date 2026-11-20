@@ -76,6 +76,16 @@ begin
       or (intent.angle_candidate->>'storyId') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   then return reply || '{"state":"STALE_CONTEXT"}'::jsonb; end if;
 
+  if pg_catalog.jsonb_array_length(intent.angle_candidate->'issueVersions')=0 then
+    -- After waiting on the story lock, the issue read must see the winning transaction.
+    if pg_catalog.current_setting('transaction_isolation') is distinct from 'read committed'
+    then raise exception 'ISOLATION_NOT_SUPPORTED'; end if;
+    if (ctx.draft_content->>'article_kind') is distinct from 'SECTOR'
+      or pg_catalog.jsonb_typeof(ctx.draft_content->'primary_sector_id') is distinct from 'string'
+      or pg_catalog.btrim(ctx.draft_content->>'primary_sector_id')=''
+    then return reply || '{"state":"STALE_CONTEXT"}'::jsonb; end if;
+  end if;
+
   perform 1 from private.catalog_head where singleton and version=ctx.catalog_version for share;
   if not found then return reply || '{"state":"STALE_CONTEXT"}'::jsonb; end if;
   perform 1 from private.policies where active and version=ctx.policy_version for share;
@@ -83,10 +93,11 @@ begin
   story_id_value := (intent.angle_candidate->>'storyId')::uuid;
   perform 1 from private.stories where id=story_id_value and event_key=ctx.story_event_key for update;
   if not found then return reply || '{"state":"STALE_CONTEXT"}'::jsonb; end if;
-  select pg_catalog.jsonb_agg(value order by value->>'issueId') into expected_issues
+  select coalesce(pg_catalog.jsonb_agg(value order by value->>'issueId'),'[]'::jsonb) into expected_issues
     from pg_catalog.jsonb_array_elements(intent.angle_candidate->'issueVersions');
-  select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('issueId',i.id::text,'issueVersion',i.revision::text)
-      order by i.id::text),pg_catalog.bool_and(i.sample_kind='SYNTHETIC') into current_issues,synthetic_issues
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('issueId',i.id::text,'issueVersion',i.revision::text)
+      order by i.id::text),'[]'::jsonb),coalesce(pg_catalog.bool_and(i.sample_kind is not distinct from 'SYNTHETIC'),true)
+    into current_issues,synthetic_issues
     from (select id,revision,sample_kind from private.issues where story_id=story_id_value order by id for update) i;
   if synthetic_issues is not true or current_issues is distinct from expected_issues
   then return reply || '{"state":"REVISION_CONFLICT"}'::jsonb; end if;

@@ -25,7 +25,7 @@ const fields = ['storyId','storyVersion','angleCode','issueVersions','claimIds',
 export function decodeAngleCandidate(raw:unknown) {
   const value=collectorRecordV1(raw);
   collectorExactV1(value,fields);
-  if (!Array.isArray(value.issueVersions) || !value.issueVersions.length || value.issueVersions.length>100) invalid();
+  if (!Array.isArray(value.issueVersions) || value.issueVersions.length>100) invalid();
   const issueVersions=value.issueVersions.map(entry=>{
     const issue=collectorRecordV1(entry);
     collectorExactV1(issue,['issueId','issueVersion']);
@@ -34,7 +34,7 @@ export function decodeAngleCandidate(raw:unknown) {
   if (new Set(issueVersions.map(issue=>issue.issueId)).size!==issueVersions.length) invalid();
   return {
     storyId:id(value.storyId),storyVersion:id(value.storyVersion),angleCode:id(value.angleCode),
-    issueVersions,claimIds:ids(value.claimIds,1,300),pathIds:ids(value.pathIds,0,300),
+    issueVersions,claimIds:ids(value.claimIds,1,300),pathIds:ids(value.pathIds,issueVersions.length===0?1:0,300),
     inputDigest:collectorDigestV1(value.inputDigest),bodyDigest:collectorDigestV1(value.bodyDigest),
     policyDigest:collectorDigestV1(value.policyDigest),catalogDigest:collectorDigestV1(value.catalogDigest),
     routingDigest:collectorDigestV1(value.routingDigest),validationDigest:collectorDigestV1(value.validationDigest),

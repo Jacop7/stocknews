@@ -9,6 +9,7 @@ import {EVENT_ROUTING_SCHEMA} from '../workers/ai-processing/src/event-routing.t
 import {createDurableSyntheticAnalysis} from '../workers/ai-processing/src/analysis-intent.ts';
 import {screenCollectedDraft} from '../workers/ai-processing/src/draft-originality.ts';
 import {createSyntheticAngleEditor} from '../workers/ai-processing/src/angle-draft.ts';
+import {angleCandidateDigest,decodeAngleCandidate} from '../workers/ai-processing/src/angle-candidate.ts';
 import {collectAnalysisInput,collectorSql} from './fixtures/collected-analysis-input.mjs';
 
 const source = 'workers/ai-processing/sql/proposal-outbox-v1.sql';
@@ -78,6 +79,7 @@ test('collected article flows to a proposal and editor draft with durable exact 
     const capturedDocuments = new Map([[collected.source.deliveryId,collected.documentId]]);
     const issueId = randomUUID();
     const existingStoryId = randomUUID();
+    const firstStoryId = randomUUID();
     const comparison = {issueId,issueVersion:'8',sameDirection:true,updateSufficient:true};
     const versions = {analysisPolicyVersion:'policy-v1',catalogVersion:'catalog-v1',
       promptVersion:'prompt-v1',generatorVersion:'generator-v1'};
@@ -98,34 +100,38 @@ test('collected article flows to a proposal and editor draft with durable exact 
         assert.equal(request.revisions[0].endpointId,
           'collector-id-sha256:' + createHash('sha256').update('fixture-analysis/articles').digest('hex'));
         const newAngle=request.decision.action==='NEW_ANGLE';
+        const angleCode=request.issues.length===0?request.decision.decisionId:
+          newAngle?'power-equipment-capacity':'results';
         return {requestDigest,proposedAction:request.decision.action,targetIssueId:newAngle?null:issueId,
-          angleCode:newAngle?'power-equipment-capacity':'results',
+          angleCode,
           claimIds:request.claims.map(claim=>claim.claimId),pathIds:request.paths.map(path=>path.pathId),
           comparisons:request.delta.comparisons,independentTitleSubstance:newAngle,materialDifference:newAngle,correctionClaimRefs:[]};
       },
     }, (key, revision) => {
       const {contractVersion,sampleKind,policyVersion,catalogVersion,sourcePolicyVersion} = revision;
       const knownAt = revision.collectedAt;
-      const newAngle=key.startsWith('new-angle-');
-      const storyId=key==='new-angle-rollback'?'story-with-rollback':existingStoryId;
+      const first=key.startsWith('first-issue-');
+      const newAngle=first||key.startsWith('new-angle-');
+      const storyId=first?firstStoryId:key==='new-angle-rollback'?'story-with-rollback':existingStoryId;
+      const eventKey=first?'event-first':'event1';
       return {
         schema:EVENT_ROUTING_SCHEMA,deadlineAt:collected.expiresAt,storyId,storyVersion:'story-v1',
-        canonicalEventKey:'event1',issueSetVersion:'issue-set-v1',completeIssueIds:[issueId],
-        issues:[{issueId,issueVersion:'8',angleCode:'results',factKeys:['old-fact'],pathKeys:[],evidenceClaimIds:[]}],
+        canonicalEventKey:eventKey,issueSetVersion:'issue-set-v1',completeIssueIds:first?[]:[issueId],
+        issues:first?[]:[{issueId,issueVersion:'8',angleCode:'results',factKeys:['old-fact'],pathKeys:[],evidenceClaimIds:[]}],
         decision:{contractVersion,sampleKind,policyVersion,catalogVersion,sourcePolicyVersion,
-          decisionId:'decision1',inputRevisionIds:[revision.revisionId],storyCandidateKey:'event1',issueCandidateKey:newAngle?null:issueId,
+          decisionId:first?key:'decision1',inputRevisionIds:[revision.revisionId],storyCandidateKey:eventKey,issueCandidateKey:newAngle?null:issueId,
           decision:'COLLECT',action:newAngle?'NEW_ANGLE':'UPDATE',reason:'SYNTHETIC new contract facts',wakeCondition:null,deadline:null,knownAt,
           evidence:['claim-two','claim-one'].map(claimId=>({claimId,revisionId:revision.revisionId,originId:revision.originId,
             groupId:revision.independenceGroupId,official:true,verified:true})),
           generatorVersion:versions.generatorVersion,promptVersion:versions.promptVersion,evidenceVersion:'evidence1'},
         claims:[
           {claimId:'claim-two',factKey:'contract-term',kind:'DETAIL',knownAt},
-          {claimId:'claim-one',factKey:'contract-size',kind:'DETAIL',knownAt},
+          {claimId:'claim-one',factKey:'contract-size',kind:first?'FACT':'DETAIL',knownAt},
         ],
         paths:newAngle?[{pathId:'korean-power-path',pathKey:'power-capacity',sectorId:'power',claimIds:['claim-one'],knownAt}]:[],
         corrections:[],
         delta:{evidenceVersion:'evidence1',storyVersion:'story-v1',knownAt,independentTitleSubstance:newAngle,
-          materialDifference:newAngle,comparisons:[newAngle?{...comparison,sameDirection:false,updateSufficient:false}:comparison]},
+          materialDifference:newAngle,comparisons:first?[]:[newAngle?{...comparison,sameDirection:false,updateSufficient:false}:comparison]},
         promptVersion:versions.promptVersion,generatorVersion:versions.generatorVersion,
       };
     });
@@ -314,12 +320,15 @@ test('collected article flows to a proposal and editor draft with durable exact 
     const requestWithSectors = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['technology','power']}};
     const reordered = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['power','technology']}};
     let analysisInvocations = 0;
-    const countedRunner = {runWithDispatchGate(effect,request,authorize) {
-      return runner.runWithDispatchGate(effect,request,async()=>{
+    const firstRouting = new Map();
+    const countedRunner = {async runWithDispatchGate(effect,request,authorize) {
+      const result=await runner.runWithDispatchGate(effect,request,async()=>{
         const allowed=await authorize();
         if (allowed) analysisInvocations++;
         return allowed;
       });
+      if (request.routingKey?.startsWith('first-issue-')) firstRouting.set(request.routingKey,result.reason);
+      return result;
     }};
     const durable = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(session,args));
     const independent = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(intentPeer,args));
@@ -529,6 +538,75 @@ test('collected article flows to a proposal and editor draft with durable exact 
     assert.equal(analysisInvocations,8);
     assert.deepEqual(await independent.run(waitingRequest,draft),recoveredInput);
 
+    db.ownerSql('alter table ai_proposal_private.analysis_intents drop constraint fixture_reject_angle;');
+    const firstDraft = {...draft,expectedDraftRevision:'0'};
+    const firstRequests = [];
+    for (const routingKey of ['first-issue-capacity','first-issue-orders']) {
+      const additional = await collected.capture();
+      capturedDocuments.set(additional.source.deliveryId,additional.documentId);
+      firstRequests.push({source:{...analysisRequest.source,source:additional.source},routingKey});
+    }
+    const firstCandidates = await Promise.all(firstRequests.map((request,index)=>
+      (index===0?durable:independent).run(request,firstDraft)));
+    assert.equal(analysisInvocations,10);
+    assert.deepEqual(firstRequests.map(request=>firstRouting.get(request.routingKey)),
+      ['INITIAL_ISSUE_UNDER_EMPTY_STORY','INITIAL_ISSUE_UNDER_EMPTY_STORY']);
+    assert.deepEqual(firstCandidates.map(candidate=>candidate.state),['ANGLE_PENDING','ANGLE_PENDING']);
+    assert.notEqual(firstCandidates[0].angleId,firstCandidates[1].angleId);
+    const firstContent={...angleContent,article_kind:'SECTOR',primary_sector_id:'power'};
+    for (const [index,candidate] of firstCandidates.entries()) {
+      assert.equal(candidate.candidate.storyId,firstStoryId);
+      assert.deepEqual(candidate.candidate.issueVersions,[]);
+      assert.deepEqual(await independent.observe(firstRequests[index],firstDraft),candidate);
+      const proof=await screenCollectedDraft(collected.port,[firstRequests[index].source],firstContent,wordingPolicy);
+      assert.equal(proof.state,'NO_LITERAL_MATCH');
+      assert.equal(proof.checkedSources[0].bodyDigest,candidate.candidate.bodyDigest);
+      db.ownerSql(`insert into ai_proposal_private.angle_draft_context values
+        (${quote(candidate.angleId)},${quote(candidate.effectKey)},${quote(candidate.angleDigest)},
+         'event-first',2,7,${quote(collected.expiresAt)},${json(firstContent)});`);
+    }
+    assert.equal((await angleEditor.apply(firstCandidates[0])).state,'STALE_CONTEXT');
+    db.ownerSql(`insert into private.stories values(${quote(firstStoryId)},'event-first');`);
+    const first = firstCandidates[0];
+    const firstParams={p_effect:first.effectKey,p_work_digest:first.workDigest,
+      p_candidate_digest:first.angleDigest,p_angle_id:first.angleId};
+    await editorPeer.execute('begin isolation level repeatable read;');
+    try {
+      await assert.rejects(callAngle(editorPeer,firstParams),{code:'ISOLATION_NOT_SUPPORTED'});
+    } finally {
+      await editorPeer.execute('rollback;');
+    }
+    const replaceFirstContent = value => db.ownerSql(`update ai_proposal_private.angle_draft_context
+      set draft_content=${json(value)} where angle_id=${quote(first.angleId)};`);
+    for (const badContent of [content,{...firstContent,primary_sector_id:null},{...firstContent,primary_sector_id:' '}]) {
+      replaceFirstContent(badContent);
+      assert.equal((await angleEditor.apply(first)).state,'STALE_CONTEXT');
+    }
+    replaceFirstContent(firstContent);
+    assert.equal(db.ownerSql(`select count(*) from private.issues where story_id=${quote(firstStoryId)};`),'0');
+
+    const emptyPath={...first.candidate,pathIds:[]};
+    assert.throws(()=>decodeAngleCandidate(emptyPath),/AI_ANGLE_CANDIDATE_INVALID/);
+    assert.deepEqual(decodeAngleCandidate({...angle.candidate,pathIds:[]}).pathIds,[]);
+    const emptyPathEffect='analysis:'+createHash('sha256').update('isolated pathless candidate').digest('hex');
+    const reservation={p_effect:emptyPathEffect,p_work_digest:first.workDigest,p_nonce:randomUUID()};
+    assert.equal((await callIntent(session,{...reservation,p_operation:'RESERVE',
+      p_proposal_digest:null,p_proposal:null})).state,'START_ONCE');
+    await assert.rejects(callIntent(session,{...reservation,p_operation:'QUEUE_ANGLE',
+      p_proposal_digest:angleCandidateDigest(emptyPathEffect,emptyPath),p_proposal:emptyPath}),{sqlState:'P0001'});
+    assert.equal((await callIntent(session,{...reservation,p_nonce:null,p_operation:'OBSERVE',
+      p_proposal_digest:null,p_proposal:null})).state,'INDETERMINATE');
+
+    const firstPeerEditor=createSyntheticAngleEditor(args=>callAngle(editorPeer,args));
+    const firstResults=await Promise.all([angleEditor.apply(firstCandidates[0]),firstPeerEditor.apply(firstCandidates[1])]);
+    assert.deepEqual(firstResults.map(result=>result.state).sort(),['ANGLE_DRAFT_CREATED','REVISION_CONFLICT']);
+    const firstWinnerIndex=firstResults.findIndex(result=>result.state==='ANGLE_DRAFT_CREATED');
+    assert.deepEqual(await angleEditor.apply(firstCandidates[firstWinnerIndex]),firstResults[firstWinnerIndex]);
+    assert.equal(db.ownerSql(`select count(*) from private.issues where story_id=${quote(firstStoryId)};`),'1');
+    assert.deepEqual(JSON.parse(db.ownerSql(`select json_build_array(i.publication_state,i.first_published_at,i.material_change_at,d.content)
+      from private.issues i join private.editor_drafts d on d.issue_id=i.id where i.story_id=${quote(firstStoryId)};`)),
+      ['DRAFT',null,null,firstContent]);
+
     await Promise.all([session,editor,notEditor,editorPeer,intentPeer].map(open=>open.close()));
     await db.restartServer();
     session = await openWriter();
@@ -540,9 +618,14 @@ test('collected article flows to a proposal and editor draft with durable exact 
     assert.deepEqual(await restarted.observe(duplicateRequest,draft),duplicateAngle);
     assert.deepEqual(await restarted.run(angleRequest,draft),angle);
     assert.deepEqual(await restarted.run(waitingRequest,draft),recoveredInput);
-    assert.equal(analysisInvocations,8);
+    for (const [index,request] of firstRequests.entries()) {
+      assert.deepEqual(await restarted.run(request,firstDraft),firstCandidates[index]);
+    }
+    assert.equal(analysisInvocations,10);
     const restartedEditor=await db.openSession('ai_outbox_editor','authenticated');
-    assert.deepEqual(await createSyntheticAngleEditor(args=>callAngle(restartedEditor,args)).apply(angle),savedAngleDraft);
+    const restartedAngleEditor=createSyntheticAngleEditor(args=>callAngle(restartedEditor,args));
+    assert.deepEqual(await restartedAngleEditor.apply(angle),savedAngleDraft);
+    assert.deepEqual(await restartedAngleEditor.apply(firstCandidates[firstWinnerIndex]),firstResults[firstWinnerIndex]);
   } finally {
     await db.close();
   }

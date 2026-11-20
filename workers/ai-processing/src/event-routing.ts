@@ -43,7 +43,7 @@ function context(raw:unknown):EventRoutingContext {
   for(const f of ['storyId','storyVersion','canonicalEventKey','issueSetVersion','promptVersion','generatorVersion'])id(x[f]);
   const now=at(x.asOf),end=at(x.deadlineAt);if(end<=now||end-now>72*3600000)bad();
   const issues=unique(list(x.issues,100).map(v=>{const y=k1Record(v);k1Exact(y,['issueId','issueVersion','angleCode','factKeys','pathKeys','evidenceClaimIds']);for(const f of ['issueId','issueVersion','angleCode'])id(y[f]);ids(y.factKeys);ids(y.pathKeys);ids(y.evidenceClaimIds);return y as unknown as Issue;}),v=>v.issueId);
-  if(!issues.length)bad();const complete=ids(x.completeIssueIds,1,100);if(!exactIds(complete,issues.map(i=>i.issueId)))bad();
+  const complete=ids(x.completeIssueIds,0,100);if(!exactIds(complete,issues.map(i=>i.issueId)))bad();
   const decision=validatePipelineDecision(x.decision);assertPipelineVersions(decision,versions);
   const revisions=unique(list(x.revisions).map(validateSourceRevision),v=>v.revisionId);for(const r of revisions)assertPipelineVersions(r,versions);
   const eligibility=unique(list(x.eligibility).map(v=>{const y=k1Record(v);k1Exact(y,['revisionId','permissionVersion','sourcePolicyVersion','analysisAllowed','expiresAt']);for(const f of ['revisionId','permissionVersion','sourcePolicyVersion'])id(y[f]);if(typeof y.analysisAllowed!=='boolean')bad();at(y.expiresAt);return y as unknown as Eligibility;}),v=>v.revisionId);
@@ -74,6 +74,12 @@ function prepare(c:EventRoutingContext):Prepared {
   const evidence=new Map(c.decision.evidence.map(e=>[e.claimId,e]));
   for(const claim of c.claims){const e=evidence.get(claim.claimId),r=e?sources.get(e.revisionId):null;if(at(claim.knownAt)>at(c.decision.knownAt)||!e?.verified||!r||at(claim.knownAt)<at(r.collectedAt)||e.originId!==r.originId||e.groupId!==r.independenceGroupId)return hold('VERIFIED_CURRENT_CLAIMS_REQUIRED');}
   if(c.paths.some(p=>at(p.knownAt)>at(c.delta.knownAt)||p.claimIds.some(id=>at(c.claims.find(cl=>cl.claimId===id)!.knownAt)>at(p.knownAt))))return hold('CURRENT_KOREAN_PATH_REQUIRED');
+  if(c.issues.length===0){
+    if(c.decision.action!=='NEW_ANGLE'||c.decision.issueCandidateKey!==null||
+        !c.delta.independentTitleSubstance||!c.delta.materialDifference)return hold('FIRST_ISSUE_NOT_ESTABLISHED');
+    const facts=new Set(c.claims.filter(claim=>claim.kind==='FACT').map(claim=>claim.claimId));
+    if(!c.paths.some(path=>path.claimIds.some(id=>facts.has(id))))return hold('FIRST_ISSUE_FACT_PATH_REQUIRED');
+  }
   return {state:'READY_FOR_ROUTING_MODEL',request:copy(c),requestDigest:digest(c)};
 }
 export function prepareEventRoutingRequest(rawContext:unknown):Prepared{return prepare(context(rawContext));}
@@ -95,6 +101,10 @@ export function acceptEventRoutingProposal(rawContext:unknown,rawProposal:unknow
   // A correction never silently becomes an update, no-change, or a second angle.
   if(c.corrections.length){if(p.proposedAction!=='CORRECTION')return hold('CORRECTION_REQUIRED');const affected=[...new Set(c.corrections.map(x=>x.issueId))];if(!target||affected.length!==1||affected[0]!==target.issueId||p.angleCode!==target.angleCode)return hold('CORRECTION_TARGET_REQUIRED');return result(c,'VERIFIED_FIXTURE_CORRECTION','CORRECTION',target.issueId,target.angleCode);}
   if(p.proposedAction==='CORRECTION')return hold('CORRECTION_LINK_REQUIRED');
+  if(c.issues.length===0){
+    if(p.proposedAction!=='NEW_ANGLE'||p.targetIssueId!==null)return hold('FIRST_ISSUE_NOT_ESTABLISHED');
+    return result(c,'INITIAL_ISSUE_UNDER_EMPTY_STORY','NEW_ANGLE',null,p.angleCode);
+  }
   const oldFacts=new Set(c.issues.flatMap(i=>i.factKeys)),oldPaths=new Set(c.issues.flatMap(i=>i.pathKeys)),oldEvidence=new Set(c.issues.flatMap(i=>i.evidenceClaimIds));
   const newFacts=c.claims.filter(x=>['FACT','DETAIL'].includes(x.kind)&&!oldFacts.has(x.factKey));
   const addedPaths=c.paths.filter(x=>!oldPaths.has(x.pathKey));
