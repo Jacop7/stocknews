@@ -155,6 +155,49 @@ test('delayed same-context results retain their snapshot time and malformed or c
   assert.equal(calls, 0);
 });
 
+test('impossible slot, state or fallback timestamps are withheld before any card requests', async t => {
+  let snapshot;
+  let calls = 0;
+  const base = await gateway(t, () => snapshot, id => { calls++; return article(id); });
+  for (const overrides of [
+    {rankingCutoff: previousCutoff, sourceCutoff: previousCutoff},
+    {sourceCutoff: previousCutoff},
+    {state: 'DELAYED'},
+    {state: 'DELAYED', sourceCutoff: '2026-11-20T08:05:00.000Z'},
+    {state: 'DELAYED', sourceCutoff: '2026-11-20T07:55:00.001Z'},
+    {state: 'DELAYED', sourceCutoff: '2026-11-20T07:45:00.000Z'},
+  ]) {
+    snapshot = ranking(undefined, overrides);
+    assert.equal((await home(base)).state, 'CALCULATING');
+  }
+  assert.equal(calls, 0);
+});
+
+test('fallback is available at exactly 15 minutes and expires one microsecond later on recheck', async t => {
+  const sourceCutoff = '2026-11-20T07:45:00.000Z';
+  const times = ['2026-11-20T08:00:00.000000Z', '2026-11-20T08:00:00.000001Z'];
+  let reads = 0;
+  let expiresDuringRead = false;
+  const base = await gateway(t, () => {
+    const checkedAt = times[expiresDuringRead && reads % 2 === 1 ? 1 : 0];
+    reads++;
+    return ranking({A: [ref(1)], B: [], C: []}, {state: 'DELAYED', sourceCutoff, checkedAt});
+  });
+  assert.deepEqual(await home(base), {...empty(), state: 'DELAYED', source_cutoff: sourceCutoff,
+    lanes: {A: [cardFor(1)], B: [], C: []}});
+  expiresDuringRead = true;
+  assert.deepEqual(await home(base), empty());
+  assert.equal(reads, 4);
+});
+
+test('a ranking recheck that moves backward within one millisecond is withheld', async t => {
+  const times = ['2026-11-20T08:00:00.000002Z', '2026-11-20T08:00:00.000001Z'];
+  let reads = 0;
+  const base = await gateway(t, () => ranking(undefined, {checkedAt: times[reads++]}));
+  assert.deepEqual(await home(base), empty());
+  assert.equal(reads, 2);
+});
+
 test('whole request deadline aborts card transport and does not overlap unsettled work', {timeout: 9500}, async t => {
   const held = Promise.withResolvers();
   const abortObserved = Promise.withResolvers();

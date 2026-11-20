@@ -398,10 +398,17 @@ begin
   perform collector_private.list_queue_authorize_v1(part.source_id,part.endpoint_id,part.store_epoch,
     part.grant_binding,array['DISCOVERY','STORAGE']);
   observed_at:=pg_catalog.clock_timestamp();
+  -- Checkpointed pages retain their completed counts when a later page reopens a shared job.
   select pg_catalog.jsonb_build_object('pageId',p.page_id,'manifestDigest',p.manifest_digest,
     'checkpoint',p.checkpoint,'total',pg_catalog.count(*),
-    'settled',pg_catalog.count(*) filter(where j.outcome is not null),
-    'leased',pg_catalog.count(*) filter(where j.outcome is null and j.lease_expires_at>observed_at))
+    'settled',pg_catalog.count(*) filter(where case
+      when p.checkpoint is not null then true
+      when j.outcome = 'BODY_STORED' then collector_private.list_queue_body_proved_v1(
+        j.delivery_id,j.body_id,j.proof,part.store_epoch,observed_at)
+      else j.outcome = 'SKIP_BODY'
+    end),
+    'leased',pg_catalog.count(*) filter(where p.checkpoint is null and j.outcome is null
+      and j.lease_expires_at>observed_at))
     into result
     from collector_private.list_queue_page_v1 p
     join collector_private.list_queue_page_item_v1 i using (page_id,partition_id)

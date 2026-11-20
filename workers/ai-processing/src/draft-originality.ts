@@ -3,7 +3,7 @@ import {collectorDataV1,collectorRecordV1} from '../../collectors/src/collector-
 import {collectorBodyHashV1} from '../../collectors/src/collector-db-canonical-v1.ts';
 import {isOwnedDurableAnalysisInputPort,type DurableAnalysisRequestV1,type OwnedDurableAnalysisInputPort} from './durable-input.ts';
 import {readSyntheticArticleEnvelope} from './article-envelope.ts';
-import {screenArticleOriginality} from './originality-screen.ts';
+import {normalizeComparableWording,screenArticleOriginality} from './originality-screen.ts';
 
 const encoder = new TextEncoder();
 const draftText = (value:unknown):string => {
@@ -20,7 +20,7 @@ function projectDraftWording(draft:Record<string,unknown>) {
   const parts:Array<{id:string;text:string}> = [];
   const add = (id:string, value:unknown) => {
     const text = draftText(value);
-    if (text.trim()) parts.push({id,text});
+    if (normalizeComparableWording(text)) parts.push({id,text});
   };
   const addList = (id:string, value:unknown) => rows(value).forEach((text,n)=>add(id+'-'+n,text));
   add('summary',draft.summary);
@@ -80,10 +80,11 @@ export async function screenCollectedDraft(
     const {text} = current.input.content;
     let article;
     try {article=readSyntheticArticleEnvelope(text);} catch {return held();}
+    if (!normalizeComparableWording(article.title) || !normalizeComparableWording(article.body)) return held();
     const deliveryId = current.input.source.identity.deliveryId;
     checkedSources.push({deliveryId,bodyDigest:snapshot[n].source.expectedBodyHash,checkedAt:current.checkedAt});
     for (const [part,words] of Object.entries(article)) {
-      if (words.trim()) sourceParts.push({id:deliveryId+'-'+part,text:words});
+      if (part!=='lead' || normalizeComparableWording(words)) sourceParts.push({id:deliveryId+'-'+part,text:words});
     }
   }
   const comparison = screenArticleOriginality({policy,sourceParts,draft:projectDraftWording(draft)});

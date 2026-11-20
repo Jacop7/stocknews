@@ -156,6 +156,7 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     actor = await open(executor);
     db.ownerSql(`update collector_private.collector_body_v1 set retention_until=clock_timestamp()-interval '1 second'
       where body_id=${literal(body)};`);
+    assert.deepEqual(await queue.observePage(staged),{total:2,settled:1,leased:0,unclaimed:1,checkpoint:null});
     await assert.rejects(checkpoint(manifestDigest), /checkpoint: RIGHTS_HOLD/);
     const replacementDelivery = randomUUID(), replacementBody = randomUUID(), replacementToken = randomUUID();
     const replacementProof = 'e'.repeat(64);
@@ -192,6 +193,16 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     const saved = await queue.checkpoint(staged);
     assert.deepEqual(saved, {pageId:page,version:'1',cursorRef:'next-page',manifestDigest});
     assert.deepEqual(await checkpoint(manifestDigest),saved);
+    const nextPage = randomUUID();
+    const nextStaged = await queue.stage({partition:'partition',source:'source',endpoint:'endpoint',grant:binding,
+      policyVersion:'policy-v1',pageId:nextPage,version:'1',cursorRef:'next-page',nextCursorRef:null,items:[secondText]});
+    assert.deepEqual(await queue.observePage(nextStaged),{total:1,settled:1,leased:0,unclaimed:0,checkpoint:null});
+    db.ownerSql(`update collector_private.collector_body_v1 set retention_until=clock_timestamp()-interval '1 second'
+      where body_id=${literal(replacementBody)};`);
+    assert.deepEqual(await queue.observePage(nextStaged),{total:1,settled:0,leased:0,unclaimed:1,checkpoint:null});
+    assert.equal((await queue.claim(nextPage,randomUUID(),30)).deliveryId,second);
+    assert.deepEqual(await queue.observePage(nextStaged),{total:1,settled:0,leased:1,unclaimed:0,checkpoint:null});
+    assert.deepEqual(await queue.observePage(staged),{total:2,settled:2,leased:0,unclaimed:0,checkpoint:saved});
     const waitingPage = randomUUID();
     await call(actor, 'stage', ["'wait-partition'","'source'","'endpoint'",epoch,json(binding),"'policy-v1'",
       literal(waitingPage),0,'null','null',json([firstText])]);

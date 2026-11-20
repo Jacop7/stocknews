@@ -22,8 +22,8 @@ function identifier(value:unknown):string {
   if (!pipelineId(value)) invalid();
   return value;
 }
-function normalized(value:string):string[] {
-  return Array.from(value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu,''));
+export function normalizeComparableWording(value:string):string {
+  return value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu,'');
 }
 function parts(raw:unknown,maxCount:number,partBytes:number,totalBytes:number):TextPart[] {
   if (collectorIsProxyV1(raw) || !Array.isArray(raw) || Object.getPrototypeOf(raw)!==Array.prototype ||
@@ -72,12 +72,12 @@ export function screenArticleOriginality(raw:unknown) {
   if (draftParts.length<2 || new Set(draftParts.map(part=>part.id)).size!==draftParts.length) invalid();
   const output = {policyVersion:version,comparison:'NFKC_LETTER_NUMBER_MARK_RUNS_V1' as const,
     fixtureOnly:true as const,publicationAuthorized:false as const};
-  const sources = sourceParts.map(part=>({id:part.id,characters:normalized(part.text)}));
+  const sources = sourceParts.map(part=>({id:part.id,characters:Array.from(normalizeComparableWording(part.text))}));
   if (sources.some(source=>source.characters.length===0)) invalid();
   if (!sources.length) return {...output,state:'HOLD_NO_SOURCE' as const,findings:[]};
   const indexes = new Map<number,Map<string,Set<number>>>();
   for (const [partNumber,part] of draftParts.entries()) {
-    const characters = normalized(part.text);
+    const characters = Array.from(normalizeComparableWording(part.text));
     if (!characters.length) invalid();
     let windows = indexes.get(part.width);
     if (!windows) indexes.set(part.width,windows=new Map());

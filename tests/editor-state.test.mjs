@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { alignedScenarios,confirmedSqlRejection,currentPublicationBinding,EditorApiError,matchesSavedDraft,pendingResolution,parsePendingIntent,publicationBinding,saveFailureNeedsDraftReload } from '../apps/admin/lib/editor-state.mjs';
+import { alignedScenarios,confirmedSqlRejection,currentPublicationBinding,EditorApiError,matchesSavedDraft,observePendingEditorOperation,pendingResolution,parsePendingIntent,publicationBinding,saveFailureNeedsDraftReload } from '../apps/admin/lib/editor-state.mjs';
 const pos={direction:'POSITIVE',title:'Written positive',expected_result:'Existing text',checks:['Check'],path_ids:['benefit']},neg={...pos,direction:'NEGATIVE',title:'Written negative',path_ids:['damage']};
 const benefit={path_id:'benefit',direction:'BENEFIT',conditional_direction:'NONE'},damage={path_id:'damage',direction:'DAMAGE',conditional_direction:'NONE'};
 test('Removing the final negative impact removes the hidden negative scenario and stale references',()=>{
@@ -20,6 +20,26 @@ test('Unknown outcomes retain the same intent; confirmed rejection requires a fr
  assert.equal(pendingResolution('APPLIED',false,true),'APPLIED');assert.equal(pendingResolution('APPLIED',true,false),'UNCERTAIN');
  for(const code of ['P0001','40001','40P01','42501','22P02','23514'])assert.equal(confirmedSqlRejection({code}),true);
  for(const body of [{message:'UPSTREAM_UNAVAILABLE'},{code:'57P01'},{code:'ECONNRESET'},{code:'PGRST001'},null])assert.equal(confirmedSqlRejection(body),false);
+});
+
+test('A confirmed payload conflict never adopts a different write under the same key',async()=>{
+ const conflicting=new EditorApiError('EFFECT_PAYLOAD_CONFLICT',409,true);
+ const unexpected=()=>assert.fail('A conflicting key cannot prove application');
+ assert.deepEqual(await observePendingEditorOperation(unexpected,unexpected,conflicting),{resolution:'CONFLICT'});
+});
+
+test('An uncertain write reads the draft only after observing APPLIED',async()=>{
+ let state='PUBLISHED';
+ const receipt=await observePendingEditorOperation(
+  async()=>{await Promise.resolve();state='HIDDEN';return {state:'APPLIED'};},
+  async()=>({state}),new TypeError('response lost'),
+ );
+ assert.deepEqual(receipt,{resolution:'APPLIED',latest:{state:'HIDDEN'}});
+ const unexpected=()=>assert.fail('Unknown write should retain the pending intent');
+ assert.deepEqual(await observePendingEditorOperation(async()=>({state:'UNKNOWN'}),unexpected),
+  {resolution:'UNCERTAIN'});
+ await assert.rejects(observePendingEditorOperation(async()=>({state:'APPLIED'}),
+  async()=>{throw new Error('draft read failed');}),/draft read failed/);
 });
 test('Persisted intent contains only non-secret request identifiers and survives a retry',()=>{
  const args={p_issue:'51000000-0000-4000-8000-000000000001',p_expected_revision:2,p_issue_revision:1,p_policy:2,p_catalog:1,p_effect_key:'unchanged-key',access_token:'must-not-retain',p_content:{private:'must-not-retain'}};

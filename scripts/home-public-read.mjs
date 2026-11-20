@@ -3,17 +3,41 @@ import { homeUuid, validateHomeDatabaseReply } from '../workers/home-ranking/src
 
 const laneNames = ['A', 'B', 'C'];
 const deadlineMs = 6000;
+const rankingIntervalMs = 5 * 60 * 1000;
+const maxFallbackAgeMicroseconds = 15n * 60n * 1000000n;
 
 function calculating(rankingCutoff = null) {
   return {state: 'CALCULATING', ranking_cutoff: rankingCutoff, source_cutoff: null, lanes: {A: [], B: [], C: []}};
+}
+
+function timestampInMicroseconds(value) {
+  // The validated UTC timestamps may retain PostgreSQL precision beyond Date.parse.
+  return BigInt(Date.parse(value)) * 1000n + BigInt(value.slice(23, -1) || '0');
+}
+
+function validateSnapshotTiming(snapshot, checkedAt, checkedAtMicroseconds) {
+  const expectedCutoffMs = Math.floor(Date.parse(checkedAt) / rankingIntervalMs) * rankingIntervalMs;
+  const rankingCutoff = new Date(expectedCutoffMs).toISOString();
+  if (snapshot.rankingCutoff !== rankingCutoff) throw new Error('HOME_RANKING_CUTOFF_MISMATCH');
+  if (snapshot.state === 'CALCULATING') return;
+  if (snapshot.state === 'FRESH' && snapshot.sourceCutoff === rankingCutoff) return;
+
+  const sourceCutoffMs = Date.parse(snapshot.sourceCutoff);
+  if (snapshot.state === 'DELAYED' && snapshot.sourceCutoff.length === 24 &&
+      sourceCutoffMs % rankingIntervalMs === 0 && sourceCutoffMs < expectedCutoffMs &&
+      checkedAtMicroseconds - timestampInMicroseconds(snapshot.sourceCutoff) <= maxFallbackAgeMicroseconds) return;
+
+  throw new Error('HOME_SOURCE_CUTOFF_MISMATCH');
 }
 
 async function readSnapshot(readRanking, signal) {
   const value = validateHomeDatabaseReply('read_current_home', await readRanking(signal));
   if (value.principal.componentRole !== 'home_v1_internal_reader') throw new Error('HOME_READER_REQUIRED');
   const {checkedAt, ...snapshot} = value.result;
+  const checkedAtMicroseconds = timestampInMicroseconds(checkedAt);
+  validateSnapshotTiming(snapshot, checkedAt, checkedAtMicroseconds);
   return {
-    checkedAt,
+    checkedAtMicroseconds,
     snapshot,
     resourceId: value.resourceId,
     namespaceId: value.namespaceId,
@@ -44,7 +68,7 @@ function toCard(key, article) {
 async function assemble(readRanking, readArticle, context, signal) {
   const first = await readSnapshot(readRanking, signal);
   signal.throwIfAborted();
-  const {checkedAt: firstCheckedAt, ...binding} = first;
+  const {checkedAtMicroseconds: firstCheckedAt, ...binding} = first;
   const {snapshot} = binding;
   context.rankingCutoff = snapshot.rankingCutoff;
   if (snapshot.state === 'CALCULATING') return calculating(context.rankingCutoff);
@@ -60,9 +84,10 @@ async function assemble(readRanking, readArticle, context, signal) {
     for (const [offset, result] of cards.entries()) lanes[batch[offset].lane].push(result.value);
   }
 
-  const {checkedAt, ...currentBinding} = await readSnapshot(readRanking, signal);
+  const {checkedAtMicroseconds: checkedAt, ...currentBinding} = await readSnapshot(readRanking, signal);
   signal.throwIfAborted();
-  if (Date.parse(checkedAt) < Date.parse(firstCheckedAt) || !isDeepStrictEqual(binding, currentBinding)) {
+  if (checkedAt < firstCheckedAt) return calculating(context.rankingCutoff);
+  if (!isDeepStrictEqual(binding, currentBinding)) {
     return calculating(currentBinding.snapshot.rankingCutoff);
   }
   return {state: snapshot.state, ranking_cutoff: snapshot.rankingCutoff, source_cutoff: snapshot.sourceCutoff, lanes};

@@ -21,6 +21,17 @@ export function pendingResolution(outcome,notApplied,latestRead){
   if(outcome==='APPLIED')return 'APPLIED';
   return outcome==='UNKNOWN'&&notApplied===true?'REJECTED':'UNCERTAIN';
 }
+
+export async function observePendingEditorOperation(readOutcome,readDraft,error){
+  const rejected=error instanceof EditorApiError&&error.notApplied;
+  // The read-only lookup matches the issue and key, but only the write checks the payload.
+  if(rejected&&error.message==='EFFECT_PAYLOAD_CONFLICT')return {resolution:'CONFLICT'};
+  const {state}=await readOutcome();
+  const resolution=pendingResolution(state,rejected,true);
+  if(resolution==='UNCERTAIN')return {resolution};
+  // Read the latest editor state after the operation lookup, including after any observed commit.
+  return {resolution,latest:await readDraft()};
+}
 export function parsePendingIntent(text){
   try{
     const value=JSON.parse(text),a=value.args,uuid=x=>typeof x==='string'&&/^[0-9a-f-]{36}$/.test(x);

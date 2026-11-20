@@ -8,7 +8,7 @@ import { ArticlePreview } from './ArticlePreview';
 import CatalogManager from './CatalogManager';
 import NewsAnalytics from './NewsAnalytics';
 import ReservationManager from './ReservationManager';
-import { alignedScenarios,currentPublicationBinding,EditorApiError,matchesSavedDraft,parsePendingIntent,pendingResolution,publicationBinding,saveFailureNeedsDraftReload,stateRecoveryDraft } from '../lib/editor-state.mjs';
+import { alignedScenarios,currentPublicationBinding,EditorApiError,matchesSavedDraft,observePendingEditorOperation,parsePendingIntent,publicationBinding,saveFailureNeedsDraftReload,stateRecoveryDraft } from '../lib/editor-state.mjs';
 type CurrentCatalog={catalog_version:string;sectors:PublicSector[]};
 type PendingIntent={action:'create'|'publish'|'state';args:Record<string,unknown>};
 type BoundPreview={article:Preview;binding:ReturnType<typeof publicationBinding>};
@@ -40,15 +40,21 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
  const patchImpact=(n:number,value:Partial<EditorImpact>)=>{if(draft)patch({impacts:draft.content.impacts.map((x,i)=>i===n?{...x,...value}:x)});};
  async function readDraft(id:string){const [d,c]=await Promise.all([api<Draft>('draft?id='+encodeURIComponent(id)),api<CurrentCatalog>('catalog-current')]);if(String(d.catalog_version)!==c.catalog_version)throw new Error('STALE_CATALOG');setSectors(c.sectors);return d;}
  async function load(id:string){const d=await readDraft(id);setDraft({...d,content:{...d.content,scenarios:alignedScenarios(d.content.scenarios,d.content.impacts)}});setPreview(null);setRecoveryDraft(null);}
- async function recoverIntent(intent:PendingIntent,notApplied=false){
+ async function recoverIntent(intent:PendingIntent,error?:unknown){
   if(intent.action==='create'){setNotice('새 글 요청 결과 확인이 필요합니다. 동일 요청으로 다시 확인해 주세요.');return;}
-  const id=String(intent.args.p_issue),[latest,outcome]=await Promise.all([readDraft(id),api<{state:string}>('operation?id='+encodeURIComponent(id)+'&key='+encodeURIComponent(String(intent.args.p_effect_key)))]);
-  const resolution=pendingResolution(outcome.state,notApplied,true);
+  const id=String(intent.args.p_issue);
+  const {resolution,latest}=await observePendingEditorOperation(
+   ()=>api<{state:string}>('operation?id='+encodeURIComponent(id)+'&key='+encodeURIComponent(String(intent.args.p_effect_key))),
+   ()=>readDraft(id),error);
   if(resolution==='APPLIED'){
-   const restored=intent.action==='state'?stateRecoveryDraft(draft,latest):{draft:{...latest,content:{...latest.content,scenarios:alignedScenarios(latest.content.scenarios,latest.content.impacts)}},needsReload:false};keepIntent(null);setDraft(restored.draft);setPreview(null);setRecoveryDraft(restored.needsReload?id:null);await refresh();setNotice(restored.needsReload?'상태 변경은 반영됐지만 다른 편집본이 저장되어 있습니다. 현재 입력과 기준 버전은 유지됩니다. 최신 초안을 불러온 뒤 편집해 주세요.':'처리가 반영된 최신 상태를 확인했습니다.');
-  }else if(resolution==='REJECTED'){
+   const restored=intent.action==='state'?stateRecoveryDraft(draft,latest):{draft:{...latest,content:{...latest.content,scenarios:alignedScenarios(latest.content.scenarios,latest.content.impacts)}},needsReload:false};
+   keepIntent(null);setDraft(restored.draft);setPreview(null);setRecoveryDraft(restored.needsReload?id:null);
+   const confirmed=restored.needsReload?'상태 변경은 반영됐지만 다른 편집본이 저장되어 있습니다. 현재 입력과 기준 버전은 유지됩니다. 최신 초안을 불러온 뒤 편집해 주세요.':'처리가 반영된 최신 상태를 확인했습니다.';
+   try{await refresh();setNotice(confirmed);}catch{setNotice(confirmed+' 기사 목록은 새로고침해 주세요.');}
+  }else if(resolution==='REJECTED'||resolution==='CONFLICT'){
    keepIntent(null);setPreview(null);setRecoveryDraft(id);setNotice('요청이 반영되지 않은 것을 확인했습니다. 입력 내용은 유지됩니다. 최신 초안을 불러온 뒤 다시 편집해 주세요.');
   }else setNotice('처리 결과가 아직 확정되지 않았습니다. 같은 요청 키를 유지합니다.');
+  return resolution;
  }
  async function mutate(intent:PendingIntent){
   if(pendingRef.current)intent=pendingRef.current;else keepIntent(intent);
@@ -56,7 +62,8 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
   try{result=await api(intent.action,intent.args,csrf);}
   catch(e){
    // An explicit SQL rollback is different from an unknown transport outcome. Both require a fresh state read.
-   try{await recoverIntent(intent,e instanceof EditorApiError&&e.notApplied);}catch{setNotice('최신 상태 확인에 실패했습니다. 동일 요청을 유지합니다.');}
+   try{if(await recoverIntent(intent,e)==='APPLIED')return;}
+   catch{setNotice('최신 상태 확인에 실패했습니다. 동일 요청을 유지합니다.');}
    throw e;
   }
   if(intent.action==='create'){await load(String(result.issue_id));keepIntent(null);await refresh();setNotice('새 초안 생성 완료');}
@@ -99,7 +106,7 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
  return <div className='shell'><aside><strong>주도주 뉴스</strong><p>관리자</p><nav>{menus.filter(([key])=>!previewMode||['articles','sectors','keywords'].includes(key)).map(([key,label])=><Link href={'/'+key} key={key}>{label}</Link>)}</nav>{csrf&&<button disabled={busy} onClick={()=>run(async()=>{await api('logout',{},csrf);setCsrf('');setDraft(null);router.replace('/login');})}>로그아웃</button>}</aside><main>
  <span className='tag'>{previewMode?'개발 DB · 합성 검증 · 실제 뉴스 미연결':'LOCAL · 합성 기사 · 실제 뉴스/운영 게시 미연결'}</span><h1>{!csrf?'관리자 로그인':draft&&(!initialPath||['articles','login'].includes(initialPath))?'기사 작성·편집':menus.find(([k])=>k===initialPath)?.[1]??'기사 관리'}</h1>
  {error&&<p role='alert' className='error'>{error} · 최신 상태를 확인한 후 다시 시도해 주세요.</p>}{notice&&<p role='status'>{notice}</p>}
- {csrf&&pending&&<div className='panel' role='status'><p>확인 중인 {pending.action==='create'?'새 글':pending.action==='publish'?'게시':'상태 변경'} 요청이 있습니다. 다른 쓰기는 잠시 잠깁니다.</p><button disabled={busy} onClick={()=>run(()=>mutate(pending))}>동일 요청 재확인</button>{pending.action!=='create'&&<button disabled={busy} onClick={()=>run(()=>recoverIntent(pending))}>처리 상태 확인</button>}</div>}
+ {csrf&&pending&&<div className='panel' role='status'><p>확인 중인 {pending.action==='create'?'새 글':pending.action==='publish'?'게시':'상태 변경'} 요청이 있습니다. 다른 쓰기는 잠시 잠깁니다.</p><button disabled={busy} onClick={()=>run(()=>mutate(pending))}>동일 요청 재확인</button>{pending.action!=='create'&&<button disabled={busy} onClick={()=>run(async()=>{await recoverIntent(pending);})}>처리 상태 확인</button>}</div>}
  {csrf&&recoveryDraft&&<div className='panel'><p>현재 입력을 자동으로 덮어쓰지 않았습니다. 최신 초안을 불러오면 현재 입력이 교체됩니다.</p><button disabled={busy} onClick={()=>run(()=>load(recoveryDraft))}>최신 초안 불러오기</button></div>}
  {!ready?<p>인증 상태 확인 중…</p>:!csrf?<form className='panel login' onSubmit={e=>{e.preventDefault();run(async()=>{const s=await api<{csrf:string}>('login',{email,password});setPassword('');setCsrf(s.csrf);setArticles(await api<typeof articles>('articles'));setSectors(await api<PublicSector[]>('catalog'));if(pendingRef.current?.action!=='create'&&pendingRef.current?.args.p_issue)await load(String(pendingRef.current.args.p_issue));router.replace('/articles');});}}><label>이메일<input type='email' required autoComplete='username' value={email} onChange={e=>setEmail(e.target.value)}/></label><label>비밀번호<input type='password' required autoComplete='current-password' value={password} onChange={e=>setPassword(e.target.value)}/></label><button className='primary' disabled={busy}>로그인</button><p>소비자 앱에는 로그인이 없습니다.</p></form>
  :['sectors','keywords'].includes(initialPath)?<CatalogManager csrf={csrf}/>
