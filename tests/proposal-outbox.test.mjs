@@ -6,11 +6,13 @@ import {MainOwnedP4Postgres} from '../scripts/test-main-p4-integration.mjs';
 import {AiProposalOutboxV1} from '../workers/ai-processing/src/proposal-outbox.ts';
 import {createSyntheticAnalysisRunner} from '../workers/ai-processing/src/analysis-run.ts';
 import {EVENT_ROUTING_SCHEMA} from '../workers/ai-processing/src/event-routing.ts';
+import {createDurableSyntheticAnalysis} from '../workers/ai-processing/src/analysis-intent.ts';
 import {collectAnalysisInput,collectorSql} from './fixtures/collected-analysis-input.mjs';
 
 const source = 'workers/ai-processing/sql/proposal-outbox-v1.sql';
 const sql = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
 const draftApply = readFileSync(new URL('../workers/ai-processing/sql/proposal-draft-apply-v1.sql', import.meta.url), 'utf8');
+const intentSql = readFileSync(new URL('../workers/ai-processing/sql/analysis-intent-v1.sql', import.meta.url), 'utf8');
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => quote(JSON.stringify(value)) + '::jsonb';
 const draftBinding = {
@@ -70,6 +72,7 @@ test('collected article flows to a proposal and editor draft with durable exact 
     await db.start();
     const article = {title:'SYNTHETIC 전력 수요 계약',lead:'국내 전력 설비에 미치는 영향',body:'NO_RAW_BODY_COPY'};
     const collected = await collectAnalysisInput(db,article);
+    const capturedDocuments = new Map([[collected.source.deliveryId,collected.documentId]]);
     const issueId = randomUUID();
     const comparison = {issueId,issueVersion:'8',sameDirection:true,updateSufficient:true};
     const versions = {analysisPolicyVersion:'policy-v1',catalogVersion:'catalog-v1',
@@ -79,8 +82,7 @@ test('collected article flows to a proposal and editor draft with durable exact 
       async metadata({request,requestDigest}) {
         assert.equal(request.source.title,article.title);
         assert.equal(request.source.lead,article.lead);
-        assert.equal(request.source.sourceDocumentId,collected.documentId);
-        assert.equal(request.source.revisionId,collected.source.deliveryId);
+        assert.equal(request.source.sourceDocumentId,capturedDocuments.get(request.source.revisionId));
         assert.equal(Object.hasOwn(request.source,'body'),false);
         return {requestDigest,classification:'RELEVANT_EVENT',newCatalyst:'YES',koreanImpact:'SECTOR',
           sectorIds:['power'],confidence:'CLEAR',
@@ -273,6 +275,98 @@ test('collected article flows to a proposal and editor draft with durable exact 
     await editor.execute(`select public.catalog_save_draft(${quote(issueId)},5,${json(manual)},2);`);
     assert.equal((await editorClient.applyDraft(recovered.effectKey,recovered.requestDigest)).state,'REVISION_CONFLICT');
     assert.deepEqual(JSON.parse(db.ownerSql('select content::text from private.editor_drafts;')),manual);
+
+    db.ownerSql(`
+      select set_config('judoju.ai_proposal_fixture_v1',current_database(),false);
+      ${intentSql}
+    `);
+    const intentPeer = await openWriter();
+    const callIntent = (dbSession,args) => {
+      const values = [args.p_operation,args.p_effect,args.p_work_digest,args.p_nonce,args.p_proposal_digest]
+        .map(value=>value===null?'null':quote(value));
+      values.push(args.p_proposal===null?'null':json(args.p_proposal));
+      return dbSession.execute(`select ai_proposal_api.ai_analysis_intent_v1(${values.join(',')});`).then(JSON.parse);
+    };
+    const draft = {expectedDraftRevision:'6',policyDigest:binding.policyDigest,catalogDigest:binding.catalogDigest};
+    const requestWithSectors = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['technology','power']}};
+    const reordered = {...analysisRequest,source:{...analysisRequest.source,sectorIds:['power','technology']}};
+    let analysisInvocations = 0;
+    const countedRunner = {async run(effect,request) {
+      analysisInvocations++;
+      return runner.run(effect,request);
+    }};
+    const durable = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(session,args));
+    const independent = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(intentPeer,args));
+    assert.equal((await durable.observe(requestWithSectors,draft)).state,'NOT_FOUND');
+    const [one,two] = await Promise.all([durable.run(requestWithSectors,draft),independent.run(reordered,draft)]);
+    const stored = [one,two].find(value=>value.state==='PROPOSAL_STORED');
+    assert.ok(stored);
+    assert.equal(analysisInvocations,1);
+    assert.equal(one.effectKey,two.effectKey);
+    assert.equal(one.workDigest,two.workDigest);
+    assert.deepEqual(await independent.run(reordered,draft),stored);
+    assert.equal((await independent.run(reordered,{...draft,expectedDraftRevision:'7'})).state,'CONFLICT');
+    const storedProposal = await client.readPending(stored.effectKey,stored.proposalDigest);
+    assert.equal(storedProposal.state,'PENDING_DRAFT');
+    assert.equal(storedProposal.proposal.bodyDigest,collected.source.expectedBodyHash);
+
+    const alternateRequests = new Map();
+    for (const routingKey of ['lost-reserve','lost-finish','rolled-back','awaiting-evidence']) {
+      const additional = await collected.capture();
+      capturedDocuments.set(additional.source.deliveryId,additional.documentId);
+      alternateRequests.set(routingKey,{source:{...analysisRequest.source,source:additional.source},routingKey});
+    }
+    const alternate = routingKey => alternateRequests.get(routingKey);
+    const lostReserve = createDurableSyntheticAnalysis(countedRunner,async args=>{
+      await callIntent(session,args);
+      throw Error('Reservation reply lost');
+    });
+    assert.equal((await lostReserve.run(alternate('lost-reserve'),draft)).state,'UNKNOWN');
+    assert.equal((await independent.run(alternate('lost-reserve'),draft)).state,'INDETERMINATE');
+    const lost = alternate('lost-reserve');
+    const differentPrompt = {...lost,source:{...lost.source,versions:{...versions,promptVersion:'prompt-v2'}}};
+    assert.equal((await independent.run(differentPrompt,draft)).state,'CONFLICT');
+    assert.equal((await independent.run({...lost,routingKey:'replacement-route'},draft)).state,'CONFLICT');
+    assert.equal(analysisInvocations,1);
+
+    const lostFinish = createDurableSyntheticAnalysis(countedRunner,async args=>{
+      const reply = await callIntent(session,args);
+      if (args.p_operation==='FINISH') throw Error('Finish reply lost');
+      return reply;
+    });
+    assert.equal((await lostFinish.run(alternate('lost-finish'),draft)).state,'UNKNOWN');
+    assert.equal((await independent.observe(alternate('lost-finish'),draft)).state,'PROPOSAL_STORED');
+    assert.equal(analysisInvocations,2);
+
+    db.ownerSql(`alter table ai_proposal_private.analysis_intents
+      add constraint fixture_reject_finish check (state<>'PROPOSAL_STORED') not valid;`);
+    const interrupted = await durable.run(alternate('rolled-back'),draft);
+    assert.equal(interrupted.state,'UNKNOWN');
+    assert.equal((await independent.observe(alternate('rolled-back'),draft)).state,'INDETERMINATE');
+    assert.equal(db.ownerSql(`select count(*) from ai_proposal_private.proposals where effect_key=${quote(interrupted.effectKey)};`),'0');
+    assert.equal((await independent.run(alternate('rolled-back'),draft)).state,'INDETERMINATE');
+    assert.equal(analysisInvocations,3);
+    await assert.rejects(session.execute('select * from ai_proposal_private.analysis_intents;'),{code:'FORBIDDEN'});
+    await assert.rejects(callIntent(notEditor,{
+      p_operation:'OBSERVE',p_effect:stored.effectKey,p_work_digest:stored.workDigest,p_nonce:null,
+      p_proposal_digest:null,p_proposal:null,
+    }),{code:'FORBIDDEN'});
+    const awaitingEvidence = createDurableSyntheticAnalysis({async run(effectKey) {
+      return {...analysis,effectKey,disposition:'REQUEST_EVIDENCE'};
+    }},args=>callIntent(session,args));
+    assert.equal((await awaitingEvidence.run(alternate('awaiting-evidence'),draft)).state,'HELD');
+    assert.equal((await independent.run(alternate('awaiting-evidence'),draft)).state,'HELD');
+    assert.equal(analysisInvocations,3);
+
+    await Promise.all([session,editor,notEditor,editorPeer,intentPeer].map(open=>open.close()));
+    await db.restartServer();
+    session = await openWriter();
+    const restarted = createDurableSyntheticAnalysis(countedRunner,args=>callIntent(session,args));
+    assert.deepEqual(await restarted.run(reordered,draft),stored);
+    assert.equal((await restarted.run(alternate('lost-reserve'),draft)).state,'INDETERMINATE');
+    assert.equal((await restarted.run(differentPrompt,draft)).state,'CONFLICT');
+    assert.equal((await restarted.observe(alternate('rolled-back'),draft)).state,'INDETERMINATE');
+    assert.equal(analysisInvocations,3);
   } finally {
     await db.close();
   }

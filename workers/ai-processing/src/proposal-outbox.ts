@@ -15,7 +15,7 @@ type OutboxCall = (
   args: Readonly<Record<string, unknown>>,
 ) => Promise<unknown>;
 
-type DraftBinding = {
+export type DraftBinding = {
   inputDigest: string;
   bodyDigest: string;
   policyDigest: string;
@@ -117,6 +117,11 @@ function digest({effectKey, proposal: p}: ReturnType<typeof project>): string {
   return collectorBodyHashV1(new TextEncoder().encode(preimage));
 }
 
+export function prepareSyntheticProposalCommand(analysis: AnalysisRunResult, binding: DraftBinding) {
+  const command = project(analysis, binding);
+  return {...command, requestDigest:digest(command)};
+}
+
 function decodeTerminal(receipt: Record<string, unknown>, effectKey: string, requestDigest: string,
   operation: OutboxOperation): Exclude<ProposalOutboxReceipt, {state:'PENDING_DRAFT'}> {
   const state = receipt.state;
@@ -141,9 +146,7 @@ export class AiProposalOutboxV1 {
   }
 
   async save(analysis: AnalysisRunResult, binding: DraftBinding): Promise<ProposalOutboxReceipt> {
-    const command = project(analysis, binding);
-    const {effectKey, proposal} = command;
-    const requestDigest = digest(command);
+    const {effectKey, proposal, requestDigest} = prepareSyntheticProposalCommand(analysis, binding);
     return this.readReceipt('ai_proposal_save_v1', effectKey, requestDigest, {
       p_effect: effectKey, p_request_digest: requestDigest, p_proposal: proposal,
     });

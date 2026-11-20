@@ -33,7 +33,6 @@ export async function collectAnalysisInput(db, article) {
   const principals = identity.testLoginPrincipals;
   const sourceId = 'fixture-analysis';
   const endpointId = 'fixture-analysis/articles';
-  const nativeId = 'results-1';
   const sourcePolicyVersion = 'source-v1';
   const provenance = {
     publisherId:collectorKnownV1('fixture-publisher'), originId:collectorKnownV1('fixture-origin'),
@@ -44,7 +43,8 @@ export async function collectAnalysisInput(db, article) {
     const request = {
       schema:COLLECTOR_DB_SCHEMA_V1, mode:'SYNTHETIC_ISOLATED_DB', fixtureAssertionOnly:true,
       physicalCommitTimeRightsProven:false, stableStoreId, storeEpoch, operation,
-      effectKey:'fixture-analysis/' + operation, canonicalAlg:COLLECTOR_CANONICAL_ALG_V1, args,
+      effectKey:'fixture-analysis/' + operation + '/' + (args.deliveryId ?? 'grant'),
+      canonicalAlg:COLLECTOR_CANONICAL_ALG_V1, args,
     };
     return {...request, requestDigest:collectorRequestDigestV1(request)};
   };
@@ -61,28 +61,34 @@ export async function collectAnalysisInput(db, article) {
   }));
   const {grantId,grantGeneration,grantVersion} = issued.outcome;
   const grant = {grantId,grantGeneration,grantVersion,sourcePolicyVersion};
-  const deliveryId = randomUUID();
-  const delivered = await executor.putDelivery(command('PUT_DELIVERY', {
-    grant, deliveryId, sourceId, endpointId, nativeId, rawObservationId:randomUUID(), itemOrdinal:'0',
-    providerDeliveryRef:null, providerRevisionRef:'provider-revision-1', kind:'ORIGINAL_ARTICLE', purpose:'ORIGINAL_ACCESS',
-    syntheticLocator:'https://publisher.invalid/article', observedAt:checkedAt, assertedProvenance:provenance,
-    sourceTimes:{resolutionState:'KNOWN',timeQuality:'KNOWN',publishedAt:collectorKnownV1(checkedAt),updatedAt:collectorUnknownV1()},
-  }));
   const text = 'SYNTHETIC ' + JSON.stringify(article);
   const bytes = new TextEncoder().encode(text);
   const bodyHash = collectorBodyHashV1(bytes);
-  const bodyId = randomUUID();
-  await executor.attachBody(command('ATTACH_BODY', {
-    grant, deliveryId, bodyId, purpose:'ORIGINAL_ACCESS', contentEncoding:'identity',
-    rawHashAlg:COLLECTOR_RAW_HASH_ALG_V1, rawHash:bodyHash, bodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, bodyHash,
-    rawByteLength:String(bytes.length), decodedByteLength:String(bytes.length), rawBytesBase64:Buffer.from(bytes).toString('base64'),
-  }));
+  const capture = async () => {
+    const deliveryId = randomUUID();
+    const observedAt = (await reader.readIdentity()).checkedAt;
+    const delivered = await executor.putDelivery(command('PUT_DELIVERY', {
+      grant, deliveryId, sourceId, endpointId, nativeId:'results-'+deliveryId, rawObservationId:randomUUID(), itemOrdinal:'0',
+      providerDeliveryRef:null, providerRevisionRef:'provider-revision-1', kind:'ORIGINAL_ARTICLE', purpose:'ORIGINAL_ACCESS',
+      syntheticLocator:'https://publisher.invalid/article', observedAt, assertedProvenance:provenance,
+      sourceTimes:{resolutionState:'KNOWN',timeQuality:'KNOWN',publishedAt:collectorKnownV1(observedAt),updatedAt:collectorUnknownV1()},
+    }));
+    const bodyId = randomUUID();
+    await executor.attachBody(command('ATTACH_BODY', {
+      grant, deliveryId, bodyId, purpose:'ORIGINAL_ACCESS', contentEncoding:'identity',
+      rawHashAlg:COLLECTOR_RAW_HASH_ALG_V1, rawHash:bodyHash, bodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, bodyHash,
+      rawByteLength:String(bytes.length), decodedByteLength:String(bytes.length), rawBytesBase64:Buffer.from(bytes).toString('base64'),
+    }));
+    return {
+      documentId:delivered.outcome.documentId,
+      source:{
+        stableStoreId, storeEpoch, deliveryId, expectedBodyId:bodyId, expectedBodyHash:bodyHash,
+        expectedBodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, expectedSourcePolicyVersion:sourcePolicyVersion,
+      },
+    };
+  };
   return {
     port:createDurableAnalysisInputPort(createOwnedCollectorDbReadPortV1(reader)),
-    expiresAt, text, documentId:delivered.outcome.documentId,
-    source:{
-      stableStoreId, storeEpoch, deliveryId, expectedBodyId:bodyId, expectedBodyHash:bodyHash,
-      expectedBodyHashAlg:COLLECTOR_BODY_HASH_ALG_V1, expectedSourcePolicyVersion:sourcePolicyVersion,
-    },
+    expiresAt, text, capture, ...await capture(),
   };
 }

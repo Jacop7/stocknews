@@ -23,8 +23,8 @@ class Hold extends Error {constructor(reason){super(reason);this.reason=reason;}
 function parse(text){assert.equal(typeof text,'string');return JSON.parse(text.trim());}
 function sql(rpc,request){assert(HOME_DATABASE_RPCS.includes(rpc));return `SELECT home_bound_v1.${rpc}(${literal(validateHomeDatabaseRequest(rpc,request))})::text;`;}
 function requestHash(identity,generation,operation,request){return sha(homeRequestCanonical({schema:'HOME_DB_BOUND_V1_REQUEST',resourceId:identity.resourceId,namespaceId:request.namespaceId,backendGeneration:request.action==='CREATE_NAMESPACE'?null:generation,operation,request}));}
-function fixture(cutoff,{expiry=null,bodyField=null,closeCurrentKoreanDay=false}={}){
- const at=Date.parse(cutoff),known=stamp(at),published=stamp(at-1800000),verified=stamp(at-60000),until=expiry??stamp(at+7200000);
+function fixture(cutoff,{expiry=null,bodyField=null,closeCurrentKoreanDay=false,lifetimeMs=7200000}={}){
+ const at=Date.parse(cutoff),known=stamp(at),published=stamp(at-1800000),verified=stamp(at-60000),grantUntil=stamp(at+lifetimeMs),until=expiry??grantUntil;
  const days=Array.from({length:6},(_,n)=>({date:stamp(at-86400000+n*86400000).slice(0,10),state:'OPEN'}));
  if(closeCurrentKoreanDay){
   // Explicit synthetic holiday assertion for the AGE test only, not an actual exchange calendar.
@@ -41,7 +41,7 @@ function fixture(cutoff,{expiry=null,bodyField=null,closeCurrentKoreanDay=false}
   const claim={sampleKind:'SYNTHETIC',version:'claim-v1',claimId:`claim-${n}`,originId:source.originId,kind:'FILING',knownAt:source.collectedAt,validUntil:until,verifiedAt:verified,status:'VERIFIED'};
   claims.push({claim,sourceRevisionId:source.revisionId,evidenceVersion:'evidence-v1',status:'VALID'});
  }
- observations.push(observe('GRANT','fixture-grant',{authority:'ISOLATED_FIXTURE',issuer:'fixture-issuer',evidenceRef:'fixture-rights-evidence',generation:'1',purposes:['STORAGE','ANALYSIS','DISPLAY'],artifactSourceIds:sources.map(s=>s.source.sourceId),knownAt:stamp(at-3600000),expiresAt:stamp(at+7200000),revokedAt:null}));
+ observations.push(observe('GRANT','fixture-grant',{authority:'ISOLATED_FIXTURE',issuer:'fixture-issuer',evidenceRef:'fixture-rights-evidence',generation:'1',purposes:['STORAGE','ANALYSIS','DISPLAY'],artifactSourceIds:sources.map(s=>s.source.sourceId),knownAt:stamp(at-3600000),expiresAt:grantUntil,revokedAt:null}));
  sources.forEach(s=>observations.push(observe('SOURCE',s.source.sourceDocumentId,s)));claims.forEach(c=>observations.push(observe('CLAIM',c.claim.claimId,c)));observations.push(observe('CALENDAR','fixture-calendar',calendar));
  for(let n=0;n<2;n++){
   const issueId=`issue-${n}`,articleVersionId=randomUUID(),assessmentVersion='assessment-v1',evidenceVersion='evidence-v1';
@@ -53,6 +53,10 @@ function fixture(cutoff,{expiry=null,bodyField=null,closeCurrentKoreanDay=false}
   observations.push(observe('ASSESSMENT',issueId,{issueId,assessmentVersion,evidenceVersion,knownAt:verified,verifiedAt:verified,validUntil:until,status:'ACTIVE'}),observe('ISSUE',issueId,value));
  }
  return {cutoff,calendar,sources,claims,issues,bindings,observations,observe};
+}
+
+export function makeHomeCadenceFixture(cutoff) {
+ return fixture(cutoff,{lifetimeMs:4*3600000});
 }
 
 /** Exact seven-field MAIN test context. execute resolves plain psql -X -qAt text or rejects a sanitized SQL error.
