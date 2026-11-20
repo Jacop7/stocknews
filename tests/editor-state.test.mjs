@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { alignedScenarios,confirmedSqlRejection,pendingResolution,parsePendingIntent } from '../apps/admin/lib/editor-state.mjs';
+import { alignedScenarios,confirmedSqlRejection,currentPublicationBinding,EditorApiError,matchesSavedDraft,pendingResolution,parsePendingIntent,publicationBinding,saveFailureNeedsDraftReload } from '../apps/admin/lib/editor-state.mjs';
 const pos={direction:'POSITIVE',title:'Written positive',expected_result:'Existing text',checks:['Check'],path_ids:['benefit']},neg={...pos,direction:'NEGATIVE',title:'Written negative',path_ids:['damage']};
 const benefit={path_id:'benefit',direction:'BENEFIT',conditional_direction:'NONE'},damage={path_id:'damage',direction:'DAMAGE',conditional_direction:'NONE'};
 test('Removing the final negative impact removes the hidden negative scenario and stale references',()=>{
@@ -34,4 +34,54 @@ test('A state result never attaches another editor revision to old content',asyn
  const result=stateRecoveryDraft(old,latest);assert.equal(result.needsReload,true);assert.equal(result.draft.draft_revision,1);assert.equal(result.draft.content.title,'A unsaved');assert.equal(result.draft.issue_revision,3);assert.equal(result.draft.state,'HIDDEN');
  const unchanged=stateRecoveryDraft(old,{...latest,draft_revision:1});assert.equal(unchanged.needsReload,false);assert.equal(unchanged.draft.draft_revision,1);assert.equal(unchanged.draft.content,old.content);
  assert.deepEqual(stateRecoveryDraft(null,latest),{draft:latest,needsReload:false});assert.deepEqual(old.content,{title:'A unsaved'});
+});
+
+const editorDraft={
+ issue_id:'51000000-0000-4000-8000-000000000001',draft_revision:4,issue_revision:9,
+ policy_version:2,catalog_version:5,content:{title:'검토할 기사'},
+};
+
+test('A save receipt authorizes preview only for its own next draft revision',()=>{
+ const receipt={draft_revision:5},saved={...editorDraft,draft_revision:5};
+ assert.equal(matchesSavedDraft(editorDraft,receipt,saved),true);
+ for(const invalid of [null,{}, {draft_revision:'5'},{draft_revision:4},{draft_revision:6}]){
+  assert.equal(matchesSavedDraft(editorDraft,invalid,saved),false);
+ }
+ assert.equal(matchesSavedDraft(editorDraft,receipt,{...saved,draft_revision:6,content:{title:'다른 편집자의 초안'}}),false);
+ assert.equal(editorDraft.content.title,'검토할 기사');
+ assert.equal(editorDraft.draft_revision,4);
+});
+
+test('Confirmed stale catalog keeps edits available for a catalog-only refresh',()=>{
+ assert.equal(saveFailureNeedsDraftReload(new EditorApiError('STALE_CATALOG',409,true)),false);
+ assert.equal(saveFailureNeedsDraftReload(new EditorApiError('DRAFT_SHAPE_INVALID',400,true)),false);
+ assert.equal(saveFailureNeedsDraftReload(new EditorApiError('REVISION_CONFLICT',409,true)),true);
+ assert.equal(saveFailureNeedsDraftReload(new EditorApiError('STALE_CATALOG',409,false)),true);
+ assert.equal(saveFailureNeedsDraftReload(new TypeError('connection lost')),true);
+});
+
+test('Save and preview bindings both reject another issue, issue revision, policy or catalog',()=>{
+ const saved={...editorDraft,draft_revision:5},receipt={draft_revision:5},binding=publicationBinding(saved);
+ for(const changed of [
+  {issue_id:'51000000-0000-4000-8000-000000000002'},{issue_revision:10},{policy_version:3},{catalog_version:6},
+ ]){
+  const current={...saved,...changed};
+  assert.equal(matchesSavedDraft(editorDraft,receipt,current),false);
+  assert.equal(currentPublicationBinding(current,binding),null);
+ }
+ assert.equal(currentPublicationBinding({...saved,draft_revision:6},binding),null);
+ assert.equal(currentPublicationBinding(saved,null),null);
+ assert.equal(currentPublicationBinding(null,binding),null);
+ assert.deepEqual(currentPublicationBinding(saved,binding),{
+  p_issue:saved.issue_id,p_expected_revision:5,p_issue_revision:9,p_policy:2,p_catalog:5,
+ });
+});
+
+test('An uncertain publish keeps the previewed version and effect key after a newer preview',()=>{
+ const binding=publicationBinding(editorDraft);
+ const stored=parsePendingIntent(JSON.stringify({action:'publish',args:{...binding,p_effect_key:'original-key'}}));
+ const newer={...editorDraft,draft_revision:5,issue_revision:10};
+ assert.equal(currentPublicationBinding(newer,binding),null);
+ assert.deepEqual(parsePendingIntent(JSON.stringify(stored)),{action:'publish',args:{...binding,p_effect_key:'original-key'}});
+ assert.equal(currentPublicationBinding(newer,publicationBinding(newer)).p_expected_revision,5);
 });

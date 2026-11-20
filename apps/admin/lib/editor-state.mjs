@@ -12,6 +12,10 @@ export function confirmedSqlRejection(body){
   return typeof body?.code==='string'&&/^(P0001|40001|40P01|42501|22[A-Z0-9]{3}|23[A-Z0-9]{3}|42[A-Z0-9]{3})$/.test(body.code);
 }
 export class EditorApiError extends Error{constructor(code,status,notApplied=false){super(code);this.status=status;this.notApplied=notApplied===true;}}
+export function saveFailureNeedsDraftReload(error){
+  // A confirmed stale catalog keeps the draft revision valid for catalog-only refresh.
+  return !(error instanceof EditorApiError)||!error.notApplied||error.message==='REVISION_CONFLICT';
+}
 export function pendingResolution(outcome,notApplied,latestRead){
   if(!latestRead)return 'UNCERTAIN';
   if(outcome==='APPLIED')return 'APPLIED';
@@ -34,4 +38,21 @@ export function stateRecoveryDraft(current,latest){
   // Content always travels with its original draft revision. A state operation
   // may advance issue revision, but cannot authorize overwriting another edit.
   return {draft:{...latest,content:current.content,draft_revision:current.draft_revision},needsReload:current.draft_revision!==latest.draft_revision};
+}
+
+export function publicationBinding(draft){
+  return {p_issue:draft.issue_id,p_expected_revision:draft.draft_revision,p_issue_revision:draft.issue_revision,
+    p_policy:draft.policy_version,p_catalog:draft.catalog_version};
+}
+
+export function currentPublicationBinding(draft,binding){
+  if(!draft||!binding)return null;
+  const current=publicationBinding(draft);
+  return Object.keys(current).every(key=>current[key]===binding[key])?binding:null;
+}
+
+export function matchesSavedDraft(before,receipt,latest){
+  const revision=receipt?.draft_revision;
+  return Number.isSafeInteger(revision)&&revision===before.draft_revision+1&&
+    currentPublicationBinding(latest,{...publicationBinding(before),p_expected_revision:revision})!==null;
 }

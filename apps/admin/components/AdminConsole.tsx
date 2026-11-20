@@ -8,9 +8,10 @@ import { ArticlePreview } from './ArticlePreview';
 import CatalogManager from './CatalogManager';
 import NewsAnalytics from './NewsAnalytics';
 import ReservationManager from './ReservationManager';
-import { alignedScenarios,EditorApiError,parsePendingIntent,pendingResolution,stateRecoveryDraft } from '../lib/editor-state.mjs';
+import { alignedScenarios,currentPublicationBinding,EditorApiError,matchesSavedDraft,parsePendingIntent,pendingResolution,publicationBinding,saveFailureNeedsDraftReload,stateRecoveryDraft } from '../lib/editor-state.mjs';
 type CurrentCatalog={catalog_version:string;sectors:PublicSector[]};
 type PendingIntent={action:'create'|'publish'|'state';args:Record<string,unknown>};
+type BoundPreview={article:Preview;binding:ReturnType<typeof publicationBinding>};
 const pendingStorage='judoju.editor.pending.v1';
 import './editor.css';
 const menus=[['articles','기사 관리'],['sectors','섹터 관리'],['keywords','키워드 설정'],['analytics','뉴스 조회 통계'],['reservations','예약·유지관리'],['ranking','홈 순위 관리'],['sources','수집 상태'],['settings','설정']];
@@ -23,7 +24,8 @@ async function api<T>(action:string,data?:unknown,csrf?:string):Promise<T>{
 export default function AdminConsole({initialPath,deploymentProfile='local'}:{initialPath:string;deploymentProfile?:'local'|'preview'}){
  const previewMode=deploymentProfile==='preview';
  const router=useRouter(),[ready,setReady]=useState(false),[csrf,setCsrf]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState('');
- const [articles,setArticles]=useState<Array<{id:string;title:string;publication_state:string;draft_revision:number}>>([]),[sectors,setSectors]=useState<PublicSector[]>([]),[draft,setDraft]=useState<Draft|null>(null),[preview,setPreview]=useState<Preview|null>(null);
+ const [articles,setArticles]=useState<Array<{id:string;title:string;publication_state:string;draft_revision:number}>>([]),[sectors,setSectors]=useState<PublicSector[]>([]),[draft,setDraft]=useState<Draft|null>(null),[preview,setPreview]=useState<BoundPreview|null>(null);
+ const running=useRef(false);
  const pendingRef=useRef<PendingIntent|null>(null),[pending,setPending]=useState<PendingIntent|null>(null),[recoveryDraft,setRecoveryDraft]=useState<string|null>(null);
  function keepIntent(value:PendingIntent|null){
   // Persist only request identifiers, never credentials or editorial content. Fail before sending if storage is unavailable.
@@ -33,8 +35,8 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
  useEffect(()=>{let active=true;let restored:PendingIntent|null=null;
   try{restored=parsePendingIntent(sessionStorage.getItem(pendingStorage)??'null') as PendingIntent|null;pendingRef.current=restored;setPending(restored);}catch{setError('요청 상태 저장소를 확인할 수 없습니다.');}
   api<{csrf:string}>('session').then(async s=>{if(!active)return;setCsrf(s.csrf);const [a,c]=await Promise.all([api<typeof articles>('articles'),api<PublicSector[]>('catalog')]);if(active){setArticles(a);setSectors(c);if(restored?.action!=='create'&&restored?.args.p_issue){await load(String(restored.args.p_issue));router.replace('/articles');}}}).catch(e=>{if(active&&e.message!=='LOGIN_REQUIRED')setError(e.message);}).finally(()=>{if(active)setReady(true);});return()=>{active=false;};},[]);
- async function run(fn:()=>Promise<void>){setBusy(true);setError('');setNotice('');try{await fn();}catch(e){setError(e instanceof Error?e.message:'REQUEST_FAILED');}finally{setBusy(false);}}
- const patch=(value:Partial<EditorContent>)=>{if(!draft||pendingRef.current||recoveryDraft)return;const next={...draft.content,...value};if(value.impacts)next.scenarios=alignedScenarios(next.scenarios,next.impacts);setDraft({...draft,content:next});setPreview(null);};
+ async function run(fn:()=>Promise<void>){if(running.current)return;running.current=true;setBusy(true);setError('');setNotice('');try{await fn();}catch(e){setError(e instanceof Error?e.message:'REQUEST_FAILED');}finally{running.current=false;setBusy(false);}}
+ const patch=(value:Partial<EditorContent>)=>{if(!draft||running.current||pendingRef.current||recoveryDraft)return;const next={...draft.content,...value};if(value.impacts)next.scenarios=alignedScenarios(next.scenarios,next.impacts);setDraft({...draft,content:next});setPreview(null);};
  const patchImpact=(n:number,value:Partial<EditorImpact>)=>{if(draft)patch({impacts:draft.content.impacts.map((x,i)=>i===n?{...x,...value}:x)});};
  async function readDraft(id:string){const [d,c]=await Promise.all([api<Draft>('draft?id='+encodeURIComponent(id)),api<CurrentCatalog>('catalog-current')]);if(String(d.catalog_version)!==c.catalog_version)throw new Error('STALE_CATALOG');setSectors(c.sectors);return d;}
  async function load(id:string){const d=await readDraft(id);setDraft({...d,content:{...d.content,scenarios:alignedScenarios(d.content.scenarios,d.content.impacts)}});setPreview(null);setRecoveryDraft(null);}
@@ -60,10 +62,35 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
   if(intent.action==='create'){await load(String(result.issue_id));keepIntent(null);await refresh();setNotice('새 초안 생성 완료');}
   else await recoverIntent(intent);
  }
- async function save(){if(!draft)throw new Error('DRAFT_REQUIRED');const c=draft.content,normalized={...c,key_issues:clean(c.key_issues),risks:clean(c.risks),impacts:c.impacts.map(x=>({...x,conditions:clean(x.conditions)})),scenarios:c.scenarios.map(x=>({...x,checks:clean(x.checks)}))};await api('save-catalog',{p_issue:draft.issue_id,p_expected_revision:draft.draft_revision,p_content:normalized,p_catalog:draft.catalog_version},csrf);const d=await readDraft(draft.issue_id);setDraft(d);return d;}
+ async function save(){
+  if(!draft)throw new Error('DRAFT_REQUIRED');
+  const before=draft,c=before.content;
+  const normalized={...c,key_issues:clean(c.key_issues),risks:clean(c.risks),impacts:c.impacts.map(x=>({...x,conditions:clean(x.conditions)})),scenarios:c.scenarios.map(x=>({...x,checks:clean(x.checks)}))};
+  setPreview(null);
+  let receipt:unknown;
+  try{
+   receipt=await api('save-catalog',{p_issue:before.issue_id,p_expected_revision:before.draft_revision,p_content:normalized,p_catalog:before.catalog_version},csrf);
+  }catch(e){
+   if(saveFailureNeedsDraftReload(e))setRecoveryDraft(before.issue_id);
+   throw e;
+  }
+  try{
+   const latest=await readDraft(before.issue_id);
+   if(!matchesSavedDraft(before,receipt,latest))throw new Error('저장한 초안의 판본을 확인할 수 없습니다.');
+   setDraft(latest);
+   return latest;
+  }catch(e){setRecoveryDraft(before.issue_id);throw e;}
+ }
+ async function previewDraft(){
+  const saved=await save(),binding=publicationBinding(saved);
+  const article=await api<Preview>('preview',{p_issue:binding.p_issue,p_expected_revision:binding.p_expected_revision,
+   p_policy:binding.p_policy,p_catalog:binding.p_catalog},csrf);
+  setPreview({article,binding});
+ }
  async function refresh(){setArticles(await api<typeof articles>('articles'));}
  async function reloadCatalog(){if(!draft)return;const c=await api<CurrentCatalog>('catalog-current');setSectors(c.sectors);setDraft({...draft,catalog_version:Number(c.catalog_version)});setPreview(null);setNotice('최신 섹터 목록을 불러왔습니다. 기사 입력과 초안 버전은 유지됩니다.');}
  const content=draft?.content;
+ const previewBinding=currentPublicationBinding(draft,preview?.binding);
  const previousSector=(id:string)=>draft?.sector_labels?.find(s=>s.id===id)?.name??id;
  const missingSector=(id:string|null)=>!!id&&!sectors.some(s=>s.id===id);
  const needsSectorChoice=!!content&&(missingSector(content.primary_sector_id)||content.impacts.some(x=>missingSector(x.sector_id)));
@@ -81,7 +108,7 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
  :initialPath==='reservations'?<ReservationManager csrf={csrf}/>
  :initialPath&&!['articles','login'].includes(initialPath)?<section className='panel'><p>이 메뉴의 편집 기능은 후속 단계에서 연결합니다.</p></section>
  :!draft?<section className='panel'><div className='toolbar'><button className='primary' disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(async()=>{await mutate({action:'create',args:{p_request:crypto.randomUUID()}});})}>새 글 작성</button><button disabled={busy} onClick={()=>run(refresh)}>새로고침</button></div>{articles.length===0?<p>작성한 글이 없습니다.</p>:articles.map(x=><button className='article-row' key={x.id} disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(()=>load(x.id))}><strong>{x.title||'제목 없는 초안'}</strong><span>{x.publication_state} · 초안 {x.draft_revision}</span></button>)}</section>
- :content&&<><div className='toolbar'><button disabled={busy||!!pending||!!recoveryDraft} onClick={()=>{setDraft(null);setPreview(null);run(refresh);}}>‹ 목록</button><span>{draft.state} · 초안 {draft.draft_revision}</span></div>{!previewMode&&<ReservationManager csrf={csrf} draft={draft} previewReady={!!preview&&!pending&&!recoveryDraft&&!needsSectorChoice} onCreated={()=>setPreview(null)}/>}<div className='editor-grid'><form className='panel' onSubmit={e=>e.preventDefault()}><fieldset disabled={busy||!!pending||!!recoveryDraft}>
+ :content&&<><div className='toolbar'><button disabled={busy||!!pending||!!recoveryDraft} onClick={()=>{setDraft(null);setPreview(null);run(refresh);}}>‹ 목록</button><span>{draft.state} · 초안 {draft.draft_revision}</span></div>{!previewMode&&<ReservationManager csrf={csrf} draft={draft} previewReady={!!previewBinding&&!busy&&!pending&&!recoveryDraft&&!needsSectorChoice} onCreated={()=>setPreview(null)}/>}<div className='editor-grid'><form className='panel' onSubmit={e=>e.preventDefault()}><fieldset disabled={busy||!!pending||!!recoveryDraft}>
  <button type='button' onClick={()=>run(reloadCatalog)}>최신 섹터 목록 불러오기</button>{needsSectorChoice&&<p role='status'>이전/비활성 분류가 남아 있습니다. 현재 섹터를 직접 선택해야 미리보기와 게시가 가능합니다.</p>}<label>뉴스 제목 핵심 축약<input maxLength={200} value={content.title} onChange={e=>patch({title:e.target.value})}/></label><label>기사 핵심 설명<textarea value={content.summary} onChange={e=>patch({summary:e.target.value})}/></label>
  <div className='form-grid'><label>기사 구분<select value={content.article_kind} onChange={e=>patch({article_kind:e.target.value as 'SECTOR'|'MACRO'})}><option value='SECTOR'>섹터 이슈</option><option value='MACRO'>매크로 이슈</option></select></label><label>대표 섹터<select value={content.primary_sector_id??''} onChange={e=>patch({primary_sector_id:e.target.value||null})}><option value=''>선택 없음</option>{missingSector(content.primary_sector_id)&&<option disabled value={content.primary_sector_id??''}>이전/비활성 분류 · {previousSector(content.primary_sector_id??'')}</option>}{sectors.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div>
  <div className='form-grid'><label>원문 시장<select value={content.source_market} onChange={e=>patch({source_market:e.target.value})}>{['KR','US','GLOBAL','SYNTHETIC'].map(x=><option key={x}>{x}</option>)}</select></label><label>선정 시장 기준<select value={content.selection_market_basis} onChange={e=>patch({selection_market_basis:e.target.value as 'KR'|'FOREIGN_US'})}><option value='KR'>한국 주가 기반</option><option value='FOREIGN_US'>해외 주가 기반</option></select></label></div>
@@ -91,6 +118,6 @@ export default function AdminConsole({initialPath,deploymentProfile='local'}:{in
  <label>리스크 체크리스트 · 한 줄에 하나<textarea value={content.risks.join('\n')} onChange={e=>patch({risks:lines(e.target.value)})}/></label>
  <h2>주요 일정</h2>{content.schedule.map((x,n)=><div className='edit-group' key={n}><label>일정 제목<input value={x.title} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,title:e.target.value}:y)})}/></label><div className='form-grid'><label>상태<select value={x.status} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,status:e.target.value as typeof x.status}:y)})}>{['VERIFIED','CANCELLED','UNVERIFIED','SUPERSEDED'].map(v=><option key={v}>{v}</option>)}</select></label><label>시간대<input value={x.timezone} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,timezone:e.target.value}:y)})}/></label></div>{x.kind==='EXACT'?<label>확정 시각 · 시간대 포함 ISO 형식<input value={x.event_at??''} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,event_at:e.target.value}:y)})}/></label>:<><label>공식 예정 기간 표기<input value={x.period_label??''} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,period_label:e.target.value}:y)})}/></label><div className='form-grid'>{(['period_start','period_end'] as const).map(k=><label key={k}>{k==='period_start'?'기간 시작':'기간 종료 · 미포함'}<input value={x[k]??''} onChange={e=>patch({schedule:content.schedule.map((y,i)=>i===n?{...y,[k]:e.target.value}:y)})}/></label>)}</div></>}<button type='button' onClick={()=>patch({schedule:content.schedule.filter((_,i)=>i!==n)})}>일정 삭제</button></div>)}<div className='toolbar'>{(['EXACT','PERIOD'] as const).map(kind=><button type='button' key={kind} onClick={()=>patch({schedule:[...content.schedule,{kind,title:'',status:'UNVERIFIED',timezone:'Asia/Seoul',evidence_ids:[draft.claim_id],evidence_as_of:new Date().toISOString(),...(kind==='EXACT'?{event_at:''}:{period_label:'',period_start:'',period_end:'',precision:'PERIOD'})}]})}>{kind==='EXACT'?'확정 시각 추가':'예정 기간 추가'}</button>)}</div>
  <h2>뉴스 출처</h2><p>SYNTHETIC 검증 근거 · 실제 원문 수집 미연결</p></fieldset>
- <div className='toolbar'><button disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(async()=>{await save();setNotice('초안 저장 완료');})}>초안 저장</button><button disabled={busy||!!pending||!!recoveryDraft||needsSectorChoice} onClick={()=>run(async()=>{const d=await save();setPreview(await api<Preview>('preview',{p_issue:d.issue_id,p_expected_revision:d.draft_revision,p_policy:d.policy_version,p_catalog:d.catalog_version},csrf));})}>미리보기</button><button className='primary' disabled={busy||!!pending||!!recoveryDraft||needsSectorChoice||!preview} onClick={()=>run(()=>mutate({action:'publish',args:{p_issue:draft.issue_id,p_expected_revision:draft.draft_revision,p_issue_revision:draft.issue_revision,p_policy:draft.policy_version,p_catalog:draft.catalog_version,p_effect_key:crypto.randomUUID()}}))}>게시</button><button disabled={busy||!!pending||!!recoveryDraft||draft.state!=='PUBLISHED'} onClick={()=>run(()=>mutate({action:'state',args:{p_issue:draft.issue_id,p_expected_revision:draft.issue_revision,p_state:'HIDDEN',p_effect_key:crypto.randomUUID()}}))}>숨김</button></div></form><section className='panel preview-panel'>{preview?<ArticlePreview {...preview}/>:<p>미리보기를 누르면 서버가 판정한 공개 화면이 표시됩니다.</p>}</section></div></>}
+ <div className='toolbar'><button disabled={busy||!!pending||!!recoveryDraft} onClick={()=>run(async()=>{await save();setNotice('초안 저장 완료');})}>초안 저장</button><button disabled={busy||!!pending||!!recoveryDraft||needsSectorChoice} onClick={()=>run(previewDraft)}>미리보기</button><button className='primary' disabled={busy||!!pending||!!recoveryDraft||needsSectorChoice||!previewBinding} onClick={()=>{if(previewBinding)void run(()=>mutate({action:'publish',args:{...previewBinding,p_effect_key:crypto.randomUUID()}}));}}>게시</button><button disabled={busy||!!pending||!!recoveryDraft||draft.state!=='PUBLISHED'} onClick={()=>run(()=>mutate({action:'state',args:{p_issue:draft.issue_id,p_expected_revision:draft.issue_revision,p_state:'HIDDEN',p_effect_key:crypto.randomUUID()}}))}>숨김</button></div></form><section className='panel preview-panel'>{preview&&previewBinding?<ArticlePreview {...preview.article}/>:<p>미리보기를 누르면 서버가 판정한 공개 화면이 표시됩니다.</p>}</section></div></>}
  </main></div>;
 }
