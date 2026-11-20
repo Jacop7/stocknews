@@ -2358,11 +2358,11 @@
     "apps/admin/lib/preview-file-boundary.mjs": "efff99d28caab8a3d66656df73832154b75d1488041f8b2bb65addc37fc4a828",
     "apps/admin/lib/runtime-preview.mjs": "626f7581a5d16574f7b07c4e8153e23832a93ba35c1baa251808c6e1ab83a471",
     "docs/development-status.json": "5b7b48f4f81043ee779e4a10a5602ca44ea9cc9210a19227b0b7a8a5ec822c67",
-    "docs/stages/stage-admin-c2-notes.md": "4b3a7601105a742ba7b75ea6b1d6fd88676751f0b02e4fa2f4136dc7b1eb5fc6",
+    "docs/stages/stage-admin-c2-notes.md": "2fad745168f6a89dd9573b8036b38cad2c2d4d2ff0e3ad1a267d4cc7d47fecea",
     "package.json": "91408e5dbf2693a204974d9083c43d8038757bb6695eea9c2d7b405757e4a22a",
     "scripts/admin-preview-actual-setup.mjs": "899ccbb0cd03cdd375e8aa64803cddca7dff85329c2b6623c4e6bf5edc390e44",
     "scripts/admin-preview-entry.mjs": "4b46cb47fdf49400ba06100aa61d15c6511e2c8ded96fbec3ec108b2330d11a7",
-    "scripts/admin-preview-native.cs": "0d0aeb858884e4f7e2f6515df6e3fe00774f7510a3b49944f01972f1f3e79358",
+    "scripts/admin-preview-native.cs": "119f11e6882bd63f60a09e002d6d9af1b91b154f137132edfbb8f15d057c0824",
     "scripts/admin-preview-sql.mjs": "23f569511b74cda7e5ae0c51d0fbb27d301d7ce90ce7f0409300853eb090f36f",
     "scripts/admin-preview-supervisor.ps1": "8f751305cb99ebce6fe6a8f7e03cb34e810c7adf25be4b8647c2a0e13cc0f848",
     "scripts/test-preview-admin-db.mjs": "a06bce1edafaa7ff3b43921c9028b82ca5384feb5900a05187dea90b21cded20",
@@ -2370,7 +2370,7 @@
     "scripts/verify.mjs": "77d5c290de08c20dc589e1d5a2fda7291f0479f60bedce095f1f0c03959e8b86",
     "supabase/cloud/admin-preview-dev/activation-template.sql": "4ea72889524fad606e76b600c6dc9afdf92c56549a84513c27caacf3b05476e9",
     "supabase/cloud/admin-preview-dev/rpc-contract.json": "793e40b4dac1627277acb29c54f4fff4ff6b8ce822278a8736add249faf930a4",
-    "tests/preview-admin-actual.test.mjs": "ce0ca610ba02217e31bbdefff0c3b8b00ec20f341bed90abca65195efb309a9c",
+    "tests/preview-admin-actual.test.mjs": "5a6f33cf4ee511b00e9933729c45b7bca62a3af8cf97d045db15da7b54daa7e3",
     "tests/preview-admin-sql.test.mjs": "53b934d538d0f980f1a61230d251cc48a33f0b4800c8dc0eb5fb60dd058dc1ac"
   }
 }

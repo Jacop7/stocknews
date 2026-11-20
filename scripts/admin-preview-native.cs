@@ -277,16 +277,35 @@ public static class JudojuAdminNative {
     setup["setupStartQpc"]=(nativeStart-Stopwatch.Frequency*301L).ToString();setup["setupDeadlineQpc"]=(nativeStart-Stopwatch.Frequency).ToString();bool expiredSetup=false;try{RequireSetupDeadline(setup);}catch(IOException){expiredSetup=true;}Require(expiredSetup,"NATIVE_SETUP_FIXTURE");cases.Add("NATIVE_SETUP_DEADLINE_POSITIVE_AND_EXPIRED_REJECTED");
     foreach(int n in new[]{1,3,128,299,380,384})Require(ActualLeaf("session-inventory-"+n+"-ack.json"),"INVENTORY_BATCH_LEAF_POSITIVE");
     foreach(string leaf in new[]{"session-inventory-0-ack.json","session-inventory-385-ack.json","session-inventory-01-ack.json","session-inventory-384-extra.json","../session-inventory-1-ack.json"})Require(!ActualLeaf(leaf),"INVENTORY_BATCH_LEAF_REJECTED");cases.Add("BOUNDED_INVENTORY_BATCH_1_TO_384_FIXED_LEAF_NAMES");
+    ActualStatusFixture(root,cases);
     return new{status="PASS",mode="FIXTURE",cases=cases.ToArray(),actualBrandRegistered=false,actualKeysRead=0,actualHostStarted=false};
   }
   static readonly string[] SecretLeaves=new[]{"admin-server.json","activation-proof.json","activation-expected.json"};
+  const int ActualMaxLoginGenerations=128;
+  const int ActualMaxJournalFiles=4*ActualMaxLoginGenerations;
+  const int ActualMaxInventoryObservations=3*ActualMaxLoginGenerations;
+  static readonly string[] ActualOperationLeaves={"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql","launch-consumed.json",
+    "effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"};
+  static readonly string[] ActualInternalLeaves={"actual-owner.json","journal.lock","host-runtime.json","effect-secret-cleanup.json"};
+  static int ActualStatusFileLimit {get{return ActualOperationLeaves.Length+ActualInternalLeaves.Length+SecretLeaves.Length
+    +ActualMaxJournalFiles+2*(ActualMaxLoginGenerations+ActualMaxInventoryObservations);}}
   static void RecordCreationAt(string dir,string rootId,string sourceRoot,string decisionSha,string leaf,CreatedFile created) {
     Require(SecretLeaves.Contains(leaf)&&created!=null&&System.Text.RegularExpressions.Regex.IsMatch(decisionSha,"^[0-9a-f]{64}$"),"CREATION_RECEIPT_BINDING");
     SecureCreate(Path.Combine(dir,"creation-"+leaf),Encoding.UTF8.GetBytes(Json.Serialize(new{schemaVersion=1,productId="judoju-news",sourceRoot=sourceRoot,ownerSid=WindowsIdentity.GetCurrent().User.Value,rootId=rootId,leaf=leaf,fileIdentity=created.FileIdentity,sha256=created.Sha256,decisionSha256=decisionSha})),false);
   }
   static bool ActualLeaf(string leaf) {
-    return System.Text.RegularExpressions.Regex.IsMatch(leaf,"^session-cleanup-(?:[1-9]|[1-9][0-9]|1[01][0-9]|12[0-8])-(?:intent|ack)\\.json$")||System.Text.RegularExpressions.Regex.IsMatch(leaf,"^session-inventory-(?:[1-9]|[1-9][0-9]|[12][0-9][0-9]|3[0-7][0-9]|38[0-4])-(?:intent|ack)\\.json$")||new[]{"activation-expected.json","activation-proof.json","admin-server.json","decision.json","approval.json","rendered.sql","launch-consumed.json",
-      "effect-auth-intent.json","effect-auth-ack.json","effect-sql-intent.json","effect-sql-ack.json","effect-launch-intent.json","effect-launch-ack.json","effect-host-exit.json","effect-fence-intent.json","effect-fence-ack.json","effect-cleanup.json","effect-hold.json"}.Contains(leaf);
+    return ActualOperationLeaves.Contains(leaf)||ActualIndexedReceipt(leaf,"session-cleanup-",ActualMaxLoginGenerations)
+      ||ActualIndexedReceipt(leaf,"session-inventory-",ActualMaxInventoryObservations);
+  }
+  static bool ActualIndexedReceipt(string leaf,string prefix,int maximum) {
+    if(!leaf.StartsWith(prefix,StringComparison.Ordinal))return false;
+    string suffix=leaf.EndsWith("-intent.json",StringComparison.Ordinal)?"-intent.json":
+      leaf.EndsWith("-ack.json",StringComparison.Ordinal)?"-ack.json":null;
+    if(suffix==null||leaf.Length<=prefix.Length+suffix.Length)return false;
+    string index=leaf.Substring(prefix.Length,leaf.Length-prefix.Length-suffix.Length);
+    int n;
+    return int.TryParse(index,System.Globalization.NumberStyles.None,System.Globalization.CultureInfo.InvariantCulture,out n)
+      &&n>0&&n<=maximum&&index==n.ToString(System.Globalization.CultureInfo.InvariantCulture);
   }
   static object ActualFile(Dictionary<string,object> p,bool write) {
     string leaf=Text(p,"leaf");Require(ActualLeaf(leaf),"ACTUAL_FIXED_FILE");
@@ -299,14 +318,14 @@ public static class JudojuAdminNative {
   static void CheckJournalEntry(Dictionary<string,object> entry) {
     Require(entry!=null&&entry.Count==5&&entry.Keys.All(k=>new[]{"generation","phase","ownerUserId","authSessionId","capabilityHash"}.Contains(k)),"JOURNAL_SCHEMA");
     string phase=Text(entry,"phase");Require(Text(entry,"ownerUserId")==SelectedOwner&&new[]{"BEFORE_AUTH","BEFORE_OPEN","COMPLETE","RESIDUAL","CLOSED"}.Contains(phase),"JOURNAL_OWNER");
-    Require(entry["generation"] is int&&(int)entry["generation"]>=1&&(int)entry["generation"]<=128,"LOGIN_GENERATION");
+    Require(entry["generation"] is int&&(int)entry["generation"]>=1&&(int)entry["generation"]<=ActualMaxLoginGenerations,"LOGIN_GENERATION");
     Require(entry["authSessionId"]==null||entry["authSessionId"] is string&&System.Text.RegularExpressions.Regex.IsMatch((string)entry["authSessionId"],"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),"JOURNAL_AUTH_SESSION");
     Require(entry["capabilityHash"]==null||entry["capabilityHash"] is string&&System.Text.RegularExpressions.Regex.IsMatch((string)entry["capabilityHash"],"^[0-9a-f]{64}$"),"JOURNAL_HASH");
     Require(phase!="BEFORE_AUTH"||entry["authSessionId"]==null&&entry["capabilityHash"]==null,"JOURNAL_FIRST_IDENTITY");
     Require(!new[]{"BEFORE_OPEN","COMPLETE","CLOSED"}.Contains(phase)||entry["authSessionId"]!=null&&entry["capabilityHash"]!=null,"JOURNAL_KNOWN_IDENTITY");
   }
   static void CheckJournalSequence(List<Dictionary<string,object>> entries) {
-    Require(entries.Count<=512,"JOURNAL_CAPACITY");var verified=new List<Dictionary<string,object>>();
+    Require(entries.Count<=ActualMaxJournalFiles,"JOURNAL_CAPACITY");var verified=new List<Dictionary<string,object>>();
     foreach(var entry in entries){
       CheckJournalEntry(entry);int generation=(int)entry["generation"];string phase=Text(entry,"phase");
       int latest=verified.Count==0?0:verified.Max(x=>(int)x["generation"]);
@@ -324,12 +343,12 @@ public static class JudojuAdminNative {
   }
   static List<Dictionary<string,object>> ReadJournalEntriesAt(string dir,out string[] files){List<byte[]> ignored;return ReadJournalEntriesAt(dir,out files,out ignored);}
   static List<Dictionary<string,object>> ReadJournalEntriesAt(string dir,out string[] files,out List<byte[]> rawFrames) {
-    files=Directory.GetFiles(dir,"journal-*.json").OrderBy(x=>x,StringComparer.Ordinal).ToArray();Require(files.Length<=512,"JOURNAL_CAPACITY");var entries=new List<Dictionary<string,object>>();rawFrames=new List<byte[]>();
+    files=Directory.GetFiles(dir,"journal-*.json").OrderBy(x=>x,StringComparer.Ordinal).ToArray();Require(files.Length<=ActualMaxJournalFiles,"JOURNAL_CAPACITY");var entries=new List<Dictionary<string,object>>();rawFrames=new List<byte[]>();
     for(int n=0;n<files.Length;n++){Require(Path.GetFileName(files[n])=="journal-"+(n+1).ToString("D4")+".json","JOURNAL_GAP");byte[] bytes=PrivateRead(files[n],65536);rawFrames.Add(bytes);entries.Add(Json.Deserialize<Dictionary<string,object>>(Encoding.UTF8.GetString(bytes)));}
     CheckJournalSequence(entries);return entries;
   }
   static object ActualJournal(Dictionary<string,object> p) {
-    Require(p.Count==3,"JOURNAL_ARGUMENTS");int generation=Convert.ToInt32(p["generation"]);Require(generation>=1&&generation<=512,"JOURNAL_CAPACITY");
+    Require(p.Count==3,"JOURNAL_ARGUMENTS");int generation=Convert.ToInt32(p["generation"]);Require(generation>=1&&generation<=ActualMaxJournalFiles,"JOURNAL_CAPACITY");
     string previous=Text(p,"previousSha256"),dir=ActualRoot(false);byte[] bytes=Convert.FromBase64String(Text(p,"bytes"));Require(bytes.Length>0&&bytes.Length<=65536,"JOURNAL_SIZE");
     var entry=Json.Deserialize<Dictionary<string,object>>(new UTF8Encoding(false,true).GetString(bytes));CheckJournalEntry(entry);
     using(var parents=new Held(HoldParents(dir)))using(var journalLock=new FileStream(Path.Combine(dir,"journal.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){
@@ -346,8 +365,43 @@ public static class JudojuAdminNative {
     using(var held=new Held(HoldParents(dir))){string[] files;List<byte[]> rawFrames;ReadJournalEntriesAt(dir,out files,out rawFrames);foreach(byte[] bytes in rawFrames)frames.Add(new{bytes=Convert.ToBase64String(bytes),sha256=Digest(bytes)});}
     return new{status="PASS",frames=frames};
   }
+  static string[] ActualStatusNames(string dir) {
+    // Report unexpected names too, so an unexpected file still blocks the exact pre-apply inventory.
+    string[] names=Directory.EnumerateFiles(dir).Take(ActualStatusFileLimit+1).Select(Path.GetFileName).ToArray();
+    Require(names.Length<=ActualStatusFileLimit,"STATUS_CAPACITY");
+    Array.Sort(names,StringComparer.Ordinal);return names;
+  }
   static object ActualStatus(Dictionary<string,object> p) {
-    Require(p.Count==0,"STATUS_ARGUMENTS");string dir=ActualRoot(false);string[] names=Directory.GetFiles(dir).Select(Path.GetFileName).OrderBy(x=>x,StringComparer.Ordinal).ToArray();Require(names.Length<=1100,"STATUS_CAPACITY");return new{status="PASS",files=names};
+    Require(p.Count==0,"STATUS_ARGUMENTS");return new{status="PASS",files=ActualStatusNames(ActualRoot(false))};
+  }
+  static void ActualStatusFixture(string root,List<string> cases) {
+    using(var fixture=new PrivateRootLease(root,"status-capacity",root,true)){
+      string dir=fixture.PathName;
+      var cleanup=Enumerable.Range(1,ActualMaxLoginGenerations).SelectMany(n=>new[]{"session-cleanup-"+n+"-intent.json","session-cleanup-"+n+"-ack.json"});
+      var inventory=Enumerable.Range(1,ActualMaxInventoryObservations).SelectMany(n=>new[]{"session-inventory-"+n+"-intent.json","session-inventory-"+n+"-ack.json"});
+      var receipts=cleanup.Concat(inventory).ToArray();
+      foreach(string name in receipts)Require(ActualLeaf(name),"STATUS_RECEIPT_SUPPORTED");
+      var journal=Enumerable.Range(1,ActualMaxJournalFiles).Select(n=>"journal-"+n.ToString("D4")+".json");
+      var names=ActualOperationLeaves.Concat(ActualInternalLeaves).Concat(SecretLeaves.Select(n=>"creation-"+n)).Concat(journal).Concat(receipts).ToArray();
+      const string lastObservation="session-inventory-384-ack.json";
+      foreach(string name in names.Where(n=>n!="actual-owner.json"&&n!="effect-cleanup.json"&&n!=lastObservation))
+        File.WriteAllBytes(Path.Combine(dir,name),new byte[0]);
+      var interrupted=ActualStatusNames(dir);
+      Require(interrupted.Length>1100&&interrupted.Contains("effect-hold.json")&&!interrupted.Contains(lastObservation),"LATE_HOLD_STATUS_CAPACITY");
+      cases.Add("LATE_HOLD_FULL_SESSION_INVENTORY_STATUS");
+      File.WriteAllBytes(Path.Combine(dir,lastObservation),new byte[0]);
+      File.WriteAllBytes(Path.Combine(dir,"effect-cleanup.json"),new byte[0]);
+      var maximum=ActualStatusNames(dir);
+      Require(maximum.Length==ActualStatusFileLimit&&maximum.SequenceEqual(names.OrderBy(n=>n,StringComparer.Ordinal)),"MAXIMUM_STATUS_CAPACITY");
+      File.WriteAllBytes(Path.Combine(dir,"unexpected.json"),new byte[0]);
+      bool bounded=false;try{ActualStatusNames(dir);}catch(IOException e){bounded=e.Message=="STATUS_CAPACITY";}
+      Require(bounded,"OVERSIZE_STATUS_MUST_HOLD");
+      foreach(string name in SecretLeaves.Concat(new[]{"effect-hold.json","unexpected.json"}))File.Delete(Path.Combine(dir,name));
+      var completed=ActualStatusNames(dir);
+      Require(completed.Length==ActualStatusFileLimit-SecretLeaves.Length-1&&completed.Contains("effect-cleanup.json")
+        &&completed.Contains(lastObservation)&&!completed.Intersect(SecretLeaves).Any(),"COMPLETED_CLEANUP_STATUS_CAPACITY");
+      cases.Add("FULL_SESSION_CLEANUP_STATUS_CAPACITY");cases.Add("OVERSIZE_STATUS_INVENTORY_REJECTED");
+    }
   }
   [StructLayout(LayoutKind.Sequential)] struct Disposition { public int Delete; }
   [DllImport("kernel32.dll",SetLastError=true)] static extern bool SetFileInformationByHandle(SafeFileHandle handle,int cls,ref Disposition info,uint size);
