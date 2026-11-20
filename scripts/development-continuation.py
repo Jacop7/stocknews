@@ -59,17 +59,52 @@ def store_json(path, value):
 
 @contextmanager
 def exclusive(path):
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        create_file = kernel.CreateFileW
+        create_file.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+        create_file.restype = wintypes.HANDLE
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        generic_read_write = 0xC0000000
+        open_always, file_attribute_normal = 4, 0x80
+        handle = create_file(str(path), generic_read_write, 0, None, open_always, file_attribute_normal, None)
+        if handle == ctypes.c_void_p(-1).value:
+            error = ctypes.get_last_error()
+            if error in (32, 33):
+                raise LockBusy("A local continuation run already holds the lock.")
+            raise ctypes.WinError(error)
+        try:
+            yield handle
+        finally:
+            kernel.CloseHandle(handle)
+        return
+
+    import fcntl
+
     with path.open("a+b") as handle:
         try:
-            if os.name == "nt":
-                import msvcrt
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError as error:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
             raise LockBusy("A local continuation run already holds the lock.") from error
-        yield
+        yield handle.fileno()
+
+
+@contextmanager
+def inherited_lock(lock):
+    if lock is None:
+        yield {}
+    elif os.name == "nt":
+        os.set_handle_inheritable(lock, True)
+        try:
+            yield {"startupinfo": subprocess.STARTUPINFO(lpAttributeList={"handle_list": [lock]})}
+        finally:
+            os.set_handle_inheritable(lock, False)
+    else:
+        yield {"pass_fds": (lock,)}
 
 
 def now():
@@ -123,16 +158,17 @@ def admin_status(checkout, observed_at):
     return {"status": "AWAITING_ACTIVATION", "next": "Use the existing dev DB activation console. Refresh this status after activation."}
 
 
-def run_check(root, node, lane, log, environment):
+def run_check(root, node, lane, log, environment, lock=None):
     args = [node, "--experimental-strip-types", "--experimental-vm-modules",
-            "--test", "--test-isolation=none", *[f"tests/{name}" for name in CHECKS[lane]]]
+            "--test", "--test-isolation=none", "--test-timeout=60000",
+            *[f"tests/{name}" for name in CHECKS[lane]]]
     for attempt in range(2):
         descriptor, name = tempfile.mkstemp(prefix=log.stem + "-", suffix=".raw", dir=log.parent)
         raw_output = Path(name)
         try:
-            with os.fdopen(descriptor, "wb") as output:
+            with os.fdopen(descriptor, "wb") as output, inherited_lock(lock) as options:
                 result = subprocess.run(args, cwd=root, env=environment, stdin=subprocess.DEVNULL,
-                                        stdout=output, stderr=subprocess.STDOUT, timeout=TIMEOUT)
+                                        stdout=output, stderr=subprocess.STDOUT, timeout=TIMEOUT, **options)
             # Copy a snapshot so delayed output in a descendant cannot change a recorded proof.
             shutil.copyfile(raw_output, log)
             return ("PASSED" if result.returncode == 0 else "FAILED",
@@ -174,7 +210,7 @@ def check_worker(root, state_dir, revision, lane, attempt):
     prefix = state_dir / f"{revision}-{lane}-{attempt}"
     receipt = prefix.with_suffix(".result.json")
     try:
-        with exclusive(prefix.with_suffix(".lock")):
+        with exclusive(prefix.with_suffix(".lock")) as lock:
             if receipt.is_file():
                 return 0
             if snapshot(root) != (revision, False):
@@ -190,13 +226,23 @@ def check_worker(root, state_dir, revision, lane, attempt):
                 store_json(receipt, {"status": "RETRYABLE", "attempt": attempt,
                                      "details": {"reason": "PINNED_NODE_REQUIRED"}})
                 return 0
-            status, details = run_check(root, node, lane, prefix.with_suffix(".log"), env)
+            status, details = run_check(root, node, lane, prefix.with_suffix(".log"), env, lock)
             if snapshot(root) != (revision, False):
                 return 2
             store_json(receipt, {"status": status, "details": details, "attempt": attempt})
             return 0
     except LockBusy:
         return 3
+
+
+def finish_worker(root, state_dir, revision, lane, attempt):
+    deadline = time.monotonic() + WORKER_WAIT
+    while time.monotonic() < deadline:
+        result = check_worker(root, state_dir, revision, lane, attempt)
+        if result != 3:
+            return result
+        time.sleep(0.5)
+    return 3
 
 
 def wait_for_check(root, state_dir, revision, lane, attempt):
@@ -283,7 +329,7 @@ def main():
         if args.action == "_worker":
             if args.revision != revision or not args.lane or not args.attempt or args.attempt < 1 or dirty:
                 return 2
-            return check_worker(ROOT, state_dir, revision, args.lane, args.attempt)
+            return finish_worker(ROOT, state_dir, revision, args.lane, args.attempt)
         state_file = state_dir / f"{revision}.json"
         if args.action == "resume":
             state = resume(ROOT, state_dir, revision, state_file, args.retry_failed)

@@ -100,6 +100,21 @@ class ContinuationTests(unittest.TestCase):
         with app.exclusive(lock):
             pass
 
+    def test_node_child_retains_attempt_lock_after_worker_lock_handle_closes(self):
+        lock_path = self.state_dir / "child.lock"
+        command = [app.sys.executable, "-c", "import time; time.sleep(30)"]
+        with app.exclusive(lock_path) as lock, app.inherited_lock(lock) as options:
+            child = app.subprocess.Popen(command, stderr=app.subprocess.DEVNULL, **options)
+        try:
+            with self.assertRaises(app.LockBusy):
+                with app.exclusive(lock_path):
+                    self.fail("Worker's child did not retain the lock")
+        finally:
+            child.kill()
+            child.wait(timeout=5)
+        with app.exclusive(lock_path):
+            pass
+
     def test_missing_proof_at_reporting_time_returns_nonzero(self):
         state = {"commit": self.revision, "lanes": {}}
         for lane in app.CHECKS:
