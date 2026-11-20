@@ -1,5 +1,7 @@
 - Do not pause to ask for confirmation during multi-step tasks.
 - Proceed autonomously until implementation, debugging, and verification are fully complete.
+- 현재 작업에 실행 가능한 다음 단계가 있으면 같은 실행에서 바로 수행한다. 진행 상황, 계획, 안내만 남기고 응답을 종료하지 않는다.
+- 한 단계가 차단되면 독립적으로 진행 가능한 작업을 먼저 이어간다. 요청한 범위를 완료했거나 더 진행하려면 사용자 입력 또는 외부 상태 변경이 꼭 필요할 때 결과를 전달한다.
 
 # 주도주뉴스 제품 작업 지침
 
