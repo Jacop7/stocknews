@@ -29,6 +29,16 @@ export type StagedCollectorPageV1 = {
   version: string;
   cursorRef: string | null;
 };
+export type CollectorQueueDecisionV1 =
+  | { kind: 'HOLD' }
+  | { kind: 'SKIP_BODY' }
+  | { kind: 'BODY_STORED'; bodyId: string; receiptDigest: string };
+
+export type CollectorQueueStepV1 =
+  | { state: 'ITEM_SETTLED'; deliveryId: string }
+  | { state: 'ITEM_HELD'; deliveryId: string }
+  | { state: 'WAITING_FOR_JOBS' }
+  | { state: 'CHECKPOINTED'; checkpoint: StagedCollectorPageV1 };
 type Page = {
   partition: string;
   source: string;
@@ -64,6 +74,16 @@ function item(raw: unknown): Item {
 
 function cursor(value: unknown): string | null {
   return value === null ? null : text(value, 128);
+}
+
+function stagedPage(raw: StagedCollectorPageV1): StagedCollectorPageV1 {
+  const page = record(raw, ['pageId', 'version', 'cursorRef', 'manifestDigest']);
+  return {
+    pageId: collectorUuidV1(page.pageId),
+    manifestDigest: collectorDigestV1(page.manifestDigest),
+    version: collectorDecimalV1(page.version, 1n),
+    cursorRef: cursor(page.cursorRef),
+  };
 }
 
 export class CollectorListQueueV1 {
@@ -165,11 +185,7 @@ export class CollectorListQueueV1 {
   }
 
   async checkpoint(raw: StagedCollectorPageV1): Promise<StagedCollectorPageV1> {
-    const p = record(raw, ['pageId', 'version', 'cursorRef', 'manifestDigest']);
-    const pageId = collectorUuidV1(p.pageId);
-    const digest = collectorDigestV1(p.manifestDigest);
-    const version = collectorDecimalV1(p.version, 1n);
-    const next = cursor(p.cursorRef);
+    const {pageId, manifestDigest: digest, version, cursorRef: next} = stagedPage(raw);
     return this.#request(RPC.checkpoint, {p_page:pageId, p_manifest:digest}, value => {
       const r = record(value, ['pageId', 'version', 'cursorRef', 'manifestDigest']);
       if (r.pageId !== pageId || r.manifestDigest !== digest || r.version !== version || r.cursorRef !== next) {
@@ -177,5 +193,43 @@ export class CollectorListQueueV1 {
       }
       return {pageId, manifestDigest:digest, version, cursorRef:next};
     });
+  }
+
+  /**
+   * Advances one item or the page checkpoint. The caller supplies a durable
+   * lease token and a decision backed by the existing body-store receipt.
+   * Uncertain DB responses propagate so the caller can reconcile the original intent.
+   */
+  async advance(
+    raw: StagedCollectorPageV1, leaseToken: string, seconds: number,
+    decide: (claim: Readonly<Claim>) => Promise<CollectorQueueDecisionV1>,
+  ): Promise<CollectorQueueStepV1> {
+    const page = stagedPage(raw);
+    const claim = await this.claim(page.pageId, leaseToken, seconds);
+    if (!claim) {
+      try {
+        return {state:'CHECKPOINTED', checkpoint:await this.checkpoint(page)};
+      } catch (error) {
+        if (error instanceof CollectorDbErrorV1 && error.code === 'LOCK_BUSY' &&
+            error.certainty === 'THIS_ATTEMPT_REJECTED') return {state:'WAITING_FOR_JOBS'};
+        throw error;
+      }
+    }
+    const decision = collectorRecordV1(collectorDataV1(await decide(Object.freeze(claim))));
+    if (decision.kind === 'HOLD') {
+      collectorExactV1(decision, ['kind']);
+      return {state:'ITEM_HELD', deliveryId:claim.deliveryId};
+    }
+    if (decision.kind === 'SKIP_BODY') {
+      collectorExactV1(decision, ['kind']);
+      await this.skipBody(page.pageId, leaseToken, claim);
+    } else if (decision.kind === 'BODY_STORED') {
+      collectorExactV1(decision, ['kind', 'bodyId', 'receiptDigest']);
+      await this.bodyStored(page.pageId, leaseToken, claim.deliveryId,
+        collectorUuidV1(decision.bodyId), collectorDigestV1(decision.receiptDigest));
+    } else {
+      collectorRejectV1();
+    }
+    return {state:'ITEM_SETTLED', deliveryId:claim.deliveryId};
   }
 }

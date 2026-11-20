@@ -5,6 +5,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {test} from 'node:test';
 import {MainOwnedP4Postgres, prepareCollectorInstallContext} from '../scripts/test-main-p4-integration.mjs';
 import {CollectorListQueueV1} from '../workers/collectors/src/list-body-queue.ts';
+import {CollectorDbErrorV1} from '../workers/collectors/src/collector-db-contracts-v1.ts';
 
 const literal = value => value === null ? 'null' : "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => literal(JSON.stringify(value)) + '::jsonb';
@@ -89,7 +90,12 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
       return call(actor, method, Object.entries(args).map(([key,value]) => {
         assert.match(key, /^p_[a-z_]+$/);
         return key+' => '+(key==='p_items'||key==='p_grant' ? json(value) : literal(value));
-      }));
+      })).catch(error => {
+        if (method === 'checkpoint' && /^(checkpoint: )LOCK_BUSY\b/.test(error.message)) {
+          throw new CollectorDbErrorV1('LOCK_BUSY');
+        }
+        throw error;
+      });
     };
     const queue = new CollectorListQueueV1(queueCall,installation.storeIdentity);
     const stage = (session, items = [firstText, secondText]) => call(session, 'stage', [
@@ -134,7 +140,10 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     await assert.rejects(settle(second,secondToken,'BODY_STORED',bodyProof,body), /settle: RIGHTS_HOLD/);
     db.ownerSql(`update collector_private.collector_delivery_v1
       set data=data||'{"providerRevisionRef":"revision-one"}' where delivery_id=${literal(original)};`);
-    assert.equal((await queue.bodyStored(page,secondToken,second,body,bodyProof)).outcome,'BODY_STORED');
+    assert.deepEqual(await queue.advance(staged,secondToken,45,async claim => {
+      assert.equal(claim.deliveryId,second);
+      return {kind:'BODY_STORED',bodyId:body,receiptDigest:bodyProof};
+    }),{state:'ITEM_SETTLED',deliveryId:second});
     await actor.close();
     await other.close();
     await observer.close();
@@ -206,6 +215,20 @@ test('the isolated queue retains page, claim, proof and checkpoint through retri
     await lockOwner.execute('rollback;');
     assert.match((await tokenWaiting).error.message, /claim: RIGHTS_HOLD/);
     assert.equal(db.ownerSql(`select count(*) from collector_private.list_queue_lease_v1 where lease_token=${literal(sharedToken)};`),'0');
+    db.ownerSql("update collector_private.collector_grant_v1 set expires_at=clock_timestamp()+interval '1 hour';");
+    const waitingStaged = await queue.stage({partition:'wait-partition',source:'source',endpoint:'endpoint',grant:binding,
+      policyVersion:'policy-v1',pageId:waitingPage,version:'0',cursorRef:null,nextCursorRef:null,items:[firstText]});
+    const heldToken = randomUUID();
+    assert.deepEqual(await queue.advance(waitingStaged,heldToken,30,async claim => {
+      assert.equal(claim.deliveryId,first);
+      return {kind:'HOLD'};
+    }),{state:'ITEM_HELD',deliveryId:first});
+    const unexpectedClaim = async () => assert.fail('No work should be dispatched from an unavailable page');
+    assert.deepEqual(await queue.advance(waitingStaged,randomUUID(),30,unexpectedClaim),{state:'WAITING_FOR_JOBS'});
+    assert.deepEqual(await queue.advance(waitingStaged,heldToken,30,async () => ({kind:'SKIP_BODY'})),
+      {state:'ITEM_SETTLED',deliveryId:first});
+    assert.deepEqual(await queue.advance(waitingStaged,randomUUID(),30,unexpectedClaim),
+      {state:'CHECKPOINTED',checkpoint:waitingStaged});
     db.ownerSql("update collector_private.collector_grant_v1 set event='REVOKE',revoked_at=clock_timestamp();");
     await assert.rejects(claim(actor,randomUUID(),30));
     await assert.rejects(checkpoint(manifestDigest));
