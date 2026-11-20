@@ -19,9 +19,9 @@ async function abortable(promise,signal){
   const stopped=new Promise((_,reject)=>{abort=()=>reject(new Error('REQUEST_TIMEOUT'));signal.addEventListener('abort',abort,{once:true});});
   try{return await Promise.race([promise,stopped]);}finally{signal.removeEventListener('abort',abort);}
 }
-export async function pinnedHttps(url,{timeoutMs,maxBytes,signal}){
+export async function pinnedHttps(url,{timeoutMs,maxBytes,signal,resolvedAddresses}){
   const host=new URL(url).hostname;
-  const answers=isIP(host)?[{address:host,family:isIP(host)}]:await abortable(dns.lookup(host,{all:true}),signal);
+  const answers=resolvedAddresses??(isIP(host)?[{address:host,family:isIP(host)}]:await abortable(dns.lookup(host,{all:true}),signal));
   if(!answers.length||answers.some(x=>!publicAddress(x.address)))throw new Error('NON_PUBLIC_DNS');
   const selected=answers[0];
   return await new Promise((resolve,reject)=>{
@@ -49,15 +49,15 @@ export async function probe({endpoint,profile,purposes=['DISCOVERY','MACHINE_ACC
       const gate=permissionDecision(profile,endpoint,requiredPurposes,now());if(gate)return result('BLOCKED',gate);
       const u=new URL(url),host=u.hostname.toLowerCase();
       if(!profile.allowed_hosts?.includes(host))return result('BLOCKED','HOST_NOT_ALLOWED');
-      // Transport also pins a fresh resolution, closing DNS-rebinding between check and connect.
-      const answers=isIP(host)?[{address:host}]:await abortable(lookupHost(host,{all:true}),controller.signal);
+      // Pin these validated addresses through connect, with no second DNS lookup.
+      const answers=isIP(host)?[{address:host,family:isIP(host)}]:await abortable(lookupHost(host,{all:true}),controller.signal);
       if(!answers.length||answers.some(x=>!publicAddress(x.address)))return result('BLOCKED','NON_PUBLIC_DNS');
       if(requests>=profile.max_requests)return result('BLOCKED','REQUEST_BUDGET_EXHAUSTED');
       const release=budget.acquire(host);if(!release)return result('BLOCKED','CONCURRENCY_LIMIT');
       let response;
       try{
         if(!budget.consume(host))return result('BLOCKED','REQUEST_BUDGET_EXHAUSTED');
-        requests++;response=await abortable(transport(url,{timeoutMs,maxBytes,signal:controller.signal}),controller.signal);
+        requests++;response=await abortable(transport(url,{timeoutMs,maxBytes,signal:controller.signal,resolvedAddresses:answers}),controller.signal);
       }finally{release();}
       if(!Buffer.isBuffer(response.body)||response.body.length>maxBytes)return result('FAILED','RESPONSE_TOO_LARGE');
       if([301,302,303,307,308].includes(response.status)){
