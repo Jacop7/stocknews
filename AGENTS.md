@@ -1,5 +1,9 @@
+- Do not pause to ask for confirmation during multi-step tasks.
+- Proceed autonomously until implementation, debugging, and verification are fully complete.
+
 # 주도주뉴스 제품 작업 지침
 
+- 여러 작업을 이어갈 때는 [개발 작업 재개](docs/development-continuation.md)의 실행 기록을 확인한다. 대기 중인 작업의 원인을 남기고 독립 작업을 계속 진행한다. 검증 완료가 기록된 커밋은 유효한 증거를 재사용한다.
 - 이 저장소는 완전 신규 제품이다. 식자재 관리앱 코드/설정/데이터/DB/인증/키/worker/Docker/배포를 읽어 가져오거나 연결하지 않는다.
 - 기획 권위는 docs/reference/planning/공통-운영계약-v1.0.md, 제작 순서는 제작 실행계획 v1.3이다. 사용자 최신 지시가 우선이다.
 - 단계 계획을 Claude 브라우저와 독립 Codex Ultra 검수한 뒤 해당 범위 구현, 자체 시험 후 구현 재검수한다. 결과는 실제 범위와 한계를 명시한다.
