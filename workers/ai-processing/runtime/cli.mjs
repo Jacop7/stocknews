@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, mkdirSync, statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { DatabaseSync } from 'node:sqlite';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { BacklogStore } from './store.mjs';
+import { validateConfig } from './contracts.mjs';
+import { createOriginalReader } from './original.mjs';
+import { createOpenAiModel } from './model.mjs';
+import { createBacklogProcessor } from './pipeline.mjs';
+
+export function readSavedLinks(filename, kind, now = Date.now()) {
+  assert(existsSync(filename), 'SAVED_LINK_DATABASE_NOT_FOUND');
+  const db = new DatabaseSync(filename, { readOnly: true });
+  try {
+    assert.equal(db.prepare('PRAGMA quick_check').get().quick_check, 'ok');
+    if (kind === 'telegram') {
+      const rows = db.prepare('SELECT endpoint_id sourceId,url,last_seen lastSeen,expires_at expiresAt FROM telegram_page_links WHERE expires_at>? ORDER BY endpoint_id,url LIMIT 20001').all(now);
+      assert(rows.length <= 20000, 'SAVED_INPUT_LIMIT'); return rows;
+    }
+    assert(kind === 'web', 'INVALID_IMPORT_KIND');
+    const rows = db.prepare('SELECT endpoint_id sourceId,url,title,first_seen lastSeen,expires_at expiresAt FROM candidates WHERE expires_at>? ORDER BY endpoint_id,url LIMIT 20001').all(now);
+    assert(rows.length <= 20000, 'SAVED_INPUT_LIMIT'); return rows;
+  } finally { db.close(); }
+}
+
+async function main(argv) {
+  const command = argv[0];
+  if (!command || command === '--help') {
+    console.log('Commands: import --db OUTPUT --telegram SAVED_DB [--web SAVED_DB]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
+    return;
+  }
+  const flags = new Set(['--once', '--execute-originals', '--execute-models']), options = {};
+  for (let i = 1; i < argv.length; i++) {
+    const key = argv[i]; assert(['--db', '--telegram', '--web', '--config', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
+    assert(!Object.hasOwn(options, key), 'DUPLICATE_ARGUMENT');
+    options[key] = flags.has(key) ? true : argv[++i];
+    assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
+  }
+  assert(['import', 'status', 'work'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
+  const filename = resolve(options['--db']);
+  if (command === 'status') assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  if (command === 'import') assert(options['--telegram'] || options['--web'], 'SAVED_INPUT_REQUIRED');
+  if (command === 'import') for (const type of ['telegram', 'web']) if (options['--' + type]) {
+    const input = resolve(options['--' + type]);
+    assert(input.toLowerCase() !== filename.toLowerCase(), 'INPUT_OUTPUT_COLLISION');
+    if (existsSync(input) && existsSync(filename)) {
+      const source = statSync(input), target = statSync(filename);
+      assert(source.dev !== target.dev || source.ino !== target.ino, 'INPUT_OUTPUT_COLLISION');
+    }
+  }
+  mkdirSync(dirname(filename), { recursive: true });
+  const store = new BacklogStore(filename);
+  try {
+    if (command === 'status') { console.log(JSON.stringify(store.status())); return; }
+    if (command === 'import') {
+      const now = Date.now(); const entries = [];
+      for (const type of ['telegram', 'web']) if (options['--' + type]) entries.push(...readSavedLinks(options['--' + type], type, now));
+      console.log(JSON.stringify({ operation: 'READ_ONLY_BACKLOG_IMPORT', ...store.importLinks(entries, now),
+        originalRequests: 0, modelRequests: 0, collectionRestarted: false })); return;
+    }
+    assert(options['--config'], 'CONFIG_FILE_REQUIRED');
+    const loadConfig = () => {
+      const value = validateConfig(JSON.parse(readFileSync(resolve(options['--config']), 'utf8')));
+      return { ...value, readOriginals: value.readOriginals && options['--execute-originals'] === true,
+        callModels: value.callModels && options['--execute-models'] === true };
+    };
+    const initial = loadConfig();
+    const model = initial.callModels ? createOpenAiModel({ apiKey: process.env.JUDOJU_ANALYSIS_OPENAI_API_KEY }) : async () => { throw new Error('MODEL_EXECUTION_DISABLED'); };
+    const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal: createOriginalReader({
+      loadRobots: (origin, now) => store.loadRobots(origin, now), saveRobots: (origin, value) => store.saveRobots(origin, value),
+    }) });
+    const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
+    do {
+      const result = await processor.step(); console.log(JSON.stringify({ event: 'BACKLOG_PROCESSING_STEP', ...result }));
+      if (options['--once'] || result.state === 'PAUSED' || stop.signal.aborted) break;
+      await sleep(1000, undefined, { signal: stop.signal }).catch(error => { if (!stop.signal.aborted) throw error; });
+    } while (!stop.signal.aborted);
+  } finally { store.close(); }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main(process.argv.slice(2)).catch(() => { console.error('BACKLOG_PROCESSING_FAILED; inspect configuration and local status. Credentials and originals are not logged.'); process.exitCode = 1; });
+}

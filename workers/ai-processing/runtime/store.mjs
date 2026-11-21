@@ -1,0 +1,258 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
+import { digest, canonical, day, urlKey, sourceGrant } from './contracts.mjs';
+
+const decode = row => row ? { ...row, payload: JSON.parse(row.payload) } : null;
+export class BacklogStore {
+  constructor(filename) {
+    this.db = new DatabaseSync(filename, { timeout: 5000 });
+    this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
+      CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,url TEXT UNIQUE NOT NULL,state TEXT NOT NULL,
+        next_at INTEGER NOT NULL,lease TEXT,lease_until INTEGER NOT NULL DEFAULT 0,payload TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS sightings(job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+        source_id TEXT NOT NULL,last_seen INTEGER NOT NULL,expires_at INTEGER NOT NULL,PRIMARY KEY(job_id,source_id)) STRICT;
+      CREATE TABLE IF NOT EXISTS documents(id TEXT PRIMARY KEY,title TEXT NOT NULL,body TEXT NOT NULL,published_at TEXT,
+        expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS document_sources(doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        url TEXT PRIMARY KEY,payload TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS triages(doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        config_hash TEXT NOT NULL,story_key TEXT NOT NULL,partition_key TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(doc_id,config_hash)) STRICT;
+      CREATE TABLE IF NOT EXISTS runs(key TEXT PRIMARY KEY,scope TEXT NOT NULL,stage TEXT NOT NULL,model TEXT NOT NULL,
+        state TEXT NOT NULL,response TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS issues(id TEXT PRIMARY KEY,story_key TEXT NOT NULL,angle_key TEXT NOT NULL,version INTEGER NOT NULL,
+        manual_protected INTEGER NOT NULL DEFAULT 0,payload TEXT NOT NULL,fact_ids TEXT NOT NULL,created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,UNIQUE(story_key,angle_key)) STRICT;
+      CREATE TABLE IF NOT EXISTS proposals(id TEXT PRIMARY KEY,job_id TEXT NOT NULL,payload TEXT NOT NULL,reason TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS host_slots(host TEXT PRIMARY KEY,next_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS robots_rules(origin TEXT PRIMARY KEY,payload TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT;
+      CREATE TABLE IF NOT EXISTS run_documents(run_key TEXT NOT NULL,doc_id TEXT NOT NULL,PRIMARY KEY(run_key,doc_id)) STRICT;
+      CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,job_id TEXT,state TEXT NOT NULL,reason TEXT,observed_at INTEGER NOT NULL) STRICT;
+    `);
+  }
+  close() { this.db.close(); }
+  transaction(callback) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try { const result = callback(); this.db.exec('COMMIT'); return result; }
+    catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+  importLinks(entries, now) {
+    assert(Array.isArray(entries) && entries.length <= 20000, 'IMPORT_LIMIT');
+    let added = 0, rejected = 0;
+    this.transaction(() => {
+      for (const entry of entries) {
+        let url; try { url = urlKey(entry.url); } catch { rejected++; continue; }
+        if (typeof entry.sourceId !== 'string' || !entry.sourceId.trim() || !Number.isSafeInteger(entry.expiresAt) || entry.expiresAt <= now || !Number.isSafeInteger(entry.lastSeen) || entry.lastSeen > now + 300000) { rejected++; continue; }
+        const expires = Math.min(entry.expiresAt, now + 7 * day), id = digest(url);
+        const payload = canonical({ fetchUrl: url, redirects: 0, title: typeof entry.title === 'string' ? entry.title.slice(0, 500) : '' });
+        added += Number(this.db.prepare("INSERT OR IGNORE INTO jobs(id,url,state,next_at,payload,expires_at) VALUES (?,?,'FETCH',?,?,?)").run(id, url, now, payload, expires).changes);
+        this.db.prepare('UPDATE jobs SET expires_at=max(expires_at,?) WHERE id=?').run(expires, id);
+        this.db.prepare('INSERT INTO sightings VALUES (?,?,?,?) ON CONFLICT(job_id,source_id) DO UPDATE SET last_seen=max(last_seen,excluded.last_seen),expires_at=max(expires_at,excluded.expires_at)')
+          .run(id, String(entry.sourceId).slice(0, 150), entry.lastSeen, expires);
+      }
+    });
+    return { added, rejected, jobs: this.db.prepare('SELECT count(*) n FROM jobs').get().n };
+  }
+  claim(now) {
+    return this.transaction(() => {
+      const row = this.db.prepare("SELECT * FROM jobs WHERE state IN ('FETCH','TRIAGE','DRAFT','VERIFY') AND next_at<=? AND expires_at>? AND lease_until<=? ORDER BY next_at,id LIMIT 1").get(now, now, now);
+      if (!row) return null;
+      const lease = randomUUID();
+      this.db.prepare('UPDATE jobs SET lease=?,lease_until=? WHERE id=?').run(lease, now + 120000, row.id);
+      return { ...decode(row), lease, lease_until: now + 120000 };
+    });
+  }
+  owns(job, now) {
+    const row = this.db.prepare('SELECT lease,lease_until,expires_at FROM jobs WHERE id=?').get(job.id);
+    return row?.lease === job.lease && row.lease_until > now && row.expires_at > now;
+  }
+  settle(job, state, payload, now, reason = null, nextAt = now) {
+    return this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      this.db.prepare('UPDATE jobs SET state=?,payload=?,next_at=?,lease=NULL,lease_until=0 WHERE id=? AND lease=?')
+        .run(state, canonical(payload), nextAt, job.id, job.lease);
+      this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, state, reason, now);
+      return { jobId: job.id, state, reason };
+    });
+  }
+  reserveHost(host, now, delay, extend = false) {
+    return this.transaction(() => {
+      const until = this.db.prepare('SELECT next_at FROM host_slots WHERE host=?').get(host)?.next_at ?? 0;
+      if (!extend && until > now) return { allowed: false, nextAt: until };
+      const nextAt = Math.max(until, now + delay);
+      this.db.prepare('INSERT INTO host_slots VALUES (?,?) ON CONFLICT(host) DO UPDATE SET next_at=max(next_at,excluded.next_at)').run(host, nextAt);
+      return { allowed: true, nextAt };
+    });
+  }
+  loadRobots(origin, now) {
+    const row = this.db.prepare('SELECT payload FROM robots_rules WHERE origin=? AND expires_at>?').get(origin, now);
+    return row ? JSON.parse(row.payload) : null;
+  }
+  saveRobots(origin, value) {
+    this.db.prepare('INSERT INTO robots_rules VALUES (?,?,?) ON CONFLICT(origin) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at')
+      .run(origin, canonical(value), value.until);
+  }
+  saveOriginal(job, original, grant, configHash, now) {
+    return this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      const expires = Math.min(job.expires_at, now + grant.retentionDays * day, grant.expiresAt === null ? Infinity : Date.parse(grant.expiresAt));
+      this.db.prepare('INSERT INTO documents VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET expires_at=max(expires_at,excluded.expires_at)')
+        .run(original.bodyHash, original.title, original.text, original.publishedAt, expires);
+      const source = { ...grant, url: original.url, publishedAt: original.publishedAt };
+      this.db.prepare('INSERT INTO document_sources VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET doc_id=excluded.doc_id,payload=excluded.payload,expires_at=excluded.expires_at')
+        .run(original.bodyHash, original.url, canonical(source), expires);
+      const payload = { ...job.payload, docId: original.bodyHash, configHash };
+      this.db.prepare("UPDATE jobs SET state='TRIAGE',payload=?,expires_at=?,lease=NULL,lease_until=0,next_at=? WHERE id=? AND lease=?")
+        .run(canonical(payload), expires, now, job.id, job.lease);
+      return { jobId: job.id, state: 'TRIAGE', docId: original.bodyHash };
+    });
+  }
+  documents(ids, config, now) {
+    return [...new Set(ids)].map(id => {
+      const doc = this.db.prepare('SELECT * FROM documents WHERE id=? AND expires_at>?').get(id, now);
+      if (!doc) return null;
+      const sources = this.db.prepare('SELECT payload,url,expires_at FROM document_sources WHERE doc_id=? AND expires_at>?').all(id, now)
+        .filter(source => sourceGrant(config, source.url, now)).map(source => {
+          const origin = config.documentOrigins?.find(item => item.url === source.url && item.bodyHash === id && item.verified && doc.body.includes(item.quote));
+          return { ...sourceGrant(config, source.url, now),
+          articleOriginVerified: Boolean(origin), originGroupId: origin?.originGroupId ?? null,
+          url: source.url, publishedAt: JSON.parse(source.payload).publishedAt,
+          expiresAt: Math.min(source.expires_at, sourceGrant(config, source.url, now).expiresAt === null ? Infinity : Date.parse(sourceGrant(config, source.url, now).expiresAt)) };
+        });
+      const dates = sources.map(source => source.publishedAt).filter(value => Number.isFinite(Date.parse(value))).sort();
+      return sources.length ? { id, title: doc.title, text: doc.body, publishedAt: dates[0] ?? null,
+        expiresAt: Math.min(doc.expires_at, ...sources.map(source => source.expiresAt)), sources } : null;
+    }).filter(Boolean);
+  }
+  saveTriage(job, triage, configHash, now) {
+    this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      this.db.prepare('INSERT INTO triages VALUES (?,?,?,?,?) ON CONFLICT(doc_id,config_hash) DO UPDATE SET payload=excluded.payload')
+        .run(job.payload.docId, configHash, triage.storyKey, triage.partition, canonical(triage.value));
+      // Evidence holds wake only when another document for the same event actually arrives.
+      for (const held of this.db.prepare("SELECT * FROM jobs WHERE state='HOLD_EVIDENCE' AND expires_at>?").all(now)) {
+        const payload = JSON.parse(held.payload);
+        if (payload.storyKey === triage.storyKey && payload.docId !== job.payload.docId) this.db.prepare("UPDATE jobs SET state='DRAFT',next_at=? WHERE id=?").run(now, held.id);
+      }
+    });
+  }
+  context(storyKey, configHash, config, now, requiredDocId) {
+    const rows = this.db.prepare('SELECT doc_id,payload FROM triages WHERE story_key=? AND config_hash=? ORDER BY doc_id').all(storyKey, configHash);
+    rows.sort((a, b) => Number(b.doc_id === requiredDocId) - Number(a.doc_id === requiredDocId));
+    const documents = this.documents(rows.slice(0, 8).map(row => row.doc_id), config, now);
+    const kept = new Set(documents.map(doc => doc.id));
+    const triages = rows.filter(row => kept.has(row.doc_id)).map(row => JSON.parse(row.payload));
+    const issues = this.db.prepare('SELECT * FROM issues WHERE story_key=? AND expires_at>? ORDER BY id').all(storyKey, now).map(decode);
+    return { documents, triages, issues, overflow: rows.length > 8 };
+  }
+  beginRun(key, scope, stage, model, maxDailyCalls, now, expiresAt, docIds = [scope.split(':')[0]]) {
+    return this.transaction(() => {
+      const known = this.db.prepare('SELECT * FROM runs WHERE key=?').get(key);
+      if (known) return known.state === 'COMPLETE' && known.response !== null && known.expires_at > now ? { state: 'CACHED', value: JSON.parse(known.response) } : { state: 'HOLD', reason: known.state === 'INTENT' || known.state === 'UNKNOWN' ? 'MODEL_RESPONSE_UNKNOWN' : 'MODEL_' + known.state };
+      if (this.db.prepare("SELECT 1 FROM runs WHERE scope=? AND state IN ('INTENT','UNKNOWN')").get(scope)) return { state: 'HOLD', reason: 'MODEL_RESPONSE_UNKNOWN' };
+      const midnight = Math.floor((now + 9 * 3600000) / day) * day - 9 * 3600000;
+      if (this.db.prepare('SELECT count(*) n FROM runs WHERE created_at>=?').get(midnight).n >= maxDailyCalls) return { state: 'HOLD', reason: 'MODEL_DAILY_BUDGET' };
+      this.db.prepare("INSERT INTO runs VALUES (?,?,?,?,'INTENT',NULL,?,?)").run(key, scope, stage, model, now, expiresAt);
+      for (const id of new Set(docIds)) this.db.prepare('INSERT INTO run_documents VALUES (?,?)').run(key, id);
+      return { state: 'DISPATCH_ONCE' };
+    });
+  }
+  finishRun(key, state, response = null) {
+    assert(['COMPLETE', 'UNKNOWN', 'REJECTED'].includes(state));
+    this.db.prepare("UPDATE runs SET state=?,response=? WHERE key=? AND state='INTENT'").run(state, response === null ? null : canonical(response), key);
+  }
+  recordDuplicate(job, issue, documents, now) {
+    return this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      const current = this.db.prepare('SELECT * FROM issues WHERE id=?').get(issue.id);
+      assert(current?.version === issue.version, 'REVISION_CONFLICT');
+      if (!current.manual_protected) {
+        const payload = JSON.parse(current.payload), seen = new Set(payload.source_refs.map(source => source.url));
+        for (const doc of documents) for (const source of doc.sources) if (!seen.has(source.url) && payload.source_refs.length < 32) {
+          payload.source_refs.push({ docId: doc.id, url: source.url, name: source.id, publishedAt: source.publishedAt }); seen.add(source.url);
+        }
+        this.db.prepare('UPDATE issues SET payload=? WHERE id=?').run(canonical(payload), current.id);
+      }
+      this.db.prepare("UPDATE jobs SET state='DUPLICATE',payload=?,lease=NULL,lease_until=0 WHERE id=?")
+        .run(canonical({ docId: job.payload.docId, issueId: issue.id }), job.id);
+      return { state: 'DUPLICATE', issueId: issue.id, jobId: job.id };
+    });
+  }
+  commitDraft(job, draft, facts, expectedIssues, now, expiresAt = job.expires_at) {
+    return this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      const current = this.db.prepare('SELECT * FROM issues WHERE story_key=? AND angle_key=?').get(job.payload.storyKey, draft.angleKey);
+      const expected = current && expectedIssues.find(item => item.id === current.id);
+      let action, id = current?.id ?? randomUUID(), version = (current?.version ?? 0) + 1;
+      if (current && (current.manual_protected || !expected || current.version !== expected.version)) {
+        const reason = current.manual_protected ? 'MANUAL_PROTECTED' : 'REVISION_CONFLICT';
+        this.db.prepare('INSERT OR IGNORE INTO proposals VALUES (?,?,?,?,?)').run(digest([job.id, draft]), job.id, canonical(draft), reason, expiresAt);
+        this.db.prepare("UPDATE jobs SET state='HOLD_EDITOR',lease=NULL,lease_until=0 WHERE id=?").run(job.id);
+        return { state: 'HOLD_EDITOR', reason, jobId: job.id };
+      }
+      const previousIds = current ? JSON.parse(current.fact_ids) : [];
+      const newIds = facts.map(item => item.id).sort();
+      assert(!current || previousIds.every(id => newIds.includes(id)), 'INCOMPLETE_UPDATE');
+      if (current && newIds.every(fact => previousIds.includes(fact))) {
+        this.db.prepare("UPDATE jobs SET state='DUPLICATE',lease=NULL,lease_until=0 WHERE id=?").run(job.id);
+        return { state: 'DUPLICATE', issueId: id, jobId: job.id };
+      }
+      action = current ? 'UPDATE' : expectedIssues.length ? 'NEW_ANGLE' : 'NEW_STORY';
+      this.db.prepare('INSERT INTO issues(id,story_key,angle_key,version,payload,fact_ids,created_at,updated_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(story_key,angle_key) DO UPDATE SET version=excluded.version,payload=excluded.payload,fact_ids=excluded.fact_ids,updated_at=excluded.updated_at,expires_at=excluded.expires_at')
+        .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
+      this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0 WHERE id=?").run(canonical({ ...job.payload, issueId: id, version, action }), job.id);
+      this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
+      return { state: 'DRAFT_READY', action, issueId: id, version, jobId: job.id, publicationAuthorized: false };
+    });
+  }
+  maintain(config, now) {
+    this.transaction(() => {
+      const removed = new Set(this.db.prepare('SELECT doc_id FROM document_sources WHERE expires_at<=?').all(now).map(row => row.doc_id));
+      for (const table of ['jobs', 'sightings', 'document_sources', 'proposals', 'robots_rules']) this.db.prepare('DELETE FROM ' + table + ' WHERE expires_at<=?').run(now);
+      // INTENT/UNKNOWN tombstones remain text-free: they must still prevent an uncertain redispatch.
+      this.db.prepare('UPDATE runs SET response=NULL WHERE expires_at<=?').run(now);
+      this.db.prepare("UPDATE issues SET payload=?,fact_ids='[]' WHERE expires_at<=?").run(canonical({ state: 'HOLD_SOURCE_EXPIRED', publicationAuthorized: false }), now);
+      if (config) {
+        for (const source of this.db.prepare('SELECT url,doc_id FROM document_sources').all()) if (!sourceGrant(config, source.url, now)) {
+          removed.add(source.doc_id); this.db.prepare('DELETE FROM document_sources WHERE url=?').run(source.url);
+        }
+        for (const issue of this.db.prepare('SELECT id,payload FROM issues WHERE expires_at>?').all(now)) {
+          if ((JSON.parse(issue.payload).source_refs ?? []).some(source => !sourceGrant(config, source.url, now))) this.db.prepare('UPDATE issues SET payload=?,fact_ids=? WHERE id=?')
+            .run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
+        }
+      }
+      for (const row of this.db.prepare('SELECT id FROM documents WHERE expires_at<=?').all(now)) removed.add(row.id);
+      for (const id of removed) {
+        this.db.prepare('UPDATE runs SET response=NULL WHERE key IN (SELECT run_key FROM run_documents WHERE doc_id=?) OR scope LIKE ?').run(id, id + ':%');
+        for (const issue of this.db.prepare('SELECT id,payload FROM issues').all()) if ((JSON.parse(issue.payload).source_refs ?? []).some(source => source.docId === id)) {
+          this.db.prepare("UPDATE issues SET payload=?,fact_ids='[]' WHERE id=?")
+            .run(canonical({ state: 'HOLD_SOURCE_CHANGED', publicationAuthorized: false }), issue.id);
+        }
+        for (const job of this.db.prepare('SELECT id,payload FROM jobs').all()) {
+          const payload = JSON.parse(job.payload);
+          const referenced = payload.docId === id || payload.draft?.source_refs?.some(source => source.docId === id) ||
+            payload.triage?.facts?.some(fact => fact.refs.some(ref => ref.docId === id));
+          if (referenced) this.db.prepare("UPDATE jobs SET payload=?,state='HOLD_SOURCE_CHANGED',lease=NULL,lease_until=0 WHERE id=?")
+            .run(canonical({ state: 'HOLD_SOURCE_CHANGED', publicationAuthorized: false }), job.id);
+        }
+        for (const proposal of this.db.prepare('SELECT id,payload FROM proposals').all()) {
+          if ((JSON.parse(proposal.payload).source_refs ?? []).some(source => source.docId === id)) {
+            this.db.prepare('DELETE FROM proposals WHERE id=?').run(proposal.id);
+          }
+        }
+      }
+      for (const doc of this.db.prepare('SELECT id FROM documents WHERE id NOT IN (SELECT doc_id FROM document_sources)').all()) {
+        this.db.prepare('UPDATE runs SET response=NULL WHERE scope LIKE ?').run(doc.id + ':%');
+        this.db.prepare('DELETE FROM documents WHERE id=?').run(doc.id);
+      }
+      this.db.prepare('DELETE FROM documents WHERE expires_at<=?').run(now);
+      this.db.prepare('DELETE FROM events WHERE observed_at<=?').run(now - 7 * day);
+    });
+  }
+  status() {
+    return { jobs: this.db.prepare('SELECT state,count(*) count FROM jobs GROUP BY state').all(),
+      documents: this.db.prepare('SELECT count(*) n FROM documents').get().n,
+      drafts: this.db.prepare('SELECT count(*) n FROM issues').get().n,
+      modelRuns: this.db.prepare('SELECT state,count(*) count FROM runs GROUP BY state').all(), publicationAuthorized: false };
+  }
+}

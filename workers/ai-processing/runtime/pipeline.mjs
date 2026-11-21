@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import { canonical, digest, validateConfig, sourceGrant, day } from './contracts.mjs';
+import { validateTriage, mergeFacts, evidenceSufficient, validateDraft, validateVerification } from './editorial.mjs';
+
+const hold = reason => ({ state: 'HOLD', reason });
+export function createBacklogProcessor({ store, readOriginal, model, loadConfig, now = Date.now }) {
+  async function executeModel(job, stage, input, config, authorize, retentionUntil = job.expires_at, documentIds = [job.payload.docId]) {
+    if (!config.callModels) return hold('MODEL_EXECUTION_DISABLED');
+    if (!authorize()) return hold('AUTHORITY_CHANGED');
+    const modelId = config.models[stage];
+    if (!modelId.trim() || modelId.length >= 120 || canonical(input).length > 150000) return hold('MODEL_INPUT_LIMIT');
+    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V1' });
+    const scope = job.payload.docId + ':' + stage;
+    const reserved = store.beginRun(key, scope, stage, modelId, config.maxDailyCalls, now(), retentionUntil, documentIds);
+    if (reserved.state === 'CACHED') return { state: 'RESULT', value: reserved.value };
+    if (reserved.state !== 'DISPATCH_ONCE') return reserved;
+    try {
+      const value = await model({ stage, model: modelId, input });
+      if (!authorize()) { store.finishRun(key, 'REJECTED'); return hold('AUTHORITY_CHANGED'); }
+      store.finishRun(key, 'COMPLETE', value);
+      return { state: 'RESULT', value };
+    } catch (error) {
+      store.finishRun(key, error.knownRejection ? 'REJECTED' : 'UNKNOWN');
+      return hold(error.knownRejection ? 'MODEL_REJECTED' : 'MODEL_RESPONSE_UNKNOWN');
+    }
+  }
+  return {
+    async step() {
+      store.maintain(null, now());
+      let config; try { config = validateConfig(loadConfig()); } catch { return hold('CONFIG_INVALID'); }
+      store.maintain(config, now());
+      // Merely importing modules or inspecting status never starts networking.
+      if (!config.readOriginals && !config.callModels) return { state: 'PAUSED' };
+      const job = store.claim(now()); if (!job) return { state: 'IDLE' };
+      const expectedConfig = digest(config);
+      const authority = (docIds = []) => {
+        try {
+          return store.owns(job, now()) && digest(validateConfig(loadConfig())) === expectedConfig &&
+            store.documents(docIds, config, now()).length === new Set(docIds).size;
+        } catch { return false; }
+      };
+      const settle = (state, payload = job.payload, reason = null, nextAt = now()) => store.settle(job, state, payload, now(), reason, nextAt);
+      const modelHold = result => ['MODEL_EXECUTION_DISABLED', 'MODEL_DAILY_BUDGET'].includes(result.reason)
+        ? settle(job.state, job.payload, result.reason, now() + 60000) : settle('HOLD_MODEL', job.payload, result.reason);
+      try {
+        if (job.state === 'FETCH') {
+          if (!config.readOriginals) return settle('FETCH', job.payload, 'ORIGINAL_EXECUTION_DISABLED', now() + 60000);
+          const original = await readOriginal({ url: job.payload.fetchUrl, redirects: job.payload.redirects,
+            loadConfig: () => validateConfig(loadConfig()), expectedConfig, authorize: () => authority(),
+            reserveHost: (...args) => store.reserveHost(...args) });
+          if (original.state === 'DEFER') return settle('FETCH', { ...job.payload, fetchUrl: original.url, redirects: original.redirects }, 'ORIGINAL_DEFERRED', original.nextAt);
+          if (original.state !== 'ORIGINAL') return settle('HOLD_ORIGINAL', job.payload, original.reason);
+          assert(authority(), 'AUTHORITY_CHANGED');
+          const grant = sourceGrant(config, original.url, now()); assert(grant, 'AUTHORITY_CHANGED');
+          return store.saveOriginal(job, original, grant, expectedConfig, now());
+        }
+        const documents = store.documents([job.payload.docId], config, now());
+        assert(documents.length === 1, 'ORIGINAL_EXPIRED_OR_REVOKED');
+        const document = documents[0];
+        if (job.state === 'TRIAGE') {
+          const published = Date.parse(document.publishedAt);
+          if (!Number.isFinite(published) || published > now() + 300000) return settle('HOLD_DATE', job.payload, 'PUBLICATION_TIME_UNVERIFIED');
+          const result = await executeModel(job, 'triage', { document: { id: document.id, title: document.title, text: document.text, publishedAt: document.publishedAt }, catalog: config.catalog }, config, () => authority([document.id]), document.expiresAt);
+          if (result.state !== 'RESULT') return modelHold(result);
+          const triage = validateTriage(result.value, documents, config.catalog);
+          if (triage.state !== 'RELEVANT') return settle(triage.state === 'EXCLUDED' ? 'EXCLUDED' : 'HOLD_TRIAGE', job.payload, triage.reason);
+          store.saveTriage(job, triage, expectedConfig, now());
+          return settle('DRAFT', { ...job.payload, storyKey: triage.storyKey, triage: triage.value, configHash: expectedConfig });
+        }
+        if (job.payload.configHash !== expectedConfig) return settle('HOLD_CONFIG_CHANGED', job.payload, 'RECHECK_ORIGINAL_AND_TRIAGE');
+        const context = store.context(job.payload.storyKey, expectedConfig, config, now(), document.id);
+        if (context.overflow) return settle('HOLD_CONTEXT_LIMIT', job.payload, 'EVENT_CONTEXT_REQUIRES_COMPACTION');
+        const docIds = context.documents.map(doc => doc.id);
+        assert(docIds.includes(document.id) && authority(docIds), 'ORIGINAL_EXPIRED_OR_REVOKED');
+        const facts = mergeFacts(context.triages);
+        if (facts.length > 80) return settle('HOLD_CONTEXT_LIMIT', job.payload, 'FACT_CONTEXT_REQUIRES_COMPACTION');
+        if (!facts.length || facts.some(fact => !evidenceSufficient(fact, context.documents))) return settle('HOLD_EVIDENCE', job.payload, 'CORROBORATION_INCOMPLETE');
+        const keys = new Map();
+        for (const fact of facts) {
+          const key = digest([fact.subjectId, fact.predicate, fact.unit, fact.period]);
+          assert(!keys.has(key) || keys.get(key) === fact.value, 'SOURCE_FACT_CONFLICT'); keys.set(key, fact.value);
+        }
+        const published = Date.parse(document.publishedAt);
+        if (!Number.isFinite(published) || published > now() + 300000) return settle('HOLD_DATE', job.payload, 'PUBLICATION_TIME_UNVERIFIED');
+        const eventDate = Date.parse(job.payload.triage.event.date ?? '');
+        if (published < now() - 3 * day && (!Number.isFinite(eventDate) || eventDate < now() - 3 * day)) return settle('HOLD_OLD_EVENT', job.payload, 'OLD_EVENT_NOT_NEW_CATALYST');
+        const snapshot = context.issues.map(issue => ({ id: issue.id, version: issue.version }));
+        const retentionUntil = Math.min(job.expires_at, ...context.documents.map(doc => doc.expiresAt));
+        const input = { facts, triage: job.payload.triage, catalog: config.catalog,
+          originals: context.documents.map(doc => ({ id: doc.id, title: doc.title, text: doc.text, publishedAt: doc.publishedAt })),
+          existingIssues: context.issues.map(issue => ({ id: issue.id, version: issue.version, title: issue.payload.title,
+            angleKey: issue.angle_key, factIds: JSON.parse(issue.fact_ids) })) };
+        if (job.state === 'DRAFT') {
+          const angle = digest(job.payload.triage.impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort());
+          const duplicate = context.issues.find(issue => issue.angle_key === angle &&
+            facts.every(fact => JSON.parse(issue.fact_ids).includes(fact.id)));
+          if (duplicate) return store.recordDuplicate(job, duplicate, context.documents, now());
+          const prior = context.issues.find(issue => issue.angle_key === angle);
+          if (prior && JSON.parse(prior.fact_ids).some(id => !facts.some(fact => fact.id === id))) {
+            return settle('HOLD_INCOMPLETE_UPDATE', job.payload, 'PRIOR_FACTS_REQUIRE_REBASE');
+          }
+          // Writing receives facts, not unbounded copies of all articles.
+          const { originals: _originals, ...writingInput } = input;
+          const result = await executeModel(job, 'draft', writingInput, config, () => authority(docIds), retentionUntil, docIds);
+          if (result.state !== 'RESULT') return modelHold(result);
+          const draft = validateDraft(result.value, { facts, documents: context.documents, triage: job.payload.triage, catalog: config.catalog, now: now() });
+          return settle('VERIFY', { ...job.payload, draft, contextDigest: digest(input), expectedIssues: snapshot });
+        }
+        assert(job.state === 'VERIFY' && job.payload.contextDigest === digest(input), 'CONTEXT_CHANGED');
+        const result = await executeModel(job, 'verify', { ...input, draft: job.payload.draft }, config, () => authority(docIds), retentionUntil, docIds);
+        if (result.state !== 'RESULT') return modelHold(result);
+        validateVerification(result.value, facts, context.issues.length > 0);
+        assert(authority(docIds), 'AUTHORITY_CHANGED');
+        return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), retentionUntil);
+      } catch (error) {
+        const reason = /^[A-Z][A-Z_]{2,80}$/.test(error.message ?? '') ? error.message : 'PROCESSING_VALIDATION_FAILED';
+        if (!store.owns(job, now())) return hold('LEASE_STALE');
+        return settle('HOLD_VALIDATION', job.payload, reason);
+      }
+    },
+  };
+}

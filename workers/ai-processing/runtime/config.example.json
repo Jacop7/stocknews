@@ -1,0 +1,13 @@
+{
+  "version": "BACKLOG_DRAFT_V1",
+  "mode": "BACKLOG_ONLY",
+  "readOriginals": false,
+  "callModels": false,
+  "maxDailyCalls": 0,
+  "models": { "triage": "", "draft": "", "verify": "" },
+  "catalog": { "version": "REPLACE_WITH_CURRENT_ADMIN_CATALOG", "sectors": [], "entities": [] },
+  "sources": [],
+  "documentOrigins": [],
+  "excludedDomains": ["g-enews.com", "hankyung.com", "ekn.kr", "newspim.com", "mbnmoney.mbn.co.kr", "fnnews.com", "edaily.co.kr", "yna.co.kr", "benzinga.com", "channelnewsasia.com"],
+  "excludedUrls": ["https://biz.heraldcorp.com/stock", "https://www.mediapen.com/news/lists/?menu=m1&cate_cd2=40019", "https://www.moneytoring.ai/mv", "https://oneshotstock.com/"]
+}
