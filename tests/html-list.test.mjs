@@ -71,6 +71,16 @@ test('data center news list excludes event and navigation cards',()=>{
     'https://www.datacenterdynamics.com/en/news/').candidates;
   assert.deepEqual(items,[{url:'https://www.datacenterdynamics.com/en/news/new-data-center/',title:'Data center event',publishedAt:null}]);
 });
+
+test('Focus Taiwan confirms its real div-based h1 despite the publisher suffix in metadata',()=>{
+  const url='https://focustaiwan.tw/business/202611200021';
+  const page=`<link rel="canonical" href="${url}"><meta property="og:type" content="article">`+
+    '<meta property="og:title" content="Export orders - Focus Taiwan"><div><h1>Export orders</h1></div>';
+  assert.equal(parseOriginalTitle(page,url,digest('Export orders')),'Export orders');
+  assert.equal(parseOriginalTitle(page,url,digest('Wrong title')),null);
+  assert.equal(parseOriginalTitle(page.replace('rel="canonical"','rel="other"'),url,digest('Export orders')),null);
+  assert.equal(parseOriginalTitle(page.replace('content="article"','content="website"'),url,digest('Export orders')),null);
+});
 const structured = {
   '@type': 'ItemList',
   itemListElement: [

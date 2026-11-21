@@ -350,6 +350,11 @@ export function parseOriginalTitle(html, url, listingHash) {
   }
   const matchedHeading = headings.find(matchesListing);
   if (matchedHeading) return matchedHeading;
+  if (source.origin==='https://focustaiwan.tw' && /^\/business\/\d{12}$/.test(source.pathname) &&
+      canonical && !canonicalMismatch && articleType) {
+    const titles=nodes.filter(node=>node.tagName==='h1').map(node=>titleText(nodeTitle(node))).filter(matchesListing);
+    if(titles.length===1)return titles[0];
+  }
   const numeric = key => source.searchParams.getAll(key).length === 1 && /^\d{1,18}$/.test(source.searchParams.get(key));
   if (source.origin === 'https://www.iprovest.com' && source.pathname === '/weblogic/RSReportServlet' &&
       source.searchParams.get('mode') === 'detail' && numeric('sno') &&
