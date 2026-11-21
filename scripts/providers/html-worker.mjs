@@ -184,7 +184,7 @@ function record(db, source, result, time, reservation, current, validBindings) {
   const success = ['CANDIDATES', 'PARTIAL', 'WATCH_LIST_OK', 'WATCH_PAGE_OK'].includes(result.status);
   return transaction(db, () => {
     let resets = 0;
-    if (source.watch && result.reason === 'CONNECTION_RESET') {
+    if ((source.watch || source.operator) && result.reason === 'CONNECTION_RESET') {
       const prior = db.prepare('SELECT connection_resets FROM watch_diagnostics WHERE endpoint_id=? AND binding=? AND stage=?')
         .get(endpoint.endpoint_id, binding, result.stage);
       resets = Math.min((prior?.connection_resets ?? 0) + 1, 3);
@@ -202,7 +202,13 @@ function record(db, source, result, time, reservation, current, validBindings) {
     const recovery = result.status === 'ROBOTS_READY' ? 0 : nextHostCheck(db, host, endpoint.endpoint_id, result, success, time);
     const hostWait = Math.max(delay, recovery);
     if (hostWait) db.prepare('UPDATE hosts SET next_at=max(next_at,?) WHERE host=?').run(hostWait, host);
-    if (source.watch) {
+    if (!source.watch && (!current || current.binding !== binding)) {
+      db.prepare('DELETE FROM candidates WHERE endpoint_id=? AND binding=?').run(endpoint.endpoint_id, binding);
+      removeListingBinding(db, endpoint.endpoint_id, binding, validBindings(), time);
+      db.prepare('DELETE FROM watch_diagnostics WHERE endpoint_id=? AND binding=?').run(endpoint.endpoint_id,binding);
+      return 0;
+    }
+    if (source.watch || source.operator) {
       if (current?.binding !== binding) return 0;
       db.prepare(`INSERT INTO watch_diagnostics VALUES (?,?,?,?,?,?,?,?)
         ON CONFLICT(endpoint_id) DO UPDATE SET binding=excluded.binding,checked_at=excluded.checked_at,
@@ -210,6 +216,8 @@ function record(db, source, result, time, reservation, current, validBindings) {
         redirect_origin=excluded.redirect_origin,connection_resets=excluded.connection_resets`)
         .run(endpoint.endpoint_id, binding, time, result.stage ?? null, result.reason ?? null,
           result.httpStatus ?? null, result.redirectOrigin ?? null, resets);
+    }
+    if (source.watch) {
       if (result.status !== 'WATCH_LIST_OK') return 0;
       const prior = db.prepare('SELECT digest,binding,changed_at FROM public_watch WHERE endpoint_id=?').get(endpoint.endpoint_id);
       const changed = prior?.binding === binding && prior.digest !== result.digest;
@@ -219,11 +227,6 @@ function record(db, source, result, time, reservation, current, validBindings) {
         .run(endpoint.endpoint_id, binding, result.digest, time, changed ? time : prior?.changed_at ?? null);
       return Number(changed);
     }
-    if (!current || current.binding !== binding) {
-      db.prepare('DELETE FROM candidates WHERE endpoint_id=? AND binding=?').run(endpoint.endpoint_id, binding);
-      removeListingBinding(db, endpoint.endpoint_id, binding, validBindings(), time);
-      return 0;
-    }
     if (!success) return 0;
     return recordListingProgress(db, source, result, time);
   });
@@ -232,6 +235,8 @@ function record(db, source, result, time, reservation, current, validBindings) {
 function prune(db, sources, time) {
   const bindings = new Map(sources.filter(source => !source.watch).map(source => [source.endpoint.endpoint_id, source.binding]));
   const watchBindings = new Map(sources.filter(source => source.watch).map(source => [source.endpoint.endpoint_id, source.binding]));
+  const diagnosticBindings = new Map(sources.filter(source => source.watch || source.operator)
+    .map(source => [source.endpoint.endpoint_id, source.binding]));
   const byId = new Map(sources.map(source => [source.endpoint.endpoint_id, source]));
   transaction(db, () => {
     db.prepare('DELETE FROM candidates WHERE expires_at<=?').run(time);
@@ -246,7 +251,7 @@ function prune(db, sources, time) {
     }
     const removeDiagnostic = db.prepare('DELETE FROM watch_diagnostics WHERE endpoint_id=?');
     for (const row of db.prepare('SELECT endpoint_id,binding FROM watch_diagnostics').all()) {
-      if (watchBindings.get(row.endpoint_id) !== row.binding) removeDiagnostic.run(row.endpoint_id);
+      if (diagnosticBindings.get(row.endpoint_id) !== row.binding) removeDiagnostic.run(row.endpoint_id);
     }
     const removeRateRoute = db.prepare('DELETE FROM rate_limited_routes WHERE host=? AND endpoint_id=?');
     const schedule = db.prepare('SELECT binding,status FROM schedules WHERE endpoint_id=?');
@@ -397,7 +402,7 @@ export async function runCollectorCycle(db, { endpoints, profiles, routes = [], 
     const finished = now();
     const currentSource = source.operator ? resolveDetailSource(source.endpoint, finished) : resolveSource(source.endpoint, finished);
     const recorded = record(db, source, result, finished, reservation, currentSource, () => {
-      const currentSources = endpoints.map(endpoint => resolveSource(endpoint, finished)).filter(item => item && !item.watch);
+      const currentSources = endpoints.map(endpoint => resolveDetailSource(endpoint, finished)).filter(item => item && !item.watch);
       return new Map(currentSources.map(item => [item.endpoint.endpoint_id, item.binding]));
     });
     if (source.watch) {

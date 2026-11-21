@@ -6,12 +6,13 @@ import { pinnedHttps } from './probe.mjs';
 
 const userAgent = 'JudojuNewsMonitor/1.0';
 const cacheTime = 24 * 60 * 60 * 1000;
-// A poll sleeps for one minute and can spend up to 36 seconds on its other requests.
-const latestWatchInterval = cacheTime - 2 * 60 * 1000;
+// A poll sleeps for one minute and can spend up to 64 seconds on eight bounded requests.
+const latestWatchInterval = cacheTime - 3 * 60 * 1000;
 const timeoutMs = 4500;
 const robotsLimit = 512 * 1024;
 const htmlLimit = 512 * 1024;
 const largeListings = new Set([
+  'https://finance.yahoo.com/topic/latest-news/',
   'https://www.cnbc.com/markets/',
   'https://www.cnbc.com/earnings/',
   'https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls1',
@@ -64,7 +65,8 @@ function failureCode(error) {
   return 'REQUEST_FAILED';
 }
 
-export function createPublicWatch({ transport = pinnedHttps, now = Date.now, inspectPage } = {}) {
+export function createPublicWatch({ transport = pinnedHttps, now = Date.now, inspectPage, maxTimeoutMs = timeoutMs } = {}) {
+  const timeoutCeiling = Number.isSafeInteger(maxTimeoutMs) && maxTimeoutMs > 0 ? Math.min(8000,maxTimeoutMs) : timeoutMs;
   const robotsCache = new Map();
   function cachedRules(url) {
     const cached = robotsCache.get(new URL(url).origin);
@@ -80,7 +82,7 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now, ins
     async function fetchBounded(url, maxBytes) {
       if (limits.authorize?.() === false) throw new Error('AUTHORIZATION_CHANGED');
       requests++;
-      const timeout = Math.min(timeoutMs, limits.timeoutMs ?? timeoutMs);
+      const timeout = Math.min(timeoutCeiling, limits.timeoutMs ?? timeoutMs);
       const data = await transport(url, { maxBytes, timeoutMs: timeout, signal: AbortSignal.timeout(timeout), userAgent });
       if (limits.authorize?.() === false) throw new Error('AUTHORIZATION_CHANGED');
       return data;
@@ -124,7 +126,7 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now, ins
       delayMs = cached.delayMs;
       if (Math.max(delayMs, limits.hostDelay ?? 0) >= latestWatchInterval) return result('ROBOTS_INTERVAL_CONFLICT');
       stage = 'PAGE';
-      const pageLimit = largeListings.has(url) ? maxWatchHtmlBytes : htmlLimit;
+      const pageLimit = largeListings.has(url) || limits.articleTitleOnly === true ? maxWatchHtmlBytes : htmlLimit;
       const maxBytes = Math.min(pageLimit, limits.maxBytes ?? pageLimit);
       response = await fetchBounded(url, maxBytes);
       if (response.status !== 200) {

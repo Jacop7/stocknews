@@ -244,6 +244,19 @@ test('larger pages are accepted only on the selected listings, within the source
   assert.deepEqual(limits, [524288, 2097152, 200000, 524288]);
 });
 
+test('title-only article reads keep the two MiB ceiling and the bounded longer transport deadline',async()=>{
+  const calls=[];
+  const watch=createPublicWatch({maxTimeoutMs:8000,transport:async(url,options)=>{
+    calls.push([options.maxBytes,options.timeoutMs]);
+    return url.endsWith('/robots.txt')?response('','text/plain',404):response(' '.repeat(600000)+card('Title','one'));
+  }});
+  const endpoint={url:'https://publisher.example/news/one'};
+  await watch(endpoint);
+  assert.equal((await watch(endpoint,{articleTitleOnly:true,maxBytes:2097152,timeoutMs:8000})).status,'WATCH_LIST_OK');
+  assert.equal((await watch(endpoint,{articleTitleOnly:true,maxBytes:200000,timeoutMs:1000})).reason,'RESPONSE_TOO_LARGE');
+  assert.deepEqual(calls,[[524288,4500],[2097152,8000],[200000,1000]]);
+});
+
 test('the worker records connection resets and pauses after three consecutive failures', async t => {
   const db = openCollectorStore(':memory:');
   t.after(() => db.close());

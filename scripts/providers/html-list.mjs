@@ -179,6 +179,43 @@ function kyoboReport(node, source, base) {
   return { url: url.href, title };
 }
 
+const miraeReportList = source => source.origin === 'https://securities.miraeasset.com' &&
+  source.pathname === '/bbs/board/message/list.do' && ['1800', '1525'].includes(source.searchParams.get('categoryId'));
+
+function miraeReport(node, source) {
+  if (!miraeReportList(source) || !selectorMatches(node.parentNode, 'div.subject') ||
+      !selectorMatches(node.parentNode.parentNode, 'td.left') || !/^bbsTitle\d+$/.test(attribute(node, 'id') ?? '')) return null;
+  // Decode only the published numeric view-link convention, never execute inline script.
+  const args = /^javascript:view\('(\d{1,18})','(\d{1,18})'\)$/.exec(attribute(node, 'href') ?? '');
+  if (!args) return null;
+  const detail = new URL('/bbs/board/message/view.do', source);
+  detail.searchParams.set('categoryId', source.searchParams.get('categoryId'));
+  detail.searchParams.set('messageId', args[1]);
+  detail.searchParams.set('messageNumber', args[2]);
+  return {url:detail.href,title:nodeTitle(node)};
+}
+
+function heungkukReport(node, source) {
+  if (source.href !== 'https://www.heungkuksec.co.kr/research/company/list.do' ||
+      !selectorMatches(node.parentNode,'td.left') || attribute(node,'href') !== '#') return null;
+  const key = /^nav\.go\('view',\s*'key=(\d{1,18})'\);$/.exec(attribute(node,'onclick') ?? '');
+  return key ? {url:new URL('view.do?key='+key[1],source).href,title:nodeTitle(node)} : null;
+}
+
+function yahooHeadline(node, source) {
+  if (source.href !== 'https://finance.yahoo.com/topic/latest-news/') return null;
+  let tags;
+  try { tags=JSON.parse(attribute(node,'data-yga') ?? 'null'); } catch { return null; }
+  if (tags?.yModuleName !== 'topic-stream' || tags.yContentType !== 'story') return null;
+  const heading=[...elements(node)].find(n=>n.tagName==='h3');
+  if (!heading) return null;
+  let target;
+  try { target=new URL(attribute(node,'href'),source); } catch { return null; }
+  if (target.origin !== source.origin ||
+      !/^\/(?:[a-z0-9-]+\/)*(?:articles|news)\/[a-z0-9-]+-\d{9,18}\.html$/.test(target.pathname)) return null;
+  return {url:target.href,title:nodeTitle(heading)};
+}
+
 /** Returns same-origin discovery candidates from supplied HTML. Does not follow article links. */
 export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes, { includeOfficialReports = false } = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > maxWatchHtmlBytes ||
@@ -205,6 +242,8 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes, { includeO
     catch { return; }
     if (url.origin !== source.origin || url.href === source.href) return;
     if (source.href === capitalDataWireList && !capitalDataWireStory(url)) return;
+    if (source.href === 'https://www.datacenterdynamics.com/en/news/' &&
+        !/^\/en\/news\/[a-z0-9-]+\/$/.test(url.pathname)) return;
 
     const publishedAt = getPublishedAt(candidate.publishedAt);
     const existing = candidates.get(url.href);
@@ -227,6 +266,14 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes, { includeO
     } else if (node.tagName === 'article') {
       markup.push(node);
     } else if (node.tagName === 'a') {
+      const yahoo = yahooHeadline(node,source);
+      if (yahoo) add(yahoo);
+      if (includeOfficialReports) {
+        const candidate = miraeReport(node, source);
+        if (candidate) add(candidate);
+        const heungkuk = heungkukReport(node, source);
+        if (heungkuk) add(heungkuk);
+      }
       if (kyobo) {
         const candidate = kyoboReport(node, source, base);
         if (candidate) add(candidate);
@@ -249,9 +296,22 @@ export function parseOriginalTitle(html, url, listingHash) {
   const document = parse(html, { scriptingEnabled: true });
   const nodes = [...elements(document, node => ['script', 'style', 'template', 'noscript'].includes(node.tagName))];
   const canonical = nodes.find(node => node.tagName === 'link' && attribute(node, 'rel') === 'canonical');
+  let canonicalMismatch=false;
+  let canonicalHttps=false;
+  let canonicalPublisher=false;
   if (canonical) {
     try {
-      if (normalizeArticleUrl(new URL(attribute(canonical, 'href'), url).href) !== normalizeArticleUrl(url)) return null;
+      const declared = new URL(attribute(canonical, 'href'), url);
+      const target = new URL(url);
+      // Some publishers still declare HTTP canonicals on their HTTPS article pages.
+      // This compares metadata only; no HTTP request or cross-host identity is allowed.
+      if (declared.protocol === 'http:' && target.protocol === 'https:' &&
+          declared.hostname === target.hostname && !declared.port && !declared.username && !declared.password) {
+        declared.protocol = 'https:';
+      }
+      canonicalMismatch=normalizeArticleUrl(declared.href) !== normalizeArticleUrl(url);
+      canonicalHttps=declared.protocol==='https:' && !declared.username && !declared.password && !declared.port;
+      canonicalPublisher=!/(^|\.)yahoo\.com$/i.test(declared.hostname);
     } catch { return null; }
   }
   const inArticle = node => {
@@ -277,8 +337,41 @@ export function parseOriginalTitle(html, url, listingHash) {
   const title = metaTitle && (articleType || visibleMatch) ? metaTitle : headings.length === 1 ? headings[0] : '';
   const matchesListing = candidate => candidate && candidate.length <= 500 &&
     listingHash === createHash('sha256').update(candidate.normalize('NFC')).digest('hex');
+  const source = new URL(url);
+  if (canonicalMismatch) {
+    const self=nodes.find(node=>node.tagName==='meta' && attribute(node,'property')==='og:url');
+    let samePage=false;
+    try { samePage=normalizeArticleUrl(attribute(self,'content'))===normalizeArticleUrl(url); } catch { /* Invalid identity stays held. */ }
+    // Yahoo syndications declare the upstream publisher as canonical. Confirm the
+    // publicly displayed Yahoo copy only; never follow or store the external page.
+    if (!(source.origin==='https://finance.yahoo.com' && canonicalHttps && canonicalPublisher && samePage && articleType &&
+      visibleMatch && matchesListing(metaTitle) &&
+      /^\/(?:[a-z0-9-]+\/)*(?:articles|news)\/[a-z0-9-]+-\d{9,18}\.html$/.test(source.pathname))) return null;
+  }
   const matchedHeading = headings.find(matchesListing);
   if (matchedHeading) return matchedHeading;
+  const numeric = key => source.searchParams.getAll(key).length === 1 && /^\d{1,18}$/.test(source.searchParams.get(key));
+  if (source.origin === 'https://www.iprovest.com' && source.pathname === '/weblogic/RSReportServlet' &&
+      source.searchParams.get('mode') === 'detail' && numeric('sno') &&
+      ((source.searchParams.get('scr_id') === '34' && source.searchParams.get('menuCode') === '3') ||
+       (source.searchParams.get('scr_id') === '40' && source.searchParams.get('menuCode') === '9'))) {
+    const titles = nodes.filter(node => node.tagName === 'th' && titleText(nodeTitle(node)) === '제목')
+      .map(node => {const siblings=node.parentNode?.childNodes?.filter(n=>n.tagName);return siblings?.[siblings.indexOf(node)+1];})
+      .filter(node => node?.tagName === 'td').map(node=>titleText(nodeTitle(node))).filter(matchesListing);
+    if (titles.length === 1) return titles[0];
+  }
+  if (source.origin === 'https://securities.miraeasset.com' && source.pathname === '/bbs/board/message/view.do' &&
+      numeric('messageId') && numeric('messageNumber') && ['1800','1525'].includes(source.searchParams.get('categoryId'))) {
+    const titles = nodes.filter(node=>node.tagName==='h4' && selectorMatches(node.parentNode,'th.bbs_detailTitle'))
+      .map(node=>titleText(nodeTitle(node))).filter(matchesListing);
+    if (titles.length === 1) return titles[0];
+  }
+  if (source.origin === 'https://www.heungkuksec.co.kr' && source.pathname === '/research/company/view.do' && numeric('key')) {
+    const titles = nodes.filter(node=>selectorMatches(node,'td.left') && selectorMatches(node,'td.col_b669ad') &&
+      selectorMatches(node.parentNode?.parentNode?.parentNode,'table.data_list_x'))
+      .map(node=>titleText(nodeTitle(node))).filter(matchesListing);
+    if (titles.length === 1) return titles[0];
+  }
   return title && title.length <= 500 && (matchesListing(title) || articleType && visibleMatch) ? title : null;
 }
 

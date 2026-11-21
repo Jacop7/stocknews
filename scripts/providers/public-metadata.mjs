@@ -31,16 +31,19 @@ export function operatorMetadataSource(endpoint, profile, routeIds) {
 export function createPublicMetadata(options = {}) {
   const watch = createPublicWatch({
     ...options,
+    maxTimeoutMs: 8000,
     inspectPage: (html, url) => ({
       ...parseHtmlList(html, url, maxWatchHtmlBytes, { includeOfficialReports: true }),
       title: parseOriginalTitle(html, url),
     }),
   });
   const limits = { maxBytes: maxWatchHtmlBytes, timeoutMs: 4500, hostDelay: 5000 };
+  const forAddress = url => new URL(url).hostname === 'www.heungkuksec.co.kr'
+    ? {...limits,timeoutMs:8000} : limits;
   return {
     requiresRobots: watch.requiresRobots,
     async collect(endpoint, authorize) {
-      const result = await watch(endpoint, { ...limits, authorize });
+      const result = await watch(endpoint, { ...forAddress(endpoint.url), authorize });
       if (result.status !== 'WATCH_INSPECTED') return { ...result, candidates: [] };
       const { observation, ...details } = result;
       return { ...details, status: observation.candidates.length
@@ -55,7 +58,7 @@ export function createPublicMetadata(options = {}) {
       if (new URL(target).origin !== new URL(endpoint.url).origin || target === normalizeArticleUrl(endpoint.url)) {
         return { requests: 0, title: null, unavailable: true };
       }
-      const result = await watch({ ...endpoint, url: target }, { ...limits, authorize: stillAuthorized,
+      const result = await watch({ ...endpoint, url: target }, { ...forAddress(target), articleTitleOnly:true, authorize: stillAuthorized,
         inspectPage: (html, address) => ({title:parseOriginalTitle(html, address, listingHash)}) });
       if (!stillAuthorized()) return { requests: result.requests, title: null };
       const { observation, ...details } = result;
