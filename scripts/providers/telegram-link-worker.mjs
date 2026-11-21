@@ -2,14 +2,20 @@ import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isIP } from 'node:net';
+import { lookup } from 'node:dns/promises';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parse } from 'parse5';
 import { normalizeArticleUrl, permissionDecision, permissionExpiry } from './policy.mjs';
 import { createPublicWatch, retryAfterTime } from './public-watch.mjs';
+import { pinnedHttps, publicAddress } from './probe.mjs';
 
 const purposes = ['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION', 'STORAGE'];
 const heldRows = new Set([16, 19, 32, 36, 43, 48]);
+const publisherRows = new Set([70, 71, 77, 81, 82, 83, 91, 92, 93, 94, 95, 96, 97, 98, 103, 106]);
+const homeRows = new Set([87, 88, 89, 90]);
+export const telegramAuthorization = 'USER_REQUEST_47_PUBLIC_TELEGRAM_LINKS_20261121';
 const minute = 60_000;
 const channelPattern = /^https:\/\/t\.me\/s\/([a-z0-9_]+)$/i;
 const number = value => Number.isSafeInteger(value) && value > 0;
@@ -54,10 +60,33 @@ export function telegramPageLinks(html, url) {
       for (const child of node.childNodes ?? []) nodes.push(child);
     }
   }
-  return { valid, links: valid ? [...links].slice(0, 100) : [] };
+  return { valid, links: valid ? [...links].slice(0, 100) : [], ...(valid && links.size > 100 ? { truncated: true } : {}) };
 }
 
-export function telegramPageCandidates({ routes, endpoints, profiles }, timestamp) {
+export function telegramLinkExclusions({ routes, endpoints }) {
+  const domains = new Set(), exact = new Set();
+  for (const route of routes) {
+    if (!publisherRows.has(route.original_row) && !homeRows.has(route.original_row)) continue;
+    for (const id of route.endpoint_ids) {
+      const endpoint = endpoints.find(item => item.endpoint_id === id);
+      if (endpoint?.status !== 'DISABLED') continue;
+      const url = normalizeArticleUrl(endpoint.url);
+      if (homeRows.has(route.original_row)) exact.add(url);
+      else domains.add(new URL(url).hostname.toLowerCase().replace(/^www\./, '').replace(/\.$/, ''));
+    }
+  }
+  return { domains: [...domains].sort(), exact: [...exact].sort() };
+}
+
+export function excludedTelegramLink(url, exclusions) {
+  const normalized = externalUrl(url);
+  if (!normalized) return true;
+  const host = new URL(normalized).hostname.toLowerCase().replace(/\.$/, '');
+  return exclusions.exact.includes(normalized) || exclusions.domains.some(domain => host === domain || host.endsWith('.' + domain));
+}
+
+export function telegramPageCandidates(config, timestamp) {
+  const { routes, endpoints, profiles } = config;
   const selected = new Set(routes.filter(route => route.effective_kind === 'TELEGRAM' &&
     !heldRows.has(route.original_row)).flatMap(route => route.endpoint_ids));
   const now = new Date(timestamp).toISOString();
@@ -65,6 +94,21 @@ export function telegramPageCandidates({ routes, endpoints, profiles }, timestam
   for (const endpoint of endpoints) {
     if (!selected.has(endpoint.endpoint_id) || !channelPattern.test(endpoint.url)) continue;
     const profile = profiles.find(item => item.id === endpoint.permission_profile_id);
+    const operator = endpoint.telegram_link_collection;
+    if (operator) {
+      if (!['RIGHTS_HOLD', 'TECH_TEST', 'SHADOW', 'ACTIVE'].includes(endpoint.status) ||
+          !profile || profile.endpoint_id !== endpoint.endpoint_id || profile.version !== endpoint.permission_profile_version ||
+          ['DENIED', 'REVOKED'].includes(profile.status) || profile.revoked_at ||
+          purposes.some(purpose => profile.purposes?.[purpose] === 'DENY') ||
+          operator.mode !== 'PUBLIC_EXTERNAL_LINKS_V1' || operator.authorization !== telegramAuthorization ||
+          operator.endpoint_id !== endpoint.endpoint_id || operator.list_url !== endpoint.url || operator.retention_days !== 7 ||
+          !Number.isFinite(Date.parse(operator.enabled_at)) || Date.parse(operator.enabled_at) > timestamp) continue;
+      active.set(endpoint.endpoint_id, { endpoint, expires: Infinity, retention: 7 * 1440 * minute,
+        hostDelay: 5000, maxBytes: 512 * 1024, timeoutMs: 4500,
+        binding: JSON.stringify([endpoint, profile, routes.filter(route => route.effective_kind === 'TELEGRAM' &&
+          route.endpoint_ids.includes(endpoint.endpoint_id))]) });
+      continue;
+    }
     if (permissionDecision(profile, endpoint, purposes, now) ||
         !purposes.every(purpose => endpoint.enabled_scopes?.includes(purpose))) continue;
     if (!profile.allowed_hosts?.includes('t.me') || !profile.methods?.includes('GET') ||
@@ -94,24 +138,78 @@ export function openTelegramPageStore(filename) {
     ) STRICT;
     CREATE TABLE IF NOT EXISTS telegram_page_schedule (endpoint_id TEXT PRIMARY KEY, next_at INTEGER NOT NULL) STRICT;
     CREATE TABLE IF NOT EXISTS telegram_page_host (id INTEGER PRIMARY KEY CHECK (id=1), next_at INTEGER NOT NULL) STRICT;
+    CREATE TABLE IF NOT EXISTS telegram_page_diagnostics (
+      endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, observed_at INTEGER NOT NULL,
+      status TEXT NOT NULL, http_status INTEGER, reason TEXT, observed_links INTEGER NOT NULL
+    ) STRICT;
   `);
   return db;
 }
 
-function prune(db, active, timestamp) {
+export function expireTelegramLinks(db, timestamp) {
   db.prepare('DELETE FROM telegram_page_links WHERE expires_at <= ?').run(timestamp);
+}
+
+function prune(db, active, timestamp, exclusions) {
+  expireTelegramLinks(db, timestamp);
   const remove = db.prepare('DELETE FROM telegram_page_links WHERE endpoint_id = ? AND binding = ?');
   for (const row of db.prepare('SELECT DISTINCT endpoint_id, binding FROM telegram_page_links').all()) {
     if (active.get(row.endpoint_id)?.binding !== row.binding) remove.run(row.endpoint_id, row.binding);
   }
+  for (const row of db.prepare('SELECT endpoint_id, binding FROM telegram_page_diagnostics').all()) {
+    if (active.get(row.endpoint_id)?.binding !== row.binding) {
+      db.prepare('DELETE FROM telegram_page_diagnostics WHERE endpoint_id=?').run(row.endpoint_id);
+      db.prepare('DELETE FROM telegram_page_schedule WHERE endpoint_id=?').run(row.endpoint_id);
+    }
+  }
+  for (const row of db.prepare('SELECT endpoint_id FROM telegram_page_schedule').all()) {
+    if (!active.has(row.endpoint_id)) db.prepare('DELETE FROM telegram_page_schedule WHERE endpoint_id=?').run(row.endpoint_id);
+  }
+  if (exclusions) for (const row of db.prepare('SELECT endpoint_id,url FROM telegram_page_links').all()) {
+    if (excludedTelegramLink(row.url, exclusions)) db.prepare('DELETE FROM telegram_page_links WHERE endpoint_id=? AND url=?').run(row.endpoint_id, row.url);
+  }
 }
 
-export const createTelegramPageWatch = options => createPublicWatch({ ...options, inspectPage: telegramPageLinks });
+// The shared SSRF validator remains untouched. This transport is restricted to t.me
+// and validates every A answer before passing those exact addresses to pinned HTTPS.
+export function createTelegramTransport({ lookupHost = lookup, request = pinnedHttps } = {}) {
+  return async (url, limits) => {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 't.me' || parsed.port || parsed.username || parsed.password) throw new Error('UNSAFE_URL');
+    const signal = limits.signal ?? AbortSignal.timeout(limits.timeoutMs);
+    signal.throwIfAborted();
+    let abort;
+    const cancelled = new Promise((_, reject) => {
+      abort = () => reject(new Error('REQUEST_TIMEOUT'));
+      signal.addEventListener('abort', abort, { once: true });
+    });
+    try {
+      const answers = await Promise.race([lookupHost('t.me', { all: true, family: 4 }), cancelled]);
+      signal.throwIfAborted();
+      if (!Array.isArray(answers) || !answers.length || answers.some(item => item.family !== 4 || !publicAddress(item.address))) throw new Error('NON_PUBLIC_DNS');
+      if (limits.authorize?.() === false) throw new Error('AUTHORIZATION_CHANGED');
+      return await request(url, { ...limits, signal, resolvedAddresses: answers });
+    } finally { signal.removeEventListener('abort', abort); }
+  };
+}
+
+export function createTelegramPageWatch(options = {}) {
+  const authority = new AsyncLocalStorage();
+  const transport = options.transport ?? createTelegramTransport();
+  const watch = createPublicWatch({ ...options, inspectPage: telegramPageLinks,
+    transport: (url, limits) => transport(url, { ...limits, authorize: authority.getStore() }) });
+  const run = (endpoint, limits = {}) => authority.run(limits.authorize, () => watch(endpoint, limits));
+  run.requiresRobots = watch.requiresRobots;
+  return run;
+}
 
 export async function runTelegramPageCycle(db, { load, watch, now = Date.now }) {
   const started = now();
-  const active = telegramPageCandidates(load(), started);
-  prune(db, active, started);
+  expireTelegramLinks(db, started);
+  let config, active;
+  try { config = load(); active = telegramPageCandidates(config, started); }
+  catch { return { status: 'CONFIG_HOLD', links: 0 }; }
+  prune(db, active, started, telegramLinkExclusions(config));
   if (!active.size) return { status: 'RIGHTS_HOLD', links: 0 };
   const hostDelay = Math.max(...[...active.values()].map(grant => grant.hostDelay));
   const getHost = db.prepare('SELECT next_at FROM telegram_page_host WHERE id=1');
@@ -132,7 +230,15 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now }) 
     throw error;
   }
 
-  const check = await watch(grant.endpoint, { hostDelay, timeoutMs: grant.timeoutMs, maxBytes: grant.maxBytes });
+  const authorize = () => {
+    try { return telegramPageCandidates(load(), now()).get(id)?.binding === grant.binding; }
+    catch { return false; }
+  };
+  let check;
+  try {
+    if (!authorize()) return { status: 'RIGHTS_HOLD', links: 0 };
+    check = await watch(grant.endpoint, { hostDelay, timeoutMs: grant.timeoutMs, maxBytes: grant.maxBytes, authorize });
+  } catch { check = { status: 'FAILED', reason: 'WATCH_FAILED' }; }
   const finished = now();
   const backoff = Math.max(check.delayMs ?? 0,
     check.httpStatus === 429 ? 15 * minute : [401, 403, 451].includes(check.httpStatus) ? 60 * minute : 0);
@@ -140,22 +246,34 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now }) 
   db.prepare('INSERT INTO telegram_page_schedule VALUES (?,?) ON CONFLICT(endpoint_id) DO UPDATE SET next_at=excluded.next_at')
     .run(id, finished + (check.status === 'ROBOTS_READY' ? hostDelay : 10 * minute));
 
-  const current = telegramPageCandidates(load(), finished);
-  prune(db, current, finished);
+  let currentConfig, current;
+  try { currentConfig = load(); current = telegramPageCandidates(currentConfig, finished); }
+  catch { return { status: 'CONFIG_HOLD', links: 0 }; }
+  const exclusions = telegramLinkExclusions(currentConfig);
+  prune(db, current, finished, exclusions);
   if (current.get(id)?.binding !== grant.binding) return { status: 'RIGHTS_HOLD', links: 0 };
-  if (check.status !== 'WATCH_INSPECTED') return { status: check.status, links: 0 };
-  if (!check.observation.valid) return { status: 'PAGE_UNVERIFIED', links: 0 };
+  const record = (status, links = 0) => {
+    db.prepare(`INSERT INTO telegram_page_diagnostics VALUES (?,?,?,?,?,?,?) ON CONFLICT(endpoint_id)
+      DO UPDATE SET binding=excluded.binding,observed_at=excluded.observed_at,status=excluded.status,
+      http_status=excluded.http_status,reason=excluded.reason,observed_links=excluded.observed_links`)
+      .run(id, grant.binding, finished, status, check.httpStatus ?? null, check.reason ?? null, links);
+    return { status, links };
+  };
+  if (check.status !== 'WATCH_INSPECTED') return record(check.status);
+  if (check.observation?.valid !== true || !Array.isArray(check.observation.links)) return record('PAGE_UNVERIFIED');
+  const urls = [...new Set(check.observation.links.filter(item => typeof item === 'string').map(externalUrl)
+    .filter(url => url && !excludedTelegramLink(url, exclusions)))].slice(0, 100);
   const insert = db.prepare(`INSERT INTO telegram_page_links VALUES (?,?,?,?,?) ON CONFLICT(endpoint_id,url)
     DO UPDATE SET binding=excluded.binding,last_seen=excluded.last_seen,expires_at=excluded.expires_at`);
   db.exec('BEGIN IMMEDIATE');
   try {
-    for (const url of check.observation.links) insert.run(id, grant.binding, url, finished, Math.min(grant.expires, finished + grant.retention));
+    for (const url of urls) insert.run(id, grant.binding, url, finished, Math.min(grant.expires, finished + grant.retention));
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
     throw error;
   }
-  return { status: 'LINKS_OBSERVED', links: check.observation.links.length };
+  return record(check.observation.truncated || check.observation.links.length > 100 ? 'PARTIAL' : 'LINKS_OBSERVED', urls.length);
 }
 
 const escape = value => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);

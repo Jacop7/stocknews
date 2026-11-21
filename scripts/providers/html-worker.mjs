@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -8,7 +8,7 @@ import { initializeListingProgress, pruneListingProgress, recordListingDetail, r
 import { identityForUrl, normalizeArticleUrl, permissionDecision } from './policy.mjs';
 import { createPublicWatch, retryAfterTime } from './public-watch.mjs';
 import { createPublicMetadata, operatorMetadataSource } from './public-metadata.mjs';
-import { createTelegramPageWatch, openTelegramPageStore, runTelegramPageCycle } from './telegram-link-worker.mjs';
+import { createTelegramPageWatch, expireTelegramLinks, openTelegramPageStore, runTelegramPageCycle } from './telegram-link-worker.mjs';
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
@@ -423,8 +423,24 @@ function loadRegistry() {
 
 export async function runCollectorServices({ collectWeb, collectTelegram, stopped }) {
   const web = await collectWeb();
-  const telegram = collectTelegram && !stopped() ? await collectTelegram() : undefined;
+  let telegram;
+  if (collectTelegram && !stopped()) {
+    try { telegram = await collectTelegram(); }
+    catch { telegram = { status: 'FAILED', reason: 'TELEGRAM_CYCLE_FAILED', links: 0 }; }
+  }
   return { web, telegram };
+}
+
+export function createCollectorScheduler({ collectWeb, collectTelegram, stopped, maintainTelegram, now = Date.now }) {
+  let nextWeb = 0;
+  return () => runCollectorServices({ stopped, collectTelegram, collectWeb: async () => {
+    if (now() < nextWeb) return undefined;
+    // Expiry maintenance is independent of fetching, including when its flag is off.
+    try { maintainTelegram?.(); } catch { /* Telegram failure must not stop web collection. */ }
+    const result = await collectWeb();
+    nextWeb = now() + minute;
+    return result;
+  } });
 }
 
 async function main() {
@@ -434,22 +450,27 @@ async function main() {
   const watch = process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
   const metadata = createPublicMetadata();
   const telegramWatch = process.env.JUDOJU_TELEGRAM_LINKS === '1' ? createTelegramPageWatch() : undefined;
-  const telegramDb = telegramWatch ? openTelegramPageStore(join(directory, 'telegram-links.sqlite')) : undefined;
+  const telegramFile = join(directory, 'telegram-links.sqlite');
+  let telegramDb;
+  try { if (telegramWatch || existsSync(telegramFile)) telegramDb = openTelegramPageStore(telegramFile); }
+  catch { console.error('TELEGRAM_STORE_FAILED'); }
   const stopping = new AbortController();
   process.once('SIGTERM', () => stopping.abort());
   process.once('SIGINT', () => stopping.abort());
+  const tick = createCollectorScheduler({
+    collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry }),
+    collectTelegram: telegramWatch && telegramDb && (() => runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch })),
+    maintainTelegram: telegramDb && (() => expireTelegramLinks(telegramDb, Date.now())),
+    stopped: () => stopping.signal.aborted,
+  });
   try {
     do {
-      const { web, telegram } = await runCollectorServices({
-        collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry }),
-        collectTelegram: telegramWatch && (() => runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch })),
-        stopped: () => stopping.signal.aborted,
-      });
+      const { web, telegram } = await tick();
       writeFileSync(join(directory, 'heartbeat'), String(Date.now()));
-      console.log(JSON.stringify({ event: 'HTML_COLLECTION_CYCLE', ...web }));
+      if (web) console.log(JSON.stringify({ event: 'HTML_COLLECTION_CYCLE', ...web }));
       if (telegram) console.log(JSON.stringify({ event: 'TELEGRAM_PAGE_LINK_CYCLE', ...telegram }));
       if (process.argv[2] === '--once' || stopping.signal.aborted) break;
-      await sleep(minute, undefined, { signal: stopping.signal }).catch(error => {
+      await sleep(telegramWatch ? 5000 : minute, undefined, { signal: stopping.signal }).catch(error => {
         if (!stopping.signal.aborted) throw error;
       });
     } while (!stopping.signal.aborted);
