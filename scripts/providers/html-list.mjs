@@ -202,6 +202,19 @@ function heungkukReport(node, source) {
   return key ? {url:new URL('view.do?key='+key[1],source).href,title:nodeTitle(node)} : null;
 }
 
+function hanwhaReport(node, source) {
+  const category=source.searchParams.get('depth3_id');
+  if(source.origin!=='https://www.hanwhawm.com' || source.pathname!=='/main/research/main/list.cmd' ||
+      source.searchParams.getAll('depth3_id').length!==1 || !['anls1','anls2'].includes(category) ||
+      !selectorMatches(node.parentNode,'div.tit') || !selectorMatches(node.parentNode,'div.'+category))return null;
+  // Public numeric navigation convention observed by clicking a report, not script evaluation.
+  const args=/^javascript:view\('(\d{1,18})',\s*'(anls[12])',\s*'(기업분석|산업분석)'\);$/.exec(attribute(node,'href')??'');
+  if(!args || args[2]!==category || args[3]!==({anls1:'기업분석',anls2:'산업분석'})[category])return null;
+  const target=new URL('/main/research/main/view.cmd',source);
+  for(const[key,value]of [['depth3_id',category],['mode',''],['seq',args[1]],['p',''],['templet','default']])target.searchParams.set(key,value);
+  return {url:target.href,title:nodeTitle(node)};
+}
+
 function yahooHeadline(node, source) {
   if (source.href !== 'https://finance.yahoo.com/topic/latest-news/') return null;
   let tags;
@@ -273,6 +286,8 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes, { includeO
         if (candidate) add(candidate);
         const heungkuk = heungkukReport(node, source);
         if (heungkuk) add(heungkuk);
+        const hanwha = hanwhaReport(node, source);
+        if (hanwha) add(hanwha);
       }
       if (kyobo) {
         const candidate = kyoboReport(node, source, base);
@@ -348,6 +363,14 @@ export function parseOriginalTitle(html, url, listingHash) {
       visibleMatch && matchesListing(metaTitle) &&
       /^\/(?:[a-z0-9-]+\/)*(?:articles|news)\/[a-z0-9-]+-\d{9,18}\.html$/.test(source.pathname))) return null;
   }
+  const numeric = key => source.searchParams.getAll(key).length === 1 && /^\d{1,18}$/.test(source.searchParams.get(key));
+  if(source.origin==='https://www.hanwhawm.com' && source.pathname==='/main/research/main/view.cmd') {
+    if(!numeric('seq') || source.searchParams.getAll('depth3_id').length!==1 ||
+        !['anls1','anls2'].includes(source.searchParams.get('depth3_id')))return null;
+    const titles=nodes.filter(node=>node.tagName==='div' && selectorMatches(node.parentNode,'div.researchTit'))
+      .map(node=>titleText(nodeTitle(node)));
+    return titles.length===1 && matchesListing(titles[0]) ? titles[0] : null;
+  }
   const matchedHeading = headings.find(matchesListing);
   if (matchedHeading) return matchedHeading;
   if (source.origin==='https://focustaiwan.tw' && /^\/business\/\d{12}$/.test(source.pathname) &&
@@ -355,7 +378,6 @@ export function parseOriginalTitle(html, url, listingHash) {
     const titles=nodes.filter(node=>node.tagName==='h1').map(node=>titleText(nodeTitle(node))).filter(matchesListing);
     if(titles.length===1)return titles[0];
   }
-  const numeric = key => source.searchParams.getAll(key).length === 1 && /^\d{1,18}$/.test(source.searchParams.get(key));
   if (source.origin === 'https://www.iprovest.com' && source.pathname === '/weblogic/RSReportServlet' &&
       source.searchParams.get('mode') === 'detail' && numeric('sno') &&
       ((source.searchParams.get('scr_id') === '34' && source.searchParams.get('menuCode') === '3') ||

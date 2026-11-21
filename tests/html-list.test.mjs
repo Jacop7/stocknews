@@ -7,6 +7,29 @@ import { collectHtmlList, htmlListVersion, parseHtmlList, parseOriginalTitle } f
 const listUrl = 'https://publisher.example/news/';
 const digest = title=>createHash('sha256').update(title).digest('hex');
 
+test('Hanwha public report navigation is category-bound, numeric and confirmed in its exact title field',()=>{
+  const company='https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls1';
+  const industry='https://www.hanwhawm.com/main/research/main/list.cmd?depth3_id=anls2&viewclass=';
+  const mark=(category,label,id='67017')=>`<div class="tit ${category}"><a href="javascript:view('${id}', '${category}', '${label}');">Report title</a></div>`;
+  const options={includeOfficialReports:true};
+  const items=parseHtmlList(mark('anls1','기업분석'),company,524288,options).candidates;
+  assert.deepEqual(items,[{url:'https://www.hanwhawm.com/main/research/main/view.cmd?depth3_id=anls1&mode=&seq=67017&p=&templet=default',title:'Report title',publishedAt:null}]);
+  assert.equal(parseHtmlList(mark('anls2','산업분석'),industry,524288,options).candidates.length,1);
+  assert.equal(parseHtmlList(mark('anls1','기업분석'),company).candidates.length,0);
+  for(const bad of [mark('anls2','산업분석'),mark('anls1','산업분석'),mark('anls1','기업분석','1x'),
+    mark('anls1','기업분석').replace(';',';alert(1);'),mark('anls1','기업분석').replace('class="tit anls1"','class="footer"')])
+    assert.equal(parseHtmlList(bad,company,524288,options).candidates.length,0);
+  const original='<div class="researchTit"><div>Report title</div><p>Byline</p></div><div>Other report</div>';
+  assert.equal(parseOriginalTitle(original,items[0].url,digest('Report title')),'Report title');
+  assert.equal(parseOriginalTitle(original,items[0].url,digest('Other report')),null);
+  assert.equal(parseOriginalTitle(original,items[0].url.replace('seq=67017','seq=bad'),digest('Report title')),null);
+  assert.equal(parseOriginalTitle(original.replace('researchTit','other'),items[0].url,digest('Report title')),null);
+  assert.equal(parseOriginalTitle(original.replace('</p>','</p><div>Report title</div>'),items[0].url,digest('Report title')),null);
+  const wrong='<div class="researchTit"><div>Other report</div></div>';
+  assert.equal(parseOriginalTitle(wrong+'<main><h1>Report title</h1></main>',items[0].url,digest('Report title')),null);
+  assert.equal(parseOriginalTitle(wrong+'<meta property="og:type" content="article"><meta property="og:title" content="Wrong OG"><h1>Wrong OG</h1>',items[0].url,digest('Report title')),null);
+});
+
 test('accepts only the same HTTPS article when a publisher declares an HTTP canonical',()=>{
   const original='https://www.hansbiz.co.kr/news/articleView.html?idxno=42';
   const body='<meta property="og:type" content="article"><meta property="og:title" content="Confirmed headline"><h3>Confirmed headline</h3>';
