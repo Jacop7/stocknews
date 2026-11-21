@@ -47,6 +47,23 @@ test('extracts structured and marked-up same-site articles and deduplicates trac
   assert.equal(limited.candidates.length, 100);
 });
 
+test('reads public market cards while excluding navigation, paid menus and unrelated categories', () => {
+  const focus = `<nav><a href="/business/202611200021">nav</a></nav><ul id="jsList">
+    <li><a href="/business/202611200021"><div class="listInfo"><h2>AI export orders</h2><span>summary</span></div></a></li>
+    <li><a href="/politics/202611200022"><h2>Unrelated politics</h2></a></li>
+    <li><a href="https://evil.example/business/202611200023"><h2>Outside site</h2></a></li></ul>`;
+  assert.deepEqual(parseHtmlList(focus, 'https://focustaiwan.tw/business').candidates,
+    [{url:'https://focustaiwan.tw/business/202611200021',title:'AI export orders',publishedAt:null}]);
+  const cards = `<a class="Card-title" href="/2026/11/12/misplaced.html">Outside cards</a>
+    <div class="Card-titleContainer"><div><a class="Card-title" href="/2026/11/12/earnings.html">Earnings beat</a></div>
+    <a class="Card-title" href="/pro/news/">Pro news</a>
+    <a class="Card-title" href="https://evil.example/2026/11/12/bad.html">External</a></div>`;
+  for(const url of ['https://www.cnbc.com/markets/','https://www.cnbc.com/earnings/'])
+    assert.deepEqual(parseHtmlList(cards,url).candidates,
+      [{url:'https://www.cnbc.com/2026/11/12/earnings.html',title:'Earnings beat',publishedAt:null}]);
+  assert.equal(parseHtmlList(cards,'https://www.cnbc.com/pro/').candidates.length,0);
+});
+
 test('resolves document base and reads headings within a linked card or after an unlinked subheading', () => {
   const linkedCard = '<article><a href="daily"><h2>오늘의 이슈</h2><span>태그</span></a></article>';
   const lateHeading = '<article><h3>증권</h3><h2><a href="market">장 마감</a></h2></article>';

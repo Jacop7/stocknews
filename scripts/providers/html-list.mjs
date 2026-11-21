@@ -44,6 +44,15 @@ const ndsoftArticle = url => url.pathname === '/news/articleView.html' &&
   url.searchParams.getAll('idxno').length === 1 && /^\d{1,20}$/.test(url.searchParams.get('idxno'));
 const headlineRules = [
   {
+    sources: ['https://focustaiwan.tw/business'], inside: 'h2', list: '#jsList',
+    detail: url => /^\/business\/\d{12}$/.test(url.pathname) && !url.search,
+  },
+  {
+    sources: ['https://www.cnbc.com/markets/', 'https://www.cnbc.com/earnings/'],
+    anchor: 'a.Card-title', list: 'div.Card-titleContainer',
+    detail: url => /^\/\d{4}\/\d{2}\/\d{2}\/[a-z0-9-]+\.html$/.test(url.pathname) && !url.search,
+  },
+  {
     sources: ['https://www.hankyung.com/koreamarket/1113', 'https://www.hankyung.com/koreamarket/1114'],
     heading: 'h2.news-tit', list: 'ul.news-list', detail: numberedArticle,
   },
