@@ -244,6 +244,27 @@ test('a sourced local schedule cannot silently change its instant through a mism
   assert.throws(() => validateDraft(output, context), /SCHEDULE_SOURCE_ZONE_UNVERIFIED/);
 });
 
+test('schedule accepts Korean clocks and equal ISO instants but preserves EST and EDT offsets', () => {
+  function check(quote, eventAt, timezone) {
+    const c = config(), doc = { id: 'd', title: '가상 원문', text: originalText + quote, sources: [{ ...c.sources[0], url }] };
+    const raw = triage('d'); raw.facts.push({ ...raw.facts[0], id: 'schedule', predicate: 'MEETING', value: 'meeting', unit: '',
+      statement: quote, refs: [{ docId: 'd', quote }] });
+    const accepted = validateTriage(raw, [doc], c.catalog).value, output = draft({ facts: accepted.facts, triage: accepted });
+    output.schedule = [{ title: '설명회', eventAt, timezone, factIds: [accepted.facts[1].id] }];
+    return validateDraft(output, { facts: accepted.facts, documents: [doc], triage: accepted, catalog: c.catalog, now: stamp });
+  }
+  assert(check('2031년 4월 10일 9시 0분 한국시간(KST)', '2031-04-10T09:00:00+09:00', 'Asia/Seoul').schedule.length);
+  assert(check('2031-04-10T00:00:00Z', '2031-04-10T09:00:00+09:00', 'Asia/Seoul').schedule.length);
+  assert.throws(() => check('2031-04-10T00:00:00Z', '2031-04-10T10:00:00+09:00', 'Asia/Seoul'), /SCHEDULE_SOURCE_ZONE_UNVERIFIED/);
+  assert.throws(() => check('2031-07-10 09:00 EST', '2031-07-10T09:00:00-04:00', 'America/New_York'), /SCHEDULE_SOURCE_ZONE_UNVERIFIED/);
+  assert(check('2031-07-10 09:00 EDT', '2031-07-10T09:00:00-04:00', 'America/New_York').schedule.length);
+  assert(check('2031-01-10 09:00 EST', '2031-01-10T09:00:00-05:00', 'America/New_York').schedule.length);
+  assert.throws(() => check('2031-01-10 09:00 EDT', '2031-01-10T09:00:00-05:00', 'America/New_York'), /SCHEDULE_SOURCE_ZONE_UNVERIFIED/);
+  for (const quote of ['2031년 4월 10일 09:00 ETF 설명회', 'latest 2031-04-10 09:00', 'market 2031-04-10 09:00']) {
+    assert.throws(() => check(quote, '2031-04-10T09:00:00-04:00', 'America/New_York'), /SCHEDULE_SOURCE_ZONE_UNVERIFIED/);
+  }
+});
+
 test('quantity types preserve percent-point distinction, USD aliases and categorical HBM4', () => {
   const c = config();
   function check(value, unit, quote, statement = quote) {

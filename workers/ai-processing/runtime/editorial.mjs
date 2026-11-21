@@ -64,19 +64,24 @@ const ids = (value, allowed, nonempty = false) => {
 const quantitativeUnits = new Set(['%', '%p', 'usd', 'krw', 'eur', 'jpy', 'shares', '명', '개', '대', '건', '배',
   '년', '월', '일', '시', '분', '초', '억원', '조원', 'mw', 'gw', 'kw', 'gwh', 'mwh', '톤', 'kg', 'km', 'm', 'mm', 'nm']);
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function sourceInstantSupported(item, refs) {
+  return refs.some(ref => (ref.quote.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})/g) ?? [])
+    .some(value => Date.parse(value) === Date.parse(item.eventAt)));
+}
 function scheduleZoneSupported(item, refs) {
   const zone = new Intl.DateTimeFormat('en', { timeZone: item.timezone }).resolvedOptions().timeZone;
   const names = { 'Asia/Seoul': '(?:KST|한국\\s*(?:표준\\s*)?(?:시간|시각)|서울\\s*시간)',
-    UTC: '(?:UTC|GMT|협정세계시)', 'America/New_York': '(?:EST|EDT|ET|미(?:국)?\\s*동부\\s*(?:시간|시각))' };
+    UTC: '(?:UTC|GMT|협정세계시)', 'America/New_York': '(?:ET|미(?:국)?\\s*동부\\s*(?:시간|시각)' +
+      (item.eventAt.endsWith('-05:00') ? '|EST' : item.eventAt.endsWith('-04:00') ? '|EDT' : '') + ')' };
   const [year, month, day] = item.eventAt.slice(0, 10).split('-').map(Number);
   const date = '(?:' + escapeRegex(item.eventAt.slice(0, 10)) + `|${year}년\\s*${month}월\\s*${day}일)`;
-  const clock = escapeRegex(item.eventAt.slice(11, 16)), gap = '[\\s(),\\[\\]]*';
+  const [hour, minute] = item.eventAt.slice(11, 16).split(':').map(Number);
+  const clock = '(?:' + escapeRegex(item.eventAt.slice(11, 16)) + `|${hour}시\\s*${minute}분)`, gap = '[\\s(),\\[\\]]*';
   return refs.some(ref => {
-    const instants = ref.quote.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})/g) ?? [];
-    if (instants.some(value => Date.parse(value) === Date.parse(item.eventAt))) return true;
+    if (sourceInstantSupported(item, [ref])) return true;
     if (!names[zone] || /\b(?:UTC|GMT)\s*[+-]\s*\d/i.test(ref.quote)) return false;
     if ((ref.quote.match(/\d{1,2}:\d{2}|\d{1,2}시/g) ?? []).length !== 1) return false;
-    const named = names[zone];
+    const named = '(?<![A-Za-z0-9])' + names[zone] + '(?![A-Za-z0-9])';
     // Only adjacent date/clock/zone phrases prove the instant; an unrelated KST elsewhere is insufficient.
     return new RegExp('(?:' + named + gap + date + gap + clock + '|' + date + gap + clock + gap + named + '|' + date + gap + named + gap + clock + ')', 'i').test(ref.quote);
   });
@@ -224,7 +229,8 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     assert(`${localParts.year}-${localParts.month}-${localParts.day}T${localParts.hour}:${localParts.minute}` === item.eventAt.slice(0, 16), 'SCHEDULE_ZONE_MISMATCH');
     const dateSupported = evidence.includes(item.eventAt.slice(0, 10)) || evidence.includes(`${year}년 ${month}월 ${date}일`);
     const timeSupported = evidence.includes(time) || evidence.includes(`${hour}시 ${minute}분`);
-    assert(dateSupported && timeSupported, 'UNSUPPORTED_SCHEDULE_TIME');
+    assert(sourceInstantSupported(item, item.factIds.flatMap(id => facts.find(fact => fact.id === id).refs)) ||
+      dateSupported && timeSupported, 'UNSUPPORTED_SCHEDULE_TIME');
     return Date.parse(item.eventAt) > now;
   });
   const allText = [draft.title, draft.summary, ...draft.key_issues.map(item => item.text), draft.issue_analysis.text,
