@@ -7,7 +7,10 @@ scripts/*
 scripts/providers/*
 !scripts/providers/html-list.mjs
 !scripts/providers/html-worker.mjs
+!scripts/providers/listing-progress.mjs
 !scripts/providers/public-watch.mjs
+!scripts/providers/public-metadata.mjs
+!scripts/providers/telegram-link-worker.mjs
 !scripts/providers/probe.mjs
 !scripts/providers/policy.mjs
 !scripts/providers/budget.mjs

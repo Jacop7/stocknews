@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     environment:
       JUDOJU_PUBLIC_WATCH: "1"
+      JUDOJU_TELEGRAM_LINKS: "${JUDOJU_TELEGRAM_LINKS:-0}"
     volumes:
       - candidates:/data
     healthcheck:

@@ -1,0 +1,21 @@
+name: judoju-news-telegram
+services:
+  telegram:
+    profiles: [telegram]
+    image: judoju-news-telegram-link-worker:local
+    build:
+      context: ../..
+      dockerfile: workers/collectors/Dockerfile
+    command: ["node", "scripts/providers/telegram-link-worker.mjs"]
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    volumes:
+      - links:/telegram-data
+volumes:
+  links:
+    labels:
+      com.judoju.product: judoju-news

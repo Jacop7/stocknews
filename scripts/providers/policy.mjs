@@ -2,11 +2,18 @@ import { createHash } from 'node:crypto';
 export const POLICY_VERSION='source-policy-v1';
 export const PURPOSES=['DISCOVERY','LINK_EXTRACTION','QUERY_TERMS','ORIGINAL_ACCESS','STORAGE','ANALYSIS','DISPLAY','MACHINE_ACCESS'];
 export function instant(value){const n=new Date(value).getTime();if(!Number.isFinite(n))throw new TypeError('Invalid instant');return n;}
+export function permissionExpiry(profile){
+  if(profile.validity==='UNTIL_REVOKED'&&profile.expires_at===null)return Infinity;
+  if(profile.validity!==undefined||typeof profile.expires_at!=='string')return NaN;
+  return Date.parse(profile.expires_at);
+}
 export function permissionDecision(profile,endpoint,purposes,now){
   const t=instant(now);
   if(!profile||profile.id!==endpoint.permission_profile_id||profile.version!==endpoint.permission_profile_version||profile.endpoint_id!==endpoint.endpoint_id)return 'PERMISSION_BINDING_MISMATCH';
-  if(profile.status!=='VERIFIED'||!profile.evidence?.length||!profile.verified_at||!profile.expires_at||profile.revoked_at)return 'RIGHTS_UNVERIFIED';
-  if(instant(profile.verified_at)>t||instant(profile.expires_at)<=t)return 'RIGHTS_EXPIRED';
+  const expires=permissionExpiry(profile);
+  const verified=typeof profile.verified_at==='string'?Date.parse(profile.verified_at):NaN;
+  if(profile.status!=='VERIFIED'||!profile.evidence?.length||!Number.isFinite(verified)||Number.isNaN(expires)||profile.revoked_at)return 'RIGHTS_UNVERIFIED';
+  if(verified>t||expires<=t)return 'RIGHTS_EXPIRED';
   if(!purposes.length||purposes.some(x=>!PURPOSES.includes(x)||profile.purposes?.[x]!=='ALLOW'))return 'PURPOSE_NOT_ALLOWED';
   if(!['TECH_TEST','SHADOW','ACTIVE'].includes(endpoint.status))return 'SOURCE_NOT_RUNNABLE';
   return null;

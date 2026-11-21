@@ -3,9 +3,12 @@ import { resolve, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { collectHtmlList, htmlListPurposes, htmlListVersion } from './html-list.mjs';
+import { collectHtmlList, htmlDetailPurposes, htmlListPurposes, htmlListVersion, openArticleTitle } from './html-list.mjs';
+import { initializeListingProgress, pruneListingProgress, recordListingDetail, recordListingProgress, removeListingBinding } from './listing-progress.mjs';
 import { identityForUrl, normalizeArticleUrl, permissionDecision } from './policy.mjs';
-import { createPublicWatch } from './public-watch.mjs';
+import { createPublicWatch, retryAfterTime } from './public-watch.mjs';
+import { createPublicMetadata, operatorMetadataSource } from './public-metadata.mjs';
+import { createTelegramPageWatch, openTelegramPageStore, runTelegramPageCycle } from './telegram-link-worker.mjs';
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
@@ -45,14 +48,17 @@ export function openCollectorStore(path) {
       stage TEXT, reason TEXT, http_status INTEGER, redirect_origin TEXT, connection_resets INTEGER NOT NULL
     ) STRICT;
   `);
+  initializeListingProgress(db);
   return db;
 }
 
 function registeredSource(endpoint, profile, time) {
   const now = new Date(time).toISOString();
-  if (permissionDecision(profile, endpoint, purposes, now) ||
+  const requiredPurposes = endpoint.confirm_article_title === true ?
+    [...new Set([...purposes, ...htmlDetailPurposes])] : purposes;
+  if (permissionDecision(profile, endpoint, requiredPurposes, now) ||
       endpoint.adapter_version !== htmlListVersion ||
-      !purposes.every(purpose => endpoint.enabled_scopes?.includes(purpose)) ||
+      !requiredPurposes.every(purpose => endpoint.enabled_scopes?.includes(purpose)) ||
       !Number.isInteger(profile.retention_days) || profile.retention_days < 1 ||
       !Number.isFinite(endpoint.max_rps) || endpoint.max_rps <= 0) return null;
   let url;
@@ -145,13 +151,6 @@ function reserve(db, source, time, hostDelay, robotsPreflight) {
   });
 }
 
-function retryAfterTime(value, time) {
-  if (typeof value !== 'string') return time;
-  if (/^\d+$/.test(value)) return Math.min(Number.MAX_SAFE_INTEGER, time + Number(value) * 1000);
-  const date = Date.parse(value);
-  return Number.isFinite(date) ? date : time;
-}
-
 function nextHostCheck(db, host, endpointId, result, success, time) {
   const retryAt = retryAfterTime(result.retryAfter, time);
   if (result.httpStatus === 429) {
@@ -177,8 +176,8 @@ function nextHostCheck(db, host, endpointId, result, success, time) {
   return Math.max(time + (rateLimit.rechecks >= maxFastRechecks ? day : recoveryGap), retryAt);
 }
 
-function record(db, source, result, time, reservation, current) {
-  const { endpoint, profile, binding, host } = source;
+function record(db, source, result, time, reservation, current, validBindings) {
+  const { endpoint, binding, host } = source;
   const robotsHandled = ['ROBOTS_READY', 'ROBOTS_DENIED', 'ROBOTS_INTERVAL_CONFLICT'].includes(result.status);
   const accessHold = !robotsHandled &&
     ([401,402,403,404,410,451].includes(result.httpStatus) || result.reason === 'REDIRECT_LIMIT');
@@ -222,18 +221,11 @@ function record(db, source, result, time, reservation, current) {
     }
     if (!current || current.binding !== binding) {
       db.prepare('DELETE FROM candidates WHERE endpoint_id=? AND binding=?').run(endpoint.endpoint_id, binding);
+      removeListingBinding(db, endpoint.endpoint_id, binding, validBindings(), time);
       return 0;
     }
     if (!success) return 0;
-    const expires = Math.min(time + profile.retention_days * day, Date.parse(profile.expires_at));
-    const insert = db.prepare(`INSERT INTO candidates VALUES (?,?,?,?,?,?,?)
-      ON CONFLICT(endpoint_id,url) DO UPDATE SET title=excluded.title,
-      published_at=coalesce(excluded.published_at,candidates.published_at),
-      expires_at=min(excluded.expires_at,candidates.expires_at)`);
-    for (const item of result.candidates) {
-      insert.run(endpoint.endpoint_id, item.url, item.title, item.publishedAt, binding, time, expires);
-    }
-    return result.candidates.length;
+    return recordListingProgress(db, source, result, time);
   });
 }
 
@@ -247,6 +239,7 @@ function prune(db, sources, time) {
     for (const row of db.prepare('SELECT DISTINCT endpoint_id,binding FROM candidates').all()) {
       if (bindings.get(row.endpoint_id) !== row.binding) remove.run(row.endpoint_id, row.binding);
     }
+    pruneListingProgress(db, bindings, time);
     const removeWatch = db.prepare('DELETE FROM public_watch WHERE endpoint_id=?');
     for (const row of db.prepare('SELECT endpoint_id,binding FROM public_watch').all()) {
       if (watchBindings.get(row.endpoint_id) !== row.binding) removeWatch.run(row.endpoint_id);
@@ -272,14 +265,83 @@ function prune(db, sources, time) {
   });
 }
 
-export async function runCollectorCycle(db, { endpoints, profiles, routes = [], now = Date.now, collect = collectHtmlList, watch }) {
+async function processListingDetail(db, sources, now, resolveSource, openDetail, delays) {
+  const schedule = db.prepare('SELECT binding,next_at,status FROM schedules WHERE endpoint_id=?');
+  for (const source of sources) {
+    const { endpoint, host, binding } = source;
+    if (source.watch || endpoint.confirm_article_title !== true) continue;
+    const stillAuthorized = () => {
+      const current = resolveSource(endpoint, now());
+      return current && !current.watch && current.endpoint.confirm_article_title === true &&
+        current.binding === binding && !hasAccessHold(schedule.get(endpoint.endpoint_id), source.urlIdentity);
+    };
+    const start = now();
+    const slot = transaction(db, () => {
+      if (!stillAuthorized()) return null;
+      const prior = schedule.get(endpoint.endpoint_id);
+      // A due listing takes the next host slot so a busy detail queue cannot hide new links.
+      if (prior?.binding !== binding || prior.next_at <= start) return null;
+      if (sources.some(other => {
+        if (other.host !== host) return false;
+        const otherSchedule = schedule.get(other.endpoint.endpoint_id);
+        if (hasAccessHold(otherSchedule, other.urlIdentity) ||
+            otherSchedule?.status === 'ROBOTS_INTERVAL_CONFLICT') return false;
+        return otherSchedule?.binding !== other.binding || otherSchedule.next_at <= start;
+      })) return null;
+      const hostSlot = db.prepare('SELECT next_at FROM hosts WHERE host=?').get(host);
+      const pause = db.prepare('SELECT daily_since FROM host_rate_episodes WHERE host=?').get(host);
+      if (hostSlot?.next_at > start || (pause?.daily_since != null && start >= pause.daily_since + 14 * day)) return null;
+      const pending = db.prepare(`SELECT url,listing_hash FROM listing_detail_queue
+        WHERE endpoint_id=? AND binding=? AND state='PENDING' AND next_at<=? AND expires_at>?
+        ORDER BY next_at,url LIMIT 1`).get(endpoint.endpoint_id, binding, start, start);
+      if (!pending) return null;
+      const rateLimit = countRateCheck(db, host, start);
+      const delay = !rateLimit ? 0 : rateLimit.rechecks >= maxFastRechecks ? day : recoveryGap;
+      db.prepare('INSERT INTO hosts VALUES (?,?) ON CONFLICT(host) DO UPDATE SET next_at=excluded.next_at')
+        .run(host, start + Math.max(delays.get(host), delay));
+      const reservedUntil = start + recoveryGap;
+      db.prepare('UPDATE listing_detail_queue SET next_at=? WHERE endpoint_id=? AND binding=? AND url=?')
+        .run(reservedUntil, endpoint.endpoint_id, binding, pending.url);
+      return { ...pending, reservedUntil };
+    });
+    if (!slot) continue;
+    let result;
+    try {
+      result = await openDetail({ endpoint, profile: source.profile, url: slot.url, listingHash: slot.listing_hash,
+        now: () => new Date(now()).toISOString(), stillAuthorized });
+    } catch {
+      result = { title: null, requests: 0 };
+    }
+    const finished = now();
+    const observed = transaction(db, () => {
+      const defer = nextHostCheck(db, host, endpoint.endpoint_id, result, Boolean(result.title), finished);
+      const next = Math.max(defer, result.delayMs > 0 ? finished + result.delayMs : 0);
+      if (next) db.prepare('UPDATE hosts SET next_at=max(next_at,?) WHERE host=?').run(next, host);
+      return stillAuthorized() ? recordListingDetail(db, source, slot, result, finished) : 0;
+    });
+    return { requests: result.requests, observed };
+  }
+  return null;
+}
+
+export async function runCollectorCycle(db, { endpoints, profiles, routes = [], now = Date.now, collect = collectHtmlList,
+  watch, openDetail = openArticleTitle, loadDetailRegistry, metadata }) {
   const time = now();
   const byId = new Map(profiles.map(profile => [profile.id, profile]));
   const watchIds = new Set(watch ? routes.filter(route => ['NEWS', 'REPORT'].includes(route.effective_kind))
     .flatMap(route => route.endpoint_ids) : []);
+  const metadataIds = new Set(metadata ? routes.filter(route => ['NEWS', 'REPORT'].includes(route.effective_kind))
+    .flatMap(route => route.endpoint_ids) : []);
+  const telegramIds = new Set(routes.filter(route => ['TELEGRAM', 'REPORT_BOT'].includes(route.effective_kind))
+    .flatMap(route => route.endpoint_ids));
   const resolveSource = (endpoint, at) => {
+    if (telegramIds.has(endpoint.endpoint_id)) return null;
+    try {
+      if (/(^|\.)(t\.me|telegram\.me)$/i.test(new URL(endpoint.url).hostname)) return null;
+    } catch { return null; }
     const profile = byId.get(endpoint.permission_profile_id);
-    return registeredSource(endpoint, profile, at) ?? publicSource(endpoint, profile, watchIds);
+    return registeredSource(endpoint, profile, at) ?? operatorMetadataSource(endpoint, profile, metadataIds) ??
+      publicSource(endpoint, profile, watchIds);
   };
   const sources = endpoints.map(endpoint => resolveSource(endpoint, time)).filter(Boolean);
   prune(db, sources, time);
@@ -294,21 +356,50 @@ export async function runCollectorCycle(db, { endpoints, profiles, routes = [], 
     const prior = bySchedule.get(endpoint.endpoint_id);
     return prior?.binding === binding ? prior.next_at : 0;
   };
-  sources.sort((a, b) => Number(recoveryRoutes.has(b.endpoint.endpoint_id)) -
-    Number(recoveryRoutes.has(a.endpoint.endpoint_id)) || dueAt(a) - dueAt(b));
+  const hasDetailQueue = source => !source.watch && source.endpoint.confirm_article_title === true;
+  sources.sort((a, b) => Number(hasDetailQueue(b)) - Number(hasDetailQueue(a)) ||
+    Number(recoveryRoutes.has(b.endpoint.endpoint_id)) - Number(recoveryRoutes.has(a.endpoint.endpoint_id)) ||
+    dueAt(a) - dueAt(b));
+  const resolveDetailSource = loadDetailRegistry ? (endpoint, at) => {
+    try {
+      const current = loadDetailRegistry();
+      const candidate = current.endpoints.find(entry => entry.endpoint_id === endpoint.endpoint_id);
+      if (!candidate || JSON.stringify(candidate) !== JSON.stringify(endpoint)) return null;
+      const profile = current.profiles.find(entry => entry.id === candidate.permission_profile_id);
+      if (!profile || JSON.stringify(profile) !== JSON.stringify(byId.get(profile.id))) return null;
+      return registeredSource(candidate, profile, at) ?? operatorMetadataSource(candidate, profile, metadataIds);
+    } catch {
+      return null;
+    }
+  } : resolveSource;
   let attempts = 0;
+  for (let step = 0; step < (metadata ? 4 : 1); step++) {
+    const detail = await processListingDetail(db, sources, now, resolveDetailSource,
+      input => input.endpoint.metadata_collection ? metadata.openDetail(input) : openDetail(input), delays);
+    if (!detail) break;
+    attempts++;
+    stats.requests += detail.requests;
+    stats.observed += detail.observed;
+  }
   for (const source of sources) {
     const start = now();
     if (resolveSource(source.endpoint, start)?.binding !== source.binding) continue;
-    const robotsPreflight = source.watch && watch.requiresRobots?.(source.endpoint) === true;
+    const robotsPreflight = source.operator ? metadata.requiresRobots(source.endpoint) :
+      source.watch && watch.requiresRobots?.(source.endpoint) === true;
     const reservation = reserve(db, source, start, delays.get(source.host), robotsPreflight);
     if (reservation === null) continue;
-    const result = source.watch ? await watch(source.endpoint, { ...source.limits, hostDelay: delays.get(source.host) }) : await collect({
+    const result = source.operator ? await metadata.collect(source.endpoint,
+      () => resolveDetailSource(source.endpoint, now())?.binding === source.binding) :
+      source.watch ? await watch(source.endpoint, { ...source.limits, hostDelay: delays.get(source.host) }) : await collect({
       endpoint: source.endpoint, profile: source.profile, execute: true,
       now: () => new Date(now()).toISOString() });
     stats.requests += result.requests;
     const finished = now();
-    const recorded = record(db, source, result, finished, reservation, resolveSource(source.endpoint, finished));
+    const currentSource = source.operator ? resolveDetailSource(source.endpoint, finished) : resolveSource(source.endpoint, finished);
+    const recorded = record(db, source, result, finished, reservation, currentSource, () => {
+      const currentSources = endpoints.map(endpoint => resolveSource(endpoint, finished)).filter(item => item && !item.watch);
+      return new Map(currentSources.map(item => [item.endpoint.endpoint_id, item.binding]));
+    });
     if (source.watch) {
       if (['WATCH_LIST_OK', 'WATCH_PAGE_OK'].includes(result.status)) stats.watched++;
       stats.changed += recorded;
@@ -325,26 +416,41 @@ function loadRegistry() {
   return { ...read('routes.json'), profiles: read('permission-profiles.json').profiles };
 }
 
+export async function runCollectorServices({ collectWeb, collectTelegram, stopped }) {
+  const web = await collectWeb();
+  const telegram = collectTelegram && !stopped() ? await collectTelegram() : undefined;
+  return { web, telegram };
+}
+
 async function main() {
   const directory = process.env.JUDOJU_COLLECTOR_DIRECTORY ?? '.local-data/html-collector';
   mkdirSync(directory, { recursive: true });
   const db = openCollectorStore(join(directory, 'collection.sqlite'));
   const watch = process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
+  const metadata = createPublicMetadata();
+  const telegramWatch = process.env.JUDOJU_TELEGRAM_LINKS === '1' ? createTelegramPageWatch() : undefined;
+  const telegramDb = telegramWatch ? openTelegramPageStore(join(directory, 'telegram-links.sqlite')) : undefined;
   const stopping = new AbortController();
   process.once('SIGTERM', () => stopping.abort());
   process.once('SIGINT', () => stopping.abort());
   try {
     do {
-      const stats = await runCollectorCycle(db, { ...loadRegistry(), watch });
+      const { web, telegram } = await runCollectorServices({
+        collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry }),
+        collectTelegram: telegramWatch && (() => runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch })),
+        stopped: () => stopping.signal.aborted,
+      });
       writeFileSync(join(directory, 'heartbeat'), String(Date.now()));
-      console.log(JSON.stringify({ event: 'HTML_COLLECTION_CYCLE', ...stats }));
+      console.log(JSON.stringify({ event: 'HTML_COLLECTION_CYCLE', ...web }));
+      if (telegram) console.log(JSON.stringify({ event: 'TELEGRAM_PAGE_LINK_CYCLE', ...telegram }));
       if (process.argv[2] === '--once' || stopping.signal.aborted) break;
       await sleep(minute, undefined, { signal: stopping.signal }).catch(error => {
         if (!stopping.signal.aborted) throw error;
       });
     } while (!stopping.signal.aborted);
   } finally {
-    db.close();
+    try { telegramDb?.close(); }
+    finally { db.close(); }
   }
 }
 

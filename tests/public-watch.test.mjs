@@ -30,6 +30,66 @@ test('only robots-authorized paths are fetched with an honest user agent and no 
   assert.deepEqual(seen, [origin + '/robots.txt', endpoint.url + '/open']);
 });
 
+test('a legacy byte in a robots comment does not block valid directives', async () => {
+  const body = Buffer.concat([
+    Buffer.from('User-agent: *\r\nDisallow: /market #'),
+    Buffer.of(0xff),
+    Buffer.from('\r\n'),
+  ]);
+  const requests = [];
+  const watch = createPublicWatch({ transport: async url => {
+    requests.push(url);
+    return response(body, 'text/plain');
+  } });
+  assert.equal((await watch(endpoint)).status, 'ROBOTS_READY');
+  assert.equal((await watch(endpoint)).reason, 'ROBOTS_RULE_DISALLOWED');
+  assert.deepEqual(requests, [origin + '/robots.txt']);
+});
+
+test('invalid bytes in a robots directive keep the page on hold', async () => {
+  const body = Buffer.concat([Buffer.from('User-agent: *\nDisallow: /'), Buffer.of(0xff)]);
+  const watch = createPublicWatch({ transport: async url => {
+    assert.equal(url, origin + '/robots.txt');
+    return response(body, 'text/plain');
+  } });
+  const result = await watch(endpoint);
+  assert.equal(result.stage, 'ROBOTS');
+  assert.equal(result.reason, 'INVALID_UTF8');
+  assert.equal(await watch.requiresRobots(endpoint), true);
+});
+
+test('declared Korean encoding enables watch-only recognition of Kyobo direct report links', async () => {
+  const url = 'https://www.iprovest.com/weblogic/RSReportServlet?scr_id=34&mode=list&menuCode=3&pageNum=1';
+  const detail = '/weblogic/RSReportServlet?scr_id=34&mode=detail&menuCode=3&sno=2053822';
+  const body = Buffer.concat([
+    Buffer.from(`<table><tr><td><a href="${detail}">`),
+    Buffer.from([0xb0, 0xa1]),
+    Buffer.from('</a></td></tr></table>'),
+  ]);
+  let html = body;
+  let contentType = 'text/html;charset=EUC-KR';
+  const requests = [];
+  const watch = createPublicWatch({ transport: async requested => {
+    requests.push(requested);
+    return requested.endsWith('/robots.txt') ? response('', 'text/plain', 404) : response(html, contentType);
+  } });
+  const listing = { ...endpoint, url };
+  assert.equal((await watch(listing)).status, 'ROBOTS_READY');
+  const initial = await watch(listing);
+  assert.equal(initial.status, 'WATCH_LIST_OK');
+  assert.match(initial.digest, /^[a-f0-9]{64}$/);
+  html = Buffer.concat([
+    body,
+    Buffer.from(`<a href="https://other.example${detail}">Outside</a>
+      <a href="${detail}&sno=9">Duplicate ID</a>
+      <a href="${detail.replace('mode=detail', 'mode=list')}">List</a>`),
+  ]);
+  assert.equal((await watch(listing)).digest, initial.digest);
+  contentType = 'text/html;charset=UTF-8';
+  assert.equal((await watch(listing)).reason, 'INVALID_UTF8');
+  assert.deepEqual(requests, ['https://www.iprovest.com/robots.txt', url, url, url]);
+});
+
 test('worker observes unaffiliated public lists and stores only an operational fingerprint and times', async t => {
   const db = openCollectorStore(':memory:');
   t.after(() => db.close());

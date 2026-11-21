@@ -57,6 +57,38 @@ test('resolves document base and reads headings within a linked card or after an
   assert.deepEqual(parseHtmlList('<base href="https://elsewhere.example/">'+linkedCard,listUrl).candidates,[]);
 });
 
+test('published title lists select article links, excluding sidebar, navigation, and different origins', () => {
+  const hankyung = `
+    <ul class="news-list"><li><h2 class="news-tit"><a href="/article/2026112088476">기업 기사</a></h2></li>
+      <li><h2 class="news-tit"><a href="/koreamarket/1114?page=2">다음 페이지</a></h2></li>
+      <li><h2 class="news-tit"><a href="https://other.example/article/2026112088477">다른 매체</a></h2></li>
+      <li><figure><a href="/article/2026112088476"><img src="/img.png"></a></figure></li>
+    </ul><aside><h2 class="news-tit"><a href="/article/2026112088478">많이 읽은 기사</a></h2></aside>`;
+  for (const section of ['1113', '1114']) {
+    assert.deepEqual(parseHtmlList(hankyung, 'https://www.hankyung.com/koreamarket/' + section).candidates, [
+      { url: 'https://www.hankyung.com/article/2026112088476', title: '기업 기사', publishedAt: null },
+    ]);
+  }
+  assert.deepEqual(parseHtmlList(hankyung, 'https://www.hankyung.com/koreamarket/9999').candidates, []);
+
+  const htmlWithTracking = `<div class="sub_n_list_cont"><div class="cluster_text_headline21">
+    <a href="/news/view/2646621?trc=sub_list_news">특징주</a>
+    <a href="/news/view/2646621?trc=other">중복</a></div></div>`;
+  assert.deepEqual(parseHtmlList(htmlWithTracking, 'https://www.etoday.co.kr/market/hot-stock').candidates, [
+    { url: 'https://www.etoday.co.kr/news/view/2646621', title: '특징주', publishedAt: null },
+  ]);
+});
+
+test('query-based detail links preserve article ID and avoid summary or pagination links', () => {
+  const han = `<section id="section-list"><h4 class="titles">
+    <a href="/news/articleView.html?idxno=885049">공시 제목</a>
+    <a href="/news/articleView.html?idxno=7&amp;idxno=8">모호한 주소</a></h4>
+    <p class="lead"><a href="/news/articleView.html?idxno=885049">기사 요약</a></p></section>`;
+  assert.deepEqual(parseHtmlList(han, 'https://www.hansbiz.co.kr/news/articleList.html?sc_section_code=S1N54&view_type=sm').candidates, [
+    { url: 'https://www.hansbiz.co.kr/news/articleView.html?idxno=885049', title: '공시 제목', publishedAt: null },
+  ]);
+});
+
 test('all 112 registered endpoints start with no HTML network dispatch', async () => {
   const data = name=>JSON.parse(readFileSync(new URL('../data/providers/'+name,import.meta.url),'utf8'));
   const {endpoints} = data('routes.json');

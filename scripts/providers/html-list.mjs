@@ -1,9 +1,11 @@
 import { parse } from 'parse5';
+import { createHash } from 'node:crypto';
 import { normalizeArticleUrl, permissionDecision } from './policy.mjs';
 import { pinnedHttps, probe } from './probe.mjs';
 
 export const htmlListVersion = 'html-list-v1';
 export const htmlListPurposes = Object.freeze(['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION']);
+export const htmlDetailPurposes = Object.freeze(['MACHINE_ACCESS', 'ORIGINAL_ACCESS', 'STORAGE']);
 const maxHtmlBytes = 512 * 1024;
 export const maxWatchHtmlBytes = 2 * 1024 * 1024;
 const maxCandidates = 100;
@@ -23,6 +25,81 @@ function* elements(root, prune = () => false) {
 const attribute = (node, name) => node.attrs?.find(entry => entry.name === name)?.value;
 const titleText = text => typeof text === 'string' ? text.replace(/\s+/gu, ' ').trim() : '';
 const hasType = (node, types) => [node?.['@type']].flat().some(type => types.includes(type));
+const nodeTitle = node => [...elements(node, child => ['script', 'style', 'noscript'].includes(child.tagName))]
+  .map(child => child.nodeName === '#text' ? child.value : '').join('');
+
+function selectorMatches(node, selector) {
+  if (!node) return false;
+  if (selector.startsWith('#')) return attribute(node, 'id') === selector.slice(1);
+  const [tag, className] = selector.split('.');
+  return (!tag || node.tagName === tag) &&
+    (!className || (attribute(node, 'class') ?? '').split(/\s+/).includes(className));
+}
+
+const numberedArticle = url => /^\/article\/\d{5,20}$/.test(url.pathname);
+const numberedNewsView = url => /^\/news\/view\/\d{5,20}$/.test(url.pathname);
+const capitalDataWireList = 'https://capitaldatawire.com/stories';
+const capitalDataWireStory = url => /^\/stories\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.pathname) && !url.search;
+const ndsoftArticle = url => url.pathname === '/news/articleView.html' &&
+  url.searchParams.getAll('idxno').length === 1 && /^\d{1,20}$/.test(url.searchParams.get('idxno'));
+const headlineRules = [
+  {
+    sources: ['https://www.hankyung.com/koreamarket/1113', 'https://www.hankyung.com/koreamarket/1114'],
+    heading: 'h2.news-tit', list: 'ul.news-list', detail: numberedArticle,
+  },
+  {
+    sources: ['https://www.etoday.co.kr/market/hot-stock'], heading: '.cluster_text_headline21',
+    list: '.sub_n_list_cont', detail: numberedNewsView, tracking: 'trc',
+  },
+  {
+    sources: ['https://www.sedaily.com/market/domesticStock'], heading: 'h2.headline',
+    list: '#list_area', detail: numberedArticle,
+  },
+  {
+    sources: ['https://www.newspim.com/news/lists/?category_cd=105060'], heading: 'strong.subject',
+    list: 'article.thumb_h', detail: numberedNewsView,
+  },
+  {
+    sources: ['https://www.ksdaily.co.kr/news/articleList.html?sc_section_code=S1N1&view_type=sm',
+      'https://www.infostockdaily.co.kr/news/articleList.html?sc_section_code=S1N17&view_type=sm'],
+    heading: 'div.list-titles', list: 'section.article-list-content', detail: ndsoftArticle,
+  },
+  {
+    sources: ['https://www.hansbiz.co.kr/news/articleList.html?sc_section_code=S1N54&view_type=sm'],
+    heading: 'h4.titles', list: '#section-list', detail: ndsoftArticle,
+  },
+  {
+    sources: ['g120100', 'g121000', 'g121100', 'g121200'].map(code => 'https://www.g-enews.com/list.php?ct=' + code),
+    anchor: 'a.e1', list: 'div.l2d',
+    detail: url => /^\/article\/[\w-]+\/\d{4}\/\d{2}\/\w+_\d+$/.test(url.pathname),
+  },
+  {
+    sources: ['https://www.mediapen.com/news/lists/?menu=m1&cate_cd2=40019'], heading: 'div.news-lists-title',
+    list: 'div.news-lists', detail: numberedNewsView,
+  },
+  {
+    sources: ['https://mbnmoney.mbn.co.kr/stock/news?news_service_id=10011'], inside: 'dt', list: 'dl.list_type_new_01',
+    detail: url => url.pathname === '/news/view' && url.searchParams.getAll('news_no').length === 1 &&
+      /^MM\d{8,20}$/.test(url.searchParams.get('news_no')),
+  },
+];
+
+function publisherHeadline(node, source, base, rule) {
+  const href = attribute(node, 'href');
+  if (!href || (rule.heading && !selectorMatches(node.parentNode, rule.heading)) ||
+      (rule.anchor && !selectorMatches(node, rule.anchor))) return null;
+  let container = node.parentNode;
+  while (container && !selectorMatches(container, rule.list)) container = container.parentNode;
+  if (!container) return null;
+
+  let url;
+  try { url = new URL(normalizeArticleUrl(new URL(href, base).href)); }
+  catch { return null; }
+  if (url.origin !== source.origin || !rule.detail(url)) return null;
+  if (rule.tracking) url.searchParams.delete(rule.tracking);
+  const title = rule.inside ? [...elements(node)].find(child => selectorMatches(child, rule.inside)) : node;
+  return title ? { url: url.href, title: nodeTitle(title) } : null;
+}
 
 function getPublishedAt(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return null;
@@ -60,15 +137,41 @@ function articleMarkup(node) {
       ancestor = ancestor.parentNode;
     }
     if (!link) continue;
-    const title = [...elements(heading, child => ['script','style','noscript'].includes(child.tagName))]
-      .map(child => child.nodeName === '#text' ? child.value : '').join('');
+    const title = nodeTitle(heading);
     if (titleText(title)) return { url: attribute(link, 'href'), title, publishedAt: time && attribute(time, 'datetime') };
   }
   return null;
 }
 
+function kyoboReportListing(source) {
+  const screen = source.searchParams.get('scr_id');
+  const menu = source.searchParams.get('menuCode');
+  return source.origin === 'https://www.iprovest.com' &&
+    source.pathname === '/weblogic/RSReportServlet' &&
+    ((screen === '34' && menu === '3' && source.searchParams.get('mode') === 'list') ||
+      (screen === '40' && menu === '9' && !source.searchParams.has('mode')));
+}
+
+function kyoboReport(node, source, base) {
+  const href = attribute(node, 'href');
+  if (!href) return null;
+  let url;
+  try { url = new URL(href, base); }
+  catch { return null; }
+  if (url.origin !== source.origin || url.pathname !== source.pathname) return null;
+  const fields = url.searchParams;
+  for (const [key, value] of [
+    ['scr_id', source.searchParams.get('scr_id')], ['menuCode', source.searchParams.get('menuCode')], ['mode', 'detail'],
+  ]) {
+    if (fields.getAll(key).length !== 1 || fields.get(key) !== value) return null;
+  }
+  if (fields.getAll('sno').length !== 1 || !/^\d{1,18}$/.test(fields.get('sno') ?? '')) return null;
+  const title = nodeTitle(node);
+  return { url: url.href, title };
+}
+
 /** Returns same-origin discovery candidates from supplied HTML. Does not follow article links. */
-export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
+export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes, { includeOfficialReports = false } = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > maxWatchHtmlBytes ||
       typeof html !== 'string' || Buffer.byteLength(html) > maxBytes) throw new Error('HTML_LIST_SIZE');
   const source = new URL(normalizeArticleUrl(listUrl));
@@ -92,6 +195,7 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
     try { url = new URL(normalizeArticleUrl(new URL(candidate.url, base).href)); }
     catch { return; }
     if (url.origin !== source.origin || url.href === source.href) return;
+    if (source.href === capitalDataWireList && !capitalDataWireStory(url)) return;
 
     const publishedAt = getPublishedAt(candidate.publishedAt);
     const existing = candidates.get(url.href);
@@ -100,6 +204,8 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
   }
 
   const markup = [];
+  const kyobo = includeOfficialReports && kyoboReportListing(source);
+  const headlineRule = headlineRules.find(rule => rule.sources.includes(source.href));
   for (const node of htmlNodes) {
     if (node.tagName === 'script' && attribute(node, 'type')?.trim().toLowerCase() === 'application/ld+json') {
       let parsed;
@@ -111,6 +217,15 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
       }
     } else if (node.tagName === 'article') {
       markup.push(node);
+    } else if (node.tagName === 'a') {
+      if (kyobo) {
+        const candidate = kyoboReport(node, source, base);
+        if (candidate) add(candidate);
+      }
+      if (headlineRule) {
+        const candidate = publisherHeadline(node, source, base, headlineRule);
+        if (candidate) add(candidate);
+      }
     }
   }
   for (const node of markup) {
@@ -118,6 +233,44 @@ export function parseHtmlList(html, listUrl, maxBytes = maxHtmlBytes) {
     if (candidate) add(candidate);
   }
   return { candidates: [...candidates.values()].slice(0, maxCandidates), truncated: candidates.size > maxCandidates };
+}
+
+/** Read the visible original heading without retaining the page body. */
+export function parseOriginalTitle(html, url, listingHash) {
+  const document = parse(html, { scriptingEnabled: true });
+  const nodes = [...elements(document, node => ['script', 'style', 'template', 'noscript'].includes(node.tagName))];
+  const canonical = nodes.find(node => node.tagName === 'link' && attribute(node, 'rel') === 'canonical');
+  if (canonical) {
+    try {
+      if (normalizeArticleUrl(new URL(attribute(canonical, 'href'), url).href) !== normalizeArticleUrl(url)) return null;
+    } catch { return null; }
+  }
+  const inArticle = node => {
+    for (let parent = node.parentNode; parent; parent = parent.parentNode) {
+      if (parent.tagName === 'article' || parent.tagName === 'main') return true;
+    }
+    return false;
+  };
+  const headings = nodes.filter(node => node.tagName === 'h1' && inArticle(node))
+    .map(node => titleText(nodeTitle(node))).filter(Boolean);
+  const meta = nodes.find(node => node.tagName === 'meta' && attribute(node, 'property') === 'og:title');
+  const metaTitle = meta ? titleText(attribute(meta, 'content')) : '';
+  const articleType = nodes.some(node => node.tagName === 'meta' &&
+    attribute(node, 'property') === 'og:type' && attribute(node, 'content') === 'article');
+  const visibleMatch = nodes.some(node => {
+    if (!/^h[1-3]$/.test(node.tagName) || titleText(nodeTitle(node)) !== metaTitle) return false;
+    for (let parent = node.parentNode; parent; parent = parent.parentNode) {
+      if (['article', 'main'].includes(parent.tagName)) return true;
+      if (['header', 'nav', 'footer'].includes(parent.tagName)) return false;
+    }
+    return true;
+  });
+  const title = metaTitle && (articleType || visibleMatch) ? metaTitle : headings.length === 1 ? headings[0] : '';
+  const matchesListing = candidate => candidate && candidate.length <= 500 &&
+    listingHash === createHash('sha256').update(candidate.normalize('NFC')).digest('hex');
+  const matchedHeading = headings.find(matchesListing);
+  if (matchedHeading) return matchedHeading;
+  return title && title.length <= 500 && (matchesListing(title) || articleType && visibleMatch) ? title : null;
 }
 
 /** Runs one exact listing fetch through existing HTTPS, permission and request budget checks. */
@@ -176,4 +329,57 @@ export async function collectHtmlList({ endpoint, profile, execute = false, now 
   if (!parsed.candidates.length) return output('PARSE_HOLD', 'NO_ARTICLE_CANDIDATES', result.requests);
   return output(parsed.truncated ? 'PARTIAL' : 'CANDIDATES', parsed.truncated ? 'CANDIDATE_LIMIT' : null,
     result.requests, parsed.candidates);
+}
+
+export async function openArticleTitle({ endpoint, profile, url, now = () => new Date().toISOString(),
+  transport = pinnedHttps, lookupHost, stillAuthorized = () => true }) {
+  const checkPermission = () => endpoint.confirm_article_title === true && endpoint.url === capitalDataWireList &&
+    htmlDetailPurposes.every(purpose => endpoint.enabled_scopes?.includes(purpose)) &&
+    !permissionDecision(profile, endpoint, htmlDetailPurposes, now()) && stillAuthorized();
+  if (!checkPermission()) return { requests: 0, title: null };
+  let detail;
+  try { detail = new URL(normalizeArticleUrl(url)); }
+  catch { return { requests: 0, title: null }; }
+  if (detail.origin !== new URL(endpoint.url).origin || !capitalDataWireStory(detail)) {
+    return { requests: 0, title: null };
+  }
+
+  let responseBody;
+  const result = await probe({
+    endpoint: { ...endpoint, url: detail.href }, profile, purposes: htmlDetailPurposes, now, execute: true,
+    lookupHost, limits: { timeoutMs: 5000, maxBytes: maxHtmlBytes, maxHops: 0 },
+    transport: async (target, options) => {
+      if (target !== detail.href || !checkPermission() || !profile.allowed_hosts?.includes(detail.hostname) ||
+          !profile.methods?.includes('GET') || !(profile.max_requests >= 1) ||
+          !(profile.max_bytes >= options.maxBytes) || !(profile.timeout_ms >= options.timeoutMs)) {
+        throw new Error('DETAIL_SCOPE_CHANGED');
+      }
+      const response = await transport(target, options);
+      if (response.status === 200 &&
+          /^text\/html(?:\s*;\s*charset\s*=\s*"?utf-8"?)?$/i.test(response.contentType ?? '')) {
+        responseBody = response.body;
+      }
+      return response;
+    },
+  });
+  if (!checkPermission()) return { requests: result.requests, title: null };
+  const fallback = { requests: result.requests, title: null, httpStatus: result.httpStatus, retryAfter: result.retryAfter };
+  const unavailable = { ...fallback, unavailable: true };
+  if (['REDIRECT_LIMIT', 'RESPONSE_TOO_LARGE'].includes(result.reason)) return unavailable;
+  if (result.status !== 'HTTP_OK_UNPARSED') return fallback;
+  if (!responseBody) return unavailable;
+  let html;
+  try { html = new TextDecoder('utf-8', { fatal: true }).decode(responseBody); }
+  catch { return unavailable; }
+  const document = parse(html, { scriptingEnabled: true });
+  const all = [...elements(document, node => ['template', 'noscript'].includes(node.tagName))]
+    .filter(node => node.namespaceURI === htmlNamespace);
+  const canonical = all.filter(node => node.tagName === 'link' && attribute(node, 'rel') === 'canonical');
+  const type = all.find(node => node.tagName === 'meta' && attribute(node, 'property') === 'og:type');
+  if (canonical.length !== 1 || attribute(canonical[0], 'href') !== detail.href || !type || attribute(type, 'content') !== 'article') {
+    return unavailable;
+  }
+  const headings = all.filter(node => node.tagName === 'h1' && selectorMatches(node.parentNode, 'header.article-header'));
+  const title = headings.length === 1 ? titleText(nodeTitle(headings[0])) : '';
+  return title && title.length <= 500 ? { ...fallback, title } : unavailable;
 }

@@ -59,14 +59,31 @@ test('worker loads all registered sources with zero unauthorized requests', asyn
     { registered: 112, eligible: 0, requests: 0, observed: 0 });
 });
 
-test('worker enforces due times, deduplicates articles, and removes revoked storage', async t => {
+test('the web worker rejects Telegram channels and report bots even with HTML permissions', async t => {
+  const db = openCollectorStore(':memory:');
+  t.after(() => db.close());
+  const channels = [source('on-hold', 't.me'), source('bot'), source('unmapped', 'www.telegram.me')];
+  const routes = [
+    { effective_kind: 'TELEGRAM', original_row: 19, endpoint_ids: ['on-hold'] },
+    { effective_kind: 'REPORT_BOT', original_row: 16, endpoint_ids: ['bot'] },
+  ];
+  assert.deepEqual(await runCollectorCycle(db, {
+    endpoints: channels.map(item => item.endpoint), profiles: channels.map(item => item.profile), routes,
+    now: () => start, collect: () => assert.fail('Telegram must not dispatch through the web worker'),
+  }), { registered: 3, eligible: 0, requests: 0, observed: 0 });
+});
+
+test('worker sets an initial baseline, enforces due times, deduplicates articles, and removes revoked storage', async t => {
   const first = source();
   const run = setup(t, [first]);
-  assert.deepEqual(await run.cycle(), { registered: 1, eligible: 1, requests: 1, observed: 1 });
+  assert.deepEqual(await run.cycle(), { registered: 1, eligible: 1, requests: 1, observed: 0 });
   assert.equal((await run.cycle()).requests, 0);
   run.clock(start + 5 * minute);
-  assert.equal((await run.cycle()).requests, 1);
-  assert.deepEqual({ ...run.db.prepare('SELECT title,first_seen FROM candidates').get() }, { title: '시장 기사', first_seen: start });
+  run.response(200, '3600', Buffer.from(article.replace('/one', '/two') + article));
+  assert.deepEqual(await run.cycle(), { registered: 1, eligible: 1, requests: 1, observed: 1 });
+  assert.deepEqual({ ...run.db.prepare('SELECT title,first_seen FROM candidates').get() }, { title: '시장 기사', first_seen: start + 5 * minute });
+  run.clock(start + 10 * minute);
+  assert.equal((await run.cycle()).observed, 0);
   assert.equal(run.db.prepare('SELECT count(*) AS n FROM candidates').get().n, 1);
   first.profile.purposes.STORAGE = 'DENY';
   assert.equal((await run.cycle()).eligible, 0);

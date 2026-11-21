@@ -19,6 +19,28 @@ const largeListings = new Set([
 ]);
 const text = bytes => new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 
+export function retryAfterTime(value, time) {
+  if (typeof value !== 'string') return time;
+  if (/^\d+$/.test(value)) return Math.min(Number.MAX_SAFE_INTEGER, time + Number(value) * 1000);
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? date : time;
+}
+
+function robotsText(bytes) {
+  // Comments are outside the robots rules. Preserve the bytes of every directive.
+  const directives = bytes.toString('latin1').replace(/#[^\r\n]*/g, '');
+  return text(Buffer.from(directives, 'latin1'));
+}
+
+function htmlText(bytes, contentType) {
+  const charset = contentType.match(/;\s*charset\s*=\s*(?:"([^"]+)"|([^;\s]+))/i);
+  const label = (charset?.[1] ?? charset?.[2] ?? '').trim().toLowerCase();
+  if (['euc-kr', 'cp949', 'windows-949'].includes(label)) {
+    return new TextDecoder('euc-kr', { fatal: true }).decode(bytes);
+  }
+  return text(bytes);
+}
+
 function redirectOrigin(location, from) {
   if (typeof location !== 'string' || !location) return null;
   try {
@@ -42,7 +64,7 @@ function failureCode(error) {
   return 'REQUEST_FAILED';
 }
 
-export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = {}) {
+export function createPublicWatch({ transport = pinnedHttps, now = Date.now, inspectPage } = {}) {
   const robotsCache = new Map();
   function cachedRules(url) {
     const cached = robotsCache.get(new URL(url).origin);
@@ -56,9 +78,12 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = 
     const result = (status, details = {}) => ({ status, requests, delayMs, stage, ...details });
     const responseDetails = () => ({ httpStatus: response.status, retryAfter: response.retryAfter ?? null });
     async function fetchBounded(url, maxBytes) {
+      if (limits.authorize?.() === false) throw new Error('AUTHORIZATION_CHANGED');
       requests++;
       const timeout = Math.min(timeoutMs, limits.timeoutMs ?? timeoutMs);
-      return await transport(url, { maxBytes, timeoutMs: timeout, signal: AbortSignal.timeout(timeout), userAgent });
+      const data = await transport(url, { maxBytes, timeoutMs: timeout, signal: AbortSignal.timeout(timeout), userAgent });
+      if (limits.authorize?.() === false) throw new Error('AUTHORIZATION_CHANGED');
+      return data;
     }
     try {
       const url = normalizeArticleUrl(endpoint.url);
@@ -85,7 +110,7 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = 
           if (!/^text\/plain(?:\s*;|$)/i.test(response.contentType ?? '')) {
             return result('ROBOTS_UNREADABLE', { reason: 'ROBOTS_CONTENT_TYPE', ...responseDetails() });
           }
-          rules = robotsParser(robotsUrl, text(response.body));
+          rules = robotsParser(robotsUrl, robotsText(response.body));
         }
         const seconds = rules.getCrawlDelay(userAgent);
         delayMs = Number.isSafeInteger(Math.ceil(seconds * 1000)) && seconds > 0 ? Math.ceil(seconds * 1000) : 0;
@@ -112,7 +137,14 @@ export function createPublicWatch({ transport = pinnedHttps, now = Date.now } = 
       if (!/^text\/html(?:\s*;|$)/i.test(response.contentType ?? '')) {
         return result('WATCH_NOT_HTML', { reason: 'PAGE_CONTENT_TYPE', ...responseDetails() });
       }
-      const { candidates } = parseHtmlList(text(response.body), url, maxBytes);
+      const html = htmlText(response.body, response.contentType);
+      const inspector = limits.inspectPage ?? inspectPage;
+      if (inspector) {
+        return result('WATCH_INSPECTED', { observation: inspector(html, url), ...responseDetails() });
+      }
+      const { candidates } = parseHtmlList(html, url, maxBytes, {
+        includeOfficialReports: true,
+      });
       if (!candidates.length) return result('WATCH_PAGE_OK', { reason: 'NO_ARTICLE_CANDIDATES', ...responseDetails() });
       const index = candidates.map(({ url, title }) => JSON.stringify([url, title])).sort();
       const digest = createHash('sha256').update(JSON.stringify(index)).digest('hex');
