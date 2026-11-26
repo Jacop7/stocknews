@@ -35,6 +35,9 @@ export class BacklogStore {
       CREATE TABLE IF NOT EXISTS run_documents(run_key TEXT NOT NULL,doc_id TEXT NOT NULL,PRIMARY KEY(run_key,doc_id)) STRICT;
       CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,job_id TEXT,state TEXT NOT NULL,reason TEXT,observed_at INTEGER NOT NULL) STRICT;
     `);
+    // News is never read (decision B): only where and when a story link was seen, for discovery and ranking.
+    this.db.exec(`CREATE TABLE IF NOT EXISTS news_signals(url TEXT PRIMARY KEY,host TEXT NOT NULL,first_seen INTEGER NOT NULL,
+      last_seen INTEGER NOT NULL,sources TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT`);
     if (!this.db.prepare('PRAGMA table_info(documents)').all().some(column => column.name === 'body_expires_at')) {
       this.db.exec('ALTER TABLE documents ADD COLUMN body_expires_at INTEGER');
     }
@@ -138,6 +141,24 @@ export class BacklogStore {
         bodyExpiresAt: doc.body_expires_at ?? doc.expires_at,
         expiresAt: Math.min(doc.expires_at, ...sources.map(source => source.expiresAt)), sources } : null;
     }).filter(Boolean);
+  }
+  // Records a news link as a signal (no fetch, no body) and closes the job. Several short links to the same
+  // story merge into one row; the channels that carried it are kept for counting distinct sources.
+  recordSignal(job, url, now) {
+    return this.transaction(() => {
+      assert(this.owns(job, now), 'LEASE_STALE');
+      const host = new URL(url).hostname.toLowerCase();
+      const sources = this.db.prepare('SELECT source_id FROM sightings WHERE job_id=?').all(job.id).map(row => row.source_id);
+      const prior = this.db.prepare('SELECT sources FROM news_signals WHERE url=?').get(url);
+      const merged = [...new Set([...(prior ? JSON.parse(prior.sources) : []), ...sources])].sort();
+      this.db.prepare(`INSERT INTO news_signals VALUES (?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
+        last_seen=max(last_seen,excluded.last_seen),sources=excluded.sources,expires_at=max(expires_at,excluded.expires_at)`)
+        .run(url, host, now, now, JSON.stringify(merged), job.expires_at);
+      this.db.prepare("UPDATE jobs SET state='SIGNAL',payload=?,lease=NULL,lease_until=0 WHERE id=? AND lease=?")
+        .run(canonical({ signalUrl: url, publicationAuthorized: false }), job.id, job.lease);
+      this.db.prepare("INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,'SIGNAL','NEWS_SIGNAL_ONLY',?)").run(job.id, now);
+      return { jobId: job.id, state: 'SIGNAL', host };
+    });
   }
   // The stored extraction for this exact body and configuration: reused without a model call, even after
   // the original body and the model response were deleted.
@@ -259,7 +280,7 @@ export class BacklogStore {
       for (const row of this.db.prepare("SELECT id FROM documents WHERE body<>'' AND coalesce(body_expires_at,expires_at)<=?").all(now)) this.purgeBody(row.id);
       const expired = new Set(this.db.prepare('SELECT doc_id FROM document_sources WHERE expires_at<=?').all(now).map(row => row.doc_id));
       const removed = new Set();
-      for (const table of ['jobs', 'sightings', 'document_sources', 'proposals', 'robots_rules']) this.db.prepare('DELETE FROM ' + table + ' WHERE expires_at<=?').run(now);
+      for (const table of ['jobs', 'sightings', 'document_sources', 'proposals', 'robots_rules', 'news_signals']) this.db.prepare('DELETE FROM ' + table + ' WHERE expires_at<=?').run(now);
       // INTENT/UNKNOWN tombstones remain text-free: they must still prevent an uncertain redispatch.
       this.db.prepare('UPDATE runs SET response=NULL WHERE expires_at<=?').run(now);
       // Unpublished drafts expire on their own 30-day clock, not with their originals.
@@ -343,6 +364,8 @@ export class BacklogStore {
       accessReviewHosts: [...hosts.values()].sort((a, b) => b.jobs - a.jobs || a.host.localeCompare(b.host, 'en')).slice(0, 50),
       documents: this.db.prepare('SELECT count(*) n FROM documents').get().n,
       drafts: this.db.prepare('SELECT count(*) n FROM issues').get().n,
+      newsSignals: { links: this.db.prepare('SELECT count(*) n FROM news_signals').get().n,
+        topHosts: this.db.prepare('SELECT host,count(*) links FROM news_signals GROUP BY host ORDER BY links DESC,host LIMIT 20').all().map(row => ({ ...row })) },
       modelRuns: this.db.prepare('SELECT state,count(*) count FROM runs GROUP BY state').all(), publicationAuthorized: false };
   }
 }

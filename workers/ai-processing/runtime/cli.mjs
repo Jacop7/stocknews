@@ -10,6 +10,7 @@ import { createOriginalReader } from './original.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
 import { readDiscoveryLeads } from './discovery.mjs';
+import { createLinkResolver } from './resolver.mjs';
 
 // Reads a discovery API response that was already saved to disk. No network request is made.
 export function readDiscoveryFile(filename, format, now = Date.now()) {
@@ -84,9 +85,8 @@ async function main(argv) {
     };
     const initial = loadConfig();
     const model = initial.callModels ? createOpenAiModel({ apiKey: process.env.JUDOJU_ANALYSIS_OPENAI_API_KEY }) : async () => { throw new Error('MODEL_EXECUTION_DISABLED'); };
-    const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal: createOriginalReader({
-      loadRobots: (origin, now) => store.loadRobots(origin, now), saveRobots: (origin, value) => store.saveRobots(origin, value),
-    }) });
+    const robots = { loadRobots: (origin, now) => store.loadRobots(origin, now), saveRobots: (origin, value) => store.saveRobots(origin, value) };
+    const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal: createOriginalReader(robots), resolveLink: createLinkResolver(robots) });
     const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
     do {
       const result = await processor.step(); console.log(JSON.stringify({ event: 'BACKLOG_PROCESSING_STEP', ...result }));

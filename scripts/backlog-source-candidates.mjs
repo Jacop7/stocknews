@@ -8,18 +8,8 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateConfig } from '../workers/ai-processing/runtime/contracts.mjs';
 
-// Short links and aggregator redirects: a grant on these hosts does not make the original readable,
-// because the reader also needs a grant for the destination host. They need a separate resolution step.
-export const REDIRECT_HOSTS = new Set(['buly.kr', 'tinyurl.com', 'han.gl', 'vo.la', 'naver.me', 'bit.ly', 'alie.kr', 't.co',
-  'url.kr', 'me2.do', 'goo.gl', 'lrl.kr', 'abit.ly', 'vvd.bz', 'buff.ly', 'ow.ly', 'is.gd', 'rb.gy', 'cutt.ly', 'shorturl.at',
-  'news.google.com', 'lnkd.in', 'flip.it', 'apple.news', 'msn.com', 'feedproxy.google.com', 'da.gd', 'zrr.kr', 'han.gl', 'muz.so', 'c11.kr', 'wo.to']);
-// Not article sources (shops, video, social, app stores).
-export const IRRELEVANT = [/^amazon\./, /\.amazon\./, /coupang\.com$/, /youtube\.com$/, /^youtu\.be$/, /instagram\.com$/, /facebook\.com$/,
-  /^x\.com$/, /twitter\.com$/, /apps\.apple\.com$/, /play\.google\.com$/, /aliexpress\.com$/];
-// Broker and independent research report hosts: REPORT, even when the broker also has an IR page.
-export const REPORT_HOSTS = new Set(['report.jayjoai.com', 'r.jayjoai.com', 'bbn.kiwoom.com', 'iprovest.com', 'securities.miraeasset.com',
-  'hanwhawm.com', 'research.ibk.co.kr', 'myasset.com', 'm.ibks.com', 'yuantakorea.com', 'kiwoom.com', 'm.nhsec.com']);
-const OFFICIAL_PATTERNS = [/^dart\.fss\.or\.kr$/, /^kind\.krx\.co\.kr$/, /(^|\.)sec\.gov$/, /\.go\.kr$/, /(^|\.)fss\.or\.kr$/, /(^|\.)krx\.co\.kr$/];
+import { REDIRECT_HOSTS, IRRELEVANT, REPORT_HOSTS, OFFICIAL_PATTERNS } from '../workers/ai-processing/runtime/routing.mjs';
+export { REDIRECT_HOSTS, IRRELEVANT, REPORT_HOSTS };
 
 const bare = host => host.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
 const within = (host, domain) => host === domain || host.endsWith('.' + domain);

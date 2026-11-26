@@ -41,6 +41,8 @@ export function validateConfig(raw) {
   const value = JSON.parse(JSON.stringify(raw));
   assert(value.version === VERSION && value.mode === 'BACKLOG_ONLY', 'INVALID_RUNTIME_MODE');
   assert(typeof value.readOriginals === 'boolean' && typeof value.callModels === 'boolean', 'INVALID_SWITCH');
+  // Decision B: news hosts are signals only (never read). Absent means the earlier behaviour (news read with a grant).
+  assert(value.newsAsSignalOnly === undefined || typeof value.newsAsSignalOnly === 'boolean', 'INVALID_SWITCH');
   assert(Number.isSafeInteger(value.maxDailyCalls) && value.maxDailyCalls >= 0 && value.maxDailyCalls <= 10000, 'INVALID_BUDGET');
   list(value.excludedDomains).forEach(host => assert(/^[a-z0-9.-]+$/.test(host) && !host.startsWith('.')));
   list(value.excludedUrls).forEach(urlKey);

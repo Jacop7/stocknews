@@ -3,9 +3,10 @@ import { canonical, digest, validateConfig, sourceGrant, day } from './contracts
 import { validateTriage, mergeFacts, evidenceSufficient, validateDraft, validateVerification } from './editorial.mjs';
 import { writingBrief } from './writer.mjs';
 import { DRAFT_DAYS } from './store.mjs';
+import { routeLink } from './routing.mjs';
 
 const hold = reason => ({ state: 'HOLD', reason });
-export function createBacklogProcessor({ store, readOriginal, model, loadConfig, now = Date.now }) {
+export function createBacklogProcessor({ store, readOriginal, resolveLink, model, loadConfig, now = Date.now }) {
   async function executeModel(job, stage, input, config, authorize, retentionUntil = job.expires_at, documentIds = [job.payload.docId]) {
     if (!config.callModels) return hold('MODEL_EXECUTION_DISABLED');
     if (!authorize()) return hold('AUTHORITY_CHANGED');
@@ -47,6 +48,19 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
       try {
         if (job.state === 'FETCH') {
           if (!config.readOriginals) return settle('FETCH', job.payload, 'ORIGINAL_EXECUTION_DISABLED', now() + 60000);
+          // Decision B: short links are resolved first; news stays a signal and is never read.
+          const route = config.newsAsSignalOnly ? routeLink(job.payload.fetchUrl, config) : null;
+          if (route === 'REDIRECT') {
+            if (!resolveLink) return settle('HOLD_ORIGINAL', job.payload, 'LINK_RESOLVER_UNAVAILABLE');
+            const link = await resolveLink({ url: job.payload.fetchUrl, hops: job.payload.redirects ?? 0, enabled: config.readOriginals,
+              authorize: () => authority(), reserveHost: (...args) => store.reserveHost(...args) });
+            if (link.state === 'DEFER') return settle('FETCH', { ...job.payload, fetchUrl: link.url, redirects: link.hops }, 'LINK_DEFERRED', link.nextAt);
+            if (link.state === 'RESOLVED') return settle('FETCH', { ...job.payload, fetchUrl: link.url, redirects: link.hops,
+              shortLink: job.payload.shortLink ?? job.payload.fetchUrl }, 'LINK_RESOLVED', now());
+            return settle('HOLD_ORIGINAL', job.payload, link.reason);
+          }
+          if (route === 'IRRELEVANT') return settle('EXCLUDED', job.payload, 'IRRELEVANT_LINK');
+          if (route === 'SIGNAL') return store.recordSignal(job, job.payload.fetchUrl, now());
           const original = await readOriginal({ url: job.payload.fetchUrl, redirects: job.payload.redirects,
             loadConfig: () => validateConfig(loadConfig()), expectedConfig, authorize: () => authority(),
             reserveHost: (...args) => store.reserveHost(...args) });
