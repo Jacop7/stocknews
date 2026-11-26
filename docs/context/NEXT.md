@@ -10,6 +10,9 @@
 
 ## 사용자 결정이 필요한 것 (최우선)
 
+- **OpenAI API 크레딧 충전 필요**(2026-11-26): 첫 실호출이 `429 insufficient_quota`. ChatGPT 구독은 API에 쓸 수 없다(약관·결제 체계 별개). platform.openai.com → Billing에서 선불 충전(권장 시작 $20~50). 429는 15분 뒤 자동 재시도(`7663426`)라 충전하면 바로 분석이 시작된다.
+- 현재 서버: DART 공시는 OpenDART API로 수집·원문 확인 동작(첫 목록 38건, 원문 8건). 선별 3건 완료, 검증 규칙으로 보류 3건(FACT_NUMBER_MISMATCH 2, KOREAN_ENTITY_REQUIRED 1). 증권사 사이트 허가는 모두 OFF(텔레그램 링크는 신호).
+
 - ~~원문 허가~~ 2026-11-26 사용자 승인("진행해줘 함께"): DART·증권사 리포트 12개 호스트 ENABLED, AI 호출 ON(하루 150). 첫 8분 결과 **원문 성공 0건, 모델 호출 0건**: DART·NH는 robots 거절, 교보는 PDF(추출기 없음), 제이조AI·한화·미래에셋은 뷰어/목록 페이지라 본문 미인식.
 - **OpenDART API 키 저장됨**(2026-11-26, `.local-data/dart/opendart.key`, git 제외). 기업개황 API로 정상 응답(status 000) 확인. DART 웹은 robots 금지라 공식 API로만 접근한다.
 
