@@ -67,7 +67,9 @@ export class BacklogStore {
   }
   claim(now) {
     return this.transaction(() => {
-      const row = this.db.prepare("SELECT * FROM jobs WHERE state IN ('FETCH','TRIAGE','DRAFT','VERIFY') AND next_at<=? AND expires_at>? AND lease_until<=? ORDER BY next_at,id LIMIT 1").get(now, now, now);
+      // Later stages first: an original already read should reach analysis before the backlog of new links.
+      const row = this.db.prepare(`SELECT * FROM jobs WHERE state IN ('FETCH','TRIAGE','DRAFT','VERIFY') AND next_at<=? AND expires_at>? AND lease_until<=?
+        ORDER BY CASE state WHEN 'VERIFY' THEN 0 WHEN 'DRAFT' THEN 1 WHEN 'TRIAGE' THEN 2 ELSE 3 END, next_at, id LIMIT 1`).get(now, now, now);
       if (!row) return null;
       const lease = randomUUID();
       this.db.prepare('UPDATE jobs SET lease=?,lease_until=? WHERE id=?').run(lease, now + 120000, row.id);

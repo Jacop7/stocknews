@@ -89,3 +89,13 @@ test('revocation still withdraws the draft immediately', async t => {
   h.store.maintain(h.settings, h.now());
   assert.equal(JSON.parse(h.row('SELECT payload FROM issues').payload).state, 'HOLD_SOURCE_REVOKED');
 });
+
+test('an original already read is analysed before older links still waiting to be fetched', async t => {
+  const h = harness(t);
+  h.add('https://news.publisher.co.kr/article/older');
+  h.store.db.prepare("UPDATE jobs SET next_at=? WHERE url LIKE '%older'").run(stamp - day);
+  h.add();
+  h.store.db.prepare("UPDATE jobs SET state='TRIAGE', next_at=? WHERE url NOT LIKE '%older'").run(stamp);
+  const claimed = h.store.claim(stamp);
+  assert.equal(claimed.state, 'TRIAGE');
+});
