@@ -25,7 +25,8 @@
 1. ~~원문 접근 허가 후보~~ 완료(2026-11-26): `docs/context/SOURCE-CANDIDATES.md`(요약), `.local-data/backlog/source-candidates.json`(전체, DISABLED). 생성: `node scripts/backlog-source-candidates.mjs --hosts … --companies … --out … --summary …`. **사용자 검토 필요**: 링크가 많은 뉴스·리포트 상위 사이트부터 약관·robots 확인 후 ENABLED 여부 결정.
 1-1. ~~단축 주소 해석·라우팅~~ 완료(2026-11-26, 결정 B): `routing.mjs`·`resolver.mjs`, 뉴스는 `news_signals`. 다음: 같은 사건 매칭(뉴스 신호 ↔ 공식·리포트 원문), 홈 순위 관심도 입력 연결.
 2. (진행 중) AI 처리기: `runtime/service.mjs`(10분마다 수집 DB 읽기 전용 import, 실행은 설정 flag + `JUDOJU_AI_EXECUTE=1` 이중 스위치)와 `scripts/backlog-server-config.mjs`(카탈로그 + 공식·리포트 후보 393개 DISABLED, 모두 OFF) 완료. 남은 것: 서버 컨테이너 배포(파생 이미지, 수집 볼륨 마운트, 설정·키 파일 읽기 전용 마운트) 후 import 확인. 기존 메모:  서버 배포 형태(별도 컨테이너, 수집기와 분리, 수집 DB는 읽기 전용 스냅샷), 설정 파일 위치, 키 파일 전달(내용 출력 없이), 실행 flag OFF 상태로 배포 스크립트까지 준비. 허가 후보 검토 후 하루 상한 150으로 켠다.
-3. DB 게시 경로에 출처 구분(`role`)과 고지 연결 — 앱 화면은 준비됨.
+3. DB 게시 경로에 출처 구분(`role`)과 고지 연결 — 앱 화면은 준비됨. AI 초안의 `article_kind`(COMPANY 포함)·`primary_company_ref`·`company_refs`도 같이 넘긴다(DB 게시 검증 `private.m1_prepare`가 이미 받음).
+3-1. **종목 상세 후속**(2026-11-27 1차 완료): (a) 마이그레이션 51을 로컬 DB에 정식 적용(현재는 `node scripts/test-company-page-sql.mjs`로 트랜잭션 시험 후 되돌림)과 클라우드 preview의 `READ_RPCS`에 `catalog_public_company` 추가, (b) 종목코드: `data/dart-corp-codes.tsv`와 OpenDART 기업코드 파일의 stock_code로 검증 후 채우기, (c) 종목 상세에 DART 공시 목록(원문 링크) 탭, (d) 글 상세의 관련 기업 이름 → 종목 상세 링크(공개 본문 impacts에 기업 역할 포함 필요), (e) 홈 순위 입력에서 COMPANY 제외 확인, (f) 어드민 편집기에서 COMPANY 범위 선택.
 4. 수집기 운영 확인: 47개 채널 한 바퀴 결과, 웹 후보 수 변화, 오류. `scripts/ops/collector.ps1 status`.
 
 ## 주의

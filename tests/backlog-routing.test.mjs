@@ -68,7 +68,7 @@ test('with the signal-only policy, news is recorded without reading and only off
   const settings = signalConfig(); const reads = [], resolved = new Map([
     ['https://buly.kr/news', 'https://www.reuters.com/markets/x'], ['https://han.gl/ir', `https://${officialHost}/news/1`]]);
   const processor = createBacklogProcessor({ store, loadConfig: () => settings, now: () => stamp,
-    model: async () => ({ classification: 'UNCLEAR', newCatalyst: false, koreanImpact: false, articleKind: 'SECTOR', sectorIds: [],
+    model: async () => ({ classification: 'UNCLEAR', newCatalyst: false, koreanImpact: false, articleKind: 'SECTOR', primaryCompanyId: null, sectorIds: [],
       event: { family: 'OTHER', entityIds: [], date: null, period: null, officialId: null, refs: [] }, facts: [], impacts: [], reason: 'fixture' }),
     resolveLink: async ({ url, hops }) => ({ state: 'RESOLVED', url: resolved.get(url), hops: hops + 1 }),
     readOriginal: async request => { reads.push(request.url); return original(originalText, request.url); } });

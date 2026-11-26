@@ -16,7 +16,7 @@ const impact = object({ sectorId: str, companyIds: array(str), direction: enumer
   path: str, conditions: array(str), factIds: array(str) });
 export const schemas = {
   triage: object({ classification: enumeration(['RELEVANT_EVENT', 'PURE_PROMOTION', 'PRICE_RECAP_ONLY', 'UNRELATED', 'UNCLEAR']),
-    newCatalyst: bool, koreanImpact: bool, articleKind: enumeration(['SECTOR', 'MACRO']), sectorIds: array(str),
+    newCatalyst: bool, koreanImpact: bool, articleKind: enumeration(['SECTOR', 'COMPANY', 'MACRO']), primaryCompanyId: nullable, sectorIds: array(str),
     event: object({ family: enumeration(['EARNINGS', 'CONTRACT', 'INVESTMENT', 'PRODUCT', 'POLICY', 'REGULATION', 'GEOPOLITICS', 'SUPPLY', 'OTHER']),
       entityIds: array(str), date: nullable, period: nullable, officialId: nullable, refs: array(ref) }),
     facts: array(fact), impacts: array(impact), reason: str }),
@@ -136,7 +136,12 @@ export function validateTriage(raw, documents, catalog) {
     return { state: 'EXCLUDED', reason: value.classification };
   }
   if (value.classification !== 'RELEVANT_EVENT' || !value.newCatalyst || !value.koreanImpact) return { state: 'HOLD', reason: 'TRIAGE_UNCLEAR' };
-  if (value.articleKind === 'SECTOR') assert(value.sectorIds.length > 0 && value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
+  if (value.articleKind !== 'MACRO') assert(value.sectorIds.length > 0 && value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
+  // Scope (2026-11-27): a COMPANY issue concerns one company's own event (its filing, financing, compensation,
+  // capacity). It is shown on that company's page, not in the home or sector feed. It names the company.
+  if (value.articleKind === 'COMPANY') {
+    assert(typeof value.primaryCompanyId === 'string' && value.event.entityIds.includes(value.primaryCompanyId), 'PRIMARY_COMPANY_REQUIRED');
+  } else assert(value.primaryCompanyId === null, 'PRIMARY_COMPANY_ONLY_FOR_COMPANY_SCOPE');
   references(value.event.refs, documents);
   // Filings write dates as 2026년 11월 26일 or 2026.11.24; the same calendar date is stored as YYYY-MM-DD.
   if (value.event.date !== null) value.event.date = isoDate(value.event.date) ?? value.event.date;
@@ -354,6 +359,11 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     impacts: impacts.map(item => ({ ...item, description: render(item.description), conditions: item.conditions.map(render) })), visible_sections: visible,
     impact_profile: !hasBenefit && !hasDamage ? 'RELATED_CONDITIONAL' : positive ? negative ? 'POSITIVE_NEGATIVE' : 'POSITIVE_ONLY' : 'DAMAGE_ONLY',
     analysis_perspective: 'KR_EQUITY', article_kind: triage.articleKind, publication_state: 'DRAFT', publicationAuthorized: false,
+    // COMPANY issues appear on the company page only; SECTOR and MACRO issues also feed home and sector lists.
+    // Every company with a stated role is linked, so sector issues also appear on each linked company's page.
+    placement: triage.articleKind === 'COMPANY' ? 'COMPANY_PAGE' : 'FEED',
+    primary_company_ref: triage.articleKind === 'COMPANY' ? triage.primaryCompanyId : null,
+    company_refs: [...new Set([...(triage.articleKind === 'COMPANY' ? [triage.primaryCompanyId] : []), ...impacts.flatMap(item => item.companyIds)])],
     angleKey: digest(impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort()),
     // PRIMARY: company/regulator/exchange originals. REPORTED: newsroom or research coverage. Both keep their own link.
     source_refs: documents.flatMap(doc => doc.sources.map(source => ({ docId: doc.id, url: source.url, name: source.name ?? source.id,

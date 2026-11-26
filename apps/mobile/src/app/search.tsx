@@ -7,7 +7,7 @@ import {NewsCard} from '../components/NewsCard';
 import {useCurrentRead} from '../data/useCurrentRead';
 type SelectedCompany={source_company_ref:string;name:string};
 function CompanyRow({company:c,onMore}:{company:SearchCompany;onMore:(company:SelectedCompany)=>void}){
- return <View style={s.card}><Text style={s.headline}>{c.name}</Text><Text style={s.body}>{c.search_description}</Text><Text style={[s.date,{marginBottom:12}]}>시세 · 종목 코드 확인 전</Text><View style={s.row}>{c.related_sectors.map(x=><Link key={x.id} href={{pathname:'/sector/[id]',params:{id:x.id,tab:'stocks'}}} asChild><Pressable style={s.chip}><Text style={s.chipText}>{x.name}</Text></Pressable></Link>)}{c.has_more_sectors&&<Pressable style={s.chip} onPress={()=>onMore(c)}><Text style={s.chipText}>관련 섹터 더보기</Text></Pressable>}</View></View>;
+ return <View style={s.card}><Link href={{pathname:'/company/[id]',params:{id:c.source_company_ref}}} asChild><Pressable accessibilityRole='link'><Text style={s.headline}>{c.name} ›</Text><Text style={s.body}>{c.search_description}</Text></Pressable></Link><Text style={[s.date,{marginBottom:12}]}>시세 · 종목 코드 확인 전</Text><View style={s.row}>{c.related_sectors.map(x=><Link key={x.id} href={{pathname:'/sector/[id]',params:{id:x.id,tab:'stocks'}}} asChild><Pressable style={s.chip}><Text style={s.chipText}>{x.name}</Text></Pressable></Link>)}{c.has_more_sectors&&<Pressable style={s.chip} onPress={()=>onMore(c)}><Text style={s.chipText}>관련 섹터 더보기</Text></Pressable>}</View></View>;
 }
 function CompanySectorModal({company,version,onClose,onRefresh}:{company:SelectedCompany|null;version:string;onClose:()=>void;onRefresh:()=>void}){
  const [offset,setOffset]=useState(0);useEffect(()=>setOffset(0),[company?.source_company_ref,version]);

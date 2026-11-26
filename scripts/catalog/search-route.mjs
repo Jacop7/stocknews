@@ -24,6 +24,20 @@ export function searchRoute(u){
   only(['version','offset','limit']);const limit=integer('limit',20,20);if(!limit)fail();
   return {name:'catalog_public_company_sectors',args:{p_expected:head,p_company:related[1],p_offset:integer('offset',0,3000),p_limit:limit},search:true};
  }
+ // Company page (2026-11-27): reference identity, related sectors and the issues that link the company.
+ const page=u.pathname.match(/^\/v2\/companies\/([0-9a-f-]+)$/);
+ if(page&&uuid.test(page[1])){
+  only(['version','limit','cursor']);const limit=integer('limit',20,20);if(!limit)fail();
+  const context=createHash('sha256').update(JSON.stringify({version:head,company:page[1],type:'company',limit})).digest('hex');
+  let c=null;
+  if(p.has('cursor')){
+   const encoded=p.get('cursor');if(!/^[A-Za-z0-9_-]{1,1800}$/.test(encoded))fail('INVALID_CURSOR_CONTEXT',409);
+   try{c=JSON.parse(Buffer.from(encoded,'base64url').toString('utf8'));}catch{fail('INVALID_CURSOR_CONTEXT',409);}
+   if(!c||Array.isArray(c)||Object.keys(c).sort().join(',')!=='as_of,context,last_id,last_time,version'||c.version!==1||c.context!==context||!uuid.test(c.last_id)||
+    !date(c.as_of)||!date(c.last_time)||Date.parse(c.last_time)>Date.parse(c.as_of))fail('INVALID_CURSOR_CONTEXT',409);
+  }
+  return {name:'catalog_public_company',search:true,context,args:{p_expected:head,p_company:page[1],p_limit:limit,p_as_of:c?.as_of??null,p_last_time:c?.last_time??null,p_last_id:c?.last_id??null}};
+ }
  if(!['/v2/search/news','/v2/search/companies'].includes(u.pathname))return null;
  only(['version','q','limit','cursor']);const query=normalizeSearch(p.get('q')),limit=integer('limit',20,20);if(!limit)fail();
  const type=u.pathname.endsWith('/news')?'news':'companies';
@@ -42,6 +56,7 @@ export function searchRoute(u){
 const card=x=>x&&uuid.test(x.issue_id)&&x.sample_kind==='SYNTHETIC'&&typeof x.title==='string'&&typeof x.summary==='string'&&date(x.first_published_at);
 export function searchResponse(route,value){
  if(!route.search)return value;
+ if(route.name==='catalog_public_company')return companyResponse(route,value);
  if(!value||String(value.catalog_version)!==route.args.p_expected||!Array.isArray(value.items))fail('INVALID_SEARCH_DTO',502);
  if(route.name==='catalog_public_saved'){
   if(value.items.length!==route.args.p_issues.length||value.items.some((x,i)=>x.requested_issue_id!==route.args.p_issues[i]||!['PUBLISHED','NOT_FOUND','HIDDEN','WITHDRAWN','CORRECTION_PENDING'].includes(x.state)||
@@ -53,5 +68,17 @@ export function searchResponse(route,value){
  const news=route.name.endsWith('_news');
  if(news?(!date(value.as_of)||value.items.some(x=>!card(x))):value.items.some(x=>!uuid.test(x.source_company_ref)||typeof x.name!=='string'||typeof x.search_description!=='string'||x.metadata_kind!=='USER_REFERENCE_UNVERIFIED'||x.stock_identity_state!=='UNRESOLVED'||['stock_code','price','change_percent','stock_url'].some(k=>x[k]!==null)))fail('INVALID_SEARCH_DTO',502);
  const next_cursor=value.next?Buffer.from(JSON.stringify({version:1,context:route.context,...value.next,...(news?{as_of:value.as_of}:{})})).toString('base64url'):null;
+ const {next,...rest}=value;return {...rest,next_cursor};
+}
+
+const unresolved=x=>x&&uuid.test(x.source_company_ref)&&typeof x.name==='string'&&x.metadata_kind==='USER_REFERENCE_UNVERIFIED'&&x.stock_identity_state==='UNRESOLVED'&&['stock_code','price','change_percent','stock_url'].every(k=>x[k]===null);
+function companyResponse(route,value){
+ if(!value||String(value.catalog_version)!==route.args.p_expected||!['AVAILABLE','NOT_FOUND'].includes(value.state))fail('INVALID_SEARCH_DTO',502);
+ if(value.state==='NOT_FOUND'){if(Object.keys(value).sort().join(',')!=='catalog_version,state')fail('INVALID_SEARCH_DTO',502);return value;}
+ const company=value.company;
+ if(!unresolved(company)||company.source_company_ref!==route.args.p_company||typeof company.search_description!=='string'||!Array.isArray(company.related_sectors)||
+  !Array.isArray(value.items)||value.items.length>route.args.p_limit||!date(value.as_of)||
+  value.items.some(x=>!card(x)||!['PRIMARY','MENTIONED'].includes(x.company_role)||!['SECTOR','COMPANY','MACRO'].includes(x.article_kind)))fail('INVALID_SEARCH_DTO',502);
+ const next_cursor=value.next?Buffer.from(JSON.stringify({version:1,context:route.context,...value.next,as_of:value.as_of})).toString('base64url'):null;
  const {next,...rest}=value;return {...rest,next_cursor};
 }

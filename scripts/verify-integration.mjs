@@ -27,6 +27,7 @@ const checks = [
     'tests/event-routing.test.ts',
     'tests/home-public-read.test.mjs',
     'tests/public-read-gateway.test.mjs',
+    'tests/company-page-route.test.mjs',
     'tests/editor-state.test.mjs',
   ]],
   ['Saved-link backlog processing tests', [
@@ -42,6 +43,7 @@ const checks = [
     'tests/backlog-service.test.mjs',
     'tests/backlog-dart.test.mjs',
     'tests/backlog-live-formats.test.mjs',
+    'tests/backlog-scope.test.mjs',
   ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',

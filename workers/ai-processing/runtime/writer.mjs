@@ -26,7 +26,7 @@ export function writingBrief({ facts, triage, documents, catalog, existingIssues
       ...factProvenance(fact, documents) })),
     event: { family: triage.event.family, entityIds: triage.event.entityIds, date: triage.event.date,
       period: triage.event.period, officialId: triage.event.officialId },
-    articleKind: triage.articleKind, sectorIds: triage.sectorIds,
+    articleKind: triage.articleKind, primaryCompanyId: triage.primaryCompanyId ?? null, sectorIds: triage.sectorIds,
     impacts: triage.impacts.map(({ sectorId, companyIds, direction, conditionalDirection, category, path, conditions, factIds }) =>
       ({ sectorId, companyIds, direction, conditionalDirection, category, path, conditions, factIds })),
     catalog, existingIssues,

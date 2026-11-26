@@ -18,7 +18,7 @@ export function triage(docId, extra = false, damage = false) {
     statement: '장비투자 예산이 20% 확대됐다.', verificationClass: 'ORDINARY_FACT', refs: [{ docId, quote }] }];
   if (extra) facts.push({ id: 'local-f2', subjectId: 'orion', predicate: 'PROJECT_SCOPE', value: 'additional-site', unit: '', period: '2026-Q3',
     statement: '추가 사업장을 검토한다.', verificationClass: 'ORDINARY_FACT', refs: [{ docId, quote: '추가 사업장 검토가 공지됐다.' }] });
-  return { classification: 'RELEVANT_EVENT', newCatalyst: true, koreanImpact: true, articleKind: 'SECTOR', sectorIds: ['semiconductor'],
+  return { classification: 'RELEVANT_EVENT', newCatalyst: true, koreanImpact: true, articleKind: 'SECTOR', primaryCompanyId: null, sectorIds: ['semiconductor'],
     event: { family: 'INVESTMENT', entityIds: ['orion'], date: '2026-11-21', period: '2026-Q3', officialId: null, refs: [{ docId, quote }] },
     facts, impacts: [{ sectorId: 'semiconductor', companyIds: ['orion'], direction: damage ? 'DAMAGE' : 'BENEFIT', conditionalDirection: 'NONE',
       category: damage ? 'COST' : 'DEMAND', path: '설비투자 집행과 국내 장비 발주 경로', conditions: ['계획 집행 여부 확인'], factIds: facts.map(fact => fact.id) }],
