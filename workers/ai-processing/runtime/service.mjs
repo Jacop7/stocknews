@@ -1,0 +1,63 @@
+// Long-running AI processing service for the server container.
+// Every 10 minutes it imports saved links from the collector databases (read-only connections), then steps the
+// processor one job at a time. Original reads and model calls need BOTH the config flags and JUDOJU_AI_EXECUTE=1;
+// otherwise the service only imports and reports status. The API key is read from a file only when calls are on,
+// kept in memory, and never logged.
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { BacklogStore } from './store.mjs';
+import { validateConfig } from './contracts.mjs';
+import { createOriginalReader } from './original.mjs';
+import { createLinkResolver } from './resolver.mjs';
+import { createOpenAiModel } from './model.mjs';
+import { createBacklogProcessor } from './pipeline.mjs';
+import { readSavedLinks } from './cli.mjs';
+
+const env = process.env;
+const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUDOJU_AI_CONFIG ?? '/ai/config.json',
+  telegram: env.JUDOJU_TELEGRAM_DB ?? '/collector/telegram-links.sqlite', web: env.JUDOJU_WEB_DB ?? '/collector/collection.sqlite',
+  key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
+const execute = env.JUDOJU_AI_EXECUTE === '1';
+const importEvery = 10 * 60_000;
+
+const log = event => console.log(JSON.stringify({ at: new Date().toISOString(), ...event }));
+export function effectiveConfig(raw, executeAllowed) {
+  const value = validateConfig(raw);
+  return { ...value, readOriginals: value.readOriginals && executeAllowed, callModels: value.callModels && executeAllowed };
+}
+
+async function main() {
+  const store = new BacklogStore(paths.db);
+  const loadConfig = () => effectiveConfig(JSON.parse(readFileSync(paths.config, 'utf8')), execute);
+  const initial = loadConfig();
+  const model = initial.callModels ? createOpenAiModel({ apiKey: readFileSync(paths.key, 'utf8').trim() })
+    : async () => { throw new Error('MODEL_EXECUTION_DISABLED'); };
+  const robots = { loadRobots: (origin, now) => store.loadRobots(origin, now), saveRobots: (origin, value) => store.saveRobots(origin, value) };
+  const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal: createOriginalReader(robots), resolveLink: createLinkResolver(robots) });
+  const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
+  log({ event: 'AI_SERVICE_START', execute, readOriginals: initial.readOriginals, callModels: initial.callModels, maxDailyCalls: initial.maxDailyCalls });
+  let nextImport = 0;
+  try {
+    while (!stop.signal.aborted) {
+      const now = Date.now();
+      if (now >= nextImport) {
+        const entries = [];
+        for (const [file, kind] of [[paths.telegram, 'telegram'], [paths.web, 'web']]) {
+          try { if (existsSync(file)) entries.push(...readSavedLinks(file, kind, now)); } catch { log({ event: 'AI_IMPORT_SOURCE_FAILED', kind }); }
+        }
+        log({ event: 'AI_IMPORT', ...store.importLinks(entries, now) });
+        nextImport = now + importEvery;
+      }
+      let result;
+      try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }
+      if (result.state !== 'IDLE' && result.state !== 'PAUSED') log({ event: 'AI_STEP', state: result.state, reason: result.reason ?? null });
+      writeFileSync(paths.heartbeat, String(Date.now()));
+      writeFileSync(paths.status + '.pending', JSON.stringify({ at: Date.now(), execute, ...store.status() }));
+      renameSync(paths.status + '.pending', paths.status);
+      const idle = result.state === 'IDLE' || result.state === 'PAUSED';
+      await sleep(idle ? 30_000 : 1000, undefined, { signal: stop.signal }).catch(error => { if (!stop.signal.aborted) throw error; });
+    }
+  } finally { store.close(); }
+}
+
+if (process.argv[1]?.endsWith('service.mjs')) main().catch(() => { console.error('AI_SERVICE_FAILED'); process.exitCode = 1; });
