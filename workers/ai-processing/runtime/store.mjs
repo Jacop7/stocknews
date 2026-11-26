@@ -4,6 +4,12 @@ import { DatabaseSync } from 'node:sqlite';
 import { digest, canonical, day, urlKey, sourceGrant } from './contracts.mjs';
 
 const decode = row => row ? { ...row, payload: JSON.parse(row.payload) } : null;
+// Retention (2026-11-26 user decision): an original's title/body is deleted as soon as its analysis is written
+// (or it is excluded), and in any case at its source/link deadline (max 7 days). Extracted facts with short
+// quotes and the source record stay 30 days for corrections and same-story updates. Unpublished drafts stay
+// 30 days and no longer disappear with their originals. Revocation still removes everything immediately.
+export const EVIDENCE_DAYS = 30, DRAFT_DAYS = 30;
+const activeStates = "('FETCH','TRIAGE','DRAFT','VERIFY')";
 export class BacklogStore {
   constructor(filename) {
     this.db = new DatabaseSync(filename, { timeout: 5000 });
@@ -29,6 +35,9 @@ export class BacklogStore {
       CREATE TABLE IF NOT EXISTS run_documents(run_key TEXT NOT NULL,doc_id TEXT NOT NULL,PRIMARY KEY(run_key,doc_id)) STRICT;
       CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,job_id TEXT,state TEXT NOT NULL,reason TEXT,observed_at INTEGER NOT NULL) STRICT;
     `);
+    if (!this.db.prepare('PRAGMA table_info(documents)').all().some(column => column.name === 'body_expires_at')) {
+      this.db.exec('ALTER TABLE documents ADD COLUMN body_expires_at INTEGER');
+    }
   }
   close() { this.db.close(); }
   transaction(callback) {
@@ -96,11 +105,15 @@ export class BacklogStore {
     return this.transaction(() => {
       assert(this.owns(job, now), 'LEASE_STALE');
       const expires = Math.min(job.expires_at, now + grant.retentionDays * day, grant.expiresAt === null ? Infinity : Date.parse(grant.expiresAt));
-      this.db.prepare('INSERT INTO documents VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET expires_at=max(expires_at,excluded.expires_at)')
-        .run(original.bodyHash, original.title, original.text, original.publishedAt, expires);
+      const record = Math.min(now + EVIDENCE_DAYS * day, grant.expiresAt === null ? Infinity : Date.parse(grant.expiresAt));
+      // A re-fetched copy of an already deleted body restores it; it is deleted again on completion.
+      this.db.prepare(`INSERT INTO documents(id,title,body,published_at,expires_at,body_expires_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+        expires_at=max(expires_at,excluded.expires_at),body_expires_at=max(coalesce(body_expires_at,0),excluded.body_expires_at),
+        title=CASE WHEN body='' THEN excluded.title ELSE title END,body=CASE WHEN body='' THEN excluded.body ELSE body END`)
+        .run(original.bodyHash, original.title, original.text, original.publishedAt, record, expires);
       const source = { ...grant, url: original.url, publishedAt: original.publishedAt };
       this.db.prepare('INSERT INTO document_sources VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET doc_id=excluded.doc_id,payload=excluded.payload,expires_at=excluded.expires_at')
-        .run(original.bodyHash, original.url, canonical(source), expires);
+        .run(original.bodyHash, original.url, canonical(source), record);
       const payload = { ...job.payload, docId: original.bodyHash, configHash };
       this.db.prepare("UPDATE jobs SET state='TRIAGE',payload=?,expires_at=?,lease=NULL,lease_until=0,next_at=? WHERE id=? AND lease=?")
         .run(canonical(payload), expires, now, job.id, job.lease);
@@ -113,16 +126,47 @@ export class BacklogStore {
       if (!doc) return null;
       const sources = this.db.prepare('SELECT payload,url,expires_at FROM document_sources WHERE doc_id=? AND expires_at>?').all(id, now)
         .filter(source => sourceGrant(config, source.url, now)).map(source => {
-          const origin = config.documentOrigins?.find(item => item.url === source.url && item.bodyHash === id && item.verified && doc.body.includes(item.quote));
+          // After the body is deleted, the attested body hash still binds the origin record to this exact text.
+          const origin = config.documentOrigins?.find(item => item.url === source.url && item.bodyHash === id && item.verified && (doc.body === '' || doc.body.includes(item.quote)));
           return { ...sourceGrant(config, source.url, now),
           articleOriginVerified: Boolean(origin), originGroupId: origin?.originGroupId ?? null,
           url: source.url, publishedAt: JSON.parse(source.payload).publishedAt,
           expiresAt: Math.min(source.expires_at, sourceGrant(config, source.url, now).expiresAt === null ? Infinity : Date.parse(sourceGrant(config, source.url, now).expiresAt)) };
         });
       const dates = sources.map(source => source.publishedAt).filter(value => Number.isFinite(Date.parse(value))).sort();
-      return sources.length ? { id, title: doc.title, text: doc.body, publishedAt: dates[0] ?? null,
+      return sources.length ? { id, title: doc.title, text: doc.body, purged: doc.body === '', publishedAt: dates[0] ?? null,
+        bodyExpiresAt: doc.body_expires_at ?? doc.expires_at,
         expiresAt: Math.min(doc.expires_at, ...sources.map(source => source.expiresAt)), sources } : null;
     }).filter(Boolean);
+  }
+  // The stored extraction for this exact body and configuration: reused without a model call, even after
+  // the original body and the model response were deleted.
+  knownTriage(docId, configHash) {
+    const row = this.db.prepare('SELECT story_key,payload FROM triages WHERE doc_id=? AND config_hash=?').get(docId, configHash);
+    return row ? { storyKey: row.story_key, value: JSON.parse(row.payload) } : null;
+  }
+  purgeBody(id) {
+    this.db.prepare("UPDATE documents SET title='',body='' WHERE id=?").run(id);
+    this.db.prepare('UPDATE runs SET response=NULL WHERE key IN (SELECT run_key FROM run_documents WHERE doc_id=?) OR scope LIKE ?').run(id, id + ':%');
+  }
+  // Deletes original bodies once nothing still needs them: no fetch/triage job for that document and no
+  // draft/verify job in flight for the same story (verification compares against the originals).
+  releaseOriginals(ids) {
+    const run = () => {
+      let released = 0;
+      for (const id of new Set(ids)) {
+        const stories = new Set(this.db.prepare('SELECT story_key FROM triages WHERE doc_id=?').all(id).map(row => row.story_key));
+        const busy = this.db.prepare('SELECT payload FROM jobs WHERE state IN ' + activeStates).all().some(row => {
+          const payload = JSON.parse(row.payload);
+          return payload.docId === id || stories.has(payload.storyKey);
+        });
+        if (busy) continue;
+        released += Number(this.db.prepare("SELECT 1 FROM documents WHERE id=? AND body<>''").get(id) !== undefined);
+        this.purgeBody(id);
+      }
+      return released;
+    };
+    return this.db.isTransaction ? run() : this.transaction(run);
   }
   saveTriage(job, triage, configHash, now) {
     this.transaction(() => {
@@ -175,6 +219,7 @@ export class BacklogStore {
       }
       this.db.prepare("UPDATE jobs SET state='DUPLICATE',payload=?,lease=NULL,lease_until=0 WHERE id=?")
         .run(canonical({ docId: job.payload.docId, issueId: issue.id }), job.id);
+      this.releaseOriginals(documents.map(doc => doc.id));
       return { state: 'DUPLICATE', issueId: issue.id, jobId: job.id };
     });
   }
@@ -195,6 +240,7 @@ export class BacklogStore {
       assert(!current || previousIds.every(id => newIds.includes(id)), 'INCOMPLETE_UPDATE');
       if (current && newIds.every(fact => previousIds.includes(fact))) {
         this.db.prepare("UPDATE jobs SET state='DUPLICATE',lease=NULL,lease_until=0 WHERE id=?").run(job.id);
+        this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));
         return { state: 'DUPLICATE', issueId: id, jobId: job.id };
       }
       action = current ? 'UPDATE' : expectedIssues.length ? 'NEW_ANGLE' : 'NEW_STORY';
@@ -202,16 +248,21 @@ export class BacklogStore {
         .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
       this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0 WHERE id=?").run(canonical({ ...job.payload, issueId: id, version, action }), job.id);
       this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
+      this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));
       return { state: 'DRAFT_READY', action, issueId: id, version, jobId: job.id, publicationAuthorized: false };
     });
   }
   maintain(config, now) {
     this.transaction(() => {
-      const removed = new Set(this.db.prepare('SELECT doc_id FROM document_sources WHERE expires_at<=?').all(now).map(row => row.doc_id));
+      // Bodies past their source/link deadline are deleted; the 30-day fact record remains.
+      for (const row of this.db.prepare("SELECT id FROM documents WHERE body<>'' AND coalesce(body_expires_at,expires_at)<=?").all(now)) this.purgeBody(row.id);
+      const expired = new Set(this.db.prepare('SELECT doc_id FROM document_sources WHERE expires_at<=?').all(now).map(row => row.doc_id));
+      const removed = new Set();
       for (const table of ['jobs', 'sightings', 'document_sources', 'proposals', 'robots_rules']) this.db.prepare('DELETE FROM ' + table + ' WHERE expires_at<=?').run(now);
       // INTENT/UNKNOWN tombstones remain text-free: they must still prevent an uncertain redispatch.
       this.db.prepare('UPDATE runs SET response=NULL WHERE expires_at<=?').run(now);
-      this.db.prepare("UPDATE issues SET payload=?,fact_ids='[]' WHERE expires_at<=?").run(canonical({ state: 'HOLD_SOURCE_EXPIRED', publicationAuthorized: false }), now);
+      // Unpublished drafts expire on their own 30-day clock, not with their originals.
+      this.db.prepare('DELETE FROM issues WHERE expires_at<=?').run(now);
       if (config) {
         for (const source of this.db.prepare('SELECT url,doc_id FROM document_sources').all()) if (!sourceGrant(config, source.url, now)) {
           removed.add(source.doc_id); this.db.prepare('DELETE FROM document_sources WHERE url=?').run(source.url);
@@ -227,7 +278,20 @@ export class BacklogStore {
         this.db.prepare("UPDATE jobs SET state='FETCH',next_at=?,lease=NULL,lease_until=0 WHERE id=? AND state='HOLD_ORIGINAL'").run(now, held.id);
         this.db.prepare("INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,'FETCH','SOURCE_GRANT_AVAILABLE',?)").run(held.id, now);
       }
-      for (const row of this.db.prepare('SELECT id FROM documents WHERE expires_at<=?').all(now)) removed.add(row.id);
+      for (const row of this.db.prepare('SELECT id FROM documents WHERE expires_at<=?').all(now)) expired.add(row.id);
+      // The fact record expiring keeps written drafts; it only stops in-flight work that still needed it.
+      for (const id of expired) if (!removed.has(id)) {
+        this.db.prepare('UPDATE runs SET response=NULL WHERE key IN (SELECT run_key FROM run_documents WHERE doc_id=?) OR scope LIKE ?').run(id, id + ':%');
+        for (const job of this.db.prepare('SELECT id,payload FROM jobs WHERE state IN ' + activeStates).all()) {
+          const payload = JSON.parse(job.payload);
+          if (payload.docId === id || payload.triage?.facts?.some(fact => fact.refs.some(ref => ref.docId === id))) this.db.prepare("UPDATE jobs SET payload=?,state='HOLD_SOURCE_CHANGED',lease=NULL,lease_until=0 WHERE id=?")
+            .run(canonical({ state: 'HOLD_SOURCE_CHANGED', publicationAuthorized: false }), job.id);
+        }
+        for (const proposal of this.db.prepare('SELECT id,payload FROM proposals').all()) {
+          if ((JSON.parse(proposal.payload).source_refs ?? []).some(source => source.docId === id)) this.db.prepare('DELETE FROM proposals WHERE id=?').run(proposal.id);
+        }
+      }
+      // Revocation or an excluded source: drafts and everything derived from that source are withdrawn.
       for (const id of removed) {
         this.db.prepare('UPDATE runs SET response=NULL WHERE key IN (SELECT run_key FROM run_documents WHERE doc_id=?) OR scope LIKE ?').run(id, id + ':%');
         for (const issue of this.db.prepare('SELECT id,payload FROM issues').all()) if ((JSON.parse(issue.payload).source_refs ?? []).some(source => source.docId === id)) {

@@ -247,10 +247,14 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   assertHedged(allText);
   const provenance = facts.map(fact => ({ id: fact.id, ...factProvenance(fact, documents) }));
   assertAttributed([...draft.key_issues, draft.issue_analysis], { facts: provenance });
-  const originality = screenArticleOriginality({ policy: { version: 'BACKLOG_WORDING_V1', headlineCharacters: 18, passageCharacters: 36 },
-    sourceParts: documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }]),
-    draft: { headline: stripCalculations(draft.title), parts: allText.slice(1).map((value, index) => ({ id: 'part-' + index, text: stripCalculations(value) })) } });
-  assert(originality.state === 'NO_LITERAL_MATCH', 'SHARED_SOURCE_WORDING');
+  // Originals deleted under the retention rule have no text left to compare; the remaining ones are screened.
+  const sourceParts = documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }])
+    .filter(part => part.text.trim());
+  if (sourceParts.length) {
+    const originality = screenArticleOriginality({ policy: { version: 'BACKLOG_WORDING_V1', headlineCharacters: 18, passageCharacters: 36 }, sourceParts,
+      draft: { headline: stripCalculations(draft.title), parts: allText.slice(1).map((value, index) => ({ id: 'part-' + index, text: stripCalculations(value) })) } });
+    assert(originality.state === 'NO_LITERAL_MATCH', 'SHARED_SOURCE_WORDING');
+  }
   const visible = ['KEY_ISSUES', 'ISSUE_ANALYSIS'];
   if (draft.scenarios.length) visible.push('SCENARIOS');
   for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);

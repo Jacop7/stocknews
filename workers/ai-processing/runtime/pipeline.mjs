@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { canonical, digest, validateConfig, sourceGrant, day } from './contracts.mjs';
 import { validateTriage, mergeFacts, evidenceSufficient, validateDraft, validateVerification } from './editorial.mjs';
 import { writingBrief } from './writer.mjs';
+import { DRAFT_DAYS } from './store.mjs';
 
 const hold = reason => ({ state: 'HOLD', reason });
 export function createBacklogProcessor({ store, readOriginal, model, loadConfig, now = Date.now }) {
@@ -61,10 +62,16 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
         if (job.state === 'TRIAGE') {
           const published = Date.parse(document.publishedAt);
           if (!Number.isFinite(published) || published > now() + 300000) return settle('HOLD_DATE', job.payload, 'PUBLICATION_TIME_UNVERIFIED');
+          const known = store.knownTriage(document.id, expectedConfig);
+          if (known) return settle('DRAFT', { ...job.payload, storyKey: known.storyKey, triage: known.value, configHash: expectedConfig });
           const result = await executeModel(job, 'triage', { document: { id: document.id, title: document.title, text: document.text, publishedAt: document.publishedAt }, catalog: config.catalog }, config, () => authority([document.id]), document.expiresAt);
           if (result.state !== 'RESULT') return modelHold(result);
           const triage = validateTriage(result.value, documents, config.catalog);
-          if (triage.state !== 'RELEVANT') return settle(triage.state === 'EXCLUDED' ? 'EXCLUDED' : 'HOLD_TRIAGE', job.payload, triage.reason);
+          if (triage.state === 'EXCLUDED') {
+            // Excluded originals (ads, price recaps, unrelated) are not kept for later.
+            const result = settle('EXCLUDED', job.payload, triage.reason); store.releaseOriginals([document.id]); return result;
+          }
+          if (triage.state !== 'RELEVANT') return settle('HOLD_TRIAGE', job.payload, triage.reason);
           store.saveTriage(job, triage, expectedConfig, now());
           return settle('DRAFT', { ...job.payload, storyKey: triage.storyKey, triage: triage.value, configHash: expectedConfig });
         }
@@ -86,9 +93,10 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
         const eventDate = Date.parse(job.payload.triage.event.date ?? '');
         if (published < now() - 3 * day && (!Number.isFinite(eventDate) || eventDate < now() - 3 * day)) return settle('HOLD_OLD_EVENT', job.payload, 'OLD_EVENT_NOT_NEW_CATALYST');
         const snapshot = context.issues.map(issue => ({ id: issue.id, version: issue.version }));
-        const retentionUntil = Math.min(job.expires_at, ...context.documents.map(doc => doc.expiresAt));
+        const retentionUntil = Math.min(job.expires_at, ...context.documents.map(doc => Math.min(doc.expiresAt, doc.bodyExpiresAt)));
         const input = { facts, triage: job.payload.triage, catalog: config.catalog,
-          originals: context.documents.map(doc => ({ id: doc.id, title: doc.title, text: doc.text, publishedAt: doc.publishedAt })),
+          // A deleted original arrives as purged: the verifier checks those facts against their stored quotes.
+          originals: context.documents.map(doc => ({ id: doc.id, title: doc.title, text: doc.text, publishedAt: doc.publishedAt, ...(doc.purged ? { purged: true } : {}) })),
           existingIssues: context.issues.map(issue => ({ id: issue.id, version: issue.version, title: issue.payload.title,
             angleKey: issue.angle_key, factIds: JSON.parse(issue.fact_ids) })) };
         if (job.state === 'DRAFT') {
@@ -113,7 +121,7 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
         if (result.state !== 'RESULT') return modelHold(result);
         validateVerification(result.value, facts, context.issues.length > 0);
         assert(authority(docIds), 'AUTHORITY_CHANGED');
-        return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), retentionUntil);
+        return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), now() + DRAFT_DAYS * day);
       } catch (error) {
         const reason = /^[A-Z][A-Z_]{2,80}$/.test(error.message ?? '') ? error.message : 'PROCESSING_VALIDATION_FAILED';
         if (!store.owns(job, now())) return hold('LEASE_STALE');

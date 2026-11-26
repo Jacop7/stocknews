@@ -181,7 +181,7 @@ test('nine originals cannot silently replace a verified issue with an eight-docu
   const row = h.store.db.prepare('SELECT * FROM triages').get();
   for (let i = 0; i < 8; i++) {
     const id = digest('extra-' + i);
-    h.store.db.prepare('INSERT INTO documents VALUES (?,?,?,?,?)').run(id, '추가 원문', originalText, new Date(stamp).toISOString(), stamp + day);
+    h.store.db.prepare('INSERT INTO documents(id,title,body,published_at,expires_at) VALUES (?,?,?,?,?)').run(id, '추가 원문', originalText, new Date(stamp).toISOString(), stamp + day);
     h.store.db.prepare('INSERT INTO document_sources VALUES (?,?,?,?)').run(id, url + '?item=' + i, JSON.stringify(h.settings.sources[0]), stamp + day);
     h.store.db.prepare('INSERT INTO triages VALUES (?,?,?,?,?)').run(id, row.config_hash, row.story_key, row.partition_key, row.payload);
   }
