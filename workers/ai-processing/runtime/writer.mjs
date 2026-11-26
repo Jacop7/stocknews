@@ -94,28 +94,44 @@ const plain = value => value.normalize('NFKC').replace(/(?<=\d),(?=\d{3}(?:\D|$)
 // to appear in identifiers such as HBM4 or in surrounding statement text.
 const quantitative = fact => /^[+-]?\d+(?:[,.]\d+)*$/.test(fact.value) && fact.unit.trim() !== '';
 const operandValues = facts => new Set(facts.filter(quantitative).map(fact => plain(fact.value)));
+// Arithmetic only: numbers, + - × ÷ and parentheses (e.g. (a - b) ÷ a × 100). Anything else is INVALID_CALCULATION.
 function evaluate(expression) {
-  const raw = plain(expression).replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').match(/\d+(?:\.\d+)?|[-+*/]|\S/g) ?? [];
-  // Fold a unary minus into the following number (at the start or right after an operator).
-  const tokens = [];
-  for (let index = 0; index < raw.length; index++) {
-    const unary = raw[index] === '-' && (tokens.length === 0 || /^[-+*/]$/.test(tokens.at(-1))) && /^\d/.test(raw[index + 1] ?? '');
-    if (unary) { tokens.push('-' + raw[++index]); continue; }
-    tokens.push(raw[index]);
-  }
-  assert(tokens.length >= 3 && tokens.length % 2 === 1 && tokens.every((token, index) =>
-    index % 2 === 0 ? /^-?\d+(?:\.\d+)?$/.test(token) : /^[-+*/]$/.test(token)), 'INVALID_CALCULATION');
-  const terms = [Number(tokens[0])], ops = [];
-  for (let index = 1; index < tokens.length; index += 2) {
-    const op = tokens[index], value = Number(tokens[index + 1]);
-    if (op === '*') terms.push(terms.pop() * value);
-    else if (op === '/') { assert(value !== 0, 'INVALID_CALCULATION'); terms.push(terms.pop() / value); }
-    else { ops.push(op); terms.push(value); }
-  }
-  let result = terms[0];
-  ops.forEach((op, index) => { result = op === '+' ? result + terms[index + 1] : result - terms[index + 1]; });
-  return { result, operands: tokens.filter((_, index) => index % 2 === 0) };
+  const tokens = plain(expression).replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')
+    .replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '').match(/\d+(?:\.\d+)?|[-+*/()]|\S/g) ?? [];
+  assert(tokens.every(token => /^(?:\d+(?:\.\d+)?|[-+*/()])$/.test(token)), 'INVALID_CALCULATION');
+  let index = 0, depth = 0; const operands = [];
+  const factor = () => {
+    let sign = 1;
+    if (tokens[index] === '-') { sign = -1; index++; }
+    const token = tokens[index++];
+    if (token === '(') {
+      assert(++depth <= 4, 'INVALID_CALCULATION');
+      const value = sum(); assert(tokens[index++] === ')', 'INVALID_CALCULATION'); depth--; return sign * value;
+    }
+    assert(token !== undefined && /^\d/.test(token), 'INVALID_CALCULATION');
+    operands.push(sign < 0 ? '-' + token : token); return sign * Number(token);
+  };
+  const product = () => {
+    let value = factor();
+    while (tokens[index] === '*' || tokens[index] === '/') {
+      const op = tokens[index++], right = factor();
+      if (op === '/') assert(right !== 0, 'INVALID_CALCULATION');
+      value = op === '*' ? value * right : value / right;
+    }
+    return value;
+  };
+  const sum = () => {
+    let value = product();
+    while (tokens[index] === '+' || tokens[index] === '-') { const op = tokens[index++], right = product(); value = op === '+' ? value + right : value - right; }
+    return value;
+  };
+  const result = sum();
+  assert(index === tokens.length && operands.length >= 2 && Number.isFinite(result), 'INVALID_CALCULATION');
+  return { result, operands };
 }
+// A percentage of cited values, e.g. (a - b) ÷ a × 100 with unit %: the trailing × 100 is the only constant allowed.
+const percentConversion = (item, cited) => item.unit.trim() === '%' && /[×*]\s*100\s*$/.test(item.expression) &&
+  cited.length > 0 && cited.every(fact => !['%', '%p'].includes(fact.unit.trim().toLowerCase()));
 export function checkCalculations(calculations, facts) {
   const allowed = operandValues(facts), seen = new Set();
   return list(calculations, 12).map(item => {
@@ -125,9 +141,12 @@ export function checkCalculations(calculations, facts) {
     const cited = facts.filter(fact => item.factIds.includes(fact.id));
     // The rendered unit must be one of the cited facts' units (or none); it cannot smuggle in new numbers.
     const units = new Set(cited.map(fact => fact.unit.trim().toLowerCase()));
-    assert(!/\d/.test(item.unit) && (item.unit.trim() === '' || units.has(item.unit.trim().toLowerCase())), 'CALCULATION_UNIT_UNSUPPORTED');
+    const percent = percentConversion(item, cited);
+    assert(!/\d/.test(item.unit) && (item.unit.trim() === '' || percent || units.has(item.unit.trim().toLowerCase())), 'CALCULATION_UNIT_UNSUPPORTED');
     const { result, operands } = evaluate(item.expression);
-    assert(operands.every(value => operandValues(cited).has(value) && allowed.has(value)), 'CALCULATION_OPERAND_UNSUPPORTED');
+    if (percent) assert(operands.at(-1) === '100', 'CALCULATION_OPERAND_UNSUPPORTED');
+    const factOperands = percent ? operands.slice(0, -1) : operands;
+    assert(factOperands.length >= (percent ? 2 : 1) && factOperands.every(value => operandValues(cited).has(value) && allowed.has(value)), 'CALCULATION_OPERAND_UNSUPPORTED');
     const stated = plain(item.result);
     assert(/^-?\d+(?:\.\d+)?$/.test(stated), 'INVALID_CALCULATION');
     const decimals = stated.includes('.') ? stated.split('.')[1].length : 0;

@@ -94,6 +94,40 @@ function scheduleZoneSupported(item, refs) {
   });
 }
 
+// A calendar date written as 2026-11-26, 2026.11.26, 2026/11/26 or 2026년 11월 26일 → YYYY-MM-DD (null if not a real date).
+export function isoDate(value) {
+  const match = /^(\d{4})\s*(?:년|[.\-/])\s*(\d{1,2})\s*(?:월|[.\-/])\s*(\d{1,2})\s*일?\.?$/.exec(value.trim());
+  if (!match) return null;
+  const iso = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+  const parsed = new Date(iso + 'T00:00:00Z');
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === iso ? iso : null;
+}
+// Date facts (a board resolution date, a contract period): every date in the value must be quoted as written and
+// nothing but range separators may remain. They are categorical (unit ''), never calculation operands.
+const datePattern = /\d{4}년\s*\d{1,2}월(?:\s*\d{1,2}일)?|\d{4}([.\-/])\d{1,2}\1\d{1,2}/g;
+function dateValue(candidate, refs) {
+  if (!['', '날짜', '일자', '일시', 'date'].includes(candidate.unit.toLowerCase())) return false;
+  const dates = candidate.value.match(datePattern) ?? [];
+  if (!dates.length || candidate.value.replace(datePattern, '').replace(/[\s~∼〜\-–—]|부터|까지/g, '') !== '') return false;
+  const quoted = refs.map(ref => ref.quote).join(' ').replace(/\s+/g, '');
+  return dates.every(date => quoted.includes(date.replace(/\s+/g, '')));
+}
+// BENEFIT already means positive and DAMAGE negative, so a matching conditionalDirection only repeats it.
+// A contradicting one (BENEFIT + NEGATIVE) is left as is and still fails.
+function normalizeDirection(item) {
+  if (item.direction === 'BENEFIT' && item.conditionalDirection === 'POSITIVE' || item.direction === 'DAMAGE' && item.conditionalDirection === 'NEGATIVE') item.conditionalDirection = 'NONE';
+}
+// The writer sometimes appends "[factIds: f-…]" to prose. Known IDs are removed (they live in the factIds
+// fields); an unknown ID fails, and any fact ID left elsewhere in the text fails.
+const factIdList = /\s*[[(](?:fact\s*ids?|facts?|근거|사실\s*id)\s*[:：]?\s*(f-[0-9a-f]{40}(?:\s*[,、]\s*f-[0-9a-f]{40})*)\s*[\])]/gi;
+export function stripFactIds(value, known) {
+  const cleaned = value.replace(factIdList, (_match, entries) => {
+    assert(entries.split(/\s*[,、]\s*/).every(id => known.includes(id)), 'UNKNOWN_REFERENCE'); return '';
+  });
+  assert(!/f-[0-9a-f]{40}/.test(cleaned), 'FACT_ID_IN_TEXT');
+  return cleaned;
+}
+
 export function validateTriage(raw, documents, catalog) {
   validateShape(raw, schemas.triage);
   const value = structuredClone(raw), sectors = catalog.sectors.map(item => item.id), entities = catalog.entities.map(item => item.id);
@@ -104,6 +138,8 @@ export function validateTriage(raw, documents, catalog) {
   if (value.classification !== 'RELEVANT_EVENT' || !value.newCatalyst || !value.koreanImpact) return { state: 'HOLD', reason: 'TRIAGE_UNCLEAR' };
   if (value.articleKind === 'SECTOR') assert(value.sectorIds.length > 0 && value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
   references(value.event.refs, documents);
+  // Filings write dates as 2026년 11월 26일 or 2026.11.24; the same calendar date is stored as YYYY-MM-DD.
+  if (value.event.date !== null) value.event.date = isoDate(value.event.date) ?? value.event.date;
   if (value.event.date !== null) assert(/^\d{4}-\d{2}-\d{2}$/.test(value.event.date) && Number.isFinite(Date.parse(value.event.date)), 'INVALID_EVENT_DATE');
   if (value.event.period !== null) text(value.event.period, 40);
   if (value.event.officialId !== null) text(value.event.officialId, 100);
@@ -119,6 +155,8 @@ export function validateTriage(raw, documents, catalog) {
     const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '주': 'shares', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy' };
     candidate.value = candidate.value.trim();
     candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
+    // "백만 원" and "백만원" are the same table unit.
+    if (quantitativeUnits.has(candidate.unit.replace(/\s+/g, '').toLowerCase())) candidate.unit = candidate.unit.replace(/\s+/g, '');
     text(candidate.statement, 1000);
     const refs = references(candidate.refs, documents);
     // Statements reach the writer, so they must be the extractor's own wording, not copied source prose.
@@ -129,14 +167,17 @@ export function validateTriage(raw, documents, catalog) {
     const bare = token => token.replace(/(?:%p|%|조원|억원|달러|원)$/i, '');
     assert(numericTokens(candidate.statement).every(token => quotedTokens.includes(token) ||
       quotedTokens.map(bare).includes(bare(token)) && quoted.includes(token.slice(bare(token).length))), 'FACT_NUMBER_MISMATCH');
-    if (numericTokens(candidate.value).length) {
+    if (dateValue(candidate, refs)) candidate.unit = '';
+    else if (numericTokens(candidate.value).length) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const unit = candidate.unit.toLowerCase();
       const aliases = { usd: ['usd', '달러', '$', 'us$'], krw: ['krw', '원'], eur: ['eur', '유로', '€'], shares: ['shares', '주'],
         '%p': ['%p', '%포인트', '퍼센트포인트', 'percentage points'] };
       const units = aliases[unit] ?? [unit];
       const normalize = value => value.normalize('NFKC').toLowerCase().replace(/−/g, '-').replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '');
-      const numeric = /^[+-]?\d+(?:[,.]\d+)*$/.test(candidate.value);
+      // Filing tables write losses in accounting form, e.g. (1,849,423,316); it is compared exactly as written.
+      const parenthesized = /^\(\d+(?:[,.]\d+)*\)$/.test(candidate.value);
+      const numeric = parenthesized || /^[+-]?\d+(?:[,.]\d+)*$/.test(candidate.value);
       if (!numeric) {
         // Product identifiers such as HBM4 are categorical, not malformed quantities.
         const identifier = new RegExp('(?<![A-Za-z0-9_.-])' + escape(candidate.value) + '(?![A-Za-z0-9_]|[.-][A-Za-z0-9_])');
@@ -144,8 +185,9 @@ export function validateTriage(raw, documents, catalog) {
       } else {
         assert(unit, 'FACT_UNIT_REQUIRED');
         assert(quantitativeUnits.has(unit), 'FACT_UNIT_UNSUPPORTED');
-        const number = (/^[+-]/.test(candidate.value) ? '' : '\\+?') + escape(normalize(candidate.value));
-        const unitPattern = item => escape(normalize(item)).replace(/ /g, '\\s+');
+        const number = (/^[+-]/.test(candidate.value) || parenthesized ? '' : '\\+?') + escape(normalize(candidate.value));
+        // Korean unit words may be spaced in tables ("백만 원"); the same characters in the same order must appear.
+        const unitPattern = item => /^[가-힣]+$/.test(item) ? [...item].join('\\s*') : escape(normalize(item)).replace(/ /g, '\\s+');
         const suffix = units.map(unitPattern).join('|');
         const notPoints = unit === '%' ? '(?!\\s*(?:p\\b|포인트|point|pts))' : unit === 'shares' ? '(?!\\s*(?:안|내|후|뒤|전|동안|이내|간|연속|째|만에))' : '';
         const after = new RegExp('(?:^|[^0-9.+±-])' + number + '\\s*(?:' + suffix + ')' + notPoints + '(?![A-Za-z0-9]|\\.[0-9])');
@@ -172,6 +214,7 @@ export function validateTriage(raw, documents, catalog) {
   });
   assert(new Set(value.facts.map(item => item.id)).size === value.facts.length, 'DUPLICATE_FACT');
   for (const item of value.impacts) {
+    normalizeDirection(item);
     assert(value.sectorIds.includes(item.sectorId), 'UNRELATED_SECTOR');
     ids(item.companyIds, entities);
     item.factIds = item.factIds.map(id => { assert(localIds.has(id), 'UNKNOWN_FACT'); return localIds.get(id); });
@@ -215,6 +258,16 @@ export function evidenceSufficient(fact, documents) {
 export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   validateShape(raw, schemas.draft);
   const draft = structuredClone(raw), factIds = facts.map(fact => fact.id), entityIds = catalog.entities.map(item => item.id);
+  const clean = value => stripFactIds(value, factIds);
+  draft.title = clean(draft.title); draft.summary = clean(draft.summary);
+  for (const item of [...draft.key_issues, draft.issue_analysis, ...draft.risks]) item.text = clean(item.text);
+  for (const item of draft.impacts) {
+    normalizeDirection(item);
+    item.description = clean(item.description); item.conditions = item.conditions.map(clean);
+    for (const role of item.companyRoles) role.role = clean(role.role);
+  }
+  for (const item of draft.scenarios) { item.title = clean(item.title); item.expected_result = clean(item.expected_result); item.checks = item.checks.map(clean); }
+  for (const item of draft.schedule) item.title = clean(item.title);
   assert(draft.key_issues.length <= 8 && draft.impacts.length <= 24 && draft.scenarios.length <= 2 && draft.risks.length <= 12 && draft.schedule.length <= 8, 'DRAFT_SECTION_LIMIT');
   const calculations = checkCalculations(draft.calculations, facts);
   const check = item => {
@@ -244,7 +297,10 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   if (!negative) assert(!draft.scenarios.some(item => item.direction === 'NEGATIVE'), 'UNSUPPORTED_NEGATIVE_SCENARIO');
   if (!positive && negative) assert(draft.risks.length > 0, 'DAMAGE_RISKS_REQUIRED');
   draft.schedule = draft.schedule.filter(item => {
-    check(item); new Intl.DateTimeFormat('en', { timeZone: item.timezone });
+    check(item);
+    // A date without a time cannot be shown as a timed schedule entry; it is left out, never given a guessed time.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(item.eventAt)) return false;
+    new Intl.DateTimeFormat('en', { timeZone: item.timezone });
     assert(/T.*(?:Z|[+-]\d\d:\d\d)$/.test(item.eventAt) && Number.isFinite(Date.parse(item.eventAt)), 'INVALID_SCHEDULE');
     const evidence = item.factIds.flatMap(id => facts.find(fact => fact.id === id).refs.map(ref => ref.quote)).join(' ');
     assert(scheduleZoneSupported(item, item.factIds.flatMap(id => facts.find(fact => fact.id === id).refs)), 'SCHEDULE_SOURCE_ZONE_UNVERIFIED');

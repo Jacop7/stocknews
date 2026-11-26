@@ -1,0 +1,100 @@
+// Formats seen in live DART filings and live model output (2026-11-26). Each formatting variant is accepted only
+// where the same fact is still checked exactly; invented, converted or combined values keep failing.
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { validateTriage, validateDraft } from '../workers/ai-processing/runtime/editorial.mjs';
+import { writingBrief, checkCalculations } from '../workers/ai-processing/runtime/writer.mjs';
+import { stamp, url, config, triage, draft, originalText, originalTitle } from './backlog-fixtures.mjs';
+
+function context() {
+  const c = config();
+  const doc = { id: 'd', title: originalTitle, text: originalText, sources: [{ ...c.sources[0], url }] };
+  const accepted = validateTriage(triage('d'), [doc], c.catalog);
+  const facts = accepted.value.facts;
+  const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  return { raw: draft(brief), check: { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp } };
+}
+
+test('filing date formats, accounting negatives and spaced Korean units pass; mixed or combined values still fail', () => {
+  const c = config();
+  const body = '이사회결의일(결정일)\n2026년 11월 26일\n계약기간 시작일 2026년 11월 26일 종료일 2027년 02월 25일\n(단위 : 원)\n순손실 (1,849,423,316)\n' +
+    '(단위 : 백만 원)\n취득금액 13,437\n매출액 92,095,944,422 89,261,883,258\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = (fact, event = {}) => {
+    const input = triage('d'); Object.assign(input.event, event);
+    input.facts.push({ ...input.facts[0], id: 'local-f5', predicate: 'X', ...fact, refs: fact.refs.map(quote => ({ docId: 'd', quote })) });
+    return validateTriage(input, [doc], c.catalog);
+  };
+  const resolution = ['이사회결의일(결정일)\n2026년 11월 26일'];
+  assert.equal(run({ value: '2026년 11월 26일', unit: '', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }).value.facts.at(-1).unit, '');
+  assert.equal(run({ value: '2026년 11월 26일 ~ 2027년 02월 25일', unit: '날짜', statement: '기간은 2026년 11월 26일부터 2027년 02월 25일까지다.',
+    refs: ['계약기간 시작일 2026년 11월 26일 종료일 2027년 02월 25일'] }).state, 'RELEVANT');
+  assert.throws(() => run({ value: '2026년 12월 27일', unit: '', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }), /FACT_VALUE_MISMATCH/);
+  assert.throws(() => run({ value: '2026년 11월 26일 이내(예정)', unit: '', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }), /FACT_VALUE_MISMATCH/);
+  assert.equal(run({ value: '(1,849,423,316)', unit: '원', statement: '순손실은 (1,849,423,316)원이다.', refs: ['(단위 : 원)', '순손실 (1,849,423,316)'] }).state, 'RELEVANT');
+  assert.throws(() => run({ value: '(1,849,423,316)', unit: '원', statement: '순손실은 (1,849,423,316)원이다.', refs: ['순손실 (1,849,423,316)'] }), /FACT_UNIT_MISMATCH/);
+  assert.throws(() => run({ value: '(1,849,423,317)', unit: '원', statement: '순손실은 (1,849,423,316)원이다.', refs: ['(단위 : 원)', '순손실 (1,849,423,316)'] }), /FACT_UNIT_MISMATCH/);
+  const spaced = run({ value: '13,437', unit: '백만 원', statement: '취득금액은 13,437백만 원이다.', refs: ['(단위 : 백만 원)', '취득금액 13,437'] });
+  assert.equal(spaced.value.facts.at(-1).unit, '백만원');
+  // A plain-won value never passes on a scaled, spaced header.
+  assert.throws(() => run({ value: '13,437', unit: '원', statement: '취득금액은 13,437원이다.', refs: ['(단위 : 백만 원)', '취득금액 13,437'] }), /FACT_UNIT_MISMATCH/);
+  assert.throws(() => run({ value: '92,095,944,422 vs 89,261,883,258', unit: '원', statement: '매출이 늘었다.', refs: ['(단위 : 원)', '매출액 92,095,944,422 89,261,883,258'] }), /FACT_VALUE_MISMATCH/);
+  assert.throws(() => run({ value: '30년', unit: '년', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }), /FACT_VALUE_MISMATCH/);
+  assert.throws(() => run({ value: '3.0', unit: '3개월 복리 연 %', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }), /FACT_UNIT_UNSUPPORTED/);
+  // Event dates in Korean or dotted form are stored as YYYY-MM-DD; impossible dates still fail.
+  assert.equal(run({ value: '2026년 11월 26일', unit: '', statement: '결의일은 2026년 11월 26일이다.', refs: resolution }, { date: '2026년 11월 26일' }).value.event.date, '2026-11-26');
+  const dotted = triage('d'); dotted.event.date = '2026.11.24';
+  assert.equal(validateTriage(dotted, [doc], c.catalog).value.event.date, '2026-11-24');
+  const impossible = triage('d'); impossible.event.date = '2026.02.30';
+  assert.throws(() => validateTriage(impossible, [doc], c.catalog), /INVALID_EVENT_DATE/);
+});
+
+test('a repeated impact direction is normalized; contradicting or open-ended directions still fail', () => {
+  const c = config(); const doc = { id: 'd', title: 't', text: originalText, sources: [{ ...c.sources[0], url }] };
+  const withImpact = patch => { const input = triage('d'); Object.assign(input.impacts[0], patch); return () => validateTriage(input, [doc], c.catalog); };
+  assert.equal(withImpact({ conditionalDirection: 'POSITIVE' })().value.impacts[0].conditionalDirection, 'NONE');
+  assert.throws(withImpact({ conditionalDirection: 'NEGATIVE' }), /INVALID_IMPACT/);
+  assert.throws(withImpact({ direction: 'RELATED', conditionalDirection: 'NONE' }), /RELATED_CONDITION_REQUIRED/);
+  assert.throws(withImpact({ direction: 'RELATED', conditionalDirection: 'POSITIVE', conditions: [] }), /RELATED_CONDITION_REQUIRED/);
+  // The writer repeating BENEFIT + POSITIVE matches the triage impact.
+  const { raw, check } = context(); const repeated = structuredClone(raw); repeated.impacts[0].conditionalDirection = 'POSITIVE';
+  assert.equal(validateDraft(repeated, check).impacts[0].conditionalDirection, 'NONE');
+  const flipped = structuredClone(raw); flipped.impacts[0].conditionalDirection = 'NEGATIVE';
+  assert.throws(() => validateDraft(flipped, check), /IMPACT_BROADENING/);
+});
+
+test('fact IDs appended to prose are removed; unknown or stray IDs and invented numbers still fail', () => {
+  const { raw, check } = context(); const id = check.facts[0].id;
+  const cited = structuredClone(raw); cited.summary += ` [factIds: ${id}]`;
+  assert.equal(validateDraft(cited, check).summary, raw.summary);
+  const unknown = structuredClone(raw); unknown.summary += ' [factIds: f-' + '0'.repeat(40) + ']';
+  assert.throws(() => validateDraft(unknown, check), /UNKNOWN_REFERENCE/);
+  const stray = structuredClone(raw); stray.summary += ` 근거는 ${id}이다.`;
+  assert.throws(() => validateDraft(stray, check), /FACT_ID_IN_TEXT/);
+  const invented = structuredClone(raw); invented.summary += ` 투자액 99억원 [factIds: ${id}]`;
+  assert.throws(() => validateDraft(invented, check), /DRAFT_NUMBER_MISMATCH/);
+});
+
+test('date-only schedule entries are left out; timed entries keep every source check', () => {
+  const { raw, check } = context(); const factIds = check.facts.map(fact => fact.id);
+  const dated = structuredClone(raw); dated.schedule = [{ title: '처분 기간 시작', eventAt: '2031-04-10', timezone: 'Asia/Seoul', factIds }];
+  const value = validateDraft(dated, check);
+  assert.deepEqual(value.schedule, []); assert(!value.visible_sections.includes('SCHEDULE'));
+  const timed = structuredClone(raw); timed.schedule = [{ title: '설명회', eventAt: '2031-04-10T09:00:00+09:00', timezone: 'Asia/Seoul', factIds }];
+  assert.throws(() => validateDraft(timed, check), /SCHEDULE_SOURCE_ZONE_UNVERIFIED|UNSUPPORTED_SCHEDULE_TIME/);
+  const unknown = structuredClone(dated); unknown.schedule[0].factIds = ['f-unknown'];
+  assert.throws(() => validateDraft(unknown, check), /UNKNOWN_REFERENCE/);
+});
+
+test('calculations accept parentheses and a trailing × 100 for a percentage of cited values only', () => {
+  const facts = [{ id: 'a', value: '2,000,000,000,000', unit: 'krw' }, { id: 'b', value: '1,600,000,000,000', unit: 'krw' }, { id: 'p', value: '20', unit: '%' }];
+  const calc = (expression, result, unit, factIds = ['a', 'b']) => () => checkCalculations([{ id: 'c1', expression, result, unit, factIds }], facts);
+  assert.equal(calc('(2,000,000,000,000 - 1,600,000,000,000) ÷ 2,000,000,000,000 × 100', '20', '%')()[0].result, '20');
+  assert.equal(calc('2,000,000,000,000 - 1,600,000,000,000', '400,000,000,000', 'krw')()[0].result, '400,000,000,000');
+  assert.throws(calc('(2,000,000,000,000 - 1,600,000,000,000) ÷ 2,000,000,000,000 × 100', '25', '%'), /CALCULATION_RESULT_MISMATCH/);
+  assert.throws(calc('(2,000,000,000,000 - 1,600,000,000,000) ÷ 2,000,000,000,000 × 50', '10', '%'), /CALCULATION_UNIT_UNSUPPORTED/);
+  assert.throws(calc('2,000,000,000,000 × 100', '200000000000000', '%', ['a']), /CALCULATION_OPERAND_UNSUPPORTED/);
+  assert.throws(calc('20 × 100', '2000', '%', ['p']), /CALCULATION_UNIT_UNSUPPORTED|CALCULATION_OPERAND_UNSUPPORTED/);
+  assert.throws(calc('(2,000,000,000,000 - 1,600,000,000,000', '400000000000', 'krw'), /INVALID_CALCULATION/);
+  assert.throws(calc('2,000,000,000,000 + 3', '2000000000003', 'krw'), /CALCULATION_OPERAND_UNSUPPORTED/);
+});
