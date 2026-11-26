@@ -4,7 +4,7 @@
   "readOriginals": false,
   "callModels": false,
   "maxDailyCalls": 0,
-  "models": { "triage": "", "draft": "", "verify": "" },
+  "models": { "triage": "gpt-6-luna", "draft": "gpt-6.1-sol", "verify": "gpt-6.2-sol" },
   "catalog": { "version": "REPLACE_WITH_CURRENT_ADMIN_CATALOG", "sectors": [], "entities": [] },
   "sources": [],
   "documentOrigins": [],
