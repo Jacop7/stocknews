@@ -39,7 +39,7 @@ test('extract HTTPS links inside matching public posts, without message text, da
     article('javascript:alert(1)') + article('https://person:secret@publisher.co.kr/') +
     article('https://other.co.kr/news').replace('NHIS_BIO/123', 'SomeOther/123') +
     '<a href="https://navigation.co.kr/">Outside posts</a>';
-  assert.deepEqual(telegramPageLinks(html, channel), { valid: true, links: [link] });
+  assert.deepEqual(telegramPageLinks(html, channel), { valid: true, links: [link], latestPost: 123 });
   assert.deepEqual(telegramPageLinks('<a href="https://publisher.co.kr/">Channel landing</a>', channel),
     { valid: false, links: [] });
   assert.deepEqual(telegramPageLinks(html, 'https://t.me/nhis_bio/123'), { valid: false, links: [] });
@@ -292,4 +292,37 @@ test('the shared t.me slot adds the injected 0-3s jitter on top of its minimum g
   // Fixture minimum is one minute (max_rps 0.1 is slower than the 60s floor): 60s + 1.5s.
   assert.equal(db.prepare('SELECT next_at FROM telegram_page_host').get().next_at, stamp + minute + 1500);
   await assert.rejects(runTelegramPageCycle(db, { now: () => stamp + 2 * minute, load: () => config, watch, random: () => 1 }), /INVALID_RANDOM/);
+});
+
+test('a page without a newer post writes no links and is revisited after 10, 20, then 30 minutes', async t => {
+  const db = openTelegramPageStore(':memory:');
+  t.after(() => db.close());
+  const config = fixture();
+  let now = stamp, page = article(link);
+  const watch = createTelegramPageWatch({ now: () => now, transport: async url => url.endsWith('/robots.txt')
+    ? { status: 404 } : { status: 200, contentType: 'text/html', body: Buffer.from(page) } });
+  const run = () => runTelegramPageCycle(db, { now: () => now, load: () => config, watch });
+  const next = () => db.prepare('SELECT next_at FROM telegram_page_schedule').get().next_at - now;
+  const seen = () => db.prepare('SELECT last_seen FROM telegram_page_links').all().map(row => row.last_seen);
+  assert.equal((await run()).status, 'ROBOTS_READY');
+  now += minute;
+  assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 1 });
+  assert.equal(next(), 10 * minute);
+  const firstSeen = seen();
+  for (const gap of [20, 30, 30]) {
+    now += 31 * minute;
+    assert.deepEqual(await run(), { status: 'NO_NEW_POSTS', links: 0 });
+    assert.equal(next(), gap * minute);
+    assert.deepEqual(seen(), firstSeen);
+  }
+  page = article(link).replace('NHIS_BIO/123', 'NHIS_BIO/124') + article('https://publisher.co.kr/news/456');
+  now += 31 * minute;
+  assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 2 });
+  assert.equal(next(), 10 * minute);
+  assert.deepEqual({ ...db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity').get() }, { latest_post: 124, quiet_visits: 0 });
+  // A binding change clears the remembered post, so the next visit is treated as new again.
+  config.endpoints[0].config_version = '2';
+  now += 31 * minute;
+  await run();
+  assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_activity WHERE binding LIKE ?').get('%"config_version":"1"%').n, 0);
 });

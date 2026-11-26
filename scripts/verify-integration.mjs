@@ -17,6 +17,7 @@ const checks = [
     'tests/html-list.test.mjs',
     'tests/html-worker.test.mjs',
     'tests/collector-pacing.test.mjs',
+    'tests/telegram-link-worker.test.mjs',
     'tests/public-watch.test.mjs',
     'tests/sec-submissions.test.ts',
     'tests/sec-pilot.test.mjs',

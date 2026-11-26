@@ -38,7 +38,7 @@ export function telegramPageLinks(html, url) {
   const handle = channelPattern.exec(url)?.[1].toLowerCase();
   if (!handle) return { valid: false, links: [] };
   const nodes = [parse(html, { scriptingEnabled: true })];
-  let valid = false;
+  let valid = false, latestPost = null;
   const links = new Set();
   while (nodes.length) {
     const node = nodes.pop();
@@ -56,12 +56,15 @@ export function telegramPageLinks(html, url) {
     } else if (hasClass(node, 'tgme_widget_message') &&
                attribute(node, 'data-post').toLowerCase().split('/')[0] === handle) {
       valid = true;
+      const post = Number(attribute(node, 'data-post').split('/')[1]);
+      if (Number.isSafeInteger(post) && post > 0 && (latestPost === null || post > latestPost)) latestPost = post;
     }
     if (!['script', 'style', 'noscript', 'template'].includes(node.tagName)) {
       for (const child of node.childNodes ?? []) nodes.push(child);
     }
   }
-  return { valid, links: valid ? [...links].slice(0, 100) : [], ...(valid && links.size > 100 ? { truncated: true } : {}) };
+  return { valid, links: valid ? [...links].slice(0, 100) : [], ...(valid && links.size > 100 ? { truncated: true } : {}),
+    ...(valid && latestPost !== null ? { latestPost } : {}) };
 }
 
 export function telegramLinkExclusions({ routes, endpoints }) {
@@ -139,6 +142,9 @@ export function openTelegramPageStore(filename) {
     ) STRICT;
     CREATE TABLE IF NOT EXISTS telegram_page_schedule (endpoint_id TEXT PRIMARY KEY, next_at INTEGER NOT NULL) STRICT;
     CREATE TABLE IF NOT EXISTS telegram_page_host (id INTEGER PRIMARY KEY CHECK (id=1), next_at INTEGER NOT NULL) STRICT;
+    CREATE TABLE IF NOT EXISTS telegram_page_activity (
+      endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, latest_post INTEGER NOT NULL, quiet_visits INTEGER NOT NULL
+    ) STRICT;
     CREATE TABLE IF NOT EXISTS telegram_page_diagnostics (
       endpoint_id TEXT PRIMARY KEY, binding TEXT NOT NULL, observed_at INTEGER NOT NULL,
       status TEXT NOT NULL, http_status INTEGER, reason TEXT, observed_links INTEGER NOT NULL
@@ -162,6 +168,9 @@ function prune(db, active, timestamp, exclusions) {
       db.prepare('DELETE FROM telegram_page_diagnostics WHERE endpoint_id=?').run(row.endpoint_id);
       db.prepare('DELETE FROM telegram_page_schedule WHERE endpoint_id=?').run(row.endpoint_id);
     }
+  }
+  for (const row of db.prepare('SELECT endpoint_id, binding FROM telegram_page_activity').all()) {
+    if (active.get(row.endpoint_id)?.binding !== row.binding) db.prepare('DELETE FROM telegram_page_activity WHERE endpoint_id=?').run(row.endpoint_id);
   }
   for (const row of db.prepare('SELECT endpoint_id FROM telegram_page_schedule').all()) {
     if (!active.has(row.endpoint_id)) db.prepare('DELETE FROM telegram_page_schedule WHERE endpoint_id=?').run(row.endpoint_id);
@@ -263,6 +272,15 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now, ra
   };
   if (check.status !== 'WATCH_INSPECTED') return record(check.status);
   if (check.observation?.valid !== true || !Array.isArray(check.observation.links)) return record('PAGE_UNVERIFIED');
+  // Only a newer post than the last one seen counts as new. Quiet channels are revisited after 10, 20, then 30 minutes.
+  const latestPost = check.observation.latestPost;
+  const prior = db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity WHERE endpoint_id=? AND binding=?').get(id, grant.binding);
+  if (Number.isSafeInteger(latestPost) && prior && latestPost <= prior.latest_post) {
+    const quiet = Math.min(prior.quiet_visits + 1, 2);
+    db.prepare('UPDATE telegram_page_activity SET quiet_visits=? WHERE endpoint_id=?').run(quiet, id);
+    db.prepare('UPDATE telegram_page_schedule SET next_at=? WHERE endpoint_id=?').run(finished + 10 * minute * (quiet + 1), id);
+    return record('NO_NEW_POSTS');
+  }
   const urls = [...new Set(check.observation.links.filter(item => typeof item === 'string').map(externalUrl)
     .filter(url => url && !excludedTelegramLink(url, exclusions)))].slice(0, 100);
   const insert = db.prepare(`INSERT INTO telegram_page_links VALUES (?,?,?,?,?) ON CONFLICT(endpoint_id,url)
@@ -270,6 +288,8 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now, ra
   db.exec('BEGIN IMMEDIATE');
   try {
     for (const url of urls) insert.run(id, grant.binding, url, finished, Math.min(grant.expires, finished + grant.retention));
+    if (Number.isSafeInteger(latestPost)) db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
+      DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(id, grant.binding, latestPost);
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
