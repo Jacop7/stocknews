@@ -18,7 +18,7 @@
 
 ## 자동으로 진행할 것 (순서대로)
 
--1. **(진행 중) 실데이터 프롬프트·검증 조정** — 2026-11-26 크레딧 충전 후 실호출 시작(이미지 `c797bbe`). 선별 59건 완료, 원문 확인·표 단위·띄어쓰기 표기 차이 문제는 해결(정확도 규칙은 유지). 작성 단계 호출 6건, **검증 통과 초안은 아직 0건**. 남은 보류: 작성기의 사실 외 숫자(DRAFT_NUMBER_MISMATCH), INVALID_IMPACT·RELATED_CONDITION_REQUIRED·UNSUPPORTED_NEGATIVE_SCENARIO(영향 방향 규칙), INVALID_EVENT_DATE·INVALID_SCHEDULE(날짜 형식), INVALID_CALCULATION, 카탈로그 밖 기업(KOREAN_ENTITY_REQUIRED, 정상). 진단: 서버 DB의 runs.response와 원문으로 실패 사실을 재검증해 원인을 본 뒤 지시문(model.mjs)·검증(editorial.mjs)을 조정하고 프롬프트 버전(pipeline.mjs)을 올린 다음, 해당 보류만 TRIAGE/DRAFT로 재대기시킨다.
+-1. **(진행 중) 실데이터 프롬프트·검증 조정** — 2026-11-26 `ac99802`·`473cbf2`·`5a236cf` 배포 후 **검증 통과 초안 3건**(심텍 2, 하나금융지주 1). 해결: 작성기가 본문에 붙인 `[factIds: …]`(DRAFT_NUMBER_MISMATCH의 원인), 날짜 표기(2026년 11월 26일·2026.11.24), 회계식 음수 `(1,849,423,316)`, 띄어 쓴 단위(백만 원), BENEFIT+POSITIVE 중복 방향, 시각 없는 일정, 괄호·백분율 계산, 계산 ID 밑줄, 조건문 "매도해야 … 이어진다" 오탐. 정확도 규칙(사실 외 숫자·변환·합친 값·출처 미명시·단정 표현)은 그대로 실패한다(`tests/backlog-live-formats.test.mjs`). 남은 보류는 대부분 정상 판정: 독립 검증 거절(같은 날 엘앤에프 제11회·제12회 전환사채가 한 사건으로 묶인 초안, 신한지주 제목의 근거 없는 주가 인과, 심텍 중복), 원문과 다른 인용(FABRICATED_EVIDENCE), 원문 문장 복사, 카탈로그 밖 기업. 다음: (a) 엘앤에프 두 건은 기존 선별 결과(`triages`)가 회차 없이 저장돼 있어 재선별하려면 해당 문서의 선별 행 삭제가 필요(V5부터 새 공시는 회차를 officialId로 구분), (b) DART 공시는 접수번호를 officialId로 자동 지정하는 방안 검토, (c) 초안 본문의 `[사실]`·`[분석]` 꼬리표를 앱 표시에서 어떻게 다룰지 결정. 진단 방법: 서버 DB의 runs.response를 컨테이너 안에서 `validateDraft`/`validateTriage`로 다시 검증(stdin으로 스크립트 전달, 컨테이너 rootfs는 읽기 전용).
 
 0. PDF 텍스트 추출기(`extractPdf` 포트에 연결, 오픈소스 라이브러리) → 증권사 리포트 PDF 처리. 리포트 뷰어 페이지에서 PDF 링크 찾기. OpenDART 키가 오면 공시 API 어댑터.
 
