@@ -37,7 +37,8 @@ export function writingBrief({ facts, triage, documents, catalog, existingIssues
 const assertive = [
   /수혜\s*(?:주|기업|업체)?\s*(?:가|이|로)?\s*된다/, /수혜를\s*(?:받는다|입는다|본다)/, /피해를\s*(?:받는다|입는다|본다)/,
   // "불확실" (uncertain) is hedged language; "수주 목표가 상향" is an order target, not a price target.
-  /반드시/, /(?<!불)확실(?:히|하다|한|시)/, /틀림없/, /무조건/, /(?:매수|매도|비중\s*확대|비중\s*축소)(?:를|을)?\s*(?:추천|권유|권장|해야|하라|하세요)/,
+  /반드시/, /(?<!불)확실(?:히|하다|한|시)/, /틀림없/, /무조건/, /(?:매수|매도|비중\s*확대|비중\s*축소)(?:를|을)?\s*(?:추천|권유|권장|하라|하세요|해야\s*(?:한다|합니다|할\s*(?:때|시점)))/,
+  // "수령자가 매도해야 매물로 이어진다" is a condition (only if they sell), not advice; "매도해야 한다" is advice.
   /목표\s*주가|목표가(?:를|는|로|\s*\d)/, /(?:급등|폭등|급락|폭락|상한가|하한가)(?:할|한다|하게\s*된다)/, /(?:오를|내릴|상승할|하락할)\s*것이다/,
 ];
 export function assertHedged(parts) {

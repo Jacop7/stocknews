@@ -105,3 +105,11 @@ test('calculation IDs may use underscores; the placeholder renders with its form
   assert.equal(item.rendered, '400원(2,000 - 1,600로 계산)');
   assert.throws(() => checkCalculations([{ id: 'bad id', expression: '2,000 - 1,600', result: '400', unit: '', factIds: ['a', 'b'] }], facts), /INVALID_CALCULATION/);
 });
+
+test('a conditional "매도해야 … 이어진다" is not advice; advisory endings still fail', async () => {
+  const { assertHedged } = await import('../workers/ai-processing/runtime/writer.mjs');
+  assert.doesNotThrow(() => assertHedged(['보상용 주식이 지급되더라도 수령자가 매도해야 단기 매물 부담으로 이어질 가능성이 생긴다.']));
+  for (const phrase of ['지금 매수해야 한다.', '비중 확대해야 합니다.', '매도해야 할 때다.', '매수를 추천한다.', '매도하세요.']) {
+    assert.throws(() => assertHedged([phrase]), /ASSERTIVE_INVESTMENT_WORDING/, phrase);
+  }
+});
