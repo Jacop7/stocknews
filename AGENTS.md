@@ -41,3 +41,10 @@ The reviewed C2 r2 plan with r3 contract amendment permits exactly 15 mutable fi
 ## MAIN_ADMIN_C2 remediation design r3 (implementation WIP)
 
 The same-case subordinate design f71f7bc0eeea42f3a693647445c08226c6e7a294ce5b87d570bbdc57e7235414 received explicit Claude and Codex plan READY; overall implementation remains CHANGES_REQUIRED. The narrow approved amendment adds scripts/admin-preview-sql.mjs and tests/preview-admin-sql.test.mjs to the prior15 mutable files:17 existing,6 additions,545 frozen,total568. Preserve the historical single-definition SQL assertion against the authenticated bab66bc blob and add exact current3 replacements+1 private helper checks. Keep all other historical tests/guards/commands frozen. READ COMMITTED authority, shared/exclusive transaction advisory fence, current post-lock capability and strict pre-key setup reserve are mandatory. Source pins must be refreshed only after the entire remediation is finished; do not represent direct partial test passes as full verify or implementation acceptance. The three default manifests are consumed; final implementation review requires the exact installed single-additional-revision procedure for the concrete final candidate, without case/criteria/reset. No actual hosted/key/Auth/SQL/host activation occurs from this amendment. MAIN owns all remediation and integration.
+
+
+## 현재 작업 기준 (2026-11-26, 통합 브랜치)
+
+- 새 세션은 `docs/context/STATUS.md` → `DECISIONS.md` → `NEXT.md`를 먼저 읽는다. 결정이 나면 `DECISIONS.md`, 배포·큰 변경 후 `STATUS.md`, 세션 종료 시 `NEXT.md`를 갱신한다.
+- 이 브랜치의 완료 기준은 `corepack pnpm verify:integration`이다. 위 단계별 guard와 C2 절차는 역사 기록으로 보존한다.
+- 수집기 운영은 `scripts/ops/collector.ps1 status|deploy|rollback`을 사용한다. 키·결제·구독·계정 권한 확대는 사용자가 직접 한다.
