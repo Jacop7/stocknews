@@ -26,13 +26,13 @@ sudo -n docker exec $c node -e "const s=JSON.parse(require('node:fs').readFileSy
 if ($Command -eq 'status') { Invoke-Remote $statusScript; return }
 if ($Command -eq 'stop') { Invoke-Remote "cd $base/current && sudo -n docker compose stop processor"; return }
 
-$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src
+$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv
 if ($dirty) { throw 'AI runtime sources have uncommitted changes; commit first.' }
-$config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'
-foreach ($file in $config, $key) { if (-not (Test-Path $file)) { throw "Missing $file" } }
+$config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'; $dartKey = Join-Path $repo '.local-data\dart\opendart.key'
+foreach ($file in $config, $key, $dartKey) { if (-not (Test-Path $file)) { throw "Missing $file" } }
 $commit = (git -C $repo rev-parse --short HEAD).Trim()
 $stage = Join-Path $env:TEMP "judoju-ai-$commit"; Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue; New-Item -ItemType Directory $stage | Out-Null
-git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src
+git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv
 if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
 $baseImage = (Invoke-Remote "sudo -n docker inspect --format '{{.Config.Image}}' $collector").Trim()
 if ($baseImage -notmatch '^judoju-news-html-collector:[A-Za-z0-9._-]+$') { throw "Unexpected collector image: $baseImage" }
@@ -64,6 +64,7 @@ services:
       - collector:/collector
       - $base/config/config.json:/ai-config/config.json:ro
       - $base/secrets/openai.key:/run/secrets/openai.key:ro
+      - $base/secrets/opendart.key:/run/secrets/opendart.key:ro
     tmpfs: [/tmp]
     healthcheck:
       test: ["CMD", "node", "-e", "const t=Number(require('node:fs').readFileSync('/ai/heartbeat','utf8')); if(!t||Date.now()-t>180000)process.exit(1)"]
@@ -86,10 +87,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }
 # Config and key go to fixed private paths (mode 600); the key is copied as a file and never printed.
 scp.exe @ssh $config "${server}:$base/config/config.json"; if ($LASTEXITCODE -ne 0) { throw 'Config upload failed' }
 scp.exe @ssh $key "${server}:$base/secrets/openai.key"; if ($LASTEXITCODE -ne 0) { throw 'Key upload failed' }
+scp.exe @ssh $dartKey "${server}:$base/secrets/opendart.key"; if ($LASTEXITCODE -ne 0) { throw 'DART key upload failed' }
 $deploy = @'
 set -euo pipefail
 R=__REMOTE__; B=__BASE__; T=judoju-news-ai-processor:__COMMIT__
-chmod 600 "$B/secrets/openai.key"; chmod 644 "$B/config/config.json"; chmod 711 "$B" "$B/config"; chmod 711 "$B/secrets"
+chmod 600 "$B/secrets/openai.key" "$B/secrets/opendart.key"; chmod 644 "$B/config/config.json"; chmod 711 "$B" "$B/config"; chmod 711 "$B/secrets"
 cd "$R"
 sudo -n docker build -q -t "$T" . >/dev/null
 sudo -n docker run --rm --network none --read-only --entrypoint node "$T" --experimental-strip-types --input-type=module -e "await import('/opt/judoju/workers/ai-processing/runtime/service.mjs'); await import('/opt/judoju/workers/ai-processing/runtime/cli.mjs'); console.log('IMPORT_OK')"

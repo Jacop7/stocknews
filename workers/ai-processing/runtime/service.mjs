@@ -12,13 +12,15 @@ import { createLinkResolver } from './resolver.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
 import { readSavedLinks } from './cli.mjs';
+import { createDartClient, createDartReader, readCorpCodes } from './dart.mjs';
 
 const env = process.env;
 const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUDOJU_AI_CONFIG ?? '/ai/config.json',
   telegram: env.JUDOJU_TELEGRAM_DB ?? '/collector/telegram-links.sqlite', web: env.JUDOJU_WEB_DB ?? '/collector/collection.sqlite',
-  key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
+  key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key',
+  corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url), heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
 const execute = env.JUDOJU_AI_EXECUTE === '1';
-const importEvery = 10 * 60_000;
+const importEvery = 10 * 60_000, dartEvery = 30 * 60_000;
 
 const log = event => console.log(JSON.stringify({ at: new Date().toISOString(), ...event }));
 export function effectiveConfig(raw, executeAllowed) {
@@ -33,10 +35,14 @@ async function main() {
   const model = initial.callModels ? createOpenAiModel({ apiKey: readFileSync(paths.key, 'utf8').trim() })
     : async () => { throw new Error('MODEL_EXECUTION_DISABLED'); };
   const robots = { loadRobots: (origin, now) => store.loadRobots(origin, now), saveRobots: (origin, value) => store.saveRobots(origin, value) };
-  const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal: createOriginalReader(robots), resolveLink: createLinkResolver(robots) });
+  // OpenDART: filings are listed and read only through the official API (the DART website disallows robots).
+  const dart = existsSync(paths.dartKey) ? createDartClient({ apiKey: readFileSync(paths.dartKey, 'utf8').trim() }) : null;
+  const corpCodes = dart ? readCorpCodes(readFileSync(paths.corpCodes, 'utf8')) : new Map();
+  const readOriginal = createDartReader({ client: dart, fallback: createOriginalReader(robots) });
+  const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal, resolveLink: createLinkResolver(robots) });
   const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
-  log({ event: 'AI_SERVICE_START', execute, readOriginals: initial.readOriginals, callModels: initial.callModels, maxDailyCalls: initial.maxDailyCalls });
-  let nextImport = 0;
+  log({ event: 'AI_SERVICE_START', execute, readOriginals: initial.readOriginals, callModels: initial.callModels, maxDailyCalls: initial.maxDailyCalls, dart: Boolean(dart), watchedCompanies: corpCodes.size });
+  let nextImport = 0, nextDart = 0;
   try {
     while (!stop.signal.aborted) {
       const now = Date.now();
@@ -47,6 +53,11 @@ async function main() {
         }
         log({ event: 'AI_IMPORT', ...store.importLinks(entries, now) });
         nextImport = now + importEvery;
+      }
+      if (dart && loadConfig().readOriginals && now >= nextDart) {
+        try { const filings = await dart.newFilings(corpCodes, now); log({ event: 'AI_DART_LIST', filings: filings.length, ...store.importLinks(filings, now) }); }
+        catch (error) { log({ event: 'AI_DART_LIST_FAILED', reason: /^DART_[A-Z_0-9]+$/.test(error.message) ? error.message : 'DART_LIST_FAILED' }); }
+        nextDart = now + dartEvery;
       }
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }
