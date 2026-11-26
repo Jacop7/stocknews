@@ -12,7 +12,7 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
     if (!authorize()) return hold('AUTHORITY_CHANGED');
     const modelId = config.models[stage];
     if (!modelId.trim() || modelId.length >= 120 || canonical(input).length > 150000) return hold('MODEL_INPUT_LIMIT');
-    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V1' });
+    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V2' });
     const scope = job.payload.docId + ':' + stage;
     const reserved = store.beginRun(key, scope, stage, modelId, config.maxDailyCalls, now(), retentionUntil, documentIds);
     if (reserved.state === 'CACHED') return { state: 'RESULT', value: reserved.value };

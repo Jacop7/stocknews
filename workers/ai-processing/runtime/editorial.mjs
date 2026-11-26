@@ -55,7 +55,9 @@ function references(refs, documents) {
   return refs.map(ref => {
     const doc = documents.find(item => item.id === ref.docId);
     text(ref.quote, 500);
-    assert(doc && doc.text.includes(ref.quote), 'FABRICATED_EVIDENCE');
+    // Exact text, allowing only whitespace and line-break differences (filings and tables wrap freely).
+    const squeeze = value => value.replace(/\s+/g, '');
+    assert(doc && (doc.text.includes(ref.quote) || squeeze(doc.text).includes(squeeze(ref.quote))), 'FABRICATED_EVIDENCE');
     return { docId: doc.id, quote: ref.quote };
   });
 }
@@ -115,7 +117,12 @@ export function validateTriage(raw, documents, catalog) {
     const refs = references(candidate.refs, documents);
     // Statements reach the writer, so they must be the extractor's own wording, not copied source prose.
     assert(!refs.some(ref => sharesRun(candidate.statement, ref.quote)) && !documents.some(doc => sharesRun(candidate.statement, doc.text)), 'FACT_STATEMENT_COPIES_SOURCE');
-    assert(numericTokens(candidate.statement).every(token => numericTokens(refs.map(ref => ref.quote).join(' ')).includes(token)), 'FACT_NUMBER_MISMATCH');
+    // Every number in the statement must appear in its quotes. A unit written next to it (원, %, 억원…) is accepted
+    // when the bare number is quoted and that unit word occurs in the quotes (e.g. a table header "(원/주)").
+    const quoted = refs.map(ref => ref.quote).join(' '), quotedTokens = numericTokens(quoted);
+    const bare = token => token.replace(/(?:%p|%|조원|억원|달러|원)$/i, '');
+    assert(numericTokens(candidate.statement).every(token => quotedTokens.includes(token) ||
+      quotedTokens.map(bare).includes(bare(token)) && quoted.includes(token.slice(bare(token).length))), 'FACT_NUMBER_MISMATCH');
     if (numericTokens(candidate.value).length) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const unit = candidate.unit.toLowerCase();
@@ -140,7 +147,12 @@ export function validateTriage(raw, documents, catalog) {
         const before = ['usd', 'eur', 'krw'].includes(unit) ? new RegExp('(?:^|[^\\p{L}\\p{N}.$+±-])(?:' + prefix + ')\\s*' + number + '(?![0-9]|\\.[0-9])', 'u') : null;
         assert(refs.some(ref => {
           if (unit === 'usd' && /(?:HK|AU|NZ|CA|SG|NT|C|A)\s*\$|\b(?:HKD|AUD|CAD|NZD|SGD|TWD)\b/i.test(ref.quote)) return false;
-          return after.test(normalize(ref.quote)) || before?.test(normalize(ref.quote));
+          if (after.test(normalize(ref.quote)) || before?.test(normalize(ref.quote))) return true;
+          // Table cells: the number stands alone and the unit is stated in a header such as "(원/주)" or "단위: %".
+          // The unit must directly follow "(" or "단위:" so a scaled header like "(단위: 백만원)" never passes as 원.
+          const alone = new RegExp('(?:^|[^0-9.+±-])' + number + '(?![0-9]|[.,][0-9])');
+          const header = new RegExp('(?:\\(|단위\\s*[:：]?\\s*)(?:' + suffix + ')(?=[/)\\s,]|$)');
+          return alone.test(normalize(ref.quote)) && header.test(normalize(ref.quote));
         }), 'FACT_UNIT_MISMATCH');
         if (unit === 'shares') assert(refs.some(ref => /주식|지분|매입|매수|취득|발행|\bshares?\b/i.test(ref.quote)), 'FACT_SHARE_CONTEXT_REQUIRED');
       }

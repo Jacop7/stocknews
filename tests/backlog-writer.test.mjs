@@ -111,3 +111,27 @@ test('the verifier must confirm company roles and attribution', () => {
     assert.throws(() => validateVerification({ ...approved, [key]: false }, check.facts, false), /INDEPENDENT_VERIFICATION_FAILED/);
   }
 });
+
+test('quoted numbers may carry a unit that the quotes state elsewhere; converted numbers and new numbers still fail', async () => {
+  const { validateTriage } = await import('../workers/ai-processing/runtime/editorial.mjs');
+  const c = config();
+  const body = '전환가액 (원/주)\n72,496\n사채의 권면총액 (원)\n16,000,000,000\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const attempt = (statement, quotes) => {
+    const input = triage('d');
+    input.facts[0] = { ...input.facts[0], value: '20', unit: '%', statement: '장비투자 예산이 20% 확대됐다.', refs: [{ docId: 'd', quote }] };
+    input.facts.push({ ...input.facts[0], id: 'local-f9', predicate: 'CONVERSION_PRICE', value: '72496', unit: 'krw', statement, refs: quotes.map(item => ({ docId: 'd', quote: item })) });
+    return () => validateTriage(input, [doc], c.catalog);
+  };
+  assert.doesNotThrow(attempt('전환가액은 주당 72,496원으로 정해졌다.', ['전환가액 (원/주)\n72,496']));
+  assert.doesNotThrow(attempt('전환가액은 주당 72,496원으로 정해졌다.', ['전환가액 (원/주) 72,496'])); // whitespace only
+  assert.throws(attempt('사채 총액은 160억원이다.', ['사채의 권면총액 (원)\n16,000,000,000']), /FACT_NUMBER_MISMATCH/);
+  assert.throws(attempt('전환가액은 주당 80,000원이다.', ['전환가액 (원/주)\n72,496']), /FACT_NUMBER_MISMATCH/);
+  assert.throws(attempt('전환가액은 주당 72,496원이다.', ['전환가액 72,496 (가상)']), /FABRICATED_EVIDENCE/);
+  // A scaled header must not pass a plain-won value: 1,109,382 in "(단위: 백만원)" is not 1,109,382원.
+  const scaled = { ...doc, text: '(단위: 백만원)\n매출액 1,109,382\n' + originalText };
+  const input = triage('d');
+  input.facts.push({ ...input.facts[0], id: 'local-f8', predicate: 'REVENUE', value: '1109382', unit: 'krw', statement: '매출액은 1,109,382원이다.',
+    refs: [{ docId: 'd', quote: '(단위: 백만원)\n매출액 1,109,382' }] });
+  assert.throws(() => validateTriage(input, [scaled], c.catalog), /FACT_UNIT_MISMATCH|FACT_NUMBER_MISMATCH/);
+});
