@@ -135,7 +135,7 @@ const percentConversion = (item, cited) => item.unit.trim() === '%' && /[×*]\s*
 export function checkCalculations(calculations, facts) {
   const allowed = operandValues(facts), seen = new Set();
   return list(calculations, 12).map(item => {
-    text(item.id, 40); assert(/^[a-z0-9-]+$/.test(item.id) && !seen.has(item.id), 'INVALID_CALCULATION'); seen.add(item.id);
+    text(item.id, 40); assert(/^[a-z0-9_-]+$/.test(item.id) && !seen.has(item.id), 'INVALID_CALCULATION'); seen.add(item.id);
     text(item.expression, 120); text(item.unit, 20, true); text(item.result, 40);
     assert(list(item.factIds, 10).length && item.factIds.every(id => facts.some(fact => fact.id === id)), 'UNKNOWN_REFERENCE');
     const cited = facts.filter(fact => item.factIds.includes(fact.id));
@@ -155,10 +155,10 @@ export function checkCalculations(calculations, facts) {
   });
 }
 export function renderCalculations(value, calculations) {
-  return value.replace(/\{\{calc:([a-z0-9-]+)\}\}/g, (_match, id) => {
+  return value.replace(/\{\{calc:([a-z0-9_-]+)\}\}/g, (_match, id) => {
     const found = calculations.find(item => item.id === id);
     assert(found, 'UNKNOWN_CALCULATION');
     return found.rendered;
   });
 }
-export const stripCalculations = value => value.replace(/\{\{calc:[a-z0-9-]+\}\}/g, '');
+export const stripCalculations = value => value.replace(/\{\{calc:[a-z0-9_-]+\}\}/g, '');

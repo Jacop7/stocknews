@@ -98,3 +98,10 @@ test('calculations accept parentheses and a trailing × 100 for a percentage of 
   assert.throws(calc('(2,000,000,000,000 - 1,600,000,000,000', '400000000000', 'krw'), /INVALID_CALCULATION/);
   assert.throws(calc('2,000,000,000,000 + 3', '2000000000003', 'krw'), /CALCULATION_OPERAND_UNSUPPORTED/);
 });
+
+test('calculation IDs may use underscores; the placeholder renders with its formula', () => {
+  const facts = [{ id: 'a', value: '2,000', unit: 'krw' }, { id: 'b', value: '1,600', unit: 'krw' }];
+  const [item] = checkCalculations([{ id: 'ceiling_decrease', expression: '2,000 - 1,600', result: '400', unit: '원', factIds: ['a', 'b'] }], facts.map(fact => ({ ...fact, unit: '원' })));
+  assert.equal(item.rendered, '400원(2,000 - 1,600로 계산)');
+  assert.throws(() => checkCalculations([{ id: 'bad id', expression: '2,000 - 1,600', result: '400', unit: '', factIds: ['a', 'b'] }], facts), /INVALID_CALCULATION/);
+});
