@@ -34,6 +34,10 @@ supabase/.branches/
 docker-data/
 # Agent runtime; product model plan is retained locally
 .codex/
-.claude/
+# Claude runtime state stays local; the shared project harness is tracked.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+!.claude/agents/
 
 *.tsbuildinfo
