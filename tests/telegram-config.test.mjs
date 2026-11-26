@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -9,10 +9,14 @@ import { prepareTelegramConfig } from '../scripts/providers/telegram-config.mjs'
 import { openTelegramPageStore, runTelegramPageCycle, telegramPageCandidates, telegramLinkExclusions } from '../scripts/providers/telegram-link-worker.mjs';
 
 const registry = fileURLToPath(new URL('../data/providers/', import.meta.url));
-const preparer = fileURLToPath(new URL('../../collector-first-live-source/prepare.mjs', import.meta.url));
+// The deployed-config preparer historically lived outside this repository (PC-only sibling folder).
+// Use it only when present; otherwise report a skip instead of failing on a missing external file.
+const preparer = [process.env.JUDOJU_LIVE_SOURCE_PREPARER,
+  fileURLToPath(new URL('../../collector-first-live-source/prepare.mjs', import.meta.url))].find(path => path && existsSync(path));
+const needsPreparer = preparer ? {} : { skip: 'deployed-config preparer not available; set JUDOJU_LIVE_SOURCE_PREPARER' };
 const stamp = Date.parse('2026-11-21T00:00:00Z');
 
-test('47 exact channels become eligible without changing 6 holds,37 web sources,20 exclusions or profiles', t => {
+test('47 exact channels become eligible without changing 6 holds,37 web sources,20 exclusions or profiles', needsPreparer, t => {
   const dir = mkdtempSync(join(tmpdir(), 'judoju-telegram-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const prepared = spawnSync(process.execPath, [preparer, registry, dir], { encoding: 'utf8' });
@@ -37,7 +41,7 @@ test('47 exact channels become eligible without changing 6 holds,37 web sources,
   assert.throws(() => prepareTelegramConfig(enabled, profiles, read(registry, 'routes.json'), new Date(stamp).toISOString()));
 });
 
-test('URL dedupe and global host Retry-After survive a real SQLite reopen', async t => {
+test('URL dedupe and global host Retry-After survive a real SQLite reopen', needsPreparer, async t => {
   const dir = mkdtempSync(join(tmpdir(), 'judoju-tg-restart-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const prepared = spawnSync(process.execPath, [preparer, registry, dir], { encoding: 'utf8' });

@@ -1,6 +1,20 @@
-import {Link,useRouter} from 'expo-router';
-import {Pressable,Text,View} from 'react-native';
-import {s} from './Screen';
-export function SettingsHeader({title,settings=false}:{title:string;settings?:boolean}){
- const router=useRouter();return <><View style={{flexDirection:'row',alignItems:'center',gap:16,flexShrink:1}}><Pressable accessibilityLabel='뒤로가기' onPress={()=>router.canGoBack()?router.back():router.replace('/saved')}><Text style={s.action}>‹</Text></Pressable><Text style={{fontSize:20,fontWeight:'700',color:'#171724',flexShrink:1}}>{title}</Text></View>{settings&&<Link href='/settings' asChild><Pressable accessibilityLabel='설정'><Text style={s.action}>⚙</Text></Pressable></Link>}</>;
+import { Link } from 'expo-router';
+import { Pressable } from 'react-native';
+import { BackHeader } from './Screen';
+import { Icon } from './Icon';
+
+export function SettingsHeader({ title, settings = false }: { title: string; settings?: boolean }) {
+  return (
+    <BackHeader
+      title={title}
+      fallback='/saved'
+      actions={settings ? (
+        <Link href='/settings' asChild>
+          <Pressable accessibilityRole='button' accessibilityLabel='설정' hitSlop={8} style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name='settings' size={22} strokeWidth={1.7} />
+          </Pressable>
+        </Link>
+      ) : undefined}
+    />
+  );
 }

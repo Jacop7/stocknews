@@ -1,16 +1,86 @@
-import {useState} from 'react';
-import {Pressable,Text,View} from 'react-native';
-import {Link,useLocalSearchParams} from 'expo-router';
-import type {PublicReferenceSector,ReferenceCompany} from '@judoju/contracts';
-import { Screen,s } from '../../components/Screen';
-import { NewsFeed } from '../../components/NewsFeed';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import type { PublicReferenceSector, ReferenceCompany } from '@judoju/contracts';
+import { NewsFeed, StatusMessage } from '../../components/NewsFeed';
+import { Screen, s } from '../../components/Screen';
 import { usePublicRead } from '../../data/public-read';
-function Companies({rows}:{rows:ReferenceCompany[]}){return <>{rows.map(row=><View key={row.membership_id} style={{borderBottomWidth:1,borderColor:'#e8e8ee',paddingVertical:15,flexDirection:'row',justifyContent:'space-between',gap:18}}><View style={{flex:1}}><Text style={{fontSize:15,fontWeight:'600',color:'#171724'}}>{row.name}</Text><Text style={[s.body,{fontSize:12,lineHeight:19,marginTop:4}]}>{row.description}</Text></View><View style={{alignItems:'flex-end',justifyContent:'center'}}><Text style={{fontSize:16,color:'#171724'}}>—</Text><Text style={[s.date,{marginTop:3}]}>종목 확인 중</Text></View></View>)}</>;}
-export default function Sector(){
- const {id,tab:initialTab}=useLocalSearchParams<{id:string;tab?:string}>(),[tab,setTab]=useState<'NEWS'|'COMPANIES'>(initialTab==='stocks'?'COMPANIES':'NEWS'),[offset,setOffset]=useState(0),[pageVersion,setPageVersion]=useState('');
- const result=usePublicRead<PublicReferenceSector>('/v2/sectors/'+encodeURIComponent(id??'')+'?offset='+offset+(offset&&pageVersion?'&version='+pageVersion:'')),sector=result.data;
- return <Screen title='섹터체크'><Link href='/'>‹ 홈으로</Link>{result.loading&&<Text style={s.body}>섹터 확인 중…</Text>}{Boolean(result.error)&&<><Text style={s.body}>{result.error}</Text><Pressable onPress={()=>{setOffset(0);setPageVersion('');result.retry();}}><Text style={s.badge}>다시 확인</Text></Pressable></>}
- {sector?.state==='NOT_FOUND'&&<Text style={s.body}>현재 제공하지 않는 섹터입니다.</Text>}{sector?.state==='AVAILABLE'&&<><Text style={[s.title,{marginTop:22}]}>{sector.name}</Text><Text style={s.body}>{sector.description}</Text><View style={{flexDirection:'row',borderBottomWidth:1,borderColor:'#e8e8ee',marginTop:24,marginBottom:22}}>{[['NEWS','이슈체크'],['COMPANIES','관련 종목']].map(([key,label])=><Pressable key={key} accessibilityRole='tab' aria-selected={tab===key} accessibilityState={{selected:tab===key}} onPress={()=>setTab(key as 'NEWS'|'COMPANIES')} style={{flex:1,alignItems:'center',padding:14,borderBottomWidth:2,borderColor:tab===key?'#4f46e5':'transparent'}}><Text style={{fontSize:14,color:tab===key?'#242432':'#8e8ea0',fontWeight:tab===key?'700':'400'}}>{label}</Text></Pressable>)}</View>
- {tab==='NEWS'?<NewsFeed sectorId={id} filters={false}/>:<><Text style={[s.date,{marginBottom:18}]}>한국 기업 · 시트 참조 목록 · 시세 미연결</Text><Companies rows={sector.ungrouped_members}/>{sector.groups.filter(g=>g.members.length>0).map(group=><View key={group.id}><Text style={{borderTopWidth:1,borderTopColor:'#e8e8ee',paddingTop:22,marginTop:12,fontSize:13,fontWeight:'600',color:'#555563'}}>{group.name}</Text><Companies rows={group.members}/></View>)}{sector.total_memberships===0&&<Text style={s.body}>연결된 기업이 없습니다.</Text>}<View style={[s.row,{marginTop:20}]}>{offset>0&&<Pressable style={s.chip} onPress={()=>{setOffset(0);setPageVersion('');}}><Text style={s.chipText}>처음</Text></Pressable>}{sector.next_offset!==null&&<Pressable style={s.chip} onPress={()=>{setPageVersion(sector.catalog_version);setOffset(sector.next_offset??0);}}><Text style={s.chipText}>관련 종목 더보기</Text></Pressable>}</View></>}
- </>}</Screen>;
+import { color, radius } from '../../theme';
+
+// Korean companies only. No price or change rate is shown (latest decision);
+// the Naver Finance link needs a verified stock code, which is not resolved yet.
+function Companies({ rows }: { rows: ReferenceCompany[] }) {
+  return (
+    <>
+      {rows.map(row => (
+        <View key={row.membership_id} style={styles.company}>
+          <Text style={styles.companyName}>{row.name}</Text>
+          <Text style={styles.companyDescription}>{row.description}</Text>
+        </View>
+      ))}
+    </>
+  );
 }
+
+export default function Sector() {
+  const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const [tab, setTab] = useState<'NEWS' | 'COMPANIES'>(initialTab === 'stocks' ? 'COMPANIES' : 'NEWS');
+  const [offset, setOffset] = useState(0);
+  const [pageVersion, setPageVersion] = useState('');
+  const result = usePublicRead<PublicReferenceSector>('/v2/sectors/' + encodeURIComponent(id ?? '') + '?offset=' + offset + (offset && pageVersion ? '&version=' + pageVersion : ''));
+  const sector = result.data;
+
+  return (
+    <Screen title='섹터'>
+      {result.loading && !sector && <StatusMessage text='섹터를 확인하고 있습니다.' />}
+      {Boolean(result.error) && <StatusMessage text={result.error} actionLabel='다시 확인' onAction={() => { setOffset(0); setPageVersion(''); result.retry(); }} />}
+      {sector?.state === 'NOT_FOUND' && <StatusMessage text='현재 제공하지 않는 섹터입니다.' />}
+      {sector?.state === 'AVAILABLE' && (
+        <>
+          <Text style={[s.title, { marginTop: 6 }]}>{sector.name}</Text>
+          <Text style={s.body}>{sector.description}</Text>
+          <View style={styles.tabs}>
+            {([['NEWS', '이슈체크'], ['COMPANIES', '관련 종목']] as const).map(([key, label]) => (
+              <Pressable key={key} accessibilityRole='tab' accessibilityState={{ selected: tab === key }} onPress={() => setTab(key)} style={[styles.tab, tab === key && styles.tabActive]}>
+                <Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {tab === 'NEWS' ? <NewsFeed sectorId={id} filters={false} /> : (
+            <View style={styles.list}>
+              <Companies rows={sector.ungrouped_members} />
+              {sector.groups.filter(g => g.members.length > 0).map(group => (
+                <View key={group.id}>
+                  <Text style={styles.groupTitle}>{group.name}</Text>
+                  <Companies rows={group.members} />
+                </View>
+              ))}
+              {sector.total_memberships === 0 && <Text style={[s.body, { paddingVertical: 20 }]}>연결된 기업이 없습니다.</Text>}
+              {(offset > 0 || sector.next_offset !== null) && (
+                <View style={[s.row, { marginTop: 16 }]}>
+                  {offset > 0 && <Pressable style={s.chip} onPress={() => { setOffset(0); setPageVersion(''); }}><Text style={s.chipText}>처음</Text></Pressable>}
+                  {sector.next_offset !== null && (
+                    <Pressable style={s.chip} onPress={() => { setPageVersion(sector.catalog_version); setOffset(sector.next_offset ?? 0); }}><Text style={s.chipText}>더 보기</Text></Pressable>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderColor: color.border, marginTop: 20, marginBottom: 16 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderBottomWidth: 2, borderColor: 'transparent' },
+  tabActive: { borderColor: color.primary },
+  tabText: { fontSize: 14, color: color.textMuted },
+  tabTextActive: { color: color.text, fontWeight: '700' },
+  list: { backgroundColor: color.surface, borderWidth: 1, borderColor: color.border, borderRadius: radius.card, paddingHorizontal: 20, paddingVertical: 6 },
+  company: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: color.divider },
+  companyName: { fontSize: 15, fontWeight: '600', color: color.text },
+  companyDescription: { fontSize: 12, lineHeight: 19, color: color.textBody, marginTop: 3 },
+  groupTitle: { paddingTop: 18, paddingBottom: 4, fontSize: 13, fontWeight: '700', color: color.text },
+});
