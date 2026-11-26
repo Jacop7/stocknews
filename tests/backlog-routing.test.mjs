@@ -12,6 +12,7 @@ const officialHost = 'ir.orion.co.kr';
 function signalConfig() {
   const settings = config();
   settings.newsAsSignalOnly = true;
+  settings.excludedDomains = ['hankyung.com'];
   settings.sources.push({ ...settings.sources[0], host: officialHost, id: 'orion-ir', kind: 'OFFICIAL', name: '오리온전자 IR' });
   return validateConfig(settings);
 }
@@ -26,6 +27,9 @@ test('links route by destination: short links resolve, official/report hosts are
   // A NEWS-kind grant does not make news readable under the signal-only policy.
   assert.equal(routeLink('https://news.publisher.co.kr/article/one', settings), 'SIGNAL');
   assert.equal(routeLink('https://www.reuters.com/markets/x', settings), 'SIGNAL');
+  assert.equal(routeLink('https://www.hankyung.com/article/1', settings), 'EXCLUDED');
+  assert.equal(routeLink('https://msg.ls-sec.co.kr/r/1', settings), 'EVIDENCE');
+  assert.equal(routeLink('https://dart.fss.or.kr/dsaf001/main.do', settings), 'EVIDENCE');
   assert.throws(() => validateConfig({ ...config(), newsAsSignalOnly: 'yes' }), /INVALID_SWITCH/);
 });
 

@@ -10,7 +10,8 @@ export const REDIRECT_HOSTS = new Set(['buly.kr', 'tinyurl.com', 'han.gl', 'vo.l
 export const IRRELEVANT = [/^amazon\./, /\.amazon\./, /coupang\.com$/, /youtube\.com$/, /^youtu\.be$/, /instagram\.com$/, /facebook\.com$/,
   /^x\.com$/, /twitter\.com$/, /apps\.apple\.com$/, /play\.google\.com$/, /aliexpress\.com$/];
 export const REPORT_HOSTS = new Set(['report.jayjoai.com', 'r.jayjoai.com', 'bbn.kiwoom.com', 'iprovest.com', 'securities.miraeasset.com',
-  'hanwhawm.com', 'research.ibk.co.kr', 'myasset.com', 'm.ibks.com', 'yuantakorea.com', 'kiwoom.com', 'm.nhsec.com']);
+  'hanwhawm.com', 'research.ibk.co.kr', 'myasset.com', 'm.ibks.com', 'yuantakorea.com', 'kiwoom.com', 'm.nhsec.com',
+  'msg.ls-sec.co.kr', 'home.imeritz.com', 'imeritz.com']);
 export const OFFICIAL_PATTERNS = [/^dart\.fss\.or\.kr$/, /^kind\.krx\.co\.kr$/, /(^|\.)sec\.gov$/, /\.go\.kr$/, /(^|\.)fss\.or\.kr$/, /(^|\.)krx\.co\.kr$/];
 
 export const bareHost = host => host.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
@@ -22,7 +23,12 @@ export function routeLink(url, config) {
   const host = new URL(url).hostname;
   if (isRedirectHost(host)) return 'REDIRECT';
   if (isIrrelevantHost(host)) return 'IRRELEVANT';
+  // Media excluded by earlier decisions are not kept even as signals.
+  if ((config.excludedDomains ?? []).some(domain => bareHost(host) === domain || bareHost(host).endsWith('.' + domain))) return 'EXCLUDED';
   const registered = (config.sources ?? []).find(source => source.host === host);
   if (registered && ['OFFICIAL', 'REPORT'].includes(registered.kind)) return 'EVIDENCE';
+  // Known report and official hosts are evidence even before they are registered, so they surface for review
+  // (they are held until a grant is added) instead of being treated as news.
+  if (REPORT_HOSTS.has(bareHost(host)) || OFFICIAL_PATTERNS.some(pattern => pattern.test(bareHost(host)))) return 'EVIDENCE';
   return 'SIGNAL';
 }

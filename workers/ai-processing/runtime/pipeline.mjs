@@ -60,6 +60,7 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
             return settle('HOLD_ORIGINAL', job.payload, link.reason);
           }
           if (route === 'IRRELEVANT') return settle('EXCLUDED', job.payload, 'IRRELEVANT_LINK');
+          if (route === 'EXCLUDED') return settle('EXCLUDED', job.payload, 'EXCLUDED_SOURCE');
           if (route === 'SIGNAL') return store.recordSignal(job, job.payload.fetchUrl, now());
           const original = await readOriginal({ url: job.payload.fetchUrl, redirects: job.payload.redirects,
             loadConfig: () => validateConfig(loadConfig()), expectedConfig, authorize: () => authority(),
