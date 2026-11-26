@@ -42,7 +42,9 @@ export type PublicCompanyPage={catalog_version:string;state:'NOT_FOUND'}|{catalo
 export interface CompanySectorPage {catalog_version:string;state:'AVAILABLE'|'NOT_FOUND';items:CompanySectorLink[];next_offset:number|null;}
 export type SavedResolution={requested_issue_id:string;state:'PUBLISHED';canonical_issue_id:string;card:SearchNewsPage['items'][number]}|{requested_issue_id:string;state:'NOT_FOUND'|'HIDDEN'|'WITHDRAWN'|'CORRECTION_PENDING';canonical_issue_id?:string;message:string};
 export interface SavedPage {catalog_version:string;items:SavedResolution[];}
-export interface PublicImpact {sector_id:string;sector_name:string;path_id:string;direction:ImpactDirection;conditional_direction:'NONE'|'POSITIVE'|'NEGATIVE';description:string;conditions:string[];}
+// Companies of one sector impact, each with its one-line business role (2026-11-27).
+export interface PublicImpactCompany {source_company_ref:string;name:string;role:string;}
+export interface PublicImpact {sector_id:string;sector_name:string;path_id:string;direction:ImpactDirection;conditional_direction:'NONE'|'POSITIVE'|'NEGATIVE';description:string;conditions:string[];companies?:PublicImpactCompany[];}
 export interface PublicScenario {direction:'POSITIVE'|'NEGATIVE';title:string;expected_result:string;checks:string[];path_ids:string[];}
 export interface PublicSchedule {kind:'EXACT'|'PERIOD';title:string;timezone:string;event_at?:string;period_label?:string;date_note?:string;}
 export type ArticleSourceRole = 'PRIMARY' | 'REPORTED';

@@ -80,3 +80,14 @@ test('key issues and issue analysis drop inline section labels; risk labels stay
   assert(result.issue_analysis.text.includes('집행되면 개선될 가능성이 있습니다.'));
   assert(result.risks[0].text.startsWith('[확인 한계] '));
 });
+
+test('related sectors are kept only when no clear benefit or damage sector exists', () => {
+  const { c, doc } = setup();
+  c.catalog.sectors.push({ id: 'materials', name: '소재' });
+  const related = { sectorId: 'materials', companyIds: [], direction: 'RELATED', conditionalDirection: 'NEGATIVE', category: 'COST',
+    path: '부품 조달 경쟁이 심해지는 경로', conditions: ['부품 공급 부족이 이어지는지 확인'], factIds: ['local-f1'] };
+  const mixed = { ...triage('d'), sectorIds: ['semiconductor', 'materials'] }; mixed.impacts = [...mixed.impacts, related];
+  assert.deepEqual(validateTriage(mixed, [doc], c.catalog).value.impacts.map(item => item.direction), ['BENEFIT']);
+  const onlyRelated = { ...triage('d'), sectorIds: ['materials'] }; onlyRelated.impacts = [related];
+  assert.deepEqual(validateTriage(onlyRelated, [doc], c.catalog).value.impacts.map(item => item.direction), ['RELATED']);
+});

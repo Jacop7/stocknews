@@ -234,6 +234,9 @@ export function validateTriage(raw, documents, catalog) {
       assert(value.facts.some(fact => item.factIds.includes(fact.id) && (fact.subjectId === id || fact.statement.includes(name))), 'RELATED_COMPANY_EVIDENCE_REQUIRED');
     }
   }
+  // Benefit and damage sectors are the default. Related (conditional) sectors are used only when no clear benefit or
+  // damage sector exists (2026-11-27), so they are dropped here when one does.
+  if (value.impacts.some(item => item.direction !== 'RELATED')) value.impacts = value.impacts.filter(item => item.direction !== 'RELATED');
   const partition = value.articleKind === 'MACRO' ? 'MACRO_ALL' : canonicalPartition(value.event.entityIds, value.event.family);
   return { state: 'RELEVANT', value, partition, storyKey: digest([partition, value.event.family, [...value.event.entityIds].sort(), anchor]), anchor };
 }
