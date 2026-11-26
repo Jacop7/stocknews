@@ -25,9 +25,22 @@
 | 배포·되돌리기 | `scripts/ops/collector.ps1 deploy` / `rollback` (아래 NEXT의 주의 참고). 2026-11-26 실제 서버에서 status·deploy·rollback을 시험했고, 검수 수정본을 이 스크립트로 배포함 |
 | 접속 키 | worktree의 `.local-data/collector-cloud/ssh-lightsail/` (git 제외, 채팅·로그에 내용 출력 금지) |
 
+## AI 처리기 (같은 서버, 2026-11-26 20:34 KST)
+
+| 항목 | 상태 |
+|---|---|
+| 컨테이너 | `judoju-news-ai-processor-1` (compose 프로젝트 `judoju-news-ai`), 이미지 `judoju-news-ai-processor:e52ef8e` |
+| 실행 | `JUDOJU_AI_EXECUTE=1`, 설정 `readOriginals: true`, **`callModels: false`, `maxDailyCalls: 0`** → 단축 주소 해석·분류·뉴스 신호만 동작, AI 호출 없음 |
+| 허가 | 공식·리포트 후보 393개 모두 DISABLED → 원문 본문은 하나도 읽지 않음(리포트·DART 링크는 `HOLD_ORIGINAL`로 대기) |
+| 입력 | 수집기 볼륨을 읽기 전용 연결로 10분마다 import |
+| 설정·키 | 서버 `/home/ubuntu/.local/share/judoju-ai/config/config.json`, `secrets/openai.key`(600). 로컬 원본은 worktree `.local-data/ai/` |
+| 운영 | `scripts/ops/ai-processor.ps1 status|deploy [-Execute]|stop` |
+
+첫 실데이터(8분): 단축 주소 196건 해석, 뉴스 신호 75, 리포트·DART 대기 68, 무관 15. 해석 후 증권사 리포트 주소(msg.ls-sec.co.kr, home.imeritz.com)가 뉴스로 분류되던 것을 `e52ef8e`에서 수정(수정 전 기록된 신호 약 20건은 신호로 남음).
+
 ## 코드에는 있지만 운영에 연결되지 않은 것
 
-- AI 원문 처리(`workers/ai-processing/runtime`): 원문 확인 → 선별 → 사실 추출 → 작성기(사실만 입력) → 독립 검증. 실제 AI 키·모델·예산이 없어 합성 응답으로만 검증. 서버에 배포되지 않음.
+- AI 원문 처리의 선별·작성·검증: 서버에 배포됐지만 AI 호출 OFF(허가 사이트 없음). 실제 모델 응답은 아직 없음.
 - 발견 API 어댑터: TickerTick·공급처 중립 형식 파일 가져오기(네트워크 호출 없음). Finlight 전용 어댑터 없음(문서 미확인).
 - 앱 상세 화면: 1차·보도 출처 구분과 투자 권유 아님 고지 표시. DB 게시 경로는 아직 출처 구분을 넘기지 않음.
 - 어드민 hosted 로그인·쓰기: 미확인(2026-11-26 상태 `control:null`, `authRoleApplied:false`).

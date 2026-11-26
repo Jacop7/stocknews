@@ -8,6 +8,10 @@
 2. **AI 모델 결정됨(Sol 중심안)**, **API 키 저장됨**(2026-11-26, worktree `.local-data/ai/openai.key`, git 제외). 모델 목록 조회로 키 유효와 `gpt-6-luna`·`gpt-6.1-sol`·`gpt-6.2-sol` 사용 가능을 확인. 키 내용은 출력·커밋하지 않는다. 플랫폼 월 사용 한도(권장 $200)는 사용자가 설정. 채팅에 한 번 노출된 이전 키는 사용자가 2026-11-26 삭제함(저장된 키와 다름을 해시로 확인).
 4. 프로젝트 루트 `AGENTS.md`가 2026-11-26 세션 중 사라졌다. 의도한 삭제인지 확인.
 
+## 사용자 결정이 필요한 것 (최우선)
+
+- **원문 허가를 켤 사이트**: DART(dart.fss.or.kr, 공시)와 증권사 리포트 사이트(report.jayjoai.com, bbn.kiwoom.com, 교보·한화·미래에셋·NH·LS·메리츠). 켜면 해당 원문을 읽고, 이어서 AI 호출(하루 상한 150)을 켠다. 상세 후보는 `SOURCE-CANDIDATES.md`.
+
 ## 자동으로 진행할 것 (순서대로)
 
 1. ~~원문 접근 허가 후보~~ 완료(2026-11-26): `docs/context/SOURCE-CANDIDATES.md`(요약), `.local-data/backlog/source-candidates.json`(전체, DISABLED). 생성: `node scripts/backlog-source-candidates.mjs --hosts … --companies … --out … --summary …`. **사용자 검토 필요**: 링크가 많은 뉴스·리포트 상위 사이트부터 약관·robots 확인 후 ENABLED 여부 결정.
