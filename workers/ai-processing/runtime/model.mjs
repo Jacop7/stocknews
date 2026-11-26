@@ -23,7 +23,7 @@ export function createOpenAiModel({ apiKey, fetchImpl = fetch, timeoutMs = 60000
     });
     if (!response.ok) {
       const error = new Error('MODEL_HTTP_REJECTED');
-      error.knownRejection = [400, 401, 403, 404, 413, 422, 429].includes(response.status); throw error;
+      error.knownRejection = [400, 401, 403, 404, 413, 422, 429].includes(response.status); error.httpStatus = response.status; throw error;
     }
     assert(response.body, 'MODEL_RESPONSE_EMPTY');
     const reader = response.body.getReader(); const parts = []; let size = 0;

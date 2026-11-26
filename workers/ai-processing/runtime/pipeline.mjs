@@ -24,7 +24,8 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
       return { state: 'RESULT', value };
     } catch (error) {
       store.finishRun(key, error.knownRejection ? 'REJECTED' : 'UNKNOWN');
-      return hold(error.knownRejection ? 'MODEL_REJECTED' : 'MODEL_RESPONSE_UNKNOWN');
+      // The HTTP status (never the response body) tells a schema error (400) from limits (429) or a refusal.
+      return hold(error.knownRejection ? (error.httpStatus ? 'MODEL_REJECTED_HTTP_' + error.httpStatus : error.message === 'MODEL_REFUSED' ? 'MODEL_REFUSED' : 'MODEL_REJECTED') : 'MODEL_RESPONSE_UNKNOWN');
     }
   }
   return {

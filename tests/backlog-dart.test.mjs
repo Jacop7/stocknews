@@ -36,6 +36,8 @@ test('routine ownership paperwork is skipped; links and corp codes are parsed st
   assert(routineFiling('대규모기업집단현황공시[분기별공시(개별회사용)]'));
   assert(!routineFiling('[기재정정]단일판매ㆍ공급계약체결'));
   assert(!routineFiling('주요사항보고서(전환사채권발행결정)'));
+  assert(routineFiling('분기보고서 (2026.09)'));
+  assert(!routineFiling('영업(잠정)실적(공정공시)'));
   assert.equal(receiptNumber(filingUrl(rcpt)), rcpt);
   assert.equal(receiptNumber('https://dart.fss.or.kr/dsaf001/main.do?rcpNo=123'), null);
   assert.equal(receiptNumber('https://example.co.kr/?rcpNo=' + rcpt), null);

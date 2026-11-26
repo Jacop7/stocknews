@@ -74,7 +74,7 @@ export function filingText(xml) {
 
 // Routine ownership and offering paperwork rarely carries a new catalyst; skipping it keeps the daily model budget
 // for contracts, investments, results, capital actions and similar filings.
-const routine = /(임원\s*ㆍ?\s*주요주주\s*특정증권등\s*소유상황보고서|주식등의\s*대량보유상황보고서|최대주주등\s*소유주식변동신고서|증권발행실적보고서|투자설명서|일괄신고추가서류|자기주식\s*처분\s*결과보고서|주주총회소집공고|의결권대리행사권유|기업지배구조보고서|대규모기업집단현황공시|특정증권등\s*거래계획보고서|주주명부폐쇄기간|기준일\s*설정|\[첨부정정\])/;
+const routine = /(임원\s*ㆍ?\s*주요주주\s*특정증권등\s*소유상황보고서|주식등의\s*대량보유상황보고서|최대주주등\s*소유주식변동신고서|증권발행실적보고서|투자설명서|일괄신고추가서류|자기주식\s*처분\s*결과보고서|주주총회소집공고|의결권대리행사권유|기업지배구조보고서|대규모기업집단현황공시|특정증권등\s*거래계획보고서|주주명부폐쇄기간|기준일\s*설정|\[첨부정정\]|분기보고서|반기보고서|사업보고서)/;
 export const routineFiling = reportName => routine.test(reportName.replace(/\s+/g, ' '));
 
 export function createDartClient({ apiKey, transport = createOriginalTransport(), now = Date.now } = {}) {
