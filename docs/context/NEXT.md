@@ -11,7 +11,7 @@
 ## 사용자 결정이 필요한 것 (최우선)
 
 - ~~원문 허가~~ 2026-11-26 사용자 승인("진행해줘 함께"): DART·증권사 리포트 12개 호스트 ENABLED, AI 호출 ON(하루 150). 첫 8분 결과 **원문 성공 0건, 모델 호출 0건**: DART·NH는 robots 거절, 교보는 PDF(추출기 없음), 제이조AI·한화·미래에셋은 뷰어/목록 페이지라 본문 미인식.
-- **OpenDART API 키 저장 필요**(DART 웹은 robots로 자동 접근 금지 → 공식 API 사용). `.local-data/dart/opendart.key`.
+- **OpenDART API 키 저장됨**(2026-11-26, `.local-data/dart/opendart.key`, git 제외). 기업개황 API로 정상 응답(status 000) 확인. DART 웹은 robots 금지라 공식 API로만 접근한다.
 
 ## 자동으로 진행할 것 (순서대로)
 
