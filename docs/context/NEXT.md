@@ -4,9 +4,9 @@
 
 ## 사용자 입력이 필요한 것
 
-1. **OpenDART API 키 발급**(무료) — 국내 공식 근거 매칭의 핵심. 키는 비공개 환경에만 넣고 채팅·저장소에 붙이지 않는다.
+1. **OpenDART API 키 저장** — 키는 채팅에 붙이지 말고 worktree의 `.local-data/dart/opendart.key`(git 제외)에 직접 저장한다.
 2. **AI 모델과 월 예산 결정** — 결정 전에는 AI 처리를 실제로 돌리지 않는다(`maxDailyCalls` 0, 실행 flag OFF가 기본).
-3. **Codex 쪽 이중 검수 실행** — 2026-11-26 커밋들(`4724a33`~`4cf5ffd`).
+3. **AI API 키** — OpenAI 플랫폼 키(ChatGPT 구독과 별도)를 `JUDOJU_ANALYSIS_OPENAI_API_KEY`로 비공개 환경에만 넣고, 플랫폼에서 월 사용 한도를 설정한다.
 4. 프로젝트 루트 `AGENTS.md`가 2026-11-26 세션 중 사라졌다. 의도한 삭제인지 확인.
 
 ## 자동으로 진행할 것 (순서대로)

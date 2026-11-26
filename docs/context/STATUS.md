@@ -17,12 +17,12 @@
 | 항목 | 상태 |
 |---|---|
 | 컨테이너 | `judoju-news-html-collector-collector-1`, 실행 중, 자동 재시작 |
-| 이미지 | `judoju-news-html-collector:newonly-db1093c` (소스 `db1093c`) |
+| 이미지 | `judoju-news-html-collector:release-23874ac` (소스 `23874ac`, 2026-11-26 17:56 KST 배포) |
 | 웹 수집 | 켜짐 (`JUDOJU_PUBLIC_WATCH=1`), 활성 37곳 |
 | 텔레그램 링크 수집 | 켜짐 (`JUDOJU_TELEGRAM_LINKS=1`), 공개 채널 47개, 2026-11-26부터 신규 게시물만 |
 | 방문 간격 | 같은 호스트 5~8초, 다른 호스트 사이 1~3초 |
 | 상태 확인 | `scripts/ops/collector.ps1 status` |
-| 배포·되돌리기 | `scripts/ops/collector.ps1 deploy` / `rollback` (아래 NEXT의 주의 참고). 2026-11-26 실제 서버에서 status·deploy(`release-4cf5ffd`, 기능 동일)·rollback을 시험했고 현재는 rollback 결과인 `newonly-db1093c`로 운영 중 |
+| 배포·되돌리기 | `scripts/ops/collector.ps1 deploy` / `rollback` (아래 NEXT의 주의 참고). 2026-11-26 실제 서버에서 status·deploy·rollback을 시험했고, 검수 수정본을 이 스크립트로 배포함 |
 | 접속 키 | worktree의 `.local-data/collector-cloud/ssh-lightsail/` (git 제외, 채팅·로그에 내용 출력 금지) |
 
 ## 코드에는 있지만 운영에 연결되지 않은 것
@@ -35,4 +35,5 @@
 
 ## 미해결 검수
 
-- Claude·Codex 이중 검수: 이 브랜치의 2026-11-26 커밋들(`4724a33`~`4cf5ffd`)은 검수 전이다. 검수를 통과했다고 표시하지 않는다.
+- 2026-11-26 Claude(독립 리뷰 에이전트)·Codex(`codex exec`, gpt-5.6-sol, 읽기 전용) 이중 검수: 범위 `1862249..a92892c`. P0 없음. 지적 사항은 `23874ac`에서 수정(수정본 재검수는 아직). 수용한 항목: 원문 보관 기한이 지나면 진행 중 작업이 있어도 본문을 지운다(작업은 CONTEXT_CHANGED로 안전하게 보류됨).
+- Codex CLI는 ChatGPT 계정에서 `gpt-5.6-sol`·`codex-auto-review`만 사용 가능(설정의 `gpt-6.1-sol`은 거절됨).
