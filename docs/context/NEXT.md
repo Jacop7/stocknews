@@ -10,7 +10,8 @@
 
 ## 자동으로 진행할 것 (순서대로)
 
-1. 원문 접근 허가 후보 만들기: 텔레그램·웹에서 모인 링크의 호스트 빈도와 기업 시트의 보도자료·IR 호스트로 `sources` 후보(전부 DISABLED, 근거 칸 비움)를 생성해 사용자 검토용으로 낸다.
+1. ~~원문 접근 허가 후보~~ 완료(2026-11-26): `docs/context/SOURCE-CANDIDATES.md`(요약), `.local-data/backlog/source-candidates.json`(전체, DISABLED). 생성: `node scripts/backlog-source-candidates.mjs --hosts … --companies … --out … --summary …`. **사용자 검토 필요**: 링크가 많은 뉴스·리포트 상위 사이트부터 약관·robots 확인 후 ENABLED 여부 결정.
+1-1. 단축 주소 해석 단계: 텔레그램 링크의 약 2/3(1,909건)가 단축 주소다. 단축 주소 호스트만 HEAD/3xx로 따라가 최종 URL을 얻는 별도 단계(본문 미취득, robots·간격 규칙 동일)를 설계·구현한다.
 2. AI 처리기 실행 환경 준비: 서버 배포 형태(별도 컨테이너, 수집기와 분리, 수집 DB는 읽기 전용 스냅샷), 설정 파일 위치, 키 파일 전달(내용 출력 없이), 실행 flag OFF 상태로 배포 스크립트까지 준비. 허가 후보 검토 후 하루 상한 150으로 켠다.
 3. DB 게시 경로에 출처 구분(`role`)과 고지 연결 — 앱 화면은 준비됨.
 4. 수집기 운영 확인: 47개 채널 한 바퀴 결과, 웹 후보 수 변화, 오류. `scripts/ops/collector.ps1 status`.
