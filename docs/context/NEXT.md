@@ -10,9 +10,12 @@
 
 ## 사용자 결정이 필요한 것 (최우선)
 
-- **원문 허가를 켤 사이트**: DART(dart.fss.or.kr, 공시)와 증권사 리포트 사이트(report.jayjoai.com, bbn.kiwoom.com, 교보·한화·미래에셋·NH·LS·메리츠). 켜면 해당 원문을 읽고, 이어서 AI 호출(하루 상한 150)을 켠다. 상세 후보는 `SOURCE-CANDIDATES.md`.
+- ~~원문 허가~~ 2026-11-26 사용자 승인("진행해줘 함께"): DART·증권사 리포트 12개 호스트 ENABLED, AI 호출 ON(하루 150). 첫 8분 결과 **원문 성공 0건, 모델 호출 0건**: DART·NH는 robots 거절, 교보는 PDF(추출기 없음), 제이조AI·한화·미래에셋은 뷰어/목록 페이지라 본문 미인식.
+- **OpenDART API 키 저장 필요**(DART 웹은 robots로 자동 접근 금지 → 공식 API 사용). `.local-data/dart/opendart.key`.
 
 ## 자동으로 진행할 것 (순서대로)
+
+0. PDF 텍스트 추출기(`extractPdf` 포트에 연결, 오픈소스 라이브러리) → 증권사 리포트 PDF 처리. 리포트 뷰어 페이지에서 PDF 링크 찾기. OpenDART 키가 오면 공시 API 어댑터.
 
 1. ~~원문 접근 허가 후보~~ 완료(2026-11-26): `docs/context/SOURCE-CANDIDATES.md`(요약), `.local-data/backlog/source-candidates.json`(전체, DISABLED). 생성: `node scripts/backlog-source-candidates.mjs --hosts … --companies … --out … --summary …`. **사용자 검토 필요**: 링크가 많은 뉴스·리포트 상위 사이트부터 약관·robots 확인 후 ENABLED 여부 결정.
 1-1. ~~단축 주소 해석·라우팅~~ 완료(2026-11-26, 결정 B): `routing.mjs`·`resolver.mjs`, 뉴스는 `news_signals`. 다음: 같은 사건 매칭(뉴스 신호 ↔ 공식·리포트 원문), 홈 순위 관심도 입력 연결.
