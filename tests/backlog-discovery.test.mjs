@@ -79,6 +79,36 @@ test('a discovered link to an unregistered host is never fetched', async t => {
   assert.equal(digest(settings), digest(config()));
 });
 
+test('access-held hosts are listed without URLs and wake only after a grant; remote refusals stay held', async t => {
+  const store = new BacklogStore(':memory:'); t.after(() => store.close());
+  const settings = config(), host = 'www.unregistered-news.com', reads = [];
+  const lead = (path, minutes) => ({ id: path, title: path, url: 'https://' + host + '/' + path, time: stamp - minutes * 60_000 });
+  store.importLinks(readDiscoveryLeads({ stories: [lead('a', 1), lead('b', 2)] }, 'tickertick', stamp).entries, stamp);
+  store.importLinks([{ url: 'https://news.publisher.co.kr/article/robots', sourceId: 'channel-one', lastSeen: stamp, expiresAt: stamp + leadTtl }], stamp);
+  const robotsUrl = 'https://news.publisher.co.kr/article/robots';
+  const processor = createBacklogProcessor({ store, loadConfig: () => settings, now: () => stamp,
+    model: async () => { throw new Error('unexpected model call'); },
+    readOriginal: async request => {
+      reads.push(request.url);
+      if (request.url === robotsUrl) return { state: 'HOLD', reason: 'ROBOTS_DENIED' };
+      return request.loadConfig().sources.some(source => source.host === host)
+        ? { state: 'HOLD', reason: 'ARTICLE_BODY_NOT_IDENTIFIED' } : { state: 'HOLD', reason: 'ORIGINAL_ACCESS_NOT_ENABLED' };
+    } });
+  for (let index = 0; index < 3; index++) assert.equal((await processor.step()).state, 'HOLD_ORIGINAL');
+  const status = store.status();
+  assert.deepEqual(status.accessReviewHosts, [{ host, jobs: 2, discovered: 2 }]);
+  assert(!JSON.stringify(status).includes('/a'));
+  assert.equal((await processor.step()).state, 'IDLE');
+  // The operator reviews the publisher and registers it: both leads are read again, the robots refusal is not.
+  settings.sources.push({ ...settings.sources[0], host, id: 'reviewed-publisher' });
+  reads.length = 0;
+  for (let index = 0; index < 2; index++) assert.equal((await processor.step()).state, 'HOLD_ORIGINAL');
+  assert.equal((await processor.step()).state, 'IDLE');
+  assert.deepEqual(reads.sort(), ['https://' + host + '/a', 'https://' + host + '/b']);
+  assert.deepEqual(store.status().accessReviewHosts, []);
+  assert.equal(store.db.prepare("SELECT count(*) n FROM events WHERE reason='SOURCE_GRANT_AVAILABLE'").get().n, 2);
+});
+
 test('a discovered link to a granted host goes through the normal original read and the draft cites the original, not the feed', async t => {
   const store = new BacklogStore(':memory:'); t.after(() => store.close());
   const settings = config(); const read = [], inputs = [];

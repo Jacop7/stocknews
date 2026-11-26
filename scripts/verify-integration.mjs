@@ -27,6 +27,13 @@ const checks = [
     'tests/public-read-gateway.test.mjs',
     'tests/editor-state.test.mjs',
   ]],
+  ['Saved-link backlog processing tests', [
+    '--experimental-strip-types', '--test', '--test-concurrency=2',
+    'tests/backlog-processing.test.mjs',
+    'tests/backlog-original.test.mjs',
+    'tests/backlog-model.test.mjs',
+    'tests/backlog-discovery.test.mjs',
+  ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',
   ]],

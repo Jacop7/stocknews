@@ -221,6 +221,12 @@ export class BacklogStore {
             .run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
         }
       }
+      // A link held only because its host had no grant becomes fetchable once an operator registers that host.
+      // Remote refusals (robots, 4xx, paywall) keep their own reasons and are never woken here.
+      if (config?.readOriginals) for (const held of this.accessHeld()) if (sourceGrant(config, held.url, now)) {
+        this.db.prepare("UPDATE jobs SET state='FETCH',next_at=?,lease=NULL,lease_until=0 WHERE id=? AND state='HOLD_ORIGINAL'").run(now, held.id);
+        this.db.prepare("INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,'FETCH','SOURCE_GRANT_AVAILABLE',?)").run(held.id, now);
+      }
       for (const row of this.db.prepare('SELECT id FROM documents WHERE expires_at<=?').all(now)) removed.add(row.id);
       for (const id of removed) {
         this.db.prepare('UPDATE runs SET response=NULL WHERE key IN (SELECT run_key FROM run_documents WHERE doc_id=?) OR scope LIKE ?').run(id, id + ':%');
@@ -249,8 +255,21 @@ export class BacklogStore {
       this.db.prepare('DELETE FROM events WHERE observed_at<=?').run(now - 7 * day);
     });
   }
+  accessHeld() {
+    return this.db.prepare(`SELECT j.id,j.payload,EXISTS(SELECT 1 FROM sightings s WHERE s.job_id=j.id AND s.source_id LIKE 'discovery:%') discovered
+      FROM jobs j WHERE j.state='HOLD_ORIGINAL' AND
+      (SELECT e.reason FROM events e WHERE e.job_id=j.id ORDER BY e.id DESC LIMIT 1)='ORIGINAL_ACCESS_NOT_ENABLED'`).all()
+      .map(row => ({ id: row.id, url: JSON.parse(row.payload).fetchUrl, discovered: row.discovered }));
+  }
   status() {
+    // Hosts only, no URLs: which publishers would need an internal access review before their links can be read.
+    const hosts = new Map();
+    for (const held of this.accessHeld()) {
+      const host = new URL(held.url).hostname, entry = hosts.get(host) ?? { host, jobs: 0, discovered: 0 };
+      entry.jobs++; entry.discovered += Number(held.discovered); hosts.set(host, entry);
+    }
     return { jobs: this.db.prepare('SELECT state,count(*) count FROM jobs GROUP BY state').all(),
+      accessReviewHosts: [...hosts.values()].sort((a, b) => b.jobs - a.jobs || a.host.localeCompare(b.host, 'en')).slice(0, 50),
       documents: this.db.prepare('SELECT count(*) n FROM documents').get().n,
       drafts: this.db.prepare('SELECT count(*) n FROM issues').get().n,
       modelRuns: this.db.prepare('SELECT state,count(*) count FROM runs GROUP BY state').all(), publicationAuthorized: false };

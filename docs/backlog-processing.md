@@ -24,6 +24,7 @@
 - `--format tickertick`: TickerTick `/feed` 응답(`stories[]`, `time` 밀리초). README 예시 기준이며 실제 응답과 다시 대조한다.
 - `--format leads`: 공급처 중립 형식 `{ "version": "DISCOVERY_LEADS_V1", "provider": "<소문자 이름>", "items": [{ "url", "title", "publishedAt": ISO }] }`. Finlight 등은 공식 필드를 확인한 뒤 이 형식으로 변환한다. 2026-11-26에는 Finlight 문서가 자동 조회를 거절(403)하여 전용 어댑터를 만들지 않았다.
 - 발행 시각 없음·미래(5분 초과)·3일 초과·안전하지 않은 주소·응답 내 중복은 거절하고 사유별 수를 출력한다. 리드 보관은 2일, 응답은 5MiB·1000건 이하.
+- 허가 없는 호스트 때문에 `ORIGINAL_ACCESS_NOT_ENABLED`로 보류된 링크는 `status`의 `accessReviewHosts`에 호스트별 건수(발견 API 출처 수 포함)로만 표시한다. URL은 출력하지 않는다. 운영자가 해당 호스트를 내부 검토해 정책을 등록하면 원문 읽기가 켜진 실행에서 그 링크들만 `FETCH`로 되돌린다(`SOURCE_GRANT_AVAILABLE` 기록). robots 거절·접근 거절·유료벽 등 원격 거절은 되돌리지 않는다.
 - 이 경로는 API를 호출하지 않으며 키·구독·라이선스 확인을 대신하지 않는다. 수집 OFF 상태와 무관하게 동작하고 수집기를 재시작하지 않는다.
 
 ```powershell
