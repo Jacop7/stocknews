@@ -39,7 +39,7 @@ export function telegramPageLinks(html, url) {
   if (!handle) return { valid: false, links: [] };
   const nodes = [parse(html, { scriptingEnabled: true })];
   let valid = false, latestPost = null;
-  const links = new Set();
+  const links = new Set(), linkPosts = new Map();
   while (nodes.length) {
     const node = nodes.pop();
     if (node.tagName === 'a' && node.namespaceURI === 'http://www.w3.org/1999/xhtml') {
@@ -51,7 +51,13 @@ export function telegramPageLinks(html, url) {
           inText ||= hasClass(parent, 'tgme_widget_message_text') || hasClass(parent, 'tgme_widget_message_caption');
           parent = parent.parentNode;
         }
-        if (inText && attribute(parent ?? {}, 'data-post').toLowerCase().split('/')[0] === handle) links.add(link);
+        const [owner, number] = attribute(parent ?? {}, 'data-post').toLowerCase().split('/');
+        if (inText && owner === handle) {
+          links.add(link);
+          // Remember the newest post each link appears in, so a revisit can keep only links from newer posts.
+          const post = Number(number);
+          if (Number.isSafeInteger(post) && post > 0 && post > (linkPosts.get(link) ?? 0)) linkPosts.set(link, post);
+        }
       }
     } else if (hasClass(node, 'tgme_widget_message') &&
                attribute(node, 'data-post').toLowerCase().split('/')[0] === handle) {
@@ -64,7 +70,8 @@ export function telegramPageLinks(html, url) {
     }
   }
   return { valid, links: valid ? [...links].slice(0, 100) : [], ...(valid && links.size > 100 ? { truncated: true } : {}),
-    ...(valid && latestPost !== null ? { latestPost } : {}) };
+    ...(valid && latestPost !== null ? { latestPost, linkPosts: Object.fromEntries([...links].slice(0, 100)
+      .filter(link => linkPosts.has(link)).map(link => [link, linkPosts.get(link)])) } : {}) };
 }
 
 export function telegramLinkExclusions({ routes, endpoints }) {
@@ -275,13 +282,22 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now, ra
   // Only a newer post than the last one seen counts as new. Quiet channels are revisited after 10, 20, then 30 minutes.
   const latestPost = check.observation.latestPost;
   const prior = db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity WHERE endpoint_id=? AND binding=?').get(id, grant.binding);
+  // 2026-11-26 user instruction: collect only posts published from now on. The first visit of a channel
+  // (or after a binding change) records the newest post as the starting point and stores no links.
+  if (Number.isSafeInteger(latestPost) && !prior) {
+    db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
+      DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(id, grant.binding, latestPost);
+    return record('BASELINE_RECORDED');
+  }
   if (Number.isSafeInteger(latestPost) && prior && latestPost <= prior.latest_post) {
     const quiet = Math.min(prior.quiet_visits + 1, 2);
     db.prepare('UPDATE telegram_page_activity SET quiet_visits=? WHERE endpoint_id=?').run(quiet, id);
     db.prepare('UPDATE telegram_page_schedule SET next_at=? WHERE endpoint_id=?').run(finished + 10 * minute * (quiet + 1), id);
     return record('NO_NEW_POSTS');
   }
-  const urls = [...new Set(check.observation.links.filter(item => typeof item === 'string').map(externalUrl)
+  const posts = check.observation.linkPosts;
+  const fresh = item => !prior || !posts || !Number.isSafeInteger(latestPost) || (posts[item] ?? 0) > prior.latest_post;
+  const urls = [...new Set(check.observation.links.filter(item => typeof item === 'string' && fresh(item)).map(externalUrl)
     .filter(url => url && !excludedTelegramLink(url, exclusions)))].slice(0, 100);
   const insert = db.prepare(`INSERT INTO telegram_page_links VALUES (?,?,?,?,?) ON CONFLICT(endpoint_id,url)
     DO UPDATE SET binding=excluded.binding,last_seen=excluded.last_seen,expires_at=excluded.expires_at`);

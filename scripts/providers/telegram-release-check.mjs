@@ -52,7 +52,7 @@ export function assertCurrentTelegramCycle(logs, startedAt) {
     try {
       const event = JSON.parse(line.slice(split + 1));
       return event.event === 'TELEGRAM_PAGE_LINK_CYCLE' &&
-        ['WAIT', 'ROBOTS_READY', 'LINKS_OBSERVED', 'PARTIAL'].includes(event.status);
+        ['WAIT', 'ROBOTS_READY', 'LINKS_OBSERVED', 'PARTIAL', 'BASELINE_RECORDED', 'NO_NEW_POSTS'].includes(event.status);
     } catch { return false; }
   });
   assert(live, 'No current-container Telegram cycle');

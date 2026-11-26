@@ -39,7 +39,7 @@ test('extract HTTPS links inside matching public posts, without message text, da
     article('javascript:alert(1)') + article('https://person:secret@publisher.co.kr/') +
     article('https://other.co.kr/news').replace('NHIS_BIO/123', 'SomeOther/123') +
     '<a href="https://navigation.co.kr/">Outside posts</a>';
-  assert.deepEqual(telegramPageLinks(html, channel), { valid: true, links: [link], latestPost: 123 });
+  assert.deepEqual(telegramPageLinks(html, channel), { valid: true, links: [link], latestPost: 123, linkPosts: { [link]: 123 } });
   assert.deepEqual(telegramPageLinks('<a href="https://publisher.co.kr/">Channel landing</a>', channel),
     { valid: false, links: [] });
   assert.deepEqual(telegramPageLinks(html, 'https://t.me/nhis_bio/123'), { valid: false, links: [] });
@@ -75,14 +75,22 @@ test('an authorized public page uses robots and persists only deduped clickable 
     assert.equal(limits.maxBytes, 16000);
     if (url.endsWith('/robots.txt')) return { status: 404 };
     assert.equal(url, channel);
-    return { status: 200, contentType: 'text/html', body: Buffer.from(article(link) + article(link)) };
+    return { status: 200, contentType: 'text/html', body: Buffer.from(page) };
   } });
+  const old = 'https://publisher.co.kr/news/old';
+  const oldPost = article(old).replace('NHIS_BIO/123', 'NHIS_BIO/122');
+  let page = oldPost;
   const run = () => runTelegramPageCycle(db, { now: () => now, load: () => config, watch });
   assert.deepEqual(await run(), { status: 'ROBOTS_READY', links: 0 });
   assert.deepEqual(await run(), { status: 'WAIT', links: 0 });
   now += minute;
+  // Only posts published after the first visit are collected: the existing post sets the starting point.
+  assert.deepEqual(await run(), { status: 'BASELINE_RECORDED', links: 0 });
+  assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_links').get().n, 0);
+  page = oldPost + article(link) + article(link);
+  now += 11 * minute;
   assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 1 });
-  assert.deepEqual(seen, ['https://t.me/robots.txt', channel]);
+  assert.deepEqual(seen, ['https://t.me/robots.txt', channel, channel]);
   assert.deepEqual(db.prepare('SELECT url FROM telegram_page_links').all().map(row => row.url), [link]);
   const html = renderTelegramLinks(db, now);
   assert.match(html, /href="https:\/\/publisher\.co\.kr\/news\/123\?a=1&amp;b=2" target="_blank" rel="noopener noreferrer"/);
@@ -306,6 +314,9 @@ test('a page without a newer post writes no links and is revisited after 10, 20,
   const seen = () => db.prepare('SELECT last_seen FROM telegram_page_links').all().map(row => row.last_seen);
   assert.equal((await run()).status, 'ROBOTS_READY');
   now += minute;
+  assert.deepEqual(await run(), { status: 'BASELINE_RECORDED', links: 0 });
+  page = article(link).replace('NHIS_BIO/123', 'NHIS_BIO/123') + article('https://publisher.co.kr/news/first').replace('NHIS_BIO/123', 'NHIS_BIO/124');
+  now += 11 * minute;
   assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 1 });
   assert.equal(next(), 10 * minute);
   const firstSeen = seen();
@@ -315,11 +326,13 @@ test('a page without a newer post writes no links and is revisited after 10, 20,
     assert.equal(next(), gap * minute);
     assert.deepEqual(seen(), firstSeen);
   }
-  page = article(link).replace('NHIS_BIO/123', 'NHIS_BIO/124') + article('https://publisher.co.kr/news/456');
+  page += article('https://publisher.co.kr/news/456').replace('NHIS_BIO/123', 'NHIS_BIO/125');
   now += 31 * minute;
-  assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 2 });
+  assert.deepEqual(await run(), { status: 'LINKS_OBSERVED', links: 1 });
   assert.equal(next(), 10 * minute);
-  assert.deepEqual({ ...db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity').get() }, { latest_post: 124, quiet_visits: 0 });
+  assert.deepEqual({ ...db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity').get() }, { latest_post: 125, quiet_visits: 0 });
+  assert.deepEqual(db.prepare('SELECT url FROM telegram_page_links ORDER BY url').all().map(row => row.url),
+    ['https://publisher.co.kr/news/456', 'https://publisher.co.kr/news/first']);
   // A binding change clears the remembered post, so the next visit is treated as new again.
   config.endpoints[0].config_version = '2';
   now += 31 * minute;
