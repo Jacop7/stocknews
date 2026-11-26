@@ -93,7 +93,8 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
         const eventDate = Date.parse(job.payload.triage.event.date ?? '');
         if (published < now() - 3 * day && (!Number.isFinite(eventDate) || eventDate < now() - 3 * day)) return settle('HOLD_OLD_EVENT', job.payload, 'OLD_EVENT_NOT_NEW_CATALYST');
         const snapshot = context.issues.map(issue => ({ id: issue.id, version: issue.version }));
-        const retentionUntil = Math.min(job.expires_at, ...context.documents.map(doc => Math.min(doc.expiresAt, doc.bodyExpiresAt)));
+        // A deleted body's past deadline must not make a new model run expire on arrival.
+        const retentionUntil = Math.min(job.expires_at, ...context.documents.map(doc => doc.purged ? doc.expiresAt : Math.min(doc.expiresAt, doc.bodyExpiresAt)));
         const input = { facts, triage: job.payload.triage, catalog: config.catalog,
           // A deleted original arrives as purged: the verifier checks those facts against their stored quotes.
           originals: context.documents.map(doc => ({ id: doc.id, title: doc.title, text: doc.text, publishedAt: doc.publishedAt, ...(doc.purged ? { purged: true } : {}) })),

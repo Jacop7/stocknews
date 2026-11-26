@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { digest, exact, text, list, numericTokens } from './contracts.mjs';
 import { screenArticleOriginality } from '../src/originality-screen.ts';
-import { DISCLAIMER, factProvenance, assertAttributed, assertHedged, assertCompanyRoles, checkCalculations, renderCalculations, stripCalculations } from './writer.mjs';
+import { DISCLAIMER, factProvenance, assertAttributed, assertHedged, assertCompanyRoles, checkCalculations, renderCalculations, stripCalculations, sharesRun } from './writer.mjs';
 
 const str = { type: 'string' }, bool = { type: 'boolean' }, nullable = { type: ['string', 'null'] };
 const enumeration = values => ({ type: 'string', enum: values });
@@ -113,6 +113,8 @@ export function validateTriage(raw, documents, catalog) {
     for (const key of ['id', 'predicate', 'value', 'unit', 'period']) text(candidate[key], 200, ['unit', 'period'].includes(key));
     text(candidate.statement, 1000);
     const refs = references(candidate.refs, documents);
+    // Statements reach the writer, so they must be the extractor's own wording, not copied source prose.
+    assert(!refs.some(ref => sharesRun(candidate.statement, ref.quote)) && !documents.some(doc => sharesRun(candidate.statement, doc.text)), 'FACT_STATEMENT_COPIES_SOURCE');
     assert(numericTokens(candidate.statement).every(token => numericTokens(refs.map(ref => ref.quote).join(' ')).includes(token)), 'FACT_NUMBER_MISMATCH');
     if (numericTokens(candidate.value).length) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -156,6 +158,7 @@ export function validateTriage(raw, documents, catalog) {
     item.factIds = item.factIds.map(id => { assert(localIds.has(id), 'UNKNOWN_FACT'); return localIds.get(id); });
     assert(item.factIds.length && (item.direction === 'RELATED' || item.conditionalDirection === 'NONE'), 'INVALID_IMPACT');
     text(item.path, 1000);
+    assert(!documents.some(doc => sharesRun(item.path, doc.text) || item.conditions.some(condition => sharesRun(condition, doc.text))), 'IMPACT_PATH_COPIES_SOURCE');
     if (item.direction === 'RELATED') assert(item.conditions.length > 0 && ['POSITIVE', 'NEGATIVE'].includes(item.conditionalDirection), 'RELATED_CONDITION_REQUIRED');
   }
   const partition = value.articleKind === 'MACRO' ? 'MACRO_ALL' : canonicalPartition(value.event.entityIds, value.event.family);
@@ -246,9 +249,15 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   assert(allText.every(part => numericTokens(stripCalculations(part)).every(number => allowedNumbers.includes(number))), 'DRAFT_NUMBER_MISMATCH');
   assertHedged(allText);
   const provenance = facts.map(fact => ({ id: fact.id, ...factProvenance(fact, documents) }));
-  assertAttributed([...draft.key_issues, draft.issue_analysis], { facts: provenance });
+  const otherParts = [draft.title, draft.summary, ...impacts.flatMap(item => [item.description, ...item.conditions, ...item.companyRoles.map(role => role.role)]),
+    ...draft.scenarios.flatMap(item => [item.title, item.expected_result, ...item.checks]), ...draft.risks.map(item => item.text),
+    ...draft.schedule.map(item => item.title)].map(stripCalculations);
+  assertAttributed([...draft.key_issues, draft.issue_analysis],
+    { facts: provenance.map(item => ({ ...item, statement: facts.find(fact => fact.id === item.id).statement })) }, otherParts);
   // Originals deleted under the retention rule have no text left to compare; the remaining ones are screened.
-  const sourceParts = documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }])
+  // Stored evidence quotes are screened too, so the check still runs when every body has been deleted.
+  const sourceParts = [...documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }]),
+    ...facts.flatMap(fact => fact.refs.map((ref, index) => ({ id: fact.id + '-quote-' + index, text: ref.quote })))]
     .filter(part => part.text.trim());
   if (sourceParts.length) {
     const originality = screenArticleOriginality({ policy: { version: 'BACKLOG_WORDING_V1', headlineCharacters: 18, passageCharacters: 36 }, sourceParts,

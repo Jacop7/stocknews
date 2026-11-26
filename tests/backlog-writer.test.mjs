@@ -89,10 +89,10 @@ test('derived numbers appear only as system-rendered calculations over cited fac
   const direct = structuredClone(raw); direct.risks[0].text = '합산하면 40% 변화입니다.';
   assert.throws(() => validateDraft(direct, check), /DRAFT_NUMBER_MISMATCH/);
   const ok = structuredClone(raw);
-  ok.calculations = [{ id: 'c1', expression: '20 + 20', result: '40', unit: '%p', factIds: [factId] }];
+  ok.calculations = [{ id: 'c1', expression: '20 + 20', result: '40', unit: '%', factIds: [factId] }];
   ok.risks[0].text = '두 차례 같은 폭이면 누적 {{calc:c1}} 수준입니다.';
   const value = validateDraft(ok, check);
-  assert.equal(value.risks[0].text, '두 차례 같은 폭이면 누적 40%p(20 + 20로 계산) 수준입니다.');
+  assert.equal(value.risks[0].text, '두 차례 같은 폭이면 누적 40%(20 + 20로 계산) 수준입니다.');
   const wrong = structuredClone(ok); wrong.calculations[0].result = '41';
   assert.throws(() => validateDraft(wrong, check), /CALCULATION_RESULT_MISMATCH/);
   const unsupported = structuredClone(ok); unsupported.calculations[0].expression = '20 × 3'; unsupported.calculations[0].result = '60';

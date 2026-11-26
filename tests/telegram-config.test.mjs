@@ -6,7 +6,12 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { prepareTelegramConfig } from '../scripts/providers/telegram-config.mjs';
-import { openTelegramPageStore, runTelegramPageCycle, telegramPageCandidates, telegramLinkExclusions } from '../scripts/providers/telegram-link-worker.mjs';
+import { openTelegramPageStore, runTelegramPageCycle, telegramPageCandidates, telegramLinkExclusions, seedTelegramBaseline } from '../scripts/providers/telegram-link-worker.mjs';
+
+// Mocked pages carry post numbers; channels start from a recorded baseline (post 0) so newer posts are stored.
+let postCounter = 0;
+const posted = links => { const post = ++postCounter; return { valid: true, links, latestPost: post, linkPosts: Object.fromEntries(links.map(item => [item, post])) }; };
+const seedAll = (db, config, at) => { for (const id of telegramPageCandidates(config, at).keys()) seedTelegramBaseline(db, config, id, 0, at); };
 
 const registry = fileURLToPath(new URL('../data/providers/', import.meta.url));
 const preparer = fileURLToPath(new URL('../../collector-first-live-source/prepare.mjs', import.meta.url));
@@ -49,11 +54,12 @@ test('URL dedupe and global host Retry-After survive a real SQLite reopen', asyn
   const filename = join(dir, 'links.sqlite'); let db = openTelegramPageStore(filename), now = stamp;
   const cycle = watch => runTelegramPageCycle(db, { load, watch, now: () => now });
   const link = 'https://publisher.co.kr/news/one';
+  seedAll(db, load(), now);
   try {
     assert.equal((await cycle(() => ({ status: 'WATCH_INSPECTED', httpStatus: 200,
-      observation: { valid: true, links: [link, link] } }))).links, 1);
+      observation: posted([link, link]) }))).links, 1);
     now += 5000;
-    await cycle(() => ({ status: 'WATCH_INSPECTED', httpStatus: 200, observation: { valid: true, links: [link] } }));
+    await cycle(() => ({ status: 'WATCH_INSPECTED', httpStatus: 200, observation: posted([link]) }));
     assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_links').get().n, 2); // Two source relations.
     assert.equal(db.prepare('SELECT count(DISTINCT url) n FROM telegram_page_links').get().n, 1);
     now += 5000;
@@ -63,7 +69,7 @@ test('URL dedupe and global host Retry-After survive a real SQLite reopen', asyn
     assert.equal((await cycle(() => assert.fail('Persisted host limit'))).status, 'WAIT');
     now++;
     let visited;
-    assert.equal((await cycle(endpoint => { visited = endpoint.endpoint_id; return { status: 'WATCH_INSPECTED', observation: { valid: true, links: [link] } }; })).status, 'LINKS_OBSERVED');
+    assert.equal((await cycle(endpoint => { visited = endpoint.endpoint_id; return { status: 'WATCH_INSPECTED', observation: posted([link]) }; })).status, 'LINKS_OBSERVED');
     assert(visited);
   } finally { db.close(); }
 });

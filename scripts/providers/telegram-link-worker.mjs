@@ -70,7 +70,8 @@ export function telegramPageLinks(html, url) {
     }
   }
   return { valid, links: valid ? [...links].slice(0, 100) : [], ...(valid && links.size > 100 ? { truncated: true } : {}),
-    ...(valid && latestPost !== null ? { latestPost, linkPosts: Object.fromEntries([...links].slice(0, 100)
+    // Post numbers for every link (bounded), so the cursor can follow what was actually stored.
+    ...(valid && latestPost !== null ? { latestPost, linkPosts: Object.fromEntries([...links].slice(0, 1000)
       .filter(link => linkPosts.has(link)).map(link => [link, linkPosts.get(link)])) } : {}) };
 }
 
@@ -158,6 +159,14 @@ export function openTelegramPageStore(filename) {
     ) STRICT;
   `);
   return db;
+}
+
+// Records a channel's starting post for the current registry binding (used by tests and manual resets).
+export function seedTelegramBaseline(db, config, endpointId, latestPost, timestamp = Date.now()) {
+  const grant = telegramPageCandidates(config, timestamp).get(endpointId);
+  if (!grant || !Number.isSafeInteger(latestPost) || latestPost < 0) throw new Error('TELEGRAM_BASELINE_INVALID');
+  db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
+    DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(endpointId, grant.binding, latestPost);
 }
 
 export function expireTelegramLinks(db, timestamp) {
@@ -282,36 +291,43 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now, ra
   // Only a newer post than the last one seen counts as new. Quiet channels are revisited after 10, 20, then 30 minutes.
   const latestPost = check.observation.latestPost;
   const prior = db.prepare('SELECT latest_post, quiet_visits FROM telegram_page_activity WHERE endpoint_id=? AND binding=?').get(id, grant.binding);
-  // 2026-11-26 user instruction: collect only posts published from now on. The first visit of a channel
-  // (or after a binding change) records the newest post as the starting point and stores no links.
-  if (Number.isSafeInteger(latestPost) && !prior) {
+  // 2026-11-26 user instruction: collect only posts published from now on. Without a readable post number
+  // the page cannot be placed relative to the cursor, so nothing is stored (fail closed).
+  const posts = check.observation.linkPosts;
+  if (!Number.isSafeInteger(latestPost) || !posts || typeof posts !== 'object') return record('PAGE_UNVERIFIED');
+  // The first visit of a channel (or after a binding change) records the newest post as the starting point.
+  if (!prior) {
     db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
       DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(id, grant.binding, latestPost);
     return record('BASELINE_RECORDED');
   }
-  if (Number.isSafeInteger(latestPost) && prior && latestPost <= prior.latest_post) {
+  if (latestPost <= prior.latest_post) {
     const quiet = Math.min(prior.quiet_visits + 1, 2);
     db.prepare('UPDATE telegram_page_activity SET quiet_visits=? WHERE endpoint_id=?').run(quiet, id);
     db.prepare('UPDATE telegram_page_schedule SET next_at=? WHERE endpoint_id=?').run(finished + 10 * minute * (quiet + 1), id);
     return record('NO_NEW_POSTS');
   }
-  const posts = check.observation.linkPosts;
-  const fresh = item => !prior || !posts || !Number.isSafeInteger(latestPost) || (posts[item] ?? 0) > prior.latest_post;
-  const urls = [...new Set(check.observation.links.filter(item => typeof item === 'string' && fresh(item)).map(externalUrl)
-    .filter(url => url && !excludedTelegramLink(url, exclusions)))].slice(0, 100);
+  // Newer posts, oldest first, at most 100 links per visit. When more remain, the cursor stops before the first
+  // post not fully stored, so the next visit picks up the rest instead of skipping it.
+  const candidates = Object.entries(posts).filter(([link, post]) => typeof link === 'string' && Number.isSafeInteger(post) &&
+    post > prior.latest_post).sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], 'en'));
+  const taken = candidates.slice(0, 100);
+  const more = candidates.length > taken.length;
+  const cursor = !more ? latestPost : candidates[taken.length][1] === taken.at(-1)[1] ? taken.at(-1)[1] - 1 : taken.at(-1)[1];
+  const urls = [...new Set(taken.map(([link]) => externalUrl(link)).filter(url => url && !excludedTelegramLink(url, exclusions)))];
   const insert = db.prepare(`INSERT INTO telegram_page_links VALUES (?,?,?,?,?) ON CONFLICT(endpoint_id,url)
     DO UPDATE SET binding=excluded.binding,last_seen=excluded.last_seen,expires_at=excluded.expires_at`);
   db.exec('BEGIN IMMEDIATE');
   try {
     for (const url of urls) insert.run(id, grant.binding, url, finished, Math.min(grant.expires, finished + grant.retention));
-    if (Number.isSafeInteger(latestPost)) db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
-      DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(id, grant.binding, latestPost);
+    db.prepare(`INSERT INTO telegram_page_activity VALUES (?,?,?,0) ON CONFLICT(endpoint_id)
+      DO UPDATE SET binding=excluded.binding,latest_post=excluded.latest_post,quiet_visits=0`).run(id, grant.binding, Math.max(cursor, prior.latest_post));
     db.exec('COMMIT');
   } catch (error) {
     db.exec('ROLLBACK');
     throw error;
   }
-  return record(check.observation.truncated || check.observation.links.length > 100 ? 'PARTIAL' : 'LINKS_OBSERVED', urls.length);
+  return record(more || check.observation.truncated ? 'PARTIAL' : 'LINKS_OBSERVED', urls.length);
 }
 
 const escape = value => value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);

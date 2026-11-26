@@ -54,7 +54,8 @@ if ($Command -eq 'status') { Invoke-Remote $statusScript; return }
 if ($Command -eq 'rollback') {
   $script = @'
 set -euo pipefail
-R=$(ls -1dt __BASE__/release-* 2>/dev/null | head -1)
+# The newest release that recorded a rollback point (a failed upload/build leaves a folder without one).
+R=$(ls -1dt __BASE__/release-*/previous-compose.txt 2>/dev/null | head -1 | xargs -r dirname)
 test -n "$R" && test -f "$R/previous-compose.txt"
 mapfile -t files < "$R/previous-compose.txt"
 args=(); for f in "${files[@]}"; do args+=(-f "$f"); done
@@ -75,6 +76,11 @@ sudo -n docker inspect --format '{{index .Config.Labels "com.docker.compose.proj
 sudo -n docker run --rm --network none --entrypoint sh `$(sudo -n docker inspect --format '{{.Config.Image}}' $container) -c 'cd /opt/judoju/scripts/providers && sha256sum *.mjs'
 "@
 $baseImage = $current[0].Trim(); $composeFiles = $current[1].Trim().Split(',')
+# Values read from the server go into a generated shell script: accept only plain collector paths and image tags.
+foreach ($file in $composeFiles) {
+  if ($file -notmatch "^$([regex]::Escape($base))/[A-Za-z0-9._/-]+\.yaml$" -or $file -match '\.\.') { throw "Unexpected compose file path: $file" }
+}
+if ($baseImage -notmatch '^judoju-news-html-collector:[A-Za-z0-9._-]+$') { throw "Unexpected base image: $baseImage" }
 $remoteHashes = @{}; foreach ($line in $current[2..($current.Count - 1)]) { $parts = $line.Trim() -split '\s+'; if ($parts.Count -eq 2) { $remoteHashes[$parts[1]] = $parts[0] } }
 # Only modules the worker actually loads: html-worker.mjs and its local import chain (plus the release check).
 $providers = Join-Path $repo 'scripts\providers'

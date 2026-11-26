@@ -213,7 +213,8 @@ export class BacklogStore {
       if (!current.manual_protected) {
         const payload = JSON.parse(current.payload), seen = new Set(payload.source_refs.map(source => source.url));
         for (const doc of documents) for (const source of doc.sources) if (!seen.has(source.url) && payload.source_refs.length < 32) {
-          payload.source_refs.push({ docId: doc.id, url: source.url, name: source.id, publishedAt: source.publishedAt }); seen.add(source.url);
+          payload.source_refs.push({ docId: doc.id, url: source.url, name: source.name ?? source.id,
+            role: source.kind === 'OFFICIAL' ? 'PRIMARY' : 'REPORTED', publishedAt: source.publishedAt }); seen.add(source.url);
         }
         this.db.prepare('UPDATE issues SET payload=? WHERE id=?').run(canonical(payload), current.id);
       }
@@ -270,6 +271,12 @@ export class BacklogStore {
         for (const issue of this.db.prepare('SELECT id,payload FROM issues WHERE expires_at>?').all(now)) {
           if ((JSON.parse(issue.payload).source_refs ?? []).some(source => !sourceGrant(config, source.url, now))) this.db.prepare('UPDATE issues SET payload=?,fact_ids=? WHERE id=?')
             .run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
+        }
+        // Editor proposals carry their own source_refs and can outlive the 30-day source record.
+        for (const proposal of this.db.prepare('SELECT id,payload FROM proposals').all()) {
+          const granted = source => { try { return Boolean(sourceGrant(config, source.url, now)); } catch { return false; } };
+          // Refs without a URL are tied to documents by docId and handled with the removed-document pass.
+          if ((JSON.parse(proposal.payload).source_refs ?? []).some(source => typeof source.url === 'string' && !granted(source))) this.db.prepare('DELETE FROM proposals WHERE id=?').run(proposal.id);
         }
       }
       // A link held only because its host had no grant becomes fetchable once an operator registers that host.

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { createTelegramPageWatch, openTelegramPageStore, renderTelegramLinks,
   runTelegramPageCycle, telegramPageLinks, telegramPageCandidates, telegramAuthorization,
-  createTelegramTransport, telegramLinkExclusions, excludedTelegramLink, expireTelegramLinks } from '../scripts/providers/telegram-link-worker.mjs';
+  createTelegramTransport, telegramLinkExclusions, excludedTelegramLink, expireTelegramLinks, seedTelegramBaseline } from '../scripts/providers/telegram-link-worker.mjs';
 
 const stamp = Date.parse('2026-11-21T00:00:00Z');
 const minute = 60_000;
@@ -15,6 +15,11 @@ const article = value => `<div class="tgme_widget_message" data-post="NHIS_BIO/1
     <a href="${value.replaceAll('&', '&amp;')}">Publisher</a>
   </div></div>`;
 const read = name => JSON.parse(readFileSync(new URL('../data/providers/' + name, import.meta.url), 'utf8'));
+
+// Mocked pages carry post numbers; channels start from a recorded baseline (post 0) so newer posts are stored.
+let postCounter = 0;
+const posted = links => { const post = ++postCounter; return { valid: true, links, latestPost: post, linkPosts: Object.fromEntries(links.map(item => [item, post])) }; };
+const seedAll = (db, config, at) => { for (const id of telegramPageCandidates(config, at).keys()) seedTelegramBaseline(db, config, id, 0, at); };
 
 function fixture() {
   return {
@@ -138,7 +143,7 @@ test('the shared Telegram host waits for a Retry-After date across cycle restart
   t.after(() => db.close());
   const config = fixture();
   const retryAt = stamp + 59 * minute;
-  let time = stamp;
+  let time = stamp; seedAll(db, config, stamp);
   const run = watch => runTelegramPageCycle(db, { now: () => time, load: () => config, watch });
   assert.equal((await run(() => ({
     status: 'FAILED', httpStatus: 429, retryAfter: new Date(retryAt).toUTCString(),
@@ -146,7 +151,7 @@ test('the shared Telegram host waits for a Retry-After date across cycle restart
   time = retryAt - 1;
   assert.equal((await run(() => assert.fail('Retry-After still applies'))).status, 'WAIT');
   time = retryAt;
-  assert.equal((await run(() => ({ status: 'WATCH_INSPECTED', observation: { valid: true, links: [link] } }))).links, 1);
+  assert.equal((await run(() => ({ status: 'WATCH_INSPECTED', observation: posted([link]) }))).links, 1);
 });
 
 function operatorFixture() {
@@ -221,13 +226,13 @@ test('publisher exclusions are host boundaries; home references are exact URLs o
 
 test('operator cycle reports PARTIAL, revalidates before requests and expires during config failures', async t => {
   const db = openTelegramPageStore(':memory:'); t.after(() => db.close());
-  const config = operatorFixture(); let time = stamp, broken = false;
+  const config = operatorFixture(); let time = stamp, broken = false; seedAll(db, config, stamp);
   const load = () => { if (broken) throw new Error('Unreadable configuration'); return config; };
   const run = watch => runTelegramPageCycle(db, { load, now: () => time, watch });
   const many = Array.from({ length: 101 }, (_, index) => `https://publisher.co.kr/news/${index}`);
   assert.equal(telegramPageLinks(many.map(url => article(url)).join(''), channel).truncated, true);
   assert.deepEqual(await run(() => ({ status: 'WATCH_INSPECTED', httpStatus: 200,
-    observation: { valid: true, links: many } })), { status: 'PARTIAL', links: 100 });
+    observation: posted(many) })), { status: 'PARTIAL', links: 100 });
   assert.equal(db.prepare('SELECT count(*) AS n FROM telegram_page_links').get().n, 100);
   assert.equal(db.prepare('SELECT status FROM telegram_page_diagnostics').get().status, 'PARTIAL');
   broken = true; time += minute;
@@ -256,8 +261,9 @@ test('changing one exclusion preserves unrelated links and other channels schedu
   config.endpoints.push(second.endpoints[0]); config.profiles.push(second.profiles[0]);
   config.routes.push({ effective_kind: 'TELEGRAM', original_row: 42, endpoint_ids: ['second'] });
   const allowed = 'https://publisher.co.kr/allowed', excluded = 'https://m.edaily.co.kr/news/1';
+  seedAll(db, config, time);
   const run = () => runTelegramPageCycle(db, { load: () => config, now: () => time,
-    watch: () => ({ status: 'WATCH_INSPECTED', observation: { valid: true, links: [allowed, excluded] } }) });
+    watch: () => ({ status: 'WATCH_INSPECTED', observation: posted([allowed, excluded]) }) });
   await run(); time += 5000; await run();
   const schedules = db.prepare('SELECT * FROM telegram_page_schedule ORDER BY endpoint_id').all();
   assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_links').get().n, 4);
@@ -338,4 +344,24 @@ test('a page without a newer post writes no links and is revisited after 10, 20,
   now += 31 * minute;
   await run();
   assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_activity WHERE binding LIKE ?').get('%"config_version":"1"%').n, 0);
+});
+
+test('without post numbers nothing is stored, and links beyond 100 are taken on the next visit', async t => {
+  const db = openTelegramPageStore(':memory:');
+  t.after(() => db.close());
+  const config = operatorFixture(); let time = stamp; seedAll(db, config, stamp);
+  const run = observation => runTelegramPageCycle(db, { load: () => config, now: () => time,
+    watch: () => ({ status: 'WATCH_INSPECTED', httpStatus: 200, observation }) });
+  assert.deepEqual(await run({ valid: true, links: [link] }), { status: 'PAGE_UNVERIFIED', links: 0 });
+  assert.equal(db.prepare('SELECT count(*) n FROM telegram_page_links').get().n, 0);
+  const links = Array.from({ length: 150 }, (_, index) => `https://publisher.co.kr/news/p${index + 1}`);
+  const page = { valid: true, links: links.slice(0, 100), truncated: true, latestPost: 150,
+    linkPosts: Object.fromEntries(links.map((item, index) => [item, index + 1])) };
+  time += 11 * minute;
+  assert.deepEqual(await run(page), { status: 'PARTIAL', links: 100 });
+  assert.equal(db.prepare('SELECT latest_post FROM telegram_page_activity').get().latest_post, 100);
+  time += 11 * minute;
+  assert.deepEqual(await run(page), { status: 'PARTIAL', links: 50 });
+  assert.equal(db.prepare('SELECT latest_post FROM telegram_page_activity').get().latest_post, 150);
+  assert.equal(db.prepare('SELECT count(DISTINCT url) n FROM telegram_page_links').get().n, 150);
 });

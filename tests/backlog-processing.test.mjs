@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { BacklogStore } from '../workers/ai-processing/runtime/store.mjs';
 import { createBacklogProcessor } from '../workers/ai-processing/runtime/pipeline.mjs';
 import { validateTriage, evidenceSufficient, validateDraft } from '../workers/ai-processing/runtime/editorial.mjs';
-import { validateConfig, digest, day } from '../workers/ai-processing/runtime/contracts.mjs';
+import { validateConfig, digest, day, numericTokens } from '../workers/ai-processing/runtime/contracts.mjs';
+// Fact statements must be the extractor's own wording; keep the numbers but not the source sentence.
+const paraphrase = quote => '확인된 수치 ' + (numericTokens(quote).join(', ') || '없음');
 import { stamp, url, config, triage, draft, verification, original, originalText } from './backlog-fixtures.mjs';
 
 function harness(t, { filename = ':memory:', modelOverride, originalOverride } = {}) {
@@ -227,7 +229,7 @@ test('a sourced local schedule cannot silently change its instant through a mism
   const c = config(), scheduled = '한국 시간(KST) 2026년 11월 22일 09:00에 설명회가 열린다.';
   const doc = { id: 'd', title: '가상 원문', text: originalText + scheduled, sources: [{ ...c.sources[0], url }] };
   const raw = triage('d'); raw.facts.push({ ...raw.facts[0], id: 'schedule', predicate: 'MEETING', value: 'meeting', unit: '',
-    statement: scheduled, refs: [{ docId: 'd', quote: scheduled }] });
+    statement: paraphrase(scheduled), refs: [{ docId: 'd', quote: scheduled }] });
   const accepted = validateTriage(raw, [doc], c.catalog).value, output = draft({ facts: accepted.facts, triage: accepted });
   output.schedule = [{ title: '설명회', eventAt: '2026-11-22T09:00:00Z', timezone: 'Asia/Seoul', factIds: [accepted.facts[1].id] }];
   const context = { facts: accepted.facts, documents: [doc], triage: accepted, catalog: c.catalog, now: stamp };
@@ -248,7 +250,7 @@ test('schedule accepts Korean clocks and equal ISO instants but preserves EST an
   function check(quote, eventAt, timezone) {
     const c = config(), doc = { id: 'd', title: '가상 원문', text: originalText + quote, sources: [{ ...c.sources[0], url }] };
     const raw = triage('d'); raw.facts.push({ ...raw.facts[0], id: 'schedule', predicate: 'MEETING', value: 'meeting', unit: '',
-      statement: quote, refs: [{ docId: 'd', quote }] });
+      statement: paraphrase(quote), refs: [{ docId: 'd', quote }] });
     const accepted = validateTriage(raw, [doc], c.catalog).value, output = draft({ facts: accepted.facts, triage: accepted });
     output.schedule = [{ title: '설명회', eventAt, timezone, factIds: [accepted.facts[1].id] }];
     return validateDraft(output, { facts: accepted.facts, documents: [doc], triage: accepted, catalog: c.catalog, now: stamp });
@@ -267,7 +269,7 @@ test('schedule accepts Korean clocks and equal ISO instants but preserves EST an
 
 test('quantity types preserve percent-point distinction, USD aliases and categorical HBM4', () => {
   const c = config();
-  function check(value, unit, quote, statement = quote) {
+  function check(value, unit, quote, statement = paraphrase(quote)) {
     const input = triage('d'); input.facts[0] = { ...input.facts[0], value, unit, statement, refs: [{ docId: 'd', quote }] };
     return validateTriage(input, [{ id: 'd', text: originalText + quote }], c.catalog);
   }
