@@ -20,7 +20,8 @@ Read `docs/claude/STATE.md` first: current branch, what is real vs synthetic, op
 ## Environment
 - Node 24.15.0 + pnpm 11.25.0 (engineStrict). Cloud env `stocknews` setup script installs Node to `/opt/node24`;
   the SessionStart hook puts it first on PATH. If `node -v` is not v24.15.0: `export PATH=/opt/node24/bin:$PATH`.
-- `pnpm install --frozen-lockfile`. Docker daemon is usually absent in cloud sessions (3 P4 SQL tests fail for that reason only).
+- `pnpm install --frozen-lockfile`. Docker: `bash scripts/dev/docker-up.sh` starts dockerd and loads the pinned Postgres image
+  (needed by 3 P4 tests and `pnpm verify:integration`). Docker-free SQL tests: `pnpm test:sql-local`.
 - Changing `apps/mobile/package.json` or `pnpm-lock.yaml` requires a new native runtime version and EAS builds
   (`scripts/verify-native-release.mjs`). Avoid dependency changes unless a native build is planned.
 

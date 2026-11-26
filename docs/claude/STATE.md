@@ -26,7 +26,7 @@ Last updated: 2026-11-26. Update this file at the end of every work unit.
 
 ## Known issues
 - `pnpm verify` already fails at 1862249b: its stage guard (`verify-admin-c2-foundation.mjs`) only accepts C2-branch history.
-  On this branch line use `pnpm verify:integration` (passes except the 3 Docker-only SQL tests when no Docker daemon).
+  On this branch line use `pnpm verify:integration`: **full PASS (100/100 + builds) after `bash scripts/dev/docker-up.sh`** (2026-11-26).
   Foundation guards also need full git history and remote URL `https://github.com/Jacop7/stocknews.git`.
 - `scripts/verify-native-release.mjs` already fails at 1862249b: collector commits changed `pnpm-lock.yaml` after the native record. Fix together with the next native build (runtime 0007).
 - `tests/telegram-config.test.mjs` skips unless `JUDOJU_LIVE_SOURCE_PREPARER` points at the PC-only preparer; that script should be committed.
@@ -34,6 +34,11 @@ Last updated: 2026-11-26. Update this file at the end of every work unit.
   evidence that the schema does not hold yet. The synthetic dev API still shows example companies (target design).
 - Migration `20261126000051_public_card_impacts.sql` is local only: not in the hosted dev archive (cloud records stay at 50
   migrations; `scripts/test-preview-admin-db.mjs` projects only that 50-migration prefix).
+
+- Local Supabase stack (`scripts/start-local.mjs`): first attempt in the cloud failed before creating any container
+  (CLI images were pre-pulled from Docker Hub and re-tagged; cause is in `.local-data/runtime/supabase-start-*.stderr`,
+  which Claude may not read). `.local-data/runtime/identity.json` is now `START_INTENT`; the script forbids replay.
+  Needs a user decision (inspect the log / reset local runtime state) before any retry.
 
 ## Open user decisions (needed for one real article end-to-end)
 1. AI model, monthly budget and API key.
