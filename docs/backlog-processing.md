@@ -17,6 +17,19 @@
 
 독립3곳 판단에는 호스트 정보만으로 충분하지 않다. `documentOrigins`에 정확한 URL·본문 해시·본문에 존재하는 계보 근거 quote·검증된 originGroupId를 결속한 항목이 있어야 그 원문을 독립 출처로 센다. 서로 다른 사이트라도 같은 통신사 전재이면 originGroupId가 같아야 한다. 해당 검증 자료가 없으면 독립3곳 경로는 보류하며 공식 원문1개 경로만 가능하다. 이 계보 확인의 자동화는 후속 연동 대상이다.
 
+## 뉴스 발견 API 리드 (검토 중 변경안의 입력 어댑터)
+
+발견 API는 기사 주소가 있다는 사실만 알려 준다. `discovery.mjs`는 **이미 디스크에 저장된** 응답 파일을 읽어 정규화 URL·짧은 제목만 남긴 리드로 바꾸고, 일반 `FETCH` 작업으로 넣는다. 공급처의 요약·설명·본문은 이 단계에서 버리며 근거·모델 입력·초안에 들어가지 않는다. 원문 취득은 기존과 같이 정확한 원문 호스트의 내부 검토 정책이 있어야 하고, 없으면 네트워크 요청 없이 `ORIGINAL_ACCESS_NOT_ENABLED`로 보류한다. 같은 URL이 채널과 발견 API에서 모두 나오면 작업은 하나, 발견 이력(`discovery:<공급처>`)은 별도 sighting이다.
+
+- `--format tickertick`: TickerTick `/feed` 응답(`stories[]`, `time` 밀리초). README 예시 기준이며 실제 응답과 다시 대조한다.
+- `--format leads`: 공급처 중립 형식 `{ "version": "DISCOVERY_LEADS_V1", "provider": "<소문자 이름>", "items": [{ "url", "title", "publishedAt": ISO }] }`. Finlight 등은 공식 필드를 확인한 뒤 이 형식으로 변환한다. 2026-11-26에는 Finlight 문서가 자동 조회를 거절(403)하여 전용 어댑터를 만들지 않았다.
+- 발행 시각 없음·미래(5분 초과)·3일 초과·안전하지 않은 주소·응답 내 중복은 거절하고 사유별 수를 출력한다. 리드 보관은 2일, 응답은 5MiB·1000건 이하.
+- 이 경로는 API를 호출하지 않으며 키·구독·라이선스 확인을 대신하지 않는다. 수집 OFF 상태와 무관하게 동작하고 수집기를 재시작하지 않는다.
+
+```powershell
+node --experimental-strip-types workers/ai-processing/runtime/cli.mjs import --db .local-data/backlog/processing.sqlite --discovery .local-data/backlog/tickertick-feed.json --format tickertick
+```
+
 ## 상세 형식과 한계
 
 핵심 이슈·한국 관점 분석·수혜/피해/관련 섹터·기업·긍정 또는 긍정/부정 시나리오·리스크·근거 있는 미래 일정·원문 출처를 저장한다. 피해만 있으면 시나리오를 숨기고 리스크를 요구한다. 관련 섹터는 조건부 방향을 표시하고, 일정이 없으면 일정 영역을 표시하지 않는다. 모델이 섹터의 모든 기업을 자동 추가할 수 없다.

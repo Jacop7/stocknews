@@ -9,6 +9,14 @@ import { validateConfig } from './contracts.mjs';
 import { createOriginalReader } from './original.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
+import { readDiscoveryLeads } from './discovery.mjs';
+
+// Reads a discovery API response that was already saved to disk. No network request is made.
+export function readDiscoveryFile(filename, format, now = Date.now()) {
+  assert(existsSync(filename), 'DISCOVERY_FILE_NOT_FOUND');
+  assert(statSync(filename).size <= 5 * 1024 * 1024, 'DISCOVERY_INPUT_LIMIT');
+  return readDiscoveryLeads(JSON.parse(readFileSync(filename, 'utf8')), format, now);
+}
 
 export function readSavedLinks(filename, kind, now = Date.now()) {
   assert(existsSync(filename), 'SAVED_LINK_DATABASE_NOT_FOUND');
@@ -28,12 +36,12 @@ export function readSavedLinks(filename, kind, now = Date.now()) {
 async function main(argv) {
   const command = argv[0];
   if (!command || command === '--help') {
-    console.log('Commands: import --db OUTPUT --telegram SAVED_DB [--web SAVED_DB]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
+    console.log('Commands: import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
     return;
   }
   const flags = new Set(['--once', '--execute-originals', '--execute-models']), options = {};
   for (let i = 1; i < argv.length; i++) {
-    const key = argv[i]; assert(['--db', '--telegram', '--web', '--config', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
+    const key = argv[i]; assert(['--db', '--telegram', '--web', '--discovery', '--format', '--config', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
     assert(!Object.hasOwn(options, key), 'DUPLICATE_ARGUMENT');
     options[key] = flags.has(key) ? true : argv[++i];
     assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
@@ -41,8 +49,9 @@ async function main(argv) {
   assert(['import', 'status', 'work'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
   const filename = resolve(options['--db']);
   if (command === 'status') assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
-  if (command === 'import') assert(options['--telegram'] || options['--web'], 'SAVED_INPUT_REQUIRED');
-  if (command === 'import') for (const type of ['telegram', 'web']) if (options['--' + type]) {
+  if (command === 'import') assert(options['--telegram'] || options['--web'] || options['--discovery'], 'SAVED_INPUT_REQUIRED');
+  assert(Boolean(options['--discovery']) === Boolean(options['--format']), 'DISCOVERY_FORMAT_REQUIRED');
+  if (command === 'import') for (const type of ['telegram', 'web', 'discovery']) if (options['--' + type]) {
     const input = resolve(options['--' + type]);
     assert(input.toLowerCase() !== filename.toLowerCase(), 'INPUT_OUTPUT_COLLISION');
     if (existsSync(input) && existsSync(filename)) {
@@ -57,7 +66,14 @@ async function main(argv) {
     if (command === 'import') {
       const now = Date.now(); const entries = [];
       for (const type of ['telegram', 'web']) if (options['--' + type]) entries.push(...readSavedLinks(options['--' + type], type, now));
-      console.log(JSON.stringify({ operation: 'READ_ONLY_BACKLOG_IMPORT', ...store.importLinks(entries, now),
+      let discovery = null;
+      if (options['--discovery']) {
+        const leads = readDiscoveryFile(resolve(options['--discovery']), options['--format'], now);
+        entries.push(...leads.entries);
+        discovery = { provider: leads.provider, leads: leads.entries.length, rejected: leads.rejected, reasons: leads.reasons };
+      }
+      console.log(JSON.stringify({ operation: 'READ_ONLY_BACKLOG_IMPORT', ...store.importLinks(entries, now), discovery,
+        discoveryRequests: 0,
         originalRequests: 0, modelRequests: 0, collectionRestarted: false })); return;
     }
     assert(options['--config'], 'CONFIG_FILE_REQUIRED');
