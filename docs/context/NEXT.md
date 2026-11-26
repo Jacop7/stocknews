@@ -18,6 +18,8 @@
 
 ## 자동으로 진행할 것 (순서대로)
 
+-1. **(진행 중) 실데이터 프롬프트·검증 조정** — 2026-11-26 크레딧 충전 후 실호출 시작(이미지 `c797bbe`). 선별 59건 완료, 원문 확인·표 단위·띄어쓰기 표기 차이 문제는 해결(정확도 규칙은 유지). 작성 단계 호출 6건, **검증 통과 초안은 아직 0건**. 남은 보류: 작성기의 사실 외 숫자(DRAFT_NUMBER_MISMATCH), INVALID_IMPACT·RELATED_CONDITION_REQUIRED·UNSUPPORTED_NEGATIVE_SCENARIO(영향 방향 규칙), INVALID_EVENT_DATE·INVALID_SCHEDULE(날짜 형식), INVALID_CALCULATION, 카탈로그 밖 기업(KOREAN_ENTITY_REQUIRED, 정상). 진단: 서버 DB의 runs.response와 원문으로 실패 사실을 재검증해 원인을 본 뒤 지시문(model.mjs)·검증(editorial.mjs)을 조정하고 프롬프트 버전(pipeline.mjs)을 올린 다음, 해당 보류만 TRIAGE/DRAFT로 재대기시킨다.
+
 0. PDF 텍스트 추출기(`extractPdf` 포트에 연결, 오픈소스 라이브러리) → 증권사 리포트 PDF 처리. 리포트 뷰어 페이지에서 PDF 링크 찾기. OpenDART 키가 오면 공시 API 어댑터.
 
 1. ~~원문 접근 허가 후보~~ 완료(2026-11-26): `docs/context/SOURCE-CANDIDATES.md`(요약), `.local-data/backlog/source-candidates.json`(전체, DISABLED). 생성: `node scripts/backlog-source-candidates.mjs --hosts … --companies … --out … --summary …`. **사용자 검토 필요**: 링크가 많은 뉴스·리포트 상위 사이트부터 약관·robots 확인 후 ENABLED 여부 결정.
