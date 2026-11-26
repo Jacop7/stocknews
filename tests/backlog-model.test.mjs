@@ -39,3 +39,23 @@ test('known HTTP rejection is distinct from uncertain transport failure and inva
   await assert.rejects(disconnected({ stage: 'triage', model: 'fixture', input: {} }), error => !error.knownRejection);
   await assert.rejects(model({ stage: 'invalid', model: 'fixture', input: {} }), /INVALID_MODEL_REQUEST/);
 });
+
+test('a 429 (rate limit or no credit) releases the reservation and retries later instead of blocking the input', async t => {
+  const { BacklogStore } = await import('../workers/ai-processing/runtime/store.mjs');
+  const { createBacklogProcessor } = await import('../workers/ai-processing/runtime/pipeline.mjs');
+  const fixtures = await import('./backlog-fixtures.mjs');
+  const store = new BacklogStore(':memory:'); t.after(() => store.close());
+  const settings = fixtures.config(); let time = fixtures.stamp, calls = 0;
+  const processor = createBacklogProcessor({ store, loadConfig: () => settings, now: () => time,
+    readOriginal: async request => fixtures.original(fixtures.originalText, request.url),
+    model: async request => { calls++; if (calls === 1) { const error = new Error('MODEL_HTTP_REJECTED'); error.knownRejection = true; error.httpStatus = 429; throw error; }
+      return fixtures.triage(request.input.document.id); } });
+  store.importLinks([{ url: fixtures.url, sourceId: 'c', lastSeen: time, expiresAt: time + 7 * 86_400_000 }], time);
+  await processor.step();
+  const held = await processor.step();
+  assert.equal(held.reason, 'MODEL_RATE_LIMITED'); assert.equal(held.state, 'TRIAGE');
+  assert.equal(store.db.prepare('SELECT count(*) n FROM runs').get().n, 0);
+  time += 15 * 60_000;
+  assert.equal((await processor.step()).state, 'DRAFT');
+  assert.equal(calls, 2);
+});

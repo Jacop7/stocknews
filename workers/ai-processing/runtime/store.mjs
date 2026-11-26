@@ -224,6 +224,13 @@ export class BacklogStore {
       return { state: 'DISPATCH_ONCE' };
     });
   }
+  // Undo an INTENT whose request the provider did not process (HTTP 429), so it does not count as dispatched.
+  releaseRun(key) {
+    this.transaction(() => {
+      this.db.prepare("DELETE FROM run_documents WHERE run_key=? AND EXISTS (SELECT 1 FROM runs WHERE key=? AND state='INTENT')").run(key, key);
+      this.db.prepare("DELETE FROM runs WHERE key=? AND state='INTENT'").run(key);
+    });
+  }
   finishRun(key, state, response = null) {
     assert(['COMPLETE', 'UNKNOWN', 'REJECTED'].includes(state));
     this.db.prepare("UPDATE runs SET state=?,response=? WHERE key=? AND state='INTENT'").run(state, response === null ? null : canonical(response), key);

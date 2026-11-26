@@ -23,6 +23,9 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
       store.finishRun(key, 'COMPLETE', value);
       return { state: 'RESULT', value };
     } catch (error) {
+      // 429 (rate limit or no credit) means the request was not processed: release the reservation so the same
+      // input is retried later instead of being blocked for good. Other outcomes keep the no-redispatch rule.
+      if (error.httpStatus === 429) { store.releaseRun(key); return hold('MODEL_RATE_LIMITED'); }
       store.finishRun(key, error.knownRejection ? 'REJECTED' : 'UNKNOWN');
       // The HTTP status (never the response body) tells a schema error (400) from limits (429) or a refusal.
       return hold(error.knownRejection ? (error.httpStatus ? 'MODEL_REJECTED_HTTP_' + error.httpStatus : error.message === 'MODEL_REFUSED' ? 'MODEL_REFUSED' : 'MODEL_REJECTED') : 'MODEL_RESPONSE_UNKNOWN');
@@ -45,7 +48,9 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
       };
       const settle = (state, payload = job.payload, reason = null, nextAt = now()) => store.settle(job, state, payload, now(), reason, nextAt);
       const modelHold = result => ['MODEL_EXECUTION_DISABLED', 'MODEL_DAILY_BUDGET'].includes(result.reason)
-        ? settle(job.state, job.payload, result.reason, now() + 60000) : settle('HOLD_MODEL', job.payload, result.reason);
+        ? settle(job.state, job.payload, result.reason, now() + 60000)
+        : result.reason === 'MODEL_RATE_LIMITED' ? settle(job.state, job.payload, result.reason, now() + 15 * 60000)
+          : settle('HOLD_MODEL', job.payload, result.reason);
       try {
         if (job.state === 'FETCH') {
           if (!config.readOriginals) return settle('FETCH', job.payload, 'ORIGINAL_EXECUTION_DISABLED', now() + 60000);
