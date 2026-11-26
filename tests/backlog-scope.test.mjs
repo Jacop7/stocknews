@@ -70,3 +70,18 @@ test('a company issue lists another company only when a cited fact is about or n
   const only = validateDraft(draft(aloneBrief), { facts: alone.value.facts, documents: [doc], triage: alone.value, catalog: c.catalog, now: stamp });
   assert.deepEqual(only.related_companies, []); assert(!only.visible_sections.includes('RELATED_COMPANIES'));
 });
+
+test('key issues and issue analysis drop inline section labels; risk labels stay', () => {
+  const { c, doc } = setup();
+  const accepted = validateTriage(triage('d'), [doc], c.catalog);
+  const facts = accepted.value.facts;
+  const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  const raw = draft(brief);
+  raw.key_issues[0].text = '[사실] ' + raw.key_issues[0].text;
+  raw.issue_analysis.text = '[분석] ' + raw.issue_analysis.text.replace('확인할 필요가 있습니다.', '확인할 필요가 있습니다. [조건부 예상] 집행되면 개선될 가능성이 있습니다.');
+  raw.risks[0].text = '[확인 한계] ' + raw.risks[0].text;
+  const result = validateDraft(raw, { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
+  assert(!/\[/.test(result.key_issues[0].text) && !/\[/.test(result.issue_analysis.text));
+  assert(result.issue_analysis.text.includes('집행되면 개선될 가능성이 있습니다.'));
+  assert(result.risks[0].text.startsWith('[확인 한계] '));
+});

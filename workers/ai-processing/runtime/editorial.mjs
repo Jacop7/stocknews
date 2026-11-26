@@ -266,12 +266,17 @@ export function evidenceSufficient(fact, documents) {
   return false;
 }
 
+const sectionLabel = /\[(?:사실|분석|해석|조건부\s*(?:예상|영향|전망))\]\s*/g;
+export const stripSectionLabels = value => value.replace(sectionLabel, '').replace(/[ \t]{2,}/g, ' ').trim();
+
 export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   validateShape(raw, schemas.draft);
   const draft = structuredClone(raw), factIds = facts.map(fact => fact.id), entityIds = catalog.entities.map(item => item.id);
   const clean = value => stripFactIds(value, factIds);
   draft.title = clean(draft.title); draft.summary = clean(draft.summary);
   for (const item of [...draft.key_issues, draft.issue_analysis, ...draft.risks]) item.text = clean(item.text);
+  // Key issues and issue analysis are separate sections, so inline labels such as [사실] or [분석] are redundant.
+  for (const item of [...draft.key_issues, draft.issue_analysis]) item.text = stripSectionLabels(item.text);
   for (const item of draft.impacts) {
     normalizeDirection(item);
     item.description = clean(item.description); item.conditions = item.conditions.map(clean);

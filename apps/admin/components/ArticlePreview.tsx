@@ -3,7 +3,7 @@ const sourceGroups=[['PRIMARY','1차 출처 (회사·당국 발표)'],['REPORTED
 const disclaimer='본 콘텐츠는 정보 제공 목적의 분석이며 투자 권유가 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.';
 const sections=[['BENEFIT_SECTORS','수혜 섹터','BENEFIT'],['DAMAGE_SECTORS','피해 섹터','DAMAGE'],['RELATED_SECTORS','연관 섹터','RELATED']] as const;
 export function ArticlePreview({title,summary,body}:{title:string;summary:string;body:PublicArticleBody}){
- return <article className='article-preview'><span className='tag'>합성 기사 · 실제 투자 정보 아님</span><h2>{title}</h2><p>{summary}</p><section><h3>핵심 이슈</h3>{body.key_issues.map((x,n)=><p key={n}>{x}</p>)}<p>{body.issue_analysis}</p></section>
+ return <article className='article-preview'><span className='tag'>합성 기사 · 실제 투자 정보 아님</span><h2>{title}</h2><p>{summary}</p><section><h3>핵심 이슈</h3>{body.key_issues.map((x,n)=><p key={n}>{x}</p>)}</section><section><h3>이슈 분석</h3><p>{body.issue_analysis}</p></section>
  {body.visible_sections.includes('SCENARIOS')&&<section><h3>예상 시나리오</h3>{body.scenarios?.map(x=><div className='scenario' key={x.direction}><h4><span className={'scenario-badge '+x.direction}>{x.direction==='POSITIVE'?'긍정':'부정'}</span>{x.title}</h4><p><strong>예상결과</strong> {x.expected_result}</p><p><strong>체크사항</strong> {x.checks.join(' · ')}</p></div>)}</section>}
  {sections.map(([key,label,direction])=>body.visible_sections.includes(key)&&<section key={key}><h3>{label}</h3>{body.impacts.filter(x=>x.direction===direction).map(x=><div key={x.sector_id+x.path_id}><h4>{x.sector_name}</h4><p>{x.description}</p>{x.conditions.length>0&&<p>{x.conditions.join(' · ')}</p>}</div>)}</section>)}
  {body.visible_sections.includes('RELATED_COMPANIES')&&<section><h3>연관 기업</h3>{body.related_companies?.map(x=><p key={x.source_company_ref}><strong>{x.name}</strong> {x.role}</p>)}</section>}
