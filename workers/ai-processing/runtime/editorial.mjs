@@ -67,7 +67,9 @@ const ids = (value, allowed, nonempty = false) => {
   return entries;
 };
 const quantitativeUnits = new Set(['%', '%p', 'usd', 'krw', 'eur', 'jpy', 'shares', '명', '개', '대', '건', '배',
-  '년', '월', '일', '시', '분', '초', '억원', '조원', 'mw', 'gw', 'kw', 'gwh', 'mwh', '톤', 'kg', 'km', 'm', 'mm', 'nm']);
+  '년', '월', '일', '시', '분', '초', '억원', '조원', 'mw', 'gw', 'kw', 'gwh', 'mwh', '톤', 'kg', 'km', 'm', 'mm', 'nm',
+  // Units used in Korean filing tables; the value is compared in the stated unit, never converted.
+  '백만원', '천원', '만원', '백만달러', '천달러', '억달러', '주', '천주', '만주', 'bp']);
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function sourceInstantSupported(item, refs) {
   return refs.some(ref => (ref.quote.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})/g) ?? [])
