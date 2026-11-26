@@ -150,3 +150,18 @@ test('Korean and per-share unit names are read as their canonical unit', async (
     assert.equal(result.value.facts.at(-1).unit, 'krw');
   }
 });
+
+test('a table header quoted separately confirms the unit; share counts may be labelled 주식수', async () => {
+  const { validateTriage } = await import('../workers/ai-processing/runtime/editorial.mjs');
+  const c = config();
+  const body = '(단위 : 천원, 천$)\n수주잔고 49,934,235\n주식수\n220,701 주식 발행\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = (value, unit, statement, quotes) => {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f6', predicate: 'X', value, unit, statement, refs: quotes.map(quote => ({ docId: 'd', quote })) });
+    return validateTriage(input, [doc], c.catalog).state;
+  };
+  assert.equal(run('49,934,235', '천원', '수주잔고는 49,934,235천원이다.', ['(단위 : 천원, 천$)', '수주잔고 49,934,235']), 'RELEVANT');
+  assert.equal(run('220,701', '주', '발행 예정 주식은 220,701주다.', ['주식수\n220,701 주식 발행']), 'RELEVANT');
+  assert.throws(() => run('49,934,235', '천원', '수주잔고는 49,934,235천원이다.', ['수주잔고 49,934,235']), /FACT_UNIT_MISMATCH/);
+});

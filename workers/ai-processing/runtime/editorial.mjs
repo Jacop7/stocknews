@@ -116,7 +116,7 @@ export function validateTriage(raw, documents, catalog) {
     if (candidate.subjectId !== null) assert(entities.includes(candidate.subjectId), 'UNKNOWN_ENTITY');
     for (const key of ['id', 'predicate', 'value', 'unit', 'period']) text(candidate[key], 200, ['unit', 'period'].includes(key));
     // Canonical unit names: models write the Korean or per-share form (원, 원/주, KRW/주, 달러) for the same unit.
-    const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy' };
+    const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '주': 'shares', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy' };
     candidate.value = candidate.value.trim();
     candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
     text(candidate.statement, 1000);
@@ -157,8 +157,9 @@ export function validateTriage(raw, documents, catalog) {
           // Table cells: the number stands alone and the unit is stated in a header such as "(원/주)" or "단위: %".
           // The unit must directly follow "(" or "단위:" so a scaled header like "(단위: 백만원)" never passes as 원.
           const alone = new RegExp('(?:^|[^0-9.+±-])' + number + '(?![0-9]|[.,][0-9])');
-          const header = new RegExp('(?:\\(|단위\\s*[:：]?\\s*)(?:' + suffix + ')(?=[/)\\s,]|$)');
-          return alone.test(normalize(ref.quote)) && header.test(normalize(ref.quote));
+          // The header may be quoted separately (same filing, same fact); share counts may be labelled 주식수.
+          const header = new RegExp('(?:\\(|단위\\s*[:：]?\\s*)(?:' + suffix + ')(?=[/)\\s,]|$)' + (unit === 'shares' ? '|주식수|\\(주\\)' : ''));
+          return alone.test(normalize(ref.quote)) && refs.some(other => header.test(normalize(other.quote)));
         }), 'FACT_UNIT_MISMATCH');
         if (unit === 'shares') assert(refs.some(ref => /주식|지분|매입|매수|취득|발행|\bshares?\b/i.test(ref.quote)), 'FACT_SHARE_CONTEXT_REQUIRED');
       }
