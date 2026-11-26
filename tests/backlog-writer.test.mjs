@@ -135,3 +135,18 @@ test('quoted numbers may carry a unit that the quotes state elsewhere; converted
     refs: [{ docId: 'd', quote: '(단위: 백만원)\n매출액 1,109,382' }] });
   assert.throws(() => validateTriage(input, [scaled], c.catalog), /FACT_UNIT_MISMATCH|FACT_NUMBER_MISMATCH/);
 });
+
+test('Korean and per-share unit names are read as their canonical unit', async () => {
+  const { validateTriage } = await import('../workers/ai-processing/runtime/editorial.mjs');
+  const c = config();
+  const body = '전환가액 (원/주)\n72,496\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  for (const unit of ['원', '원/주', 'KRW/주']) {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f7', predicate: 'CONVERSION_PRICE', value: '72496 ', unit, statement: '전환가액은 72,496원으로 정해졌다.',
+      refs: [{ docId: 'd', quote: '전환가액 (원/주)\n72,496' }] });
+    const result = validateTriage(input, [doc], c.catalog);
+    assert.equal(result.state, 'RELEVANT', unit);
+    assert.equal(result.value.facts.at(-1).unit, 'krw');
+  }
+});

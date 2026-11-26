@@ -115,6 +115,10 @@ export function validateTriage(raw, documents, catalog) {
     assert(!localIds.has(candidate.id), 'DUPLICATE_FACT_ID');
     if (candidate.subjectId !== null) assert(entities.includes(candidate.subjectId), 'UNKNOWN_ENTITY');
     for (const key of ['id', 'predicate', 'value', 'unit', 'period']) text(candidate[key], 200, ['unit', 'period'].includes(key));
+    // Canonical unit names: models write the Korean or per-share form (원, 원/주, KRW/주, 달러) for the same unit.
+    const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy' };
+    candidate.value = candidate.value.trim();
+    candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
     text(candidate.statement, 1000);
     const refs = references(candidate.refs, documents);
     // Statements reach the writer, so they must be the extractor's own wording, not copied source prose.
