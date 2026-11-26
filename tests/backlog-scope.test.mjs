@@ -23,6 +23,8 @@ test('a COMPANY issue names its own company and is placed on the company page on
   const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
   assert.equal(result.article_kind, 'COMPANY'); assert.equal(result.placement, 'COMPANY_PAGE');
   assert.equal(result.primary_company_ref, 'orion'); assert.deepEqual(result.company_refs, ['orion']);
+  // The company article shows no sector blocks; the impact stays stored for the sector link.
+  assert(!result.visible_sections.some(section => section.endsWith('_SECTORS')) && result.impacts.length === 1);
 });
 
 test('a COMPANY issue without its company in the event, or with an unknown company, is rejected', () => {
@@ -40,4 +42,31 @@ test('SECTOR and MACRO issues carry no primary company but still link every comp
   const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
   const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
   assert.equal(result.placement, 'FEED'); assert.equal(result.primary_company_ref, null); assert.deepEqual(result.company_refs, ['orion']);
+  assert(result.visible_sections.includes('BENEFIT_SECTORS'));
+});
+
+// Related companies (2026-11-27): only when the source names them, shown in place of the sector blocks.
+test('a company issue lists another company only when a cited fact is about or names it', () => {
+  const { c } = setup();
+  const contract = '오리온전자는 헬리오스소재와 장비 공급계약을 체결했다고 밝혔다.';
+  const doc = { id: 'd', title: originalTitle, text: originalText + ' ' + contract, sources: [{ ...c.sources[0], kind: 'OFFICIAL', url }] };
+  const named = companyTriage();
+  named.facts.push({ id: 'local-f2', subjectId: 'helios', predicate: 'SUPPLY_CONTRACT', value: 'equipment', unit: '', period: '2026-Q3',
+    statement: '헬리오스소재가 장비 공급계약의 상대방이다.', verificationClass: 'ORDINARY_FACT', refs: [{ docId: 'd', quote: contract }] });
+  named.event.entityIds = ['orion', 'helios'];
+  named.impacts[0] = { ...named.impacts[0], companyIds: ['orion', 'helios'], factIds: ['local-f1', 'local-f2'] };
+  const accepted = validateTriage(named, [doc], c.catalog);
+  const facts = accepted.value.facts;
+  const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
+  assert.deepEqual(result.related_companies.map(item => item.companyId), ['helios']);
+  assert(result.visible_sections.includes('RELATED_COMPANIES') && !result.visible_sections.includes('BENEFIT_SECTORS'));
+  assert.deepEqual(result.company_refs, ['orion', 'helios']);
+  // A peer added without a fact about it is rejected; a company issue about only itself shows no related block.
+  const peer = companyTriage(); peer.impacts[0] = { ...peer.impacts[0], companyIds: ['orion', 'helios'] };
+  assert.throws(() => validateTriage(peer, [doc], c.catalog), /RELATED_COMPANY_EVIDENCE_REQUIRED/);
+  const alone = validateTriage(companyTriage(), [doc], c.catalog);
+  const aloneBrief = writingBrief({ facts: alone.value.facts, triage: alone.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  const only = validateDraft(draft(aloneBrief), { facts: alone.value.facts, documents: [doc], triage: alone.value, catalog: c.catalog, now: stamp });
+  assert.deepEqual(only.related_companies, []); assert(!only.visible_sections.includes('RELATED_COMPANIES'));
 });

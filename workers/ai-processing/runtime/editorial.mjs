@@ -227,6 +227,12 @@ export function validateTriage(raw, documents, catalog) {
     text(item.path, 1000);
     assert(!documents.some(doc => sharesRun(item.path, doc.text) || item.conditions.some(condition => sharesRun(condition, doc.text))), 'IMPACT_PATH_COPIES_SOURCE');
     if (item.direction === 'RELATED') assert(item.conditions.length > 0 && ['POSITIVE', 'NEGATIVE'].includes(item.conditionalDirection), 'RELATED_CONDITION_REQUIRED');
+    // A company issue names another company only when the source itself does (counterparty, acquisition target,
+    // partner): a fact of this impact must be about that company or name it. Sector peers are never added.
+    if (value.articleKind === 'COMPANY') for (const id of item.companyIds.filter(id => id !== value.primaryCompanyId)) {
+      const name = catalog.entities.find(entity => entity.id === id).name;
+      assert(value.facts.some(fact => item.factIds.includes(fact.id) && (fact.subjectId === id || fact.statement.includes(name))), 'RELATED_COMPANY_EVIDENCE_REQUIRED');
+    }
   }
   const partition = value.articleKind === 'MACRO' ? 'MACRO_ALL' : canonicalPartition(value.event.entityIds, value.event.family);
   return { state: 'RELEVANT', value, partition, storyKey: digest([partition, value.event.family, [...value.event.entityIds].sort(), anchor]), anchor };
@@ -346,7 +352,13 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   }
   const visible = ['KEY_ISSUES', 'ISSUE_ANALYSIS'];
   if (draft.scenarios.length) visible.push('SCENARIOS');
-  for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
+  // Company issues keep the common layout without sector blocks (filings differ in form; the sector link stays in
+  // impacts and company_refs for the company page). Sector and macro issues show them.
+  if (triage.articleKind !== 'COMPANY') for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
+  // In their place, a company issue lists other companies only when the source names them (checked at triage).
+  const relatedCompanies = triage.articleKind !== 'COMPANY' ? [] : [...new Map(impacts.flatMap(item => item.companyRoles
+    .filter(role => role.companyId !== triage.primaryCompanyId).map(role => [role.companyId, { companyId: role.companyId, role: role.role, factIds: item.factIds }]))).values()];
+  if (relatedCompanies.length) visible.push('RELATED_COMPANIES');
   if (draft.risks.length) visible.push('RISKS'); if (draft.schedule.length) visible.push('SCHEDULE'); visible.push('SOURCES', 'DISCLAIMER');
   const hasBenefit = impacts.some(item => item.direction === 'BENEFIT'), hasDamage = impacts.some(item => item.direction === 'DAMAGE');
   const render = value => renderCalculations(value, calculations);
@@ -362,7 +374,7 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     // COMPANY issues appear on the company page only; SECTOR and MACRO issues also feed home and sector lists.
     // Every company with a stated role is linked, so sector issues also appear on each linked company's page.
     placement: triage.articleKind === 'COMPANY' ? 'COMPANY_PAGE' : 'FEED',
-    primary_company_ref: triage.articleKind === 'COMPANY' ? triage.primaryCompanyId : null,
+    primary_company_ref: triage.articleKind === 'COMPANY' ? triage.primaryCompanyId : null, related_companies: relatedCompanies,
     company_refs: [...new Set([...(triage.articleKind === 'COMPANY' ? [triage.primaryCompanyId] : []), ...impacts.flatMap(item => item.companyIds)])],
     angleKey: digest(impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort()),
     // PRIMARY: company/regulator/exchange originals. REPORTED: newsroom or research coverage. Both keep their own link.
