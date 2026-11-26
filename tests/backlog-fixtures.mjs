@@ -8,7 +8,7 @@ export function config() {
   return { version: 'BACKLOG_DRAFT_V1', mode: 'BACKLOG_ONLY', readOriginals: true, callModels: true, maxDailyCalls: 100,
     models: { triage: 'fixture-triage', draft: 'fixture-writer', verify: 'fixture-verifier' },
     catalog: { version: 'fixture-v1', sectors: [{ id: 'semiconductor', name: '반도체' }], entities: [{ id: 'orion', name: '오리온전자' }] },
-    sources: [{ host: 'news.publisher.co.kr', id: 'fixture-publisher', version: 'v1', status: 'ENABLED',
+    sources: [{ host: 'news.publisher.co.kr', id: 'fixture-publisher', name: '가상경제신문', version: 'v1', status: 'ENABLED',
       kind: 'NEWS', basis: 'EXPLICIT_INTERNAL_REVIEW', publicationAuthorized: false, evidence: ['Synthetic in-process fixture only'],
       expiresAt: null, revokedAt: null, retentionDays: 7, provenanceVerified: true, originGroupId: 'origin-1', newsroomId: 'newsroom-1', ownerGroupId: 'owner-1' }],
     excludedDomains: [], excludedUrls: [] };
@@ -27,17 +27,18 @@ export function triage(docId, extra = false, damage = false) {
 export function draft(input, damage = false) {
   const factIds = input.facts.map(fact => fact.id);
   return { title: '국내 장비 공급망의 변화 경로 점검', summary: '투자 집행이 국내 공급 여건에 어떤 영향을 줄지 살펴봅니다.',
-    key_issues: [{ text: '회사 계획에서 확인되는 변화를 점검합니다.', factIds }],
-    issue_analysis: { text: '계획이 실행되는 과정에서 한국 장비 업체에 전달되는 경로를 확인할 필요가 있습니다.', factIds },
-    impacts: input.triage.impacts.map(impact => ({ sectorId: impact.sectorId, companyIds: impact.companyIds, direction: impact.direction,
+    key_issues: [{ text: '가상경제신문에 따르면 회사 계획에서 확인되는 변화를 점검합니다.', factIds }],
+    issue_analysis: { text: '가상경제신문 보도를 기준으로 계획이 실행되는 과정에서 한국 장비 업체에 전달되는 경로를 확인할 필요가 있습니다.', factIds },
+    impacts: (input.impacts ?? input.triage.impacts).map(impact => ({ sectorId: impact.sectorId, companyIds: impact.companyIds, direction: impact.direction,
       conditionalDirection: impact.conditionalDirection, category: impact.category, description: '국내 산업에 전달되는 영향을 검토합니다.',
-      conditions: ['실제 발주 진행 여부'], factIds })),
+      conditions: ['실제 발주 진행 여부'], factIds, companyRoles: impact.companyIds.map(companyId => ({ companyId, role: '장비 발주 주체' })) })),
     scenarios: damage ? [] : [{ direction: 'POSITIVE', title: '계획이 집행되는 경우', expected_result: '장비 발주 여건이 개선될 가능성이 있습니다.', checks: ['집행 진행 여부'], factIds }],
-    risks: [{ text: '실제 계약과 예산의 차이를 점검해야 합니다.', factIds }], schedule: [] };
+    risks: [{ text: '실제 계약과 예산의 차이를 점검해야 합니다.', factIds }], schedule: [], calculations: [] };
 }
 export function verification(input) {
   return { approved: true, supportedFactIds: input.facts.map(fact => fact.id), unsupportedFactIds: [], numericConsistency: true,
-    koreaPathSupported: true, eventIdentitySupported: true, sameEventAsExisting: true, proseSupported: true, conflicts: [], reason: 'Synthetic validator fixture' };
+    koreaPathSupported: true, eventIdentitySupported: true, sameEventAsExisting: true, proseSupported: true,
+    companyRolesSupported: true, attributionSupported: true, conflicts: [], reason: 'Synthetic validator fixture' };
 }
 export const original = (body = originalText, sourceUrl = url) => ({ state: 'ORIGINAL', url: sourceUrl, title: originalTitle,
   text: body, publishedAt: new Date(stamp).toISOString(), bodyHash: digest(body.normalize('NFKC').replace(/\s+/g, ' ')) });

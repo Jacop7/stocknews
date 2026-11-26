@@ -69,7 +69,7 @@ test('a verified change of Korean impact creates a separate angle instead of ove
   const h = harness(t, {
     originalOverride: request => original(originalText + (request.url.endsWith('damage') ? ' 추가 비용 부담을 별도로 점검한다.' : ''), request.url),
     modelOverride: request => request.stage === 'triage' ? triage(request.input.document.id, false, request.input.document.text.includes('추가 비용')) :
-      request.stage === 'draft' ? draft(request.input, request.input.triage.impacts[0].direction === 'DAMAGE') : verification(request.input),
+      request.stage === 'draft' ? draft(request.input, request.input.impacts[0].direction === 'DAMAGE') : verification(request.input),
   });
   h.add(); await h.drain(); const first = h.store.db.prepare('SELECT id,payload FROM issues').get();
   h.add('https://news.publisher.co.kr/article/damage'); const result = (await h.drain()).at(-1);

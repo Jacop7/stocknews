@@ -34,6 +34,7 @@ const checks = [
     'tests/backlog-original.test.mjs',
     'tests/backlog-model.test.mjs',
     'tests/backlog-discovery.test.mjs',
+    'tests/backlog-writer.test.mjs',
   ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',

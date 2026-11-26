@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { digest, exact, text, list, numericTokens } from './contracts.mjs';
 import { screenArticleOriginality } from '../src/originality-screen.ts';
+import { DISCLAIMER, factProvenance, assertAttributed, assertHedged, assertCompanyRoles, checkCalculations, renderCalculations, stripCalculations } from './writer.mjs';
 
 const str = { type: 'string' }, bool = { type: 'boolean' }, nullable = { type: ['string', 'null'] };
 const enumeration = values => ({ type: 'string', enum: values });
@@ -23,13 +24,15 @@ export const schemas = {
     issue_analysis: object({ text: str, factIds: array(str) }),
     impacts: array(object({ sectorId: str, companyIds: array(str), direction: enumeration(['BENEFIT', 'DAMAGE', 'RELATED']),
       conditionalDirection: enumeration(['NONE', 'POSITIVE', 'NEGATIVE']), category: str, description: str,
-      conditions: array(str), factIds: array(str) })),
+      conditions: array(str), factIds: array(str), companyRoles: array(object({ companyId: str, role: str })) })),
     scenarios: array(object({ direction: enumeration(['POSITIVE', 'NEGATIVE']), title: str, expected_result: str, checks: array(str), factIds: array(str) })),
     risks: array(object({ text: str, factIds: array(str) })),
-    schedule: array(object({ title: str, eventAt: str, timezone: str, factIds: array(str) })) }),
+    schedule: array(object({ title: str, eventAt: str, timezone: str, factIds: array(str) })),
+    calculations: array(object({ id: str, expression: str, result: str, unit: str, factIds: array(str) })) }),
   verify: object({ approved: bool, supportedFactIds: array(str), unsupportedFactIds: array(str),
     numericConsistency: bool, koreaPathSupported: bool, eventIdentitySupported: bool,
-    sameEventAsExisting: bool, proseSupported: bool, conflicts: array(str), reason: str }),
+    sameEventAsExisting: bool, proseSupported: bool, companyRolesSupported: bool, attributionSupported: bool,
+    conflicts: array(str), reason: str }),
 };
 
 export function validateShape(value, schema, depth = 0) {
@@ -191,6 +194,7 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   validateShape(raw, schemas.draft);
   const draft = structuredClone(raw), factIds = facts.map(fact => fact.id), entityIds = catalog.entities.map(item => item.id);
   assert(draft.key_issues.length <= 8 && draft.impacts.length <= 24 && draft.scenarios.length <= 2 && draft.risks.length <= 12 && draft.schedule.length <= 8, 'DRAFT_SECTION_LIMIT');
+  const calculations = checkCalculations(draft.calculations, facts);
   const check = item => {
     ids(item.factIds, factIds, true);
     assert(item.factIds.every(id => evidenceSufficient(facts.find(fact => fact.id === id), documents)), 'INSUFFICIENT_EVIDENCE');
@@ -199,7 +203,7 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   assert(draft.key_issues.length > 0, 'KEY_ISSUE_REQUIRED');
   draft.key_issues.forEach(check); check(draft.issue_analysis);
   const impacts = draft.impacts.map(item => {
-    check(item); ids(item.companyIds, entityIds);
+    check(item); ids(item.companyIds, entityIds); assertCompanyRoles([item], catalog);
     const original = triage.impacts.find(prior => prior.sectorId === item.sectorId && prior.direction === item.direction &&
       prior.conditionalDirection === item.conditionalDirection && prior.category === item.category);
     assert(original && item.companyIds.every(id => original.companyIds.includes(id)), 'IMPACT_BROADENING');
@@ -234,25 +238,38 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     return Date.parse(item.eventAt) > now;
   });
   const allText = [draft.title, draft.summary, ...draft.key_issues.map(item => item.text), draft.issue_analysis.text,
-    ...impacts.flatMap(item => [item.description, ...item.conditions]),
+    ...impacts.flatMap(item => [item.description, ...item.conditions, ...item.companyRoles.map(role => role.role)]),
     ...draft.scenarios.flatMap(item => [item.title, item.expected_result, ...item.checks]),
     ...draft.risks.map(item => item.text), ...draft.schedule.map(item => item.title)];
   const allowedNumbers = numericTokens(facts.map(fact => fact.statement).join(' '));
-  assert(allText.every(part => numericTokens(part).every(number => allowedNumbers.includes(number))), 'DRAFT_NUMBER_MISMATCH');
+  // Calculated values only enter through {{calc:ID}}, which the system renders with its formula.
+  assert(allText.every(part => numericTokens(stripCalculations(part)).every(number => allowedNumbers.includes(number))), 'DRAFT_NUMBER_MISMATCH');
+  assertHedged(allText);
+  const provenance = facts.map(fact => ({ id: fact.id, ...factProvenance(fact, documents) }));
+  assertAttributed([...draft.key_issues, draft.issue_analysis], { facts: provenance });
   const originality = screenArticleOriginality({ policy: { version: 'BACKLOG_WORDING_V1', headlineCharacters: 18, passageCharacters: 36 },
     sourceParts: documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }]),
-    draft: { headline: draft.title, parts: allText.slice(1).map((value, index) => ({ id: 'part-' + index, text: value })) } });
+    draft: { headline: stripCalculations(draft.title), parts: allText.slice(1).map((value, index) => ({ id: 'part-' + index, text: stripCalculations(value) })) } });
   assert(originality.state === 'NO_LITERAL_MATCH', 'SHARED_SOURCE_WORDING');
   const visible = ['KEY_ISSUES', 'ISSUE_ANALYSIS'];
   if (draft.scenarios.length) visible.push('SCENARIOS');
   for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
-  if (draft.risks.length) visible.push('RISKS'); if (draft.schedule.length) visible.push('SCHEDULE'); visible.push('SOURCES');
+  if (draft.risks.length) visible.push('RISKS'); if (draft.schedule.length) visible.push('SCHEDULE'); visible.push('SOURCES', 'DISCLAIMER');
   const hasBenefit = impacts.some(item => item.direction === 'BENEFIT'), hasDamage = impacts.some(item => item.direction === 'DAMAGE');
-  return { ...draft, impacts, visible_sections: visible,
+  const render = value => renderCalculations(value, calculations);
+  const rendered = { ...draft, title: render(draft.title), summary: render(draft.summary),
+    key_issues: draft.key_issues.map(item => ({ ...item, text: render(item.text) })),
+    issue_analysis: { ...draft.issue_analysis, text: render(draft.issue_analysis.text) },
+    scenarios: draft.scenarios.map(item => ({ ...item, title: render(item.title), expected_result: render(item.expected_result), checks: item.checks.map(render) })),
+    risks: draft.risks.map(item => ({ ...item, text: render(item.text) })), schedule: draft.schedule.map(item => ({ ...item, title: render(item.title) })) };
+  return { ...rendered, calculations, disclaimer: DISCLAIMER, fact_provenance: provenance,
+    impacts: impacts.map(item => ({ ...item, description: render(item.description), conditions: item.conditions.map(render) })), visible_sections: visible,
     impact_profile: !hasBenefit && !hasDamage ? 'RELATED_CONDITIONAL' : positive ? negative ? 'POSITIVE_NEGATIVE' : 'POSITIVE_ONLY' : 'DAMAGE_ONLY',
     analysis_perspective: 'KR_EQUITY', article_kind: triage.articleKind, publication_state: 'DRAFT', publicationAuthorized: false,
     angleKey: digest(impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort()),
-    source_refs: documents.flatMap(doc => doc.sources.map(source => ({ docId: doc.id, url: source.url, name: source.name ?? source.id, publishedAt: source.publishedAt }))) };
+    // PRIMARY: company/regulator/exchange originals. REPORTED: newsroom or research coverage. Both keep their own link.
+    source_refs: documents.flatMap(doc => doc.sources.map(source => ({ docId: doc.id, url: source.url, name: source.name ?? source.id,
+      role: source.kind === 'OFFICIAL' ? 'PRIMARY' : 'REPORTED', publishedAt: source.publishedAt }))) };
 }
 
 export function validateVerification(raw, facts, hasExistingStory) {
@@ -260,6 +277,7 @@ export function validateVerification(raw, facts, hasExistingStory) {
   const known = facts.map(item => item.id);
   ids(raw.supportedFactIds, known); ids(raw.unsupportedFactIds, known);
   assert(raw.approved && raw.numericConsistency && raw.koreaPathSupported && raw.eventIdentitySupported && raw.proseSupported &&
+    raw.companyRolesSupported && raw.attributionSupported &&
     (!hasExistingStory || raw.sameEventAsExisting) && !raw.conflicts.length && !raw.unsupportedFactIds.length &&
     known.every(id => raw.supportedFactIds.includes(id)), 'INDEPENDENT_VERIFICATION_FAILED');
   return raw;

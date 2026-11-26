@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { canonical, digest, validateConfig, sourceGrant, day } from './contracts.mjs';
 import { validateTriage, mergeFacts, evidenceSufficient, validateDraft, validateVerification } from './editorial.mjs';
+import { writingBrief } from './writer.mjs';
 
 const hold = reason => ({ state: 'HOLD', reason });
 export function createBacklogProcessor({ store, readOriginal, model, loadConfig, now = Date.now }) {
@@ -99,9 +100,10 @@ export function createBacklogProcessor({ store, readOriginal, model, loadConfig,
           if (prior && JSON.parse(prior.fact_ids).some(id => !facts.some(fact => fact.id === id))) {
             return settle('HOLD_INCOMPLETE_UPDATE', job.payload, 'PRIOR_FACTS_REQUIRE_REBASE');
           }
-          // Writing receives facts, not unbounded copies of all articles.
-          const { originals: _originals, ...writingInput } = input;
-          const result = await executeModel(job, 'draft', writingInput, config, () => authority(docIds), retentionUntil, docIds);
+          // The writer gets verified facts only: no original titles, bodies or evidence quotes.
+          const brief = writingBrief({ facts, triage: job.payload.triage, documents: context.documents, catalog: config.catalog,
+            existingIssues: input.existingIssues });
+          const result = await executeModel(job, 'draft', brief, config, () => authority(docIds), retentionUntil, docIds);
           if (result.state !== 'RESULT') return modelHold(result);
           const draft = validateDraft(result.value, { facts, documents: context.documents, triage: job.payload.triage, catalog: config.catalog, now: now() });
           return settle('VERIFY', { ...job.payload, draft, contextDigest: digest(input), expectedIssues: snapshot });
