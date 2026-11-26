@@ -5,7 +5,7 @@ export type ImpactDirection = 'BENEFIT' | 'DAMAGE' | 'RELATED';
 export interface Company { id:string; name:string; stockCode:string; market:'KRX'; description:string; }
 export interface Sector { id:string; name:string; description:string; parentId:string|null; order:number; }
 export interface SectorImpact {sectorId:string; direction:ImpactDirection; pathId:string; conditions:string[]; companyIds:string[]; evidenceIds:string[];}
-export type DetailSection = 'KEY_ISSUES' | 'ISSUE_ANALYSIS' | 'SCENARIOS' | 'BENEFIT_SECTORS' | 'DAMAGE_SECTORS' | 'RELATED_SECTORS' | 'RISKS' | 'SCHEDULE' | 'SOURCES' | 'RELATED_COMPANIES';
+export type DetailSection = 'KEY_ISSUES' | 'ISSUE_ANALYSIS' | 'SCENARIOS' | 'BENEFIT_SECTORS' | 'DAMAGE_SECTORS' | 'RELATED_SECTORS' | 'RISKS' | 'SCHEDULE' | 'SOURCES';
 export type ImpactProfile = 'POSITIVE_ONLY' | 'POSITIVE_NEGATIVE' | 'DAMAGE_ONLY' | 'RELATED_CONDITIONAL';
 export interface Story {id:string; canonicalEventKey:string;}
 export type PublicationState = 'DRAFT' | 'PUBLISHED' | 'CORRECTION_PENDING' | 'WITHDRAWN' | 'HIDDEN';
@@ -46,9 +46,7 @@ export interface PublicImpact {sector_id:string;sector_name:string;path_id:strin
 export interface PublicScenario {direction:'POSITIVE'|'NEGATIVE';title:string;expected_result:string;checks:string[];path_ids:string[];}
 export interface PublicSchedule {kind:'EXACT'|'PERIOD';title:string;timezone:string;event_at?:string;period_label?:string;date_note?:string;}
 export type ArticleSourceRole = 'PRIMARY' | 'REPORTED';
-// Company issues only: other companies the source names (counterparty, target, partner), each with its role.
-export interface PublicRelatedCompany {source_company_ref:string;name:string;role:string;}
-export interface PublicArticleBody {key_issues:string[];issue_analysis:string;sources:Array<{name:string;url:string;role?:ArticleSourceRole}>;visible_sections:DetailSection[];source_market:string;selection_market_basis:SelectionMarketBasis;analysis_perspective:'KR_EQUITY';impact_profile:ImpactProfile;article_kind:ArticleKind;impacts:PublicImpact[];scenarios?:PublicScenario[];risks?:string[];schedule?:PublicSchedule[];related_companies?:PublicRelatedCompany[];}
+export interface PublicArticleBody {key_issues:string[];issue_analysis:string;sources:Array<{name:string;url:string;role?:ArticleSourceRole}>;visible_sections:DetailSection[];source_market:string;selection_market_basis:SelectionMarketBasis;analysis_perspective:'KR_EQUITY';impact_profile:ImpactProfile;article_kind:ArticleKind;impacts:PublicImpact[];scenarios?:PublicScenario[];risks?:string[];schedule?:PublicSchedule[];}
 export type PublicArticleDetail = {state:'PUBLISHED';issue_id:string;version_id:string;title:string;summary:string;body:PublicArticleBody;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC'}|{state:'NOT_FOUND'|'HIDDEN'|'WITHDRAWN'|'CORRECTION_PENDING';message:string;canonical_issue_id?:string};
 export type PermissionPurpose = 'DISCOVERY' | 'LINK_EXTRACTION' | 'QUERY_TERMS' | 'ORIGINAL_ACCESS' | 'STORAGE' | 'ANALYSIS' | 'DISPLAY' | 'MACHINE_ACCESS';
 export interface ProviderPermission {id:string; version:string; endpoint_id:string; status:'UNVERIFIED'|'VERIFIED'|'DENIED'; purposes:Record<PermissionPurpose,'UNKNOWN'|'ALLOW'|'DENY'>; subject:string|null; evidence:string[]; verified_at:string|null; expires_at:string|null; revoked_at:string|null; allowed_hosts:string[]; methods:string[]; max_requests:number; max_bytes:number; timeout_ms:number; retention_days:number|null; contract_id:string|null; credential_status:string;}

@@ -360,10 +360,6 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   // Company issues keep the common layout without sector blocks (filings differ in form; the sector link stays in
   // impacts and company_refs for the company page). Sector and macro issues show them.
   if (triage.articleKind !== 'COMPANY') for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
-  // In their place, a company issue lists other companies only when the source names them (checked at triage).
-  const relatedCompanies = triage.articleKind !== 'COMPANY' ? [] : [...new Map(impacts.flatMap(item => item.companyRoles
-    .filter(role => role.companyId !== triage.primaryCompanyId).map(role => [role.companyId, { companyId: role.companyId, role: role.role, factIds: item.factIds }]))).values()];
-  if (relatedCompanies.length) visible.push('RELATED_COMPANIES');
   if (draft.risks.length) visible.push('RISKS'); if (draft.schedule.length) visible.push('SCHEDULE'); visible.push('SOURCES', 'DISCLAIMER');
   const hasBenefit = impacts.some(item => item.direction === 'BENEFIT'), hasDamage = impacts.some(item => item.direction === 'DAMAGE');
   const render = value => renderCalculations(value, calculations);
@@ -379,7 +375,7 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     // COMPANY issues appear on the company page only; SECTOR and MACRO issues also feed home and sector lists.
     // Every company with a stated role is linked, so sector issues also appear on each linked company's page.
     placement: triage.articleKind === 'COMPANY' ? 'COMPANY_PAGE' : 'FEED',
-    primary_company_ref: triage.articleKind === 'COMPANY' ? triage.primaryCompanyId : null, related_companies: relatedCompanies,
+    primary_company_ref: triage.articleKind === 'COMPANY' ? triage.primaryCompanyId : null,
     company_refs: [...new Set([...(triage.articleKind === 'COMPANY' ? [triage.primaryCompanyId] : []), ...impacts.flatMap(item => item.companyIds)])],
     angleKey: digest(impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort()),
     // PRIMARY: company/regulator/exchange originals. REPORTED: newsroom or research coverage. Both keep their own link.

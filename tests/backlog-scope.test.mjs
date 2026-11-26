@@ -45,8 +45,8 @@ test('SECTOR and MACRO issues carry no primary company but still link every comp
   assert(result.visible_sections.includes('BENEFIT_SECTORS'));
 });
 
-// Related companies (2026-11-27): only when the source names them, shown in place of the sector blocks.
-test('a company issue lists another company only when a cited fact is about or names it', () => {
+// A company issue links another company only when the source names it (no separate display block).
+test('a company issue links another company only when a cited fact is about or names it', () => {
   const { c } = setup();
   const contract = '오리온전자는 헬리오스소재와 장비 공급계약을 체결했다고 밝혔다.';
   const doc = { id: 'd', title: originalTitle, text: originalText + ' ' + contract, sources: [{ ...c.sources[0], kind: 'OFFICIAL', url }] };
@@ -59,16 +59,11 @@ test('a company issue lists another company only when a cited fact is about or n
   const facts = accepted.value.facts;
   const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
   const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
-  assert.deepEqual(result.related_companies.map(item => item.companyId), ['helios']);
-  assert(result.visible_sections.includes('RELATED_COMPANIES') && !result.visible_sections.includes('BENEFIT_SECTORS'));
+  assert(!('related_companies' in result) && !result.visible_sections.some(section => section.endsWith('_SECTORS') || section === 'RELATED_COMPANIES'));
   assert.deepEqual(result.company_refs, ['orion', 'helios']);
-  // A peer added without a fact about it is rejected; a company issue about only itself shows no related block.
+  // A peer added without a fact about it is rejected.
   const peer = companyTriage(); peer.impacts[0] = { ...peer.impacts[0], companyIds: ['orion', 'helios'] };
   assert.throws(() => validateTriage(peer, [doc], c.catalog), /RELATED_COMPANY_EVIDENCE_REQUIRED/);
-  const alone = validateTriage(companyTriage(), [doc], c.catalog);
-  const aloneBrief = writingBrief({ facts: alone.value.facts, triage: alone.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
-  const only = validateDraft(draft(aloneBrief), { facts: alone.value.facts, documents: [doc], triage: alone.value, catalog: c.catalog, now: stamp });
-  assert.deepEqual(only.related_companies, []); assert(!only.visible_sections.includes('RELATED_COMPANIES'));
 });
 
 test('key issues and issue analysis drop inline section labels; risk labels stay', () => {
