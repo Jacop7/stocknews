@@ -107,7 +107,7 @@ test('HTTP preserves rank order and exact public keys with at most four card RPC
 });
 
 function cardFor(n) {
-  return {issue_id: uuid(n), title: `기사 ${n}`, summary: '근거를 확인한 공개 기사 요약', first_published_at: publishedAt};
+  return {issue_id: uuid(n), title: `기사 ${n}`, summary: '근거를 확인한 공개 기사 요약', first_published_at: publishedAt, article_kind: null, impacts: []};
 }
 
 test('a stale version, correction, canonical alias, wrong sample kind or invalid card withholds the entire result', async t => {
@@ -245,4 +245,22 @@ test('route defaults closed, refuses LAN and foreign configuration, and preserve
   assert.equal((await fetch(enabled + '/v2/home?version=1')).status, 404);
   assert.equal((await fetch(enabled + '/v2/home', {method: 'POST'})).status, 405);
   assert.equal((await fetch(enabled + '/v2/home', {headers: {Authorization: 'Bearer test-rejected'}})).status, 403);
+});
+
+test('card carries only a validated sector impact summary from the public body, never the body', async t => {
+  const sector = '33333333-3333-4333-8333-333333333333';
+  const base = await gateway(t, async () => ranking({A: [ref(1)], B: [ref(2)], C: [ref(3)]}), async id => article(id, {body: {
+    hidden: 'MUST_NOT_LEAVE_GATEWAY', article_kind: id === uuid(1) ? 'MACRO' : 'SECTOR',
+    impacts: id === uuid(3)
+      ? [{sector_id: sector, sector_name: '조선', direction: 'BENEFIT'}, {sector_id: 'not-a-uuid', sector_name: 'x', direction: 'DAMAGE'}]
+      : [{sector_id: sector, sector_name: ' 메모리 양산 ', direction: 'BENEFIT', description: 'MUST_NOT_LEAVE', evidence_ids: ['e']},
+         {sector_id: sector, sector_name: '메모리 양산', direction: 'BENEFIT'}],
+  }}));
+  const data = await home(base);
+  const text = JSON.stringify(data);
+  assert.ok(!text.includes('MUST_NOT_LEAVE'));
+  assert.deepEqual(data.lanes.A[0].impacts, [{sector_id: sector, sector_name: '메모리 양산', direction: 'BENEFIT', companies: []}]);
+  assert.equal(data.lanes.A[0].article_kind, 'MACRO');
+  assert.equal(data.lanes.B[0].article_kind, 'SECTOR');
+  assert.deepEqual(data.lanes.C[0].impacts, []); // one malformed entry drops the whole summary
 });

@@ -62,7 +62,26 @@ function toCard(key, article) {
   if (typeof title !== 'string' || !title.trim() || [...title.trim()].length > 200 ||
       typeof summary !== 'string' || !summary.trim() || [...summary.trim()].length > 1500 ||
       !validPublishedAt(publishedAt)) return null;
-  return {issue_id: key.issueId, title: title.trim(), summary: summary.trim(), first_published_at: publishedAt};
+  return {issue_id: key.issueId, title: title.trim(), summary: summary.trim(), first_published_at: publishedAt,
+    article_kind: ['SECTOR', 'MACRO'].includes(article.body?.article_kind) ? article.body.article_kind : null,
+    impacts: cardImpacts(article.body?.impacts)};
+}
+
+// Sector-level impact summary for the card, copied field-by-field from the public
+// body (never the body itself). All-or-nothing: one malformed entry drops the
+// summary rather than showing a partial benefit/damage picture.
+const impactUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+function cardImpacts(impacts) {
+  if (!Array.isArray(impacts) || impacts.length > 30) return [];
+  const rows = impacts.map(x => x && typeof x === 'object' && impactUuid.test(String(x.sector_id)) &&
+    typeof x.sector_name === 'string' && x.sector_name.trim() && [...x.sector_name.trim()].length <= 100 &&
+    ['BENEFIT', 'DAMAGE', 'RELATED'].includes(x.direction)
+    ? {sector_id: x.sector_id, sector_name: x.sector_name.trim(), direction: x.direction, companies: []} : null);
+  if (rows.some(x => x === null)) return [];
+  const seen = new Set();
+  const rank = {BENEFIT: 0, DAMAGE: 1, RELATED: 2}; // same direction order as private.public_card_impacts
+  return rows.filter(x => { const k = x.direction + ':' + x.sector_id; if (seen.has(k)) return false; seen.add(k); return true; })
+    .map((x, i) => [x, i]).sort((a, b) => rank[a[0].direction] - rank[b[0].direction] || a[1] - b[1]).map(([x]) => x);
 }
 
 async function assemble(readRanking, readArticle, context, signal) {

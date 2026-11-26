@@ -79,7 +79,9 @@ try{
  create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select (nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid$$;
  create table supabase_migrations.schema_migrations(version text primary key,name text,statements text[]);`);
- const migrations=readdirSync(path.join(root,'supabase/migrations')).filter(x=>/^\d{14}_.+\.sql$/.test(x)).sort();assert.equal(migrations.length,50);
+ // The hosted C2 projection is the archived 50-migration prefix; later local-only migrations
+ // (e.g. 20261126000051_public_card_impacts) are not part of it until a new hosted archive.
+ const migrations=readdirSync(path.join(root,'supabase/migrations')).filter(x=>/^\d{14}_.+\.sql$/.test(x)&&x<='20261115000050_reservation_review_guards.sql').sort();assert.equal(migrations.length,50);
  for(const f of migrations){
   let body=read('supabase/migrations/'+f);
   // Fixture projection only: the hosted archive deliberately omits pg_cron.

@@ -30,7 +30,10 @@ Last updated: 2026-11-26. Update this file at the end of every work unit.
   Foundation guards also need full git history and remote URL `https://github.com/Jacop7/stocknews.git`.
 - `scripts/verify-native-release.mjs` already fails at 1862249b: collector commits changed `pnpm-lock.yaml` after the native record. Fix together with the next native build (runtime 0007).
 - `tests/telegram-config.test.mjs` skips unless `JUDOJU_LIVE_SOURCE_PREPARER` points at the PC-only preparer; that script should be committed.
-- Home DTO from the real gateway has no sector/impact fields; list-card `impacts` exist only in the synthetic dev API (contract fields are optional).
+- Card `impacts` are sector-level only (`companies: []`): applying news to individual companies needs company-level path
+  evidence that the schema does not hold yet. The synthetic dev API still shows example companies (target design).
+- Migration `20261126000051_public_card_impacts.sql` is local only: not in the hosted dev archive (cloud records stay at 50
+  migrations; `scripts/test-preview-admin-db.mjs` projects only that 50-migration prefix).
 
 ## Open user decisions (needed for one real article end-to-end)
 1. AI model, monthly budget and API key.
@@ -38,5 +41,10 @@ Last updated: 2026-11-26. Update this file at the end of every work unit.
 3. Source of one original article (existing stored link vs. temporary collection restart).
 4. Admin login path usable from the cloud (C2 flow is Windows-PC only).
 
+## Local SQL testing without Docker
+`pnpm test:sql-local` (or `node scripts/dev/local-postgres.mjs reset` + `JUDOJU_TEST_PG_URL=postgresql://postgres@127.0.0.1:55432/judoju`)
+starts a throwaway PostgreSQL 16 + pg_cron, applies Supabase stubs and every migration, then runs the SQL tests.
+
 ## Next safe step
-Extend the public read RPCs so list/home cards carry sector and impact summaries (local SQL + tests only), or wait for the decisions above.
+Wait for the open decisions above. Without them: company-level impact design (schema for per-company path evidence), or admin UI
+for the new card fields. Do not deploy migration 051 to hosted dev without the user's approval.

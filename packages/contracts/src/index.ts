@@ -32,9 +32,9 @@ export type CalendarPeriod='TODAY'|'YESTERDAY'|'THIS_WEEK'|'LAST_WEEK'|'THIS_MON
 export interface CatalogNewsPage {catalog_version:string;as_of:string;period:CalendarPeriod;range_start:string;range_end:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 export interface PublicCardImpact {sector_id:string;sector_name:string;direction:ImpactDirection;companies:string[];}
 export interface PublicNewsSummary {issue_id:string;version_id:string;title:string;summary:string;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC';article_kind:'SECTOR'|'MACRO';sector_name:string|null;
- /** Optional list-card impact summary (Korean companies only). Not yet produced by the Supabase read RPCs. */
+ /** Sector-level impact summary (migration 051 / home gateway). companies is [] until company-level path evidence exists. */
  impacts?:PublicCardImpact[];}
-export interface PublicHomeCard {issue_id:string;title:string;summary:string;first_published_at:string;sector_id?:string|null;sector_name?:string|null;impacts?:PublicCardImpact[];}
+export interface PublicHomeCard {issue_id:string;title:string;summary:string;first_published_at:string;article_kind?:'SECTOR'|'MACRO'|null;sector_id?:string|null;sector_name?:string|null;impacts?:PublicCardImpact[];}
 export interface PublicHomePage {state:'FRESH'|'DELAYED'|'CALCULATING';ranking_cutoff:string|null;source_cutoff:string|null;lanes:Record<'A'|'B'|'C',PublicHomeCard[]>;}
 export interface SearchNewsPage {catalog_version:string;as_of:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 export interface CompanySectorLink {id:string;name:string;display_order:number;}

@@ -71,6 +71,12 @@ export function NewsCard({ article: n, bookmarkId }: { article: ListArticle; boo
   );
 }
 
+// The gateway's home card has no primary sector; fall back to the first impacted sector.
+function homeLabel(n: PublicHomeCard): string {
+  if (n.article_kind === 'MACRO') return '매크로';
+  return n.sector_name ?? n.impacts?.find(x => x.direction === 'BENEFIT')?.sector_name ?? n.impacts?.[0]?.sector_name ?? '';
+}
+
 // 홈 ranked card: rank number, sector label, title, summary and related companies.
 export function RankedCard({ rank, article: n }: { rank: number; article: PublicHomeCard }) {
   return (
@@ -79,7 +85,7 @@ export function RankedCard({ rank, article: n }: { rank: number; article: Public
         <Text style={styles.rank}>{rank}</Text>
         <View style={styles.rankBody}>
           <View style={styles.topRow}>
-            <Text style={styles.sectorLabel} numberOfLines={1}>{n.sector_name ?? '매크로'}</Text>
+            {homeLabel(n) ? <Text style={styles.sectorLabel} numberOfLines={1}>{homeLabel(n)}</Text> : <View style={{ flex: 1 }} />}
             <SaveButton id={n.issue_id} />
           </View>
           <Link href={{ pathname: '/article/[id]', params: { id: n.issue_id } }} asChild>

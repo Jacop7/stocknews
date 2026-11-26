@@ -11,6 +11,7 @@
   "scripts": {
     "dev:read": "node scripts/dev/synthetic-read-server.mjs",
     "test:dev-read": "node --test tests/dev-synthetic-read.test.mjs",
+    "test:sql-local": "node scripts/dev/test-sql-local.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:integration": "node scripts/verify-integration.mjs",
     "check:foundation": "node scripts/verify-foundation.mjs",
