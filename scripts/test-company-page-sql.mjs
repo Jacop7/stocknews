@@ -1,10 +1,14 @@
-// Runs migration 51 (company scope and page) inside one transaction on the local Supabase DB and rolls it back.
+// Checks migration 51 (company scope and page) inside one transaction on the local Supabase DB and rolls it back.
+// If the migration is not applied yet it is applied inside that transaction; if it is, the applied functions are checked.
 // Requires the local stack (supabase_db_judoju-news-local) with at least two current published M1 issues.
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 const docker=process.platform==='win32'?'C:/Program Files/Docker/Docker/resources/bin/docker.exe':'docker';
-const migration=readFileSync(new URL('../supabase/migrations/20261127000051_company_scope_and_page.sql',import.meta.url),'utf8')
+const psql=['exec','-i','supabase_db_judoju-news-local','psql','-X','-U','postgres','-d','postgres','-At','-v','ON_ERROR_STOP=1'];
+const probe=spawnSync(docker,psql,{input:"select to_regprocedure('public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)') is not null;",encoding:'utf8',windowsHide:true});
+assert.equal(probe.status,0,probe.stderr);const applied=probe.stdout.trim()==='t';
+const migration=applied?'begin;':readFileSync(new URL('../supabase/migrations/20261127000051_company_scope_and_page.sql',import.meta.url),'utf8')
  .replace(/^notify .*$/m,'').replace(/commit;\s*$/,'');
 const checks=`
 create temp table h as select (public.catalog_public_tree(null)->>'catalog_version')::bigint head;
@@ -31,7 +35,7 @@ select 'R|feed_sector|'||exists(select 1 from t,jsonb_array_elements(public.cata
 select 'R|feed_company|'||exists(select 1 from t,jsonb_array_elements(public.catalog_public_articles((select head from h),'{}','TODAY',50,t.first_published_at+interval '1 second')->'items') x where t.r=2 and x->>'issue_id'=t.issue_id::text);
 select 'R|missing|'||((public.catalog_public_company((select head from h),'00000000-0000-4000-8000-000000000000',20))->>'state');
 rollback;`;
-const run=spawnSync(docker,['exec','-i','supabase_db_judoju-news-local','psql','-X','-U','postgres','-d','postgres','-At','-v','ON_ERROR_STOP=1'],{input:migration+checks,encoding:'utf8',windowsHide:true});
+const run=spawnSync(docker,psql,{input:migration+checks,encoding:'utf8',windowsHide:true});
 assert.equal(run.status,0,run.stderr);
 const lines=(run.stdout+run.stderr).split(/\r?\n/).map(line=>line.replace(/^NOTICE:\s*/,'')).filter(line=>line.startsWith('R|')).map(line=>line.split('|').slice(1));
 const value=key=>lines.filter(([k])=>k===key).map(([,v,w])=>w??v);
@@ -43,4 +47,4 @@ assert.deepEqual(value('roles'),['MENTIONED:SECTOR,PRIMARY:COMPANY']);
 assert.deepEqual(value('unverified_stock'),['true']);assert.deepEqual(value('paged'),['true']);
 assert.deepEqual(value('feed_sector'),['true']);assert.deepEqual(value('feed_company'),['false']);
 assert.deepEqual(value('missing'),['NOT_FOUND']);
-console.log(JSON.stringify({status:'PASS',phase:'COMPANY_SCOPE_AND_PAGE',rolledBack:true,checks:lines.length}));
+console.log(JSON.stringify({status:'PASS',phase:'COMPANY_SCOPE_AND_PAGE',migrationAlreadyApplied:applied,rolledBack:true,checks:lines.length}));
