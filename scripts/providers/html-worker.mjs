@@ -9,6 +9,7 @@ import { identityForUrl, normalizeArticleUrl, permissionDecision } from './polic
 import { createPublicWatch, retryAfterTime } from './public-watch.mjs';
 import { createPublicMetadata, operatorMetadataSource } from './public-metadata.mjs';
 import { createTelegramPageWatch, expireTelegramLinks, openTelegramPageStore, runTelegramPageCycle } from './telegram-link-worker.mjs';
+import { betweenRequests, hostGap, noJitter } from './pacing.mjs';
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
@@ -330,7 +331,7 @@ async function processListingDetail(db, sources, now, resolveSource, openDetail,
 }
 
 export async function runCollectorCycle(db, { endpoints, profiles, routes = [], now = Date.now, collect = collectHtmlList,
-  watch, openDetail = openArticleTitle, loadDetailRegistry, metadata }) {
+  watch, openDetail = openArticleTitle, loadDetailRegistry, metadata, random = noJitter, pause = async () => {} }) {
   const time = now();
   const byId = new Map(profiles.map(profile => [profile.id, profile]));
   const watchIds = new Set(watch ? routes.filter(route => ['NEWS', 'REPORT'].includes(route.effective_kind))
@@ -355,6 +356,12 @@ export async function runCollectorCycle(db, { endpoints, profiles, routes = [], 
   if (watch) Object.assign(stats, { watchEligible: sources.length - eligible, watched: 0, changed: 0 });
   const delays = new Map();
   for (const source of sources) delays.set(source.host, Math.max(source.hostDelay, delays.get(source.host) ?? 0));
+  for (const [host, delay] of delays) delays.set(host, hostGap(delay, random));
+  // After a request, wait a random 1-3s before reserving the next slot, so the per-host gap is measured
+  // from reservation to reservation and never shortened by the pause. One pause per request at most.
+  let pending = false;
+  const space = async () => { if (pending) { pending = false; await pause(betweenRequests(random)); } };
+  const requested = count => { if (count > 0) pending = true; };
   const bySchedule = new Map(db.prepare('SELECT endpoint_id,binding,next_at FROM schedules').all().map(row => [row.endpoint_id, row]));
   const recoveryRoutes = new Set(db.prepare('SELECT endpoint_id FROM rate_limited_routes').all().map(row => row.endpoint_id));
   const dueAt = ({ endpoint, binding }) => {
@@ -379,14 +386,17 @@ export async function runCollectorCycle(db, { endpoints, profiles, routes = [], 
   } : resolveSource;
   let attempts = 0;
   for (let step = 0; step < (metadata ? 4 : 1); step++) {
+    await space();
     const detail = await processListingDetail(db, sources, now, resolveDetailSource,
       input => input.endpoint.metadata_collection ? metadata.openDetail(input) : openDetail(input), delays);
     if (!detail) break;
+    requested(detail.requests);
     attempts++;
     stats.requests += detail.requests;
     stats.observed += detail.observed;
   }
   for (const source of sources) {
+    await space();
     const start = now();
     if (resolveSource(source.endpoint, start)?.binding !== source.binding) continue;
     const robotsPreflight = source.operator ? metadata.requiresRobots(source.endpoint) :
@@ -399,6 +409,7 @@ export async function runCollectorCycle(db, { endpoints, profiles, routes = [], 
       endpoint: source.endpoint, profile: source.profile, execute: true,
       now: () => new Date(now()).toISOString() });
     stats.requests += result.requests;
+    requested(result.requests);
     const finished = now();
     const currentSource = source.operator ? resolveDetailSource(source.endpoint, finished) : resolveSource(source.endpoint, finished);
     const recorded = record(db, source, result, finished, reservation, currentSource, () => {
@@ -457,9 +468,13 @@ async function main() {
   const stopping = new AbortController();
   process.once('SIGTERM', () => stopping.abort());
   process.once('SIGINT', () => stopping.abort());
+  const pause = ms => sleep(ms, undefined, { signal: stopping.signal }).catch(error => { if (!stopping.signal.aborted) throw error; });
   const tick = createCollectorScheduler({
-    collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry }),
-    collectTelegram: telegramWatch && telegramDb && (() => runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch })),
+    collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry, random: Math.random, pause }),
+    collectTelegram: telegramWatch && telegramDb && (async () => {
+      await pause(betweenRequests(Math.random));
+      return runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch, random: Math.random });
+    }),
     maintainTelegram: telegramDb && (() => expireTelegramLinks(telegramDb, Date.now())),
     stopped: () => stopping.signal.aborted,
   });

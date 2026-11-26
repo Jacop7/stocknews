@@ -282,3 +282,14 @@ test('revocation during DNS blocks the actual HTTPS dispatch, including watcher 
   assert.equal((await runTelegramPageCycle(db, { load: () => config, now: () => stamp,
     watch: createTelegramPageWatch({ transport: actualTransport }) })).status, 'RIGHTS_HOLD');
 });
+
+test('the shared t.me slot adds the injected 0-3s jitter on top of its minimum gap', async t => {
+  const db = openTelegramPageStore(':memory:');
+  t.after(() => db.close());
+  const config = fixture();
+  const watch = createTelegramPageWatch({ now: () => stamp, transport: async () => ({ status: 404 }) });
+  assert.equal((await runTelegramPageCycle(db, { now: () => stamp, load: () => config, watch, random: () => 0.5 })).status, 'ROBOTS_READY');
+  // Fixture minimum is one minute (max_rps 0.1 is slower than the 60s floor): 60s + 1.5s.
+  assert.equal(db.prepare('SELECT next_at FROM telegram_page_host').get().next_at, stamp + minute + 1500);
+  await assert.rejects(runTelegramPageCycle(db, { now: () => stamp + 2 * minute, load: () => config, watch, random: () => 1 }), /INVALID_RANDOM/);
+});

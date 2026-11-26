@@ -10,6 +10,7 @@ import { parse } from 'parse5';
 import { normalizeArticleUrl, permissionDecision, permissionExpiry } from './policy.mjs';
 import { createPublicWatch, retryAfterTime } from './public-watch.mjs';
 import { pinnedHttps, publicAddress } from './probe.mjs';
+import { hostGap, noJitter } from './pacing.mjs';
 
 const purposes = ['MACHINE_ACCESS', 'DISCOVERY', 'LINK_EXTRACTION', 'STORAGE'];
 const heldRows = new Set([16, 19, 32, 36, 43, 48]);
@@ -203,7 +204,7 @@ export function createTelegramPageWatch(options = {}) {
   return run;
 }
 
-export async function runTelegramPageCycle(db, { load, watch, now = Date.now }) {
+export async function runTelegramPageCycle(db, { load, watch, now = Date.now, random = noJitter }) {
   const started = now();
   expireTelegramLinks(db, started);
   let config, active;
@@ -211,7 +212,8 @@ export async function runTelegramPageCycle(db, { load, watch, now = Date.now }) 
   catch { return { status: 'CONFIG_HOLD', links: 0 }; }
   prune(db, active, started, telegramLinkExclusions(config));
   if (!active.size) return { status: 'RIGHTS_HOLD', links: 0 };
-  const hostDelay = Math.max(...[...active.values()].map(grant => grant.hostDelay));
+  // t.me is one host for every channel: its minimum gap plus a random 0-3s per visit.
+  const hostDelay = hostGap(Math.max(...[...active.values()].map(grant => grant.hostDelay)), random);
   const getHost = db.prepare('SELECT next_at FROM telegram_page_host WHERE id=1');
   const setHost = db.prepare('INSERT INTO telegram_page_host VALUES (1,?) ON CONFLICT(id) DO UPDATE SET next_at=max(next_at,excluded.next_at)');
   const byId = new Map(db.prepare('SELECT endpoint_id, next_at FROM telegram_page_schedule').all().map(x => [x.endpoint_id, x.next_at]));
@@ -297,7 +299,7 @@ async function main() {
   process.once('SIGINT', () => stop.abort());
   try {
     do {
-      const status = await runTelegramPageCycle(db, { load, watch });
+      const status = await runTelegramPageCycle(db, { load, watch, random: Math.random });
       writeFileSync(join(directory, 'links.html.pending'), renderTelegramLinks(db, Date.now()), { mode: 0o600 });
       renameSync(join(directory, 'links.html.pending'), join(directory, 'links.html'));
       console.log(JSON.stringify({ event: 'TELEGRAM_PAGE_LINK_CYCLE', ...status }));
