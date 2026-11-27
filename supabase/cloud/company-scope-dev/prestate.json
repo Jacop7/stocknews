@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "stage": "CLOUD12A",
+  "productId": "judoju-news",
+  "projectRef": "nxfpfvsdwbziowkxsxnh",
+  "observedAt": "2026-11-27",
+  "method": "Read-only queries in the Supabase SQL Editor; local comparison against migrations 20261114000037 and the pre-51 renamed functions in the local DB",
+  "migrations": [
+    "20261114000000",
+    "20261114000001",
+    "20261115000101",
+    "20261115000102",
+    "20261116000103",
+    "20261116000104",
+    "20261116000105",
+    "20261116000106"
+  ],
+  "record": { "version": "20261127000107", "name": "cloud12a_company_scope" },
+  "sources": [
+    "supabase/migrations/20261127000051_company_scope_and_page.sql",
+    "supabase/migrations/20261127000052_company_hides_sector_sections.sql",
+    "supabase/migrations/20261127000053_drop_related_companies.sql",
+    "supabase/migrations/20261127000054_impact_companies_and_related_rule.sql",
+    "supabase/migrations/20261127000055_hide_related_sectors.sql"
+  ],
+  "beforeHashes": {
+    "private.m1_prepare(uuid,jsonb,bigint,bigint)": "4ffd7bc62c628fa5103f791cc3873e46b34fe2f9d66b7df907b2e30d0565ff54",
+    "private.public_body(jsonb,text[],timestamptz)": "30c0b04c99238be4fa72c00e7dd802665a827e99a12d9352a831d503d2708ffd",
+    "private.visible_sections(text,jsonb,timestamptz,timestamptz)": "d6a7a168e37bfb4038480980aae6df9aee7b60eda6b2fc1b480f376197799f0b",
+    "public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)": "4bf9a035c99eff5746d7379377d111135cba39dc944d90ad553a1fc3edd9e0ae"
+  },
+  "mustNotExist": [
+    "public.catalog_public_company",
+    "private.m1_prepare_v5",
+    "private.m1_prepare_v6",
+    "private.m1_prepare_v7",
+    "private.visible_sections_v2",
+    "private.public_body_v2",
+    "private.public_body_v3"
+  ],
+  "afterHashes": {
+    "private.m1_prepare(uuid,jsonb,bigint,bigint)": "983e1582e211d459c2f6b521d16e26360d72692b74a79a1a01a1010c0a557b9e",
+    "private.m1_prepare_v5(uuid,jsonb,bigint,bigint)": "6202afb2f85ecd52e75b3cb8d52b137f1e35e245e2266b78313caadfbec09252",
+    "private.m1_prepare_v7(uuid,jsonb,bigint,bigint)": "8abfe5e4cfc045b03ac43ddefc04e79fd6946bff342ee867bbfe139533a5ec63",
+    "private.visible_sections(text,jsonb,timestamptz,timestamptz)": "f311e6bbc8401255ef4d2ab8817d0693e70ff2dbfe8d7e5db10761b1c87d035e",
+    "private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)": "e27521edb9662f23d03cb2a72450f59fccfa2bc3374e7aefdd4746e4eb1a5366",
+    "private.public_body(jsonb,text[],timestamptz)": "d5f9eec09caefba82bc2e393642892e94bc716e1aee362895881d65c7c1aa021",
+    "private.public_body_v3(jsonb,text[],timestamptz)": "bcf9a4b314f02bba6b7a87034fac54dcfdc6260065bd0f4c9e697f0d30044935",
+    "public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)": "58a265a0c9391ee15a8d9412566167778a88407debb79f6070bdbb6a6219ce70",
+    "public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)": "4413ef470169347b7f257bd24bf408d9f4e1863514e9d3d971fdeba52ac43c14"
+  },
+  "anonReadAfter": [
+    "public.catalog_public_articles",
+    "public.catalog_public_company",
+    "public.catalog_public_company_sectors",
+    "public.catalog_public_saved",
+    "public.catalog_public_search_companies",
+    "public.catalog_public_search_news",
+    "public.catalog_public_sector_page",
+    "public.catalog_public_tree",
+    "public.m1_public_article",
+    "public.m1_public_identity"
+  ]
+}
