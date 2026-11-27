@@ -11,7 +11,7 @@ const base = (over = {}) => ({
   catalogRef: { registry: 'registry-v1:0123456789abcdef', sha256: 'e'.repeat(64) },
   facts: [
     { id: 'f-1', statement: '공급 계약 체결', verificationClass: 'ORDINARY_FACT', independentlyVerified: true, koreaPathVerified: true, recordedAt: Date.UTC(2026, 10, 27), sources: [{ url: dart(1), role: 'PRIMARY' }], sourceUrls: [dart(1)] },
-    { id: 'f-2', statement: '보도된 수요 전망', verificationClass: 'ORDINARY_FACT', independentlyVerified: true, koreaPathVerified: true, recordedAt: Date.UTC(2026, 10, 27), sources: [{ url: 'https://news.example.kr/1', role: 'REPORTED' }], sourceUrls: ['https://news.example.kr/1'] }
+    { id: 'f-2', statement: '보도된 수요 전망', verificationClass: 'ORDINARY_FACT', independentlyVerified: true, koreaPathVerified: true, recordedAt: Date.UTC(2026, 10, 27), sources: [{ url: 'https://kind.krx.co.kr/disclosure/1', role: 'REPORTED' }], sourceUrls: ['https://kind.krx.co.kr/disclosure/1'] }
   ],
   draft: {
     title: '제목', summary: '요약', issue_analysis: { text: '분석', factIds: ['f-1'] }, key_issues: [{ text: '핵심', factIds: ['f-1'] }], risks: [{ text: '위험', factIds: ['f-2'] }],
@@ -22,7 +22,7 @@ const base = (over = {}) => ({
     ],
     scenarios: [{ direction: 'POSITIVE', title: '긍정', expected_result: '결과', checks: ['확인한다.'], factIds: ['f-1'] }, { direction: 'NEGATIVE', title: '부정', expected_result: '결과', checks: ['확인한다.'], factIds: ['f-2'] }],
     schedule: [{ title: '납품 개시', eventAt: '2026-12-01T09:00:00+09:00', timezone: 'Asia/Seoul', factIds: ['f-1'] }, { title: '보도 일정', eventAt: '2026-12-02T09:00:00+09:00', timezone: 'Asia/Seoul', factIds: ['f-2'] }],
-    source_refs: [{ docId: 'd2', url: 'https://news.example.kr/1', name: '보도', role: 'REPORTED', publishedAt: '2026-11-26' }, { docId: 'd1', url: dart(1), name: 'DART', role: 'PRIMARY', publishedAt: '2026-11-25' }],
+    source_refs: [{ docId: 'd2', url: 'https://kind.krx.co.kr/disclosure/1', name: '보도', role: 'REPORTED', publishedAt: '2026-11-26' }, { docId: 'd1', url: dart(1), name: 'DART', role: 'PRIMARY', publishedAt: '2026-11-25' }],
     angleKey: 'f'.repeat(64), ...over.draft
   },
   ...over.top
@@ -93,4 +93,15 @@ test('day periods use the offset at local midnight on DST days; impossible dates
     { title: '없는 날', eventAt: '2026-02-30', timezone: 'Asia/Seoul', factIds: ['f-1'] }] } }));
   assert.deepEqual(payload.draft.schedule.map(x => [x.period_start, x.period_end]), [['2026-03-08T00:00:00-05:00', '2026-03-09T00:00:00-04:00']]);
   assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }]);
+});
+
+test('day starts round-trip in the zone (skipped midnight, skipped day); unknown source markets hold', () => {
+  const { payload, omitted } = toIntakePayload(base({ draft: { schedule: [
+    { title: '산티아고', eventAt: '2027-09-05', timezone: 'America/Santiago', factIds: ['f-1'] },
+    { title: '아피아', eventAt: '2011-12-30', timezone: 'Pacific/Apia', factIds: ['f-1'] }] } }));
+  assert.equal(payload.draft.schedule.length, 1);
+  assert.equal(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(payload.draft.schedule[0].period_start)), '2027-09-05');
+  assert.deepEqual(omitted, [{ schedule: 1, reason: 'DAY_NOT_IN_ZONE' }]);
+  const foreign = base({ draft: { source_refs: [...base().draft.source_refs, { docId: 'x', url: 'https://www.sedaily.com/a', name: 'x', role: 'REPORTED', publishedAt: '2026-11-20' }] } });
+  assert.deepEqual(toIntakePayload(foreign), { hold: 'SOURCE_MARKET_UNKNOWN' });
 });

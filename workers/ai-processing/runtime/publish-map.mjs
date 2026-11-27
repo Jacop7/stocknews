@@ -15,6 +15,23 @@ function offsetAt(timeZone, instant) {
   const name = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }).formatToParts(instant).find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
   return name === 'GMT' ? '+00:00' : name.replace('GMT', '');
 }
+// First instant of a local calendar day, as a local wall time with its offset, checked by round trip: the instant must
+// read back as that date in that zone. Midnight can be skipped by a DST change (the day then starts at 01:00) and a
+// whole day can be skipped by a date-line change (then there is no start: null).
+function localDayStart(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  for (let hour = 0; hour < 4; hour++) {
+    const wall = date + 'T' + String(hour).padStart(2, '0') + ':00:00';
+    let offset = offsetAt(timeZone, new Date(date + 'T12:00:00Z'));
+    for (let i = 0; i < 3; i++) { const next = offsetAt(timeZone, new Date(wall + offset)); if (next === offset) break; offset = next; }
+    const got = Object.fromEntries(parts.formatToParts(new Date(wall + offset)).map(part => [part.type, part.value]));
+    if (got.year + '-' + got.month + '-' + got.day === date && Number(got.hour) === hour && got.minute === '00') return wall + offset;
+  }
+  return null;
+}
+// Hosts whose sources count as the domestic (KR) market. In stage 1A the database only accepts official Korean filing
+// hosts; any other host makes the market unknown, which holds the draft rather than guessing.
+const DOMESTIC_HOSTS = new Set(['dart.fss.or.kr', 'kind.krx.co.kr']);
 // Limits of the intake check (migration 57); a draft beyond them is held, never trimmed.
 const LIMITS = { key_issues: 12, risks: 20, company_refs: 30, impacts: 30, schedule: 20, evidence: 10, conditions: 10, checks: 10, companies: 20 };
 
@@ -99,18 +116,16 @@ export function toIntakePayload(snapshot) {
       // A date without a time: the whole day in that zone, end exclusive (start < end). The offset is the one in force
       // at local midnight (a DST change during the day must not move the boundary).
       const next = new Date(Date.parse(item.eventAt + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
-      const at = date => {
-        let offset = offsetAt(item.timezone, new Date(date + 'T12:00:00Z'));
-        for (let i = 0; i < 2; i++) offset = offsetAt(item.timezone, new Date(date + 'T00:00:00' + offset));
-        return date + 'T00:00:00' + offset;
-      };
-      schedule.push({ kind: 'PERIOD', ...common, period_label: item.eventAt, period_start: at(item.eventAt), period_end: at(next), precision: 'DAY' });
+      const start = localDayStart(item.eventAt, item.timezone), end = localDayStart(next, item.timezone);
+      if (!start || !end) { omitted.push({ schedule: index, reason: 'DAY_NOT_IN_ZONE' }); continue; }
+      schedule.push({ kind: 'PERIOD', ...common, period_label: item.eventAt, period_start: start, period_end: end, precision: 'DAY' });
       continue;
     }
     omitted.push({ schedule: index, reason: 'UNSUPPORTED_TIME' });
   }
 
   const hosts = kept.map(source => host(source.url));
+  if (!hosts.every(name => DOMESTIC_HOSTS.has(name))) return hold('SOURCE_MARKET_UNKNOWN');
   const payload = {
     format: 'AI_DRAFT_V1', ai_issue_id: issueId, ai_version: version, story_key: safeKey(snapshot.storyKey), angle_key: safeKey(snapshot.angleKey ?? draft.angleKey),
     catalog_ref: { registry: String(catalogRef?.registry ?? ''), sha256: String(catalogRef?.sha256 ?? '') },
@@ -119,7 +134,7 @@ export function toIntakePayload(snapshot) {
       key_issues: (draft.key_issues ?? []).map(item => item.text), risks: (draft.risks ?? []).map(item => item.text),
       article_kind: draft.article_kind, primary_sector_id: primarySector,
       primary_company_ref: draft.article_kind === 'COMPANY' ? draft.primary_company_ref ?? null : null, company_refs: draft.company_refs ?? [],
-      source_market: hosts.every(name => name.endsWith('.kr')) ? 'KR' : 'GLOBAL', selection_market_basis: 'KR',
+      source_market: 'KR', selection_market_basis: 'KR',
       sources: kept.map(source => ({ name: String(source.name ?? host(source.url)).slice(0, 100), url: source.url, role: source.role === 'PRIMARY' ? 'PRIMARY' : 'REPORTED' })),
       impacts, scenarios, schedule
     },
