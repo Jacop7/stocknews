@@ -20,18 +20,23 @@ function offsetAt(timeZone, instant) {
 // whole day can be skipped by a date-line change (then there is no start: null).
 function localDayStart(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const base = Date.parse(date + 'T00:00:00Z');
+  // Every offset in force around that day; an ambiguous (fall-back) midnight round-trips with two of them.
+  const offsets = [...new Set([-36, -24, -12, 0, 12, 24, 36].map(hours => offsetAt(timeZone, new Date(base + hours * 3_600_000))))];
   for (let hour = 0; hour < 4; hour++) {
     const wall = date + 'T' + String(hour).padStart(2, '0') + ':00:00';
-    let offset = offsetAt(timeZone, new Date(date + 'T12:00:00Z'));
-    for (let i = 0; i < 3; i++) { const next = offsetAt(timeZone, new Date(wall + offset)); if (next === offset) break; offset = next; }
-    const got = Object.fromEntries(parts.formatToParts(new Date(wall + offset)).map(part => [part.type, part.value]));
-    if (got.year + '-' + got.month + '-' + got.day === date && Number(got.hour) === hour && got.minute === '00') return wall + offset;
+    const hits = offsets.filter(offset => {
+      const got = Object.fromEntries(parts.formatToParts(new Date(wall + offset)).map(part => [part.type, part.value]));
+      return got.year + '-' + got.month + '-' + got.day === date && Number(got.hour) === hour && got.minute === '00';
+    }).sort((x, y) => Date.parse(wall + x) - Date.parse(wall + y));
+    if (hits.length) return wall + hits[0];
   }
   return null;
 }
-// Hosts whose sources count as the domestic (KR) market. In stage 1A the database only accepts official Korean filing
-// hosts; any other host makes the market unknown, which holds the draft rather than guessing.
+// Stage 1A hosts: the database accepts only these, all official Korean filing hosts. They decide the market (KR) and
+// the source role (PRIMARY), exactly as the database classifies them; any other host holds the draft.
 const DOMESTIC_HOSTS = new Set(['dart.fss.or.kr', 'kind.krx.co.kr']);
+const OFFICIAL_HOSTS = DOMESTIC_HOSTS;
 // Limits of the intake check (migration 57); a draft beyond them is held, never trimmed.
 const LIMITS = { key_issues: 12, risks: 20, company_refs: 30, impacts: 30, schedule: 20, evidence: 10, conditions: 10, checks: 10, companies: 20 };
 
@@ -101,7 +106,7 @@ export function toIntakePayload(snapshot) {
 
   // Schedule: exact instants with an offset. VERIFIED only when every cited fact comes from PRIMARY links only (the
   // database requires official-original evidence and checks the host itself); otherwise UNVERIFIED.
-  const primaryOnly = id => { const fact = facts.find(item => item.id === id); return (fact?.sources ?? []).length > 0 && fact.sources.every(source => source.role === 'PRIMARY'); };
+  const primaryOnly = id => { const fact = facts.find(item => item.id === id); return (fact?.sourceUrls ?? []).length > 0 && fact.sourceUrls.every(url => OFFICIAL_HOSTS.has(host(url))); };
   const schedule = [], omitted = [];
   for (const [index, item] of (draft.schedule ?? []).entries()) {
     const evidence = known(item.factIds);
@@ -135,7 +140,7 @@ export function toIntakePayload(snapshot) {
       article_kind: draft.article_kind, primary_sector_id: primarySector,
       primary_company_ref: draft.article_kind === 'COMPANY' ? draft.primary_company_ref ?? null : null, company_refs: draft.company_refs ?? [],
       source_market: 'KR', selection_market_basis: 'KR',
-      sources: kept.map(source => ({ name: String(source.name ?? host(source.url)).slice(0, 100), url: source.url, role: source.role === 'PRIMARY' ? 'PRIMARY' : 'REPORTED' })),
+      sources: kept.map(source => ({ name: String(source.name ?? host(source.url)).slice(0, 100), url: source.url, role: OFFICIAL_HOSTS.has(host(source.url)) ? 'PRIMARY' : 'REPORTED' })),
       impacts, scenarios, schedule
     },
     facts: outFacts

@@ -32,13 +32,14 @@ test('sector draft maps to the intake contract: keys, sources (PRIMARY first), p
   const { payload, effectKey } = toIntakePayload(base());
   assert.equal(effectKey, `ai:${ID}:2`);
   assert.deepEqual(Object.keys(payload).sort(), ['ai_issue_id', 'ai_version', 'angle_key', 'catalog_ref', 'draft', 'facts', 'format', 'story_key']);
-  assert.deepEqual(payload.draft.sources.map(s => s.role), ['PRIMARY', 'REPORTED']);
+  // Roles follow the database's host classification (both accepted hosts are official filings), not the snapshot label.
+  assert.deepEqual(payload.draft.sources.map(s => s.role), ['PRIMARY', 'PRIMARY']);
   assert.equal(payload.draft.primary_sector_id, S1, 'first benefit sector even when a related impact comes first');
   assert.deepEqual(payload.draft.impacts.map(i => i.path_id), ['DEMAND-1', 'SUPPLY-2']);
   assert.deepEqual(payload.draft.impacts[1].companies, [{ company_ref: C1, role: '공급사' }]);
   // Only a positive path exists, so only the positive scenario survives, bound to it.
   assert.deepEqual(payload.draft.scenarios.map(s => [s.direction, s.path_ids]), [['POSITIVE', ['SUPPLY-2']]]);
-  assert.deepEqual(payload.draft.schedule.map(s => [s.kind, s.status]), [['EXACT', 'VERIFIED'], ['EXACT', 'UNVERIFIED']]);
+  assert.deepEqual(payload.draft.schedule.map(s => [s.kind, s.status]), [['EXACT', 'VERIFIED'], ['EXACT', 'VERIFIED']]);
   assert.equal(payload.draft.source_market, 'KR');
   assert.deepEqual(payload.facts[0], { id: 'f-1', statement: '공급 계약 체결', verification_class: 'ORDINARY_FACT', independently_verified: true, korea_path_verified: true,
     recorded_at: '2026-11-27T00:00:00.000Z', source_urls: [dart(1)] });
@@ -104,4 +105,9 @@ test('day starts round-trip in the zone (skipped midnight, skipped day); unknown
   assert.deepEqual(omitted, [{ schedule: 1, reason: 'DAY_NOT_IN_ZONE' }]);
   const foreign = base({ draft: { source_refs: [...base().draft.source_refs, { docId: 'x', url: 'https://www.sedaily.com/a', name: 'x', role: 'REPORTED', publishedAt: '2026-11-20' }] } });
   assert.deepEqual(toIntakePayload(foreign), { hold: 'SOURCE_MARKET_UNKNOWN' });
+});
+
+test('an ambiguous fall-back midnight starts the day at its first instant', () => {
+  const { payload } = toIntakePayload(base({ draft: { schedule: [{ title: '아바나', eventAt: '2027-11-07', timezone: 'America/Havana', factIds: ['f-1'] }] } }));
+  assert.equal(payload.draft.schedule[0].period_start, '2027-11-07T00:00:00-04:00');
 });
