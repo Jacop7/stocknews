@@ -14,6 +14,8 @@ $local = Join-Path $repo '.local-data\admin-online'
 $keys = Join-Path $repo '.local-data\collector-cloud\ssh-lightsail'
 $server = 'ubuntu@52.79.247.25'; $base = '/home/ubuntu/.local/share/judoju-admin'; $readBase = '/home/ubuntu/.local/share/judoju-read'
 $hostName = 'admin.52-79-247-25.sslip.io'; $api = 'https://nxfpfvsdwbziowkxsxnh.supabase.co'
+# Supabase refuses secret keys on browser-like requests; Windows PowerShell's default User-Agent contains "Mozilla".
+$opsAgent = 'judoju-ops'
 $owner = 'e85049b7-7306-42ad-ac16-6c4bf5e82212'; $ownerEmailSha = '7bd88947e82eccad28360716d82f516c01b90733dd82ba1fe3bce5ba50c36f8d'
 $ssh = @('-i', "$keys\judoju-collector-ed25519", '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes', '-o', "UserKnownHostsFile=$keys\known_hosts_lightsail",
   '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10', '-o', 'HostKeyAlgorithms=ssh-ed25519')
@@ -46,7 +48,7 @@ if ($Command -eq 'set-password') {
   if ($p1 -ne $p2) { throw 'The two entries differ. Nothing was changed.' }
   if ($p1.Length -lt 9 -or $p1.Length -gt 72) { throw 'Use 9 to 72 characters. Nothing was changed.' }
   $body = @{ password = $p1 } | ConvertTo-Json -Compress; $p1 = $null; $p2 = $null
-  try { Invoke-RestMethod -Method Put -Uri "$api/auth/v1/admin/users/$owner" -Headers @{ apikey = $secret; Authorization = "Bearer $secret" } -ContentType 'application/json' -Body $body -TimeoutSec 20 | Out-Null }
+  try { Invoke-RestMethod -UserAgent $opsAgent -Method Put -Uri "$api/auth/v1/admin/users/$owner" -Headers @{ apikey = $secret; Authorization = "Bearer $secret" } -ContentType 'application/json' -Body $body -TimeoutSec 20 | Out-Null }
   catch { $body = $null; throw "Password change failed (HTTP $($_.Exception.Response.StatusCode.value__)). Nothing was printed." }
   $body = $null; Write-Host 'Admin password changed (not printed).'; return
 }
@@ -71,7 +73,7 @@ if ($Command -eq 'revoke') {
   $secret = if (Test-Path $secretPath) { (Get-Content $secretPath -Raw).Trim() } else { '' }
   function Invoke-AdminFn([string]$fn) {
     if (-not $secret) { return @{ error = 'NO_LOCAL_SECRET_KEY' } }
-    try { return @{ body = (Invoke-RestMethod -Method Post -Uri "$api/rest/v1/rpc/$fn" -Headers @{ apikey = $secret } -ContentType 'application/json' -Body '{}' -TimeoutSec 20) } }
+    try { return @{ body = (Invoke-RestMethod -UserAgent $opsAgent -Method Post -Uri "$api/rest/v1/rpc/$fn" -Headers @{ apikey = $secret } -ContentType 'application/json' -Body '{}' -TimeoutSec 20) } }
     catch { return @{ error = [string]$_.Exception.Message } }
   }
   $zero = { param($b) $b -and $b.editorGrants -eq 0 -and $b.sessionGrants -eq 0 -and $b.activeMemberships -eq 0 -and $b.openSessions -eq 0 }
