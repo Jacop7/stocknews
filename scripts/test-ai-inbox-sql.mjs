@@ -207,20 +207,25 @@ const first = spawn(docker, psql, { windowsHide: true });
 let firstOut = '';first.stdout.on('data', b => { firstOut += b; });first.stderr.on('data', b => { firstOut += b; });
 const closed = new Promise(resolve => first.on('close', resolve));
 // Wait until the SQL is flushed to the first connection: the synchronous second call below blocks the event loop.
-await new Promise(resolve => first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');select pg_sleep(8);rollback;`, resolve));
-// The second connection waits until the first one holds the issue's advisory lock (pg_locks, not a fixed delay), then
-// tries a competing intake of the same issue and version: it must block on that lock (lock_timeout), never pass it.
-const second = run(`do $$ declare t0 timestamptz:=clock_timestamp();
+// No fixed delays: each side waits on the other's advisory locks (pg_locks), with a generous cap only as a hang guard.
+const releaseKey = q('ai-test-release:' + H);
+const held = key => `exists(select 1 from pg_locks where locktype='advisory' and granted and pid<>pg_backend_pid() and objid::bigint=(hashtext(${key})::bigint & 4294967295))`;
+const waitFor = (cond, label) => `t0:=clock_timestamp();while not (${cond}) loop if clock_timestamp()-t0>interval '120 seconds' then raise exception 'R_TIMEOUT_${label}';end if;perform pg_sleep(0.05);end loop;`;
+// First: intake (holds the issue lock), then keep the transaction open until the second side signals, then roll back.
+await new Promise(resolve => first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');
+do $$ declare t0 timestamptz; begin ${waitFor(held(releaseKey), 'RELEASE')} end $$;rollback;`, resolve));
+// Second: wait until the first holds the issue lock, try a competing intake of the same issue and version (it must block
+// on that lock, never pass it), signal release, and wait until the first has let go.
+const second = run(`do $$ declare t0 timestamptz;
 begin
-  while not exists(select 1 from pg_locks where locktype='advisory' and granted and pid<>pg_backend_pid()
-    and objid::bigint=(hashtext(${lockKey})::bigint & 4294967295)) loop
-    if clock_timestamp()-t0>interval '20 seconds' then raise notice 'R|second|NO_LOCK_SEEN';return;end if;
-    perform pg_sleep(0.05);
-  end loop;
+  ${waitFor(held(lockKey), 'LOCK')}
   set local lock_timeout='1s';
   -- With 57 applied this is a real competing intake; when 57 exists only inside the first transaction it takes the same lock.
   begin if to_regprocedure('private.ai_ingest_draft(text,jsonb)') is not null then perform ${call(H, 1, payload(H, 1))}; else perform pg_advisory_xact_lock(hashtext(${lockKey})); end if; raise notice 'R|second|PASSED';
   exception when lock_not_available then raise notice 'R|second|BLOCKED'; when others then raise notice 'R|second|%',sqlerrm; end;
+  set local lock_timeout=0;
+  perform pg_advisory_xact_lock(hashtext(${releaseKey}));
+  ${waitFor('not ' + held(lockKey), 'FIRST_DONE')}
 end $$;`);
 await closed;
 assert.match(firstOut, /R\|first\|RECEIVED/);
