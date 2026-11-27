@@ -1,6 +1,6 @@
 // CLOUD10B live public-read verification against the Supabase dev project (read-only; no writes, no grants).
 // Reads the publishable key from .local-data/cloud-preview/publishable.key (stored by scripts/ops/cloud10b-store-key.ps1),
-// never prints it, calls each of the nine allowed read RPCs once and confirms that everything else is refused.
+// never prints it, calls each of the ten allowed read RPCs once and confirms that everything else is refused.
 // Writes .local-data/cloud-preview/live-result.json. With --activate and a user-authorization.txt present it also
 // writes access-proof.json and public-config.json, binding the proof to those files and the tracked ACL inventory.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -36,6 +36,7 @@ const allowedCalls = {
   catalog_public_search_companies: [{ p_expected: version, p_query: '삼성', p_limit: 1 }],
   catalog_public_company_sectors: [{ p_expected: version, p_company: randomUUID(), p_offset: 0, p_limit: 1 }],
   catalog_public_saved: [{ p_expected: version, p_issues: [randomUUID()] }],
+  catalog_public_company: [{ p_expected: version, p_company: randomUUID(), p_limit: 1 }],
   m1_public_article: [{ p_issue: randomUUID() }],
 };
 const allowed = [];
@@ -44,13 +45,13 @@ for (const name of READ_RPCS) {
   const result = prior ?? await rpc(name, body);
   allowed.push({ name, status: result.status, ok: result.status === 200 && result.data !== null && typeof result.data === 'object' });
 }
-// Everything outside the nine must be refused: a managed event trigger, private and editor functions, writes, tables.
+// Everything outside the ten must be refused: a managed event trigger, private and editor functions, writes, tables.
 const deniedCalls = [
   ['rpc rls_auto_enable', () => rpc('rls_auto_enable')],
   ['rpc m1_prepare', () => rpc('m1_prepare', { p_issue: randomUUID(), p_input: {}, p_policy: 1, p_catalog: 1 })],
   ['rpc catalog_editor_tree', () => rpc('catalog_editor_tree')],
   ['rpc m1_save_draft', () => rpc('m1_save_draft', { p_issue: randomUUID(), p_expected_revision: 0, p_content: {} })],
-  ['rpc catalog_public_company', () => rpc('catalog_public_company', { p_expected: version, p_company: randomUUID() })],
+  ['rpc catalog_editor_company', () => rpc('catalog_editor_company', { p_company: randomUUID(), p_expected: version })],
   ['table news_public', () => call('GET', '/rest/v1/news_public?select=issue_id&limit=1')],
 ];
 if (JSON.stringify(deniedCalls.map(([name]) => name)) !== JSON.stringify(DENIED_PROBES)) throw new Error('PROBE_LIST_MISMATCH');

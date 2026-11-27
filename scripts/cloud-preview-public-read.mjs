@@ -8,11 +8,11 @@ import {readRoute} from './public-read-gateway.mjs';
 import {catalogResponse,CatalogReadError} from './catalog/public-route.mjs';
 import {searchResponse} from './catalog/search-route.mjs';
 export const PROJECT='nxfpfvsdwbziowkxsxnh',UPSTREAM='https://'+PROJECT+'.supabase.co';
-export const READ_RPCS=Object.freeze(['m1_public_identity','m1_public_article','catalog_public_tree','catalog_public_sector_page','catalog_public_articles','catalog_public_search_news','catalog_public_search_companies','catalog_public_saved','catalog_public_company_sectors'].sort());
+export const READ_RPCS=Object.freeze(['m1_public_identity','m1_public_article','catalog_public_tree','catalog_public_sector_page','catalog_public_articles','catalog_public_search_news','catalog_public_search_companies','catalog_public_saved','catalog_public_company_sectors','catalog_public_company'].sort());
 // CLOUD10B: the exact probes that must be refused, and what counts as refused. A refusal is a permission error
 // (42501) or "not exposed/not found" from the Data API (PGRST202 function, PGRST205 table), with 401/403/404.
 // Validation errors (400), rate limits (429) and server errors (5xx) never count as proof of refusal.
-export const DENIED_PROBES=Object.freeze(['rpc rls_auto_enable','rpc m1_prepare','rpc catalog_editor_tree','rpc m1_save_draft','rpc catalog_public_company','table news_public']);
+export const DENIED_PROBES=Object.freeze(['rpc rls_auto_enable','rpc m1_prepare','rpc catalog_editor_tree','rpc m1_save_draft','rpc catalog_editor_company','table news_public']);
 // One probe-specific exception, observed live on 2026-11-27: the managed event-trigger function rls_auto_enable is
 // refused by PostgreSQL before its body runs (400, 0A000 "cannot display a value of type event_trigger").
 export const deniedResponse=(status,code,name)=>[401,403,404].includes(status)&&['42501','PGRST202','PGRST205'].includes(code)||

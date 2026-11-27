@@ -11,7 +11,7 @@ const core = readFileSync(new URL('core.sql', root), 'utf8');
 const q = value => "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => q(JSON.stringify(value)) + '::jsonb';
 const editors = Object.keys(pre.editorHashes), sessions = ['public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)', 'public.m1_read_admin_session(text)', 'public.m1_close_admin_session(text)'];
-const readRpcs = ['public.catalog_public_articles', 'public.catalog_public_company_sectors', 'public.catalog_public_saved', 'public.catalog_public_search_companies',
+const readRpcs = ['public.catalog_public_articles', 'public.catalog_public_company', 'public.catalog_public_company_sectors', 'public.catalog_public_saved', 'public.catalog_public_search_companies',
   'public.catalog_public_search_news', 'public.catalog_public_sector_page', 'public.catalog_public_tree', 'public.m1_public_article', 'public.m1_public_identity'];
 const hashes = { ...pre.helperHashes, ...pre.editorHashes }, activated = pre.activatedHashes;
 // Functions core.sql replaces may already be in their hardened form (re-activation after a revoke); the stage's own
@@ -78,7 +78,7 @@ begin
   select coalesce(jsonb_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.proname<>'rls_auto_enable' and has_function_privilege('authenticated',p.oid,'EXECUTE');
   if got<>(select jsonb_agg(x order by x) from jsonb_array_elements_text(${json(editors.map(name => name.replace(/^public\./, '')))}) x) then raise exception 'CLOUD11_POST_AUTHENTICATED %',got;end if;
-  -- anon keeps exactly the nine public read RPCs.
+  -- anon keeps exactly the ten public read RPCs (company page since CLOUD12A).
   select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by p.proname),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('anon',p.oid,'EXECUTE');
   if got<>${json(readRpcs)} then raise exception 'CLOUD11_POST_ANON %',got;end if;

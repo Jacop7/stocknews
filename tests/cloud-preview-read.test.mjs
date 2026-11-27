@@ -21,9 +21,10 @@ function fixture(name,args){
  if(name==='catalog_public_saved')return {catalog_version:'2',items:args.p_issues.map(requested_issue_id=>({requested_issue_id,canonical_issue_id:requested_issue_id,state:'PUBLISHED',card}))};
  if(name==='catalog_public_search_companies')return {catalog_version:'2',items:[company],next:null};
  if(name==='catalog_public_company_sectors')return {catalog_version:'2',items:[],state:'AVAILABLE',next_offset:null};
+ if(name==='catalog_public_company')return {catalog_version:'2',state:'NOT_FOUND'};
  return {catalog_version:'2',as_of:when,items:[card],next:null};
 }
-const routes=['/articles/'+id,'/v2/catalog?version=2','/v2/sectors/'+id+'?version=2','/v2/articles?version=2','/v2/search/news?version=2&q=AI','/v2/search/companies?version=2&q=AI','/v2/saved?version=2&ids='+id,'/v2/companies/'+id+'/sectors?version=2'];
+const routes=['/articles/'+id,'/v2/catalog?version=2','/v2/sectors/'+id+'?version=2','/v2/articles?version=2','/v2/search/news?version=2&q=AI','/v2/search/companies?version=2&q=AI','/v2/saved?version=2&ids='+id,'/v2/companies/'+id+'/sectors?version=2','/v2/companies/'+id+'?version=2'];
 function http(g,path,{method='GET',headers={},body}={}){
  return new Promise((resolve,reject)=>{const r=request({hostname:'127.0.0.1',port:g.port,path,method,headers},res=>{const chunks=[];res.on('data',x=>chunks.push(x));res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,text:Buffer.concat(chunks).toString()}));});r.setTimeout(10000,()=>r.destroy(new Error('FIXTURE_TIMEOUT')));r.once('error',reject);r.end(body);});
 }
@@ -40,7 +41,7 @@ test('identity null is exact preview contract, never a relaxation of local ident
  assert.deepEqual(assertPreviewIdentity(identity),identity);
  for(const change of [{environment:'local'},{environment:'production'},{bootstrapId:id},{sampleKind:'REAL'},{contract:'M2'},{productId:'food'},{extra:true},{bootstrapId:undefined}])assert.throws(()=>assertPreviewIdentity({...identity,...change}));
 });
-test('nine RPCs include handshake and eight bounded public routes; legacy and arbitrary calls denied',()=>{
+test('ten RPCs include handshake and nine bounded public routes; legacy and arbitrary calls denied',()=>{
  assert.deepEqual([...new Set(['m1_public_identity',...routes.map(x=>previewRoute(x).name)])].sort(),READ_RPCS);
  for(const url of ['/sectors','/articles','/v2/catalog?version=2&version=3','/rest/v1/rpc/install','//evil/x','/v2/search/news?version=2&q=x&limit=21','/v2/sectors/'+id+'?limit=51','/v2/catalog#x','/articles/%2f'+id,'/v2/saved?version=2&ids='+id+','+id,'/v2/search/news?version=2&q=x&cursor=garbage','/v2/catalog?version=0'])assert.throws(()=>previewRoute(url));
 });
@@ -88,7 +89,8 @@ test('loopback HTTP fixture covers all read DTOs, HEAD, CORS preflight without u
   const malformed=await http(g,'/v2/catalog?version=0',{headers:{Origin:config.webOrigins[0]}});assert.equal(malformed.status,400);assert.equal(malformed.headers['access-control-allow-origin'],config.webOrigins[0]);
   bad='real';assert.equal((await http(g,'/articles/'+id)).status,502);
   bad='throw';const unavailable=await http(g,'/articles/'+id);assert.equal(unavailable.status,503);assert.ok(!unavailable.text.includes('SECRET'));
-  bad=null;assert.equal((await http(g,'/v2/catalog')).status,200);assert.equal((await http(g,'/v2/catalog')).status,429);
+  // The per-client bucket is nearly spent by now; the next calls must hit 429 (never an error or a stale answer).
+  bad=null;const tail=[(await http(g,'/v2/catalog')).status,(await http(g,'/v2/catalog')).status];assert.ok(tail.every(s=>s===200||s===429)&&tail.at(-1)===429,String(tail));
  }finally{await g.close();}assert.equal(g.server.listening,false);
 });
 test('DTO corruption and oversize reject without stale fallback; rate bucket recovers on clock advance',async()=>{

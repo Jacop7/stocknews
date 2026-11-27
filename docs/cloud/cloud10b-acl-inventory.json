@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "productId": "judoju-news",
-  "stage": "CLOUD10B",
+  "stage": "CLOUD12A",
   "projectRef": "nxfpfvsdwbziowkxsxnh",
   "observedAt": "2026-11-27",
-  "method": "Read-only queries in the Supabase SQL Editor (no writes, no grants, no keys read)",
+  "method": "Read-only queries in the Supabase SQL Editor after CLOUD11 (online admin) and CLOUD12A (company scope); no writes, no keys read",
   "dataApiEnabledObserved": true,
   "migrations": [
     "20261114000000",
@@ -14,12 +14,156 @@
     "20261116000103",
     "20261116000104",
     "20261116000105",
-    "20261116000106"
+    "20261116000106",
+    "20261127000107"
   ],
-  "functionsTotal": 178,
+  "functionsTotal": 186,
   "relationsTotal": 72,
   "relationsWithApiPrivileges": [],
   "callableByApiRoles": [
+    {
+      "fn": "public.catalog_apply",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "941c0ec0cf2e731d605d2de5095668159dcbb34be4489d912f4e2ae0ccc14f36",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_companies",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "c0d4675b51b9dd398f3419c90f8711e0f098805e6cddc3a622575f62e5fc0c67",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_company",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "054816c0d5bc22839d16a0478129dd3891ba14546350c23be7dc74ac732859b7",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_group",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "d2e63c0485b1f8cce4f5bdb26427c7c171e706f1f9449727724ed313163831aa",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_impact",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "1be794b4593f7e58f1ca167c541ded9983be177ec2498d418d9b58901512918a",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_index",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "5220bfe3a781304ca5f386c49646776135b1fb9903d7bd6e087dddd54eae106e",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_membership",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "465265880133a3196f61538708057d45d28ad0375c6f0b07b1e23d9def8c3ec4",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_sector",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "807f715c3c54a921a5a0285172732e28adb7811c63e925107f98c2edac43b6c7",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_sectors",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "0eb70e05f64e9450e9fc11f7b958f625f65139651996291304756b8d50a5dc37",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_editor_tree",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "e376cb6c0996bb5dbc69975fef9782ca98809a3b753c569ab092f20eac4fd42c",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_operation_status",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "74599c1f054acb2402646f03c0e84adb4d7f2ef47a56556deea68eac03bc4a67",
+      "returns": "jsonb"
+    },
     {
       "fn": "public.catalog_public_articles",
       "by": [
@@ -30,7 +174,20 @@
       "searchPath": "\"\"",
       "volatility": "stable",
       "overloads": 1,
-      "definitionSha256": "4bf9a035c99eff5746d7379377d111135cba39dc944d90ad553a1fc3edd9e0ae",
+      "definitionSha256": "58a265a0c9391ee15a8d9412566167778a88407debb79f6070bdbb6a6219ce70",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_company",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "4413ef470169347b7f257bd24bf408d9f4e1863514e9d3d971fdeba52ac43c14",
       "returns": "jsonb"
     },
     {
@@ -112,6 +269,97 @@
       "returns": "jsonb"
     },
     {
+      "fn": "public.catalog_save_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "5faa2bbac80fb40c04ebb41ab703a7b7f10a2222e805315abe1cec76281a1a0a",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_check_editor",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "7c62250dedaa92c0798cdf751d96196f5c15046b0001458ac93d4526e513cf58",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_create_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "806dcee0168bccb506b60cf47b60018b33749536d02d9e6bba8092d37c8d864f",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_editor_articles",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "f4887e9031a427b8c5927c29ea441917dcb1e30f85bf77647b9eeaaf5a7e865c",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_get_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "ec1e6949d950555ae7ebd80be78a94887bc29ba2292c8ef0ce5f15c8ab8550aa",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_operation_status",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "cb2695ee22d43c15df00a45e1a8ba9c7c266da915eb391d7b55515bbfc425b8d",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_preview_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "d44ba6c2b0d70fb660eff69f3798c805f4dd1d9c7633929bd0c27333514fca67",
+      "returns": "jsonb"
+    },
+    {
       "fn": "public.m1_public_article",
       "by": [
         "anon"
@@ -138,6 +386,45 @@
       "returns": "jsonb"
     },
     {
+      "fn": "public.m1_publish_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "251b0a780b3da4b10db03ba858e9f4cadbe2918cea1ed5db1014db2f79c7da1a",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_save_draft",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "c57f529338b65ea1c126031682108f446c01612cbfcdab7a10e798a84503bc0c",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_set_state",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "38959e5a69a4adfd9a7648fcddc1363e7f2af3e4571b41386aaf8e74465b8837",
+      "returns": "jsonb"
+    },
+    {
       "fn": "public.rls_auto_enable",
       "by": [
         "PUBLIC",
@@ -145,13 +432,12 @@
         "authenticated"
       ],
       "securityDefiner": true,
-      "returns": "event_trigger",
-      "note": "Supabase-managed baseline; an event-trigger function cannot be invoked through the Data API",
       "owner": "postgres",
       "searchPath": "pg_catalog",
       "volatility": "volatile",
       "overloads": 1,
-      "definitionSha256": "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4"
+      "definitionSha256": "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4",
+      "returns": "event_trigger"
     }
   ],
   "roleConfig": {
@@ -167,7 +453,7 @@
     "environment": "dev",
     "projectRef": "nxfpfvsdwbziowkxsxnh"
   },
-  "inventoryVersion": 2,
+  "inventoryVersion": 3,
   "sequencesWithApiPrivileges": [],
   "tablesWithApiPrivileges": [],
   "cronPresent": false,
@@ -209,5 +495,5 @@
       "anonCreate": false
     }
   },
-  "authenticatedDenial": "Inventory-proven (has_function_privilege false for all nine); no authenticated session exists to call with"
+  "authenticatedDenial": "authenticated executes exactly the 21 editor functions (CLOUD11-online; each also requires an aal2 session and the admin capability in private.is_admin) and no public read function"
 }
