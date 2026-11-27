@@ -216,7 +216,8 @@ for i in $(seq 1 24); do sleep 5; s=$(curl -s -o /dev/null -w '%{http_code}' -H 
 if [ "$up" != 1 ]; then echo "ADMIN_NOT_READY image=$C"; sudo -n docker compose logs --tail 30 admin broker 2>&1 | sed -E 's/(sb_[a-z]+_)[A-Za-z0-9_-]+/\1REDACTED/g' || true; exit 1; fi
 sudo -n install -d -m 755 "$RB/sites" && sudo -n install -m 644 "$R/admin.caddy" "$RB/sites/admin.caddy"
 sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null && echo CADDY_RELOADED
-code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://__HOST__/login || true)
+# A new host needs its certificate issued first; allow up to 2 minutes.
+code=000; for i in $(seq 1 24); do code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://__HOST__/login || true); [ "$code" = 200 ] && break; sleep 5; done
 [ "$code" = 200 ] || { echo "ADMIN_HTTPS_NOT_READY code=$code"; exit 1; }
 echo "ADMIN_HTTPS_UP"
 '@
