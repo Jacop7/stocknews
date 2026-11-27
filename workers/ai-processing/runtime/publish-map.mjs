@@ -10,11 +10,6 @@ const OFFSET_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:Z|
 const sha = value => createHash('sha256').update(value).digest('hex');
 const hold = reason => ({ hold: reason });
 const host = url => { try { return new URL(url).hostname; } catch { return ''; } };
-// Offset of a time zone at a given instant, as +HH:MM (Intl longOffset gives "GMT+09:00" or "GMT").
-function offsetAt(timeZone, instant) {
-  const name = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }).formatToParts(instant).find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
-  return name === 'GMT' ? '+00:00' : name.replace('GMT', '');
-}
 // First instant of a local calendar day, as a local wall time with its offset, checked by round trip: the instant must
 // read back as that date in that zone. Midnight can be skipped by a DST change (the day then starts at 01:00) and a
 // whole day can be skipped by a date-line change (then there is no start: null).
@@ -22,16 +17,16 @@ function localDayStart(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const local = ms => Object.fromEntries(parts.formatToParts(new Date(ms)).map(part => [part.type, part.value]));
   const dayOf = ms => { const got = local(ms); return got.year + '-' + got.month + '-' + got.day; };
-  // The earliest instant whose local date is that day: scan in 15-minute steps (offsets are multiples of 15 minutes),
-  // then step back minute by minute. Covers skipped or repeated midnights and fractional-hour starts; a skipped day
-  // has no instant at all (null).
+  // The earliest instant whose local date is that day: scan in 15-minute steps, then step back by minutes and by
+  // seconds (historical local-mean-time offsets have seconds). Covers skipped or repeated midnights and fractional
+  // starts; a skipped day has no instant at all (null). Returned as a UTC instant, which is exact and unambiguous.
   const base = Date.parse(date + 'T00:00:00Z'), minute = 60_000;
   let found = null;
   for (let ms = base - 30 * 3_600_000; ms <= base + 30 * 3_600_000; ms += 15 * minute) if (dayOf(ms) === date) { found = ms; break; }
   if (found === null) return null;
   while (dayOf(found - minute) === date) found -= minute;
-  const got = local(found);
-  return date + 'T' + got.hour + ':' + got.minute + ':00' + offsetAt(timeZone, new Date(found));
+  while (dayOf(found - 1000) === date) found -= 1000;
+  return new Date(found).toISOString();
 }
 // Stage 1A hosts: the database accepts only these, all official Korean filing hosts. They decide the market (KR) and
 // the source role (PRIMARY), exactly as the database classifies them; any other host holds the draft.

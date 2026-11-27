@@ -84,7 +84,7 @@ test('a date-only schedule becomes a whole-day PERIOD in its zone; other forms a
     { title: '모호', eventAt: '12월 중', timezone: 'Asia/Seoul', factIds: ['f-1'] },
     { title: '잘못된 시간대', eventAt: '2026-12-15', timezone: 'Mars/Base', factIds: ['f-1'] }] } }));
   assert.deepEqual(payload.draft.schedule, [{ kind: 'PERIOD', status: 'VERIFIED', title: '주주총회', timezone: 'Asia/Seoul', evidence_as_of: '2026-11-27T01:00:00.000Z',
-    evidence_fact_ids: ['f-1'], period_label: '2026-12-15', period_start: '2026-12-15T00:00:00+09:00', period_end: '2026-12-16T00:00:00+09:00', precision: 'DAY' }]);
+    evidence_fact_ids: ['f-1'], period_label: '2026-12-15', period_start: '2026-12-14T15:00:00.000Z', period_end: '2026-12-15T15:00:00.000Z', precision: 'DAY' }]);
   assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }, { schedule: 2, reason: 'BAD_TIMEZONE' }]);
 });
 
@@ -92,7 +92,7 @@ test('day periods use the offset at local midnight on DST days; impossible dates
   const { payload, omitted } = toIntakePayload(base({ draft: { schedule: [
     { title: 'DST', eventAt: '2026-03-08', timezone: 'America/New_York', factIds: ['f-1'] },
     { title: '없는 날', eventAt: '2026-02-30', timezone: 'Asia/Seoul', factIds: ['f-1'] }] } }));
-  assert.deepEqual(payload.draft.schedule.map(x => [x.period_start, x.period_end]), [['2026-03-08T00:00:00-05:00', '2026-03-09T00:00:00-04:00']]);
+  assert.deepEqual(payload.draft.schedule.map(x => [x.period_start, x.period_end].map(Date.parse)), [[Date.parse('2026-03-08T00:00:00-05:00'), Date.parse('2026-03-09T00:00:00-04:00')]]);
   assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }]);
 });
 
@@ -109,10 +109,12 @@ test('day starts round-trip in the zone (skipped midnight, skipped day); unknown
 
 test('an ambiguous fall-back midnight starts the day at its first instant', () => {
   const { payload } = toIntakePayload(base({ draft: { schedule: [{ title: '아바나', eventAt: '2027-11-07', timezone: 'America/Havana', factIds: ['f-1'] }] } }));
-  assert.equal(payload.draft.schedule[0].period_start, '2027-11-07T00:00:00-04:00');
+  assert.equal(Date.parse(payload.draft.schedule[0].period_start), Date.parse('2027-11-07T00:00:00-04:00'));
 });
 
 test('a fractional-hour day start is found exactly', () => {
   const { payload } = toIntakePayload(base({ draft: { schedule: [{ title: '카트만두', eventAt: '1986-01-01', timezone: 'Asia/Kathmandu', factIds: ['f-1'] }] } }));
-  assert.equal(payload.draft.schedule[0].period_start, '1986-01-01T00:15:00+05:45');
+  assert.equal(Date.parse(payload.draft.schedule[0].period_start), Date.parse('1986-01-01T00:15:00+05:45'));
+  const abidjan = toIntakePayload(base({ draft: { schedule: [{ title: '아비장', eventAt: '1912-01-01', timezone: 'Africa/Abidjan', factIds: ['f-1'] }] } })).payload;
+  assert.equal(abidjan.draft.schedule[0].period_start, '1912-01-01T00:16:08.000Z');
 });
