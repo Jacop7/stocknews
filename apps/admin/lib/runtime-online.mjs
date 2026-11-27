@@ -59,7 +59,10 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     if(r.status===204)return null;
     const text=await r.text();if(text.length>maxBytes)deny('BACKEND_RESPONSE_TOO_LARGE',502);
     let v=null;try{v=text?JSON.parse(text):null;}catch{deny('BACKEND_RESPONSE_INVALID',502);}
-    if(!r.ok){const code=String(v?.message??v?.msg??v?.error_code??'REQUEST_REJECTED');throw new AdminError(/^[A-Z0-9_]{1,80}$/.test(code)?code:'REQUEST_REJECTED',r.status===401||r.status===403?403:409,confirmedSqlRejection(v));}
+    // SQL errors carry an upper-case message code; Auth errors carry a lower-case error_code (shown upper-cased).
+    if(!r.ok){const sql=String(v?.message??''),auth=String(v?.error_code??'').toUpperCase(),code=/^[A-Z0-9_]{1,80}$/.test(sql)?sql:/^[A-Z0-9_]{1,80}$/.test(auth)?'AUTH_'+auth:'REQUEST_REJECTED';
+      if(!/^\/rest\//.test(route))console.error(JSON.stringify({component:'ADMIN_ONLINE_AUTH',route:route.replace(/[0-9a-f-]{36}/g,':id').split('?')[0],status:r.status,code}));
+      throw new AdminError(code,r.status===401||r.status===403?403:409,confirmedSqlRejection(v));}
     return v;
   }
   const broker=(op,payload)=>brokerCall(config(),op,payload,{transport:brokerTransport});
@@ -121,9 +124,10 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     const u=await api('/auth/v1/user',{method:'GET',token});
     if((u?.factors??[]).some(f=>f.factor_type==='totp'&&f.status==='verified'))deny('MFA_ALREADY_ENROLLED',409);
     // Earlier unfinished enrolments are removed so only one TOTP factor can exist.
-    for(const f of u?.factors??[])if(f.status!=='verified')await api('/auth/v1/factors/'+encodeURIComponent(f.id),{method:'DELETE',token});
+    // Best effort: Auth may refuse to delete an unfinished factor; a unique name keeps a new enrolment possible anyway.
+    for(const f of u?.factors??[])if(f.status!=='verified')try{await api('/auth/v1/factors/'+encodeURIComponent(f.id),{method:'DELETE',token});}catch{}
     // The enrolment response carries the QR code as an SVG data URI, which can exceed the normal 256 KB response cap.
-    const f=await api('/auth/v1/factors',{body:{factor_type:'totp',friendly_name:'judoju-admin'},token,maxBytes:2097152});
+    const f=await api('/auth/v1/factors',{body:{factor_type:'totp',friendly_name:'judoju-admin-'+now().toString(36)},token,maxBytes:2097152});
     if(!uuid.test(f?.id??'')||typeof f?.totp?.qr_code!=='string'||typeof f.totp.secret!=='string')deny('MFA_ENROLL_FAILED',502);
     p.factorId=f.id;p.enrolled=true;return {qrCode:f.totp.qr_code,secret:f.totp.secret};
   }
