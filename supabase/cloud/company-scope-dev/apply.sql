@@ -258,8 +258,19 @@ begin
 end$$;
 notify pgrst,'reload schema';
 
--- Cloud ACL rule: public read functions are executable by anon only (authenticated holds the editor functions).
-revoke execute on function public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid) from authenticated;
+-- Cloud ACL: the cloud has no local default privileges, so each function created above takes exactly the ACL of the
+-- function it replaces; the company page takes the ACL of the other public read functions (anon only).
+do $acl$
+declare r record;g record;
+begin
+  for r in select * from jsonb_each_text('{"private.m1_prepare(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.m1_prepare_v7(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.public_body(jsonb,text[],timestamptz)":"private.public_body_v3(jsonb,text[],timestamptz)","private.visible_sections(text,jsonb,timestamptz,timestamptz)":"private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)","public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)":"public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)"}'::jsonb) loop
+    execute format('revoke all on function %s from public, anon, authenticated, service_role', r.key::regprocedure);
+    for g in select a.grantee from pg_proc p, aclexplode(p.proacl) a where p.oid=r.value::regprocedure and a.grantee<>p.proowner and a.privilege_type='EXECUTE' loop
+      if g.grantee=0 then execute format('grant execute on function %s to public', r.key::regprocedure);
+      else execute format('grant execute on function %s to %I', r.key::regprocedure, (select rolname from pg_roles where oid=g.grantee));end if;
+    end loop;
+  end loop;
+end$acl$;
 insert into supabase_migrations.schema_migrations(version,name,statements) values ('20261127000107','cloud12a_company_scope',array['-- Article scope (2026-11-27). A COMPANY issue concerns one company''s own event and is shown on that
 -- company''s page only. SECTOR and MACRO issues keep feeding the home and sector lists and are also shown
 -- on the page of every company they link. Links come from company_refs, checked against the catalog.
@@ -488,6 +499,12 @@ declare k text;v text;got jsonb;
 begin
   for k,v in select * from jsonb_each_text('{"private.m1_prepare(uuid,jsonb,bigint,bigint)":"983e1582e211d459c2f6b521d16e26360d72692b74a79a1a01a1010c0a557b9e","private.m1_prepare_v5(uuid,jsonb,bigint,bigint)":"6202afb2f85ecd52e75b3cb8d52b137f1e35e245e2266b78313caadfbec09252","private.m1_prepare_v7(uuid,jsonb,bigint,bigint)":"8abfe5e4cfc045b03ac43ddefc04e79fd6946bff342ee867bbfe139533a5ec63","private.visible_sections(text,jsonb,timestamptz,timestamptz)":"f311e6bbc8401255ef4d2ab8817d0693e70ff2dbfe8d7e5db10761b1c87d035e","private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)":"e27521edb9662f23d03cb2a72450f59fccfa2bc3374e7aefdd4746e4eb1a5366","private.public_body(jsonb,text[],timestamptz)":"d5f9eec09caefba82bc2e393642892e94bc716e1aee362895881d65c7c1aa021","private.public_body_v3(jsonb,text[],timestamptz)":"bcf9a4b314f02bba6b7a87034fac54dcfdc6260065bd0f4c9e697f0d30044935","public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)":"58a265a0c9391ee15a8d9412566167778a88407debb79f6070bdbb6a6219ce70","public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)":"4413ef470169347b7f257bd24bf408d9f4e1863514e9d3d971fdeba52ac43c14"}'::jsonb) loop
     if encode(sha256(convert_to(pg_get_functiondef(k::regprocedure),'UTF8')),'hex') is distinct from v then raise exception 'CLOUD12_POST_DEFINITION %',k;end if;
+  end loop;
+  for k,v in select * from jsonb_each_text('{"private.m1_prepare(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.m1_prepare_v7(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.public_body(jsonb,text[],timestamptz)":"private.public_body_v3(jsonb,text[],timestamptz)","private.visible_sections(text,jsonb,timestamptz,timestamptz)":"private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)","public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)":"public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)"}'::jsonb) loop
+    if (select coalesce(jsonb_agg(a.grantee::regrole::text||':'||a.privilege_type order by a.grantee::regrole::text||':'||a.privilege_type),'[]') from pg_proc p, aclexplode(p.proacl) a where p.oid=k::regprocedure and a.grantee<>0)
+      is distinct from (select coalesce(jsonb_agg(a.grantee::regrole::text||':'||a.privilege_type order by a.grantee::regrole::text||':'||a.privilege_type),'[]') from pg_proc p, aclexplode(p.proacl) a where p.oid=v::regprocedure and a.grantee<>0)
+      or exists(select 1 from pg_proc p, aclexplode(p.proacl) a where p.oid=k::regprocedure and a.grantee=0) is distinct from exists(select 1 from pg_proc p, aclexplode(p.proacl) a where p.oid=v::regprocedure and a.grantee=0)
+      or (select proacl is null from pg_proc where oid=k::regprocedure) then raise exception 'CLOUD12_POST_ACL %',k;end if;
   end loop;
   select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('anon',p.oid,'EXECUTE') into got;

@@ -11,7 +11,15 @@ const root = new URL('../', import.meta.url);
 const pre = JSON.parse(readFileSync(new URL('supabase/cloud/company-scope-dev/prestate.json', root), 'utf8'));
 const q = value => "'" + String(value).replaceAll("'", "''") + "'";
 const json = value => q(JSON.stringify(value)) + '::jsonb';
-const hash = k => `encode(sha256(convert_to(pg_get_functiondef(${q(k)}::regprocedure),'UTF8')),'hex')`;
+// New function -> the existing function whose ACL it must carry.
+const aclFrom = {
+  'private.m1_prepare(uuid,jsonb,bigint,bigint)': 'private.m1_prepare_v5(uuid,jsonb,bigint,bigint)',
+  'private.m1_prepare_v7(uuid,jsonb,bigint,bigint)': 'private.m1_prepare_v5(uuid,jsonb,bigint,bigint)',
+  'private.public_body(jsonb,text[],timestamptz)': 'private.public_body_v3(jsonb,text[],timestamptz)',
+  'private.visible_sections(text,jsonb,timestamptz,timestamptz)': 'private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)',
+  'public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)': 'public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)'
+};
+const hash = k =>`encode(sha256(convert_to(pg_get_functiondef(${q(k)}::regprocedure),'UTF8')),'hex')`;
 
 const bodies = pre.sources.map(path => {
   const text = readFileSync(new URL(path, root), 'utf8');
@@ -49,8 +57,19 @@ end$guard$;
 
 ${bodies.map(({ path, sql }) => `-- ${path}\n${sql}`).join('\n\n')}
 
--- Cloud ACL rule: public read functions are executable by anon only (authenticated holds the editor functions).
-revoke execute on function public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid) from authenticated;
+-- Cloud ACL: the cloud has no local default privileges, so each function created above takes exactly the ACL of the
+-- function it replaces; the company page takes the ACL of the other public read functions (anon only).
+do $acl$
+declare r record;g record;
+begin
+  for r in select * from jsonb_each_text(${json(aclFrom)}) loop
+    execute format('revoke all on function %s from public, anon, authenticated, service_role', r.key::regprocedure);
+    for g in select a.grantee from pg_proc p, aclexplode(p.proacl) a where p.oid=r.value::regprocedure and a.grantee<>p.proowner and a.privilege_type='EXECUTE' loop
+      if g.grantee=0 then execute format('grant execute on function %s to public', r.key::regprocedure);
+      else execute format('grant execute on function %s to %I', r.key::regprocedure, (select rolname from pg_roles where oid=g.grantee));end if;
+    end loop;
+  end loop;
+end$acl$;
 insert into supabase_migrations.schema_migrations(version,name,statements) values (${q(pre.record.version)},${q(pre.record.name)},array[${bodies.map(b => q(b.sql)).join(',')}]);
 
 do $post$
@@ -58,6 +77,12 @@ declare k text;v text;got jsonb;
 begin
   for k,v in select * from jsonb_each_text(${json(pre.afterHashes)}) loop
     if encode(sha256(convert_to(pg_get_functiondef(k::regprocedure),'UTF8')),'hex') is distinct from v then raise exception 'CLOUD12_POST_DEFINITION %',k;end if;
+  end loop;
+  for k,v in select * from jsonb_each_text(${json(aclFrom)}) loop
+    if (select coalesce(jsonb_agg(a.grantee::regrole::text||':'||a.privilege_type order by a.grantee::regrole::text||':'||a.privilege_type),'[]') from pg_proc p, aclexplode(p.proacl) a where p.oid=k::regprocedure and a.grantee<>0)
+      is distinct from (select coalesce(jsonb_agg(a.grantee::regrole::text||':'||a.privilege_type order by a.grantee::regrole::text||':'||a.privilege_type),'[]') from pg_proc p, aclexplode(p.proacl) a where p.oid=v::regprocedure and a.grantee<>0)
+      or exists(select 1 from pg_proc p, aclexplode(p.proacl) a where p.oid=k::regprocedure and a.grantee=0) is distinct from exists(select 1 from pg_proc p, aclexplode(p.proacl) a where p.oid=v::regprocedure and a.grantee=0)
+      or (select proacl is null from pg_proc where oid=k::regprocedure) then raise exception 'CLOUD12_POST_ACL %',k;end if;
   end loop;
   ${acl('anon')} into got;
   if got<>${json(pre.anonReadAfter)} then raise exception 'CLOUD12_POST_ANON %',got;end if;
