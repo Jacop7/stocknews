@@ -10,6 +10,7 @@ import {request as httpRequest} from 'node:http';
 import {AdminError,hash,seal,unseal} from './runtime-local.mjs';
 import {confirmedSqlRejection} from './editor-state.mjs';
 import {onlineHost,onlineOrigin} from './admin-profile.mjs';
+import QRCode from 'qrcode';
 import {previewApi,previewProject,editorFunctions} from './preview-admin-config.mjs';
 
 const deny=(code,status=403)=>{throw new AdminError(code,status);};
@@ -128,8 +129,10 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     for(const f of u?.factors??[])if(f.status!=='verified')try{await api('/auth/v1/factors/'+encodeURIComponent(f.id),{method:'DELETE',token});}catch{}
     // The enrolment response carries the QR code as an SVG data URI, which can exceed the normal 256 KB response cap.
     const f=await api('/auth/v1/factors',{body:{factor_type:'totp',friendly_name:'judoju-admin-'+now().toString(36)},token,maxBytes:2097152});
-    if(!uuid.test(f?.id??'')||typeof f?.totp?.qr_code!=='string'||typeof f.totp.secret!=='string')deny('MFA_ENROLL_FAILED',502);
-    p.factorId=f.id;p.enrolled=true;return {qrCode:f.totp.qr_code,secret:f.totp.secret};
+    if(!uuid.test(f?.id??'')||typeof f?.totp?.secret!=='string'||typeof f.totp.uri!=='string'||!f.totp.uri.startsWith('otpauth://totp/'))deny('MFA_ENROLL_FAILED',502);
+    // The QR is drawn here as a PNG from the otpauth URI (Supabase's own SVG data URI does not render in browsers).
+    let qrCode;try{qrCode=await QRCode.toDataURL(f.totp.uri,{errorCorrectionLevel:'M',margin:2,width:240});}catch{deny('MFA_ENROLL_FAILED',502);}
+    p.factorId=f.id;p.enrolled=true;return {qrCode,secret:f.totp.secret};
   }
   async function mfaVerify(id,code){
     const {p,token}=takePending(id);const c=config();

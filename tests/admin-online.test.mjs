@@ -27,7 +27,7 @@ function fakeSupabase({ verified = true, aalAfterVerify = 'aal2', userId = OWNER
     if (route === '/rest/v1/rpc/m1_public_identity') return ok({ productId: 'judoju-news', environment: 'preview', sampleKind: 'SYNTHETIC', bootstrapId: null, contract: 'M1' });
     if (route === '/auth/v1/token?grant_type=password') return body.password === 'right' ? ok({ access_token: aal1, refresh_token: 'r' }) : bad('INVALID_CREDENTIALS');
     if (route === '/auth/v1/user') { const token = init.headers.Authorization.slice(7); const c = JSON.parse(Buffer.from(token.split('.')[1], 'base64url')); return ok({ id: c.sub, factors: verified ? [{ id: FACTOR, factor_type: 'totp', status: 'verified' }] : [] }); }
-    if (route === '/auth/v1/factors' && init.method === 'POST') return ok({ id: FACTOR, totp: { qr_code: bigQr ? 'data:image/svg+xml;utf-8,<svg>' + 'r'.repeat(400000) + '</svg>' : 'data:image/svg+xml;utf-8,<svg/>', secret: 'ABC' } });
+    if (route === '/auth/v1/factors' && init.method === 'POST') return ok({ id: FACTOR, totp: { qr_code: bigQr ? 'data:image/svg+xml;utf-8,<svg>' + 'r'.repeat(400000) + '</svg>' : 'data:image/svg+xml;utf-8,<svg/>', secret: 'ABC', uri: 'otpauth://totp/judoju:owner?secret=ABC&issuer=judoju' } });
     if (route.endsWith('/challenge')) return ok({ id: '55555555-5555-4555-8555-555555555555' });
     if (route.endsWith('/verify')) return body.code === '123456' ? ok({ access_token: aal2, refresh_token: 'r2' }) : bad('INVALID_TOTP', 422);
     if (route === '/auth/v1/logout?scope=others' && failOthers) return bad('AUTH_DOWN', 500);
@@ -102,10 +102,10 @@ test('online login: first sign-in enrols TOTP; five wrong codes drop the pending
   try {
     const fake = fakeSupabase({ verified: false }), rt = runtimeWith(fake, path.join(dir, 'limits.json'));
     const step = await rt.login(email, 'right', '203.0.113.2'); assert.equal(step.step, 'enroll');
-    assert.deepEqual(await rt.mfaEnroll(step.pendingId), { qrCode: 'data:image/svg+xml;utf-8,<svg/>', secret: 'ABC' });
+    const enrolled = await rt.mfaEnroll(step.pendingId); assert.match(enrolled.qrCode, /^data:image\/png;base64,/); assert.equal(enrolled.secret, 'ABC');
     // Supabase's QR SVG can exceed the normal 256 KB response cap; enrolment allows it.
     const big = fakeSupabase({ verified: false, bigQr: true }), rtBig = runtimeWith(big, path.join(dir, 'big.json'));
-    const bigStep = await rtBig.login(email, 'right', '203.0.113.12'); assert.ok((await rtBig.mfaEnroll(bigStep.pendingId)).qrCode.length > 400000);
+    const bigStep = await rtBig.login(email, 'right', '203.0.113.12'); assert.match((await rtBig.mfaEnroll(bigStep.pendingId)).qrCode, /^data:image\/png;base64,/);
     for (let i = 0; i < 4; i++) await assert.rejects(rt.mfaVerify(step.pendingId, '999999'), /MFA_CODE_INVALID/);
     await assert.rejects(rt.mfaVerify(step.pendingId, '999999'), /MFA_CODE_INVALID/);
     await assert.rejects(rt.mfaVerify(step.pendingId, '123456'), /MFA_PENDING_REQUIRED/);
