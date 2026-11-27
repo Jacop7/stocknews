@@ -2,6 +2,9 @@
 begin;
 set local statement_timeout='60s';
 set local lock_timeout='5s';
+-- No concurrent migration or grant may land between the guard and commit.
+select pg_advisory_xact_lock(hashtext('judoju-cloud-schema-change'));
+lock table supabase_migrations.schema_migrations in exclusive mode;
 create temp table cloud12_acl_before on commit drop as
   select (select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('authenticated',p.oid,'EXECUTE')) as authenticated, (select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
@@ -10,10 +13,11 @@ do $guard$
 declare k text;v text;
 begin
   if current_user<>'postgres' then raise exception 'CLOUD12_POSTGRES_REQUIRED';end if;
-  if (select to_jsonb(x)->>'environment' from judoju_control.environment_identity x limit 1)<>'dev'
-    or (select to_jsonb(x)->>'project_ref' from judoju_control.environment_identity x limit 1)<>'nxfpfvsdwbziowkxsxnh' then raise exception 'CLOUD12_ENVIRONMENT';end if;
-  if public.m1_public_identity()<>'{"productId":"judoju-news","environment":"preview","sampleKind":"SYNTHETIC","bootstrapId":null,"contract":"M1"}'::jsonb then raise exception 'CLOUD12_IDENTITY';end if;
-  if (select jsonb_agg(version order by version) from supabase_migrations.schema_migrations)<>'["20261114000000","20261114000001","20261115000101","20261115000102","20261116000103","20261116000104","20261116000105","20261116000106"]'::jsonb then raise exception 'CLOUD12_MIGRATIONS';end if;
+  if (select count(*) from judoju_control.environment_identity)<>1
+    or (select to_jsonb(x)->>'environment' from judoju_control.environment_identity x) is distinct from 'dev'
+    or (select to_jsonb(x)->>'project_ref' from judoju_control.environment_identity x) is distinct from 'nxfpfvsdwbziowkxsxnh' then raise exception 'CLOUD12_ENVIRONMENT';end if;
+  if public.m1_public_identity() is distinct from '{"productId":"judoju-news","environment":"preview","sampleKind":"SYNTHETIC","bootstrapId":null,"contract":"M1"}'::jsonb then raise exception 'CLOUD12_IDENTITY';end if;
+  if (select jsonb_agg(version order by version) from supabase_migrations.schema_migrations) is distinct from '["20261114000000","20261114000001","20261115000101","20261115000102","20261116000103","20261116000104","20261116000105","20261116000106"]'::jsonb then raise exception 'CLOUD12_MIGRATIONS';end if;
   for k,v in select * from jsonb_each_text('{"private.m1_prepare(uuid,jsonb,bigint,bigint)":"4ffd7bc62c628fa5103f791cc3873e46b34fe2f9d66b7df907b2e30d0565ff54","private.public_body(jsonb,text[],timestamptz)":"30c0b04c99238be4fa72c00e7dd802665a827e99a12d9352a831d503d2708ffd","private.visible_sections(text,jsonb,timestamptz,timestamptz)":"d6a7a168e37bfb4038480980aae6df9aee7b60eda6b2fc1b480f376197799f0b","public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)":"4bf9a035c99eff5746d7379377d111135cba39dc944d90ad553a1fc3edd9e0ae"}'::jsonb) loop
     if encode(sha256(convert_to(pg_get_functiondef(k::regprocedure),'UTF8')),'hex') is distinct from v then raise exception 'CLOUD12_DEFINITION_DRIFT %',k;end if;
   end loop;
@@ -492,7 +496,17 @@ begin
  end if;
  return array(select x from unnest(r) with ordinality u(x,n) where x<>''RELATED_SECTORS'' order by n);
 end$$;
-notify pgrst,''reload schema'';']);
+notify pgrst,''reload schema'';','do $acl$
+declare r record;g record;
+begin
+  for r in select * from jsonb_each_text(''{"private.m1_prepare(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.m1_prepare_v7(uuid,jsonb,bigint,bigint)":"private.m1_prepare_v5(uuid,jsonb,bigint,bigint)","private.public_body(jsonb,text[],timestamptz)":"private.public_body_v3(jsonb,text[],timestamptz)","private.visible_sections(text,jsonb,timestamptz,timestamptz)":"private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)","public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)":"public.catalog_public_articles(bigint,uuid[],text,integer,timestamptz,timestamptz,uuid)"}''::jsonb) loop
+    execute format(''revoke all on function %s from public, anon, authenticated, service_role'', r.key::regprocedure);
+    for g in select a.grantee from pg_proc p, aclexplode(p.proacl) a where p.oid=r.value::regprocedure and a.grantee<>p.proowner and a.privilege_type=''EXECUTE'' loop
+      if g.grantee=0 then execute format(''grant execute on function %s to public'', r.key::regprocedure);
+      else execute format(''grant execute on function %s to %I'', r.key::regprocedure, (select rolname from pg_roles where oid=g.grantee));end if;
+    end loop;
+  end loop;
+end$acl$']);
 
 do $post$
 declare k text;v text;got jsonb;
@@ -508,12 +522,14 @@ begin
   end loop;
   select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('anon',p.oid,'EXECUTE') into got;
-  if got<>'["public.catalog_public_articles","public.catalog_public_company","public.catalog_public_company_sectors","public.catalog_public_saved","public.catalog_public_search_companies","public.catalog_public_search_news","public.catalog_public_sector_page","public.catalog_public_tree","public.m1_public_article","public.m1_public_identity"]'::jsonb then raise exception 'CLOUD12_POST_ANON %',got;end if;
+  if got is distinct from '["public.catalog_public_articles","public.catalog_public_company","public.catalog_public_company_sectors","public.catalog_public_saved","public.catalog_public_search_companies","public.catalog_public_search_news","public.catalog_public_sector_page","public.catalog_public_tree","public.m1_public_article","public.m1_public_identity"]'::jsonb then raise exception 'CLOUD12_POST_ANON %',got;end if;
   if (select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('authenticated',p.oid,'EXECUTE'))<>(select authenticated from cloud12_acl_before) then raise exception 'CLOUD12_POST_AUTHENTICATED';end if;
+    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('authenticated',p.oid,'EXECUTE')) is distinct from (select authenticated from cloud12_acl_before) then raise exception 'CLOUD12_POST_AUTHENTICATED';end if;
   if (select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('service_role',p.oid,'EXECUTE'))<>(select service_role from cloud12_acl_before) then raise exception 'CLOUD12_POST_SERVICE_ROLE';end if;
-  if (select jsonb_agg(version order by version) from supabase_migrations.schema_migrations)<>'["20261114000000","20261114000001","20261115000101","20261115000102","20261116000103","20261116000104","20261116000105","20261116000106","20261127000107"]'::jsonb then raise exception 'CLOUD12_POST_MIGRATIONS';end if;
+    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('service_role',p.oid,'EXECUTE')) is distinct from (select service_role from cloud12_acl_before) then raise exception 'CLOUD12_POST_SERVICE_ROLE';end if;
+  if (select jsonb_agg(version order by version) from supabase_migrations.schema_migrations) is distinct from '["20261114000000","20261114000001","20261115000101","20261115000102","20261116000103","20261116000104","20261116000105","20261116000106","20261127000107"]'::jsonb then raise exception 'CLOUD12_POST_MIGRATIONS';end if;
+  if (select count(*) from supabase_migrations.schema_migrations where version='20261127000107' and name='cloud12a_company_scope'
+      and cardinality(statements)=6 and md5(array_to_string(statements,chr(1)))='17dafd28834144b95a45da43b87f6983')<>1 then raise exception 'CLOUD12_POST_RECORD';end if;
 end$post$;
 notify pgrst,'reload schema';
 commit;
