@@ -88,6 +88,8 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
       try{await api('/auth/v1/logout?scope=local',{token});pending.delete(k);}catch{v.logoutTries=(v.logoutTries??0)+1;if(v.logoutTries>=60)pending.delete(k);}
     }}finally{sweeping=false;}
   }
+  // Any token whose logout is wanted is queued as an expired (unusable) record first, so a failed logout is retried.
+  function retire(token){try{pending.set('retired:'+randomBytes(16).toString('hex'),{sealed:seal({accessToken:token},config().encryptionKey),factorId:null,attempts:0,expires:0});}catch{}}
   const timer=setInterval(()=>{void sweep().catch(()=>{});},60000);timer.unref?.();
   async function login(email,password,client){
     if(typeof client!=='string'||!/^[0-9a-f:.]{2,45}$/i.test(client))deny('CLIENT_ADDRESS_REQUIRED',400);
@@ -110,7 +112,7 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     void sweep().catch(()=>{});if(typeof id!=='string'||!capabilityPattern.test(id))deny('MFA_PENDING_REQUIRED',401);
     const p=pending.get(id);if(!p||p.expires<=now())deny('MFA_PENDING_REQUIRED',401);return {p,token:unseal(p.sealed,config().encryptionKey).accessToken};
   }
-  async function drop(id,token){pending.delete(id);try{await api('/auth/v1/logout?scope=local',{token});}catch{}}
+  async function drop(id){const p=pending.get(id);if(p)p.expires=0;await sweep().catch(()=>{});}
   async function mfaEnroll(id){
     const {p,token}=takePending(id);if(p.factorId&&p.enrolled!==true)deny('MFA_ALREADY_ENROLLED',409);
     const u=await api('/auth/v1/user',{method:'GET',token});
@@ -123,11 +125,11 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
   }
   async function mfaVerify(id,code){
     const {p,token}=takePending(id);const c=config();
-    if(typeof code!=='string'||!/^\d{6}$/.test(code)||!p.factorId){p.attempts++;if(p.attempts>=5)await drop(id,token);deny('MFA_CODE_INVALID',400);}
+    if(typeof code!=='string'||!/^\d{6}$/.test(code)||!p.factorId){p.attempts++;if(p.attempts>=5)await drop(id);deny('MFA_CODE_INVALID',400);}
     let t;try{
       const ch=await api('/auth/v1/factors/'+encodeURIComponent(p.factorId)+'/challenge',{body:{},token});
       t=await api('/auth/v1/factors/'+encodeURIComponent(p.factorId)+'/verify',{body:{challenge_id:ch?.id,code},token});
-    }catch(e){p.attempts++;if(p.attempts>=5)await drop(id,token);throw e instanceof AdminError?new AdminError('MFA_CODE_INVALID',400):e;}
+    }catch(e){p.attempts++;if(p.attempts>=5)await drop(id);throw e instanceof AdminError?new AdminError('MFA_CODE_INVALID',400):e;}
     const claim=claimsOf(t?.access_token);
     if(claim.aal!=='aal2'||claim.sub!==c.ownerUserId||!uuid.test(claim.session_id??''))deny('MFA_NOT_AAL2');
     pending.delete(id);
@@ -136,11 +138,11 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     const payload={accessToken:t.access_token,csrf,userId:claim.sub,sessionId:claim.session_id};
     // Every other Auth session of the owner ends first (prior admin sessions, aal1 leftovers from abandoned or pre-restart
     // logins). If that cannot be confirmed the new login is ended too and nothing is opened.
-    try{await api('/auth/v1/logout?scope=others',{token:t.access_token});}catch(e){try{await api('/auth/v1/logout?scope=local',{token:t.access_token});}catch{}throw e instanceof AdminError?new AdminError('PRIOR_SESSIONS_NOT_ENDED',503):e;}
+    try{await api('/auth/v1/logout?scope=others',{token:t.access_token});}catch(e){retire(t.access_token);await sweep().catch(()=>{});throw e instanceof AdminError?new AdminError('PRIOR_SESSIONS_NOT_ENDED',503):e;}
     try{
       await broker('open',{accessToken:t.access_token,hash:hash(capability),ciphertext:seal(payload,c.encryptionKey),expires:new Date(expires).toISOString()});
       await api('/rest/v1/rpc/m1_check_editor',{body:{},token:t.access_token,capability});
-    }catch(e){try{await broker('close',{hash:hash(capability)});}catch{}try{await api('/auth/v1/logout?scope=local',{token:t.access_token});}catch{}throw e;}
+    }catch(e){try{await broker('close',{hash:hash(capability)});}catch{}retire(t.access_token);await sweep().catch(()=>{});throw e;}
     return {capability,csrf,expires};
   }
   async function session(capability){

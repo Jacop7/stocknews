@@ -127,6 +127,14 @@ test('online login: prior sessions must end before a session opens; expired pend
     const tries = () => flaky.calls.filter(c => c.route === '/auth/v1/logout?scope=local').length;
     assert.ok(tries() >= 1, 'expired pending login is logged out'); const before = tries();
     await rt2.login(email, 'right', '203.0.113.7').catch(() => {}); assert.ok(tries() > before, 'a failed logout is retried, not forgotten');
+    // Auth logout down: neither five wrong codes nor a failed prior-session logout may forget the session to end.
+    const out = fakeSupabase({ failOthers: true, failLocal: true }), rt3 = runtimeWith(out, path.join(dir, 'c.json'));
+    const localTries = () => out.calls.filter(c => c.route === '/auth/v1/logout?scope=local').length;
+    const q1 = await rt3.login(email, 'right', '203.0.113.8');
+    for (let i = 0; i < 5; i++) await assert.rejects(rt3.mfaVerify(q1.pendingId, '999999'), /MFA_CODE_INVALID/);
+    const q2 = await rt3.login(email, 'right', '203.0.113.9'); await assert.rejects(rt3.mfaVerify(q2.pendingId, '123456'), /PRIOR_SESSIONS_NOT_ENDED/);
+    const n = localTries(); await rt3.login(email, 'right', '203.0.113.10').catch(() => {});
+    assert.ok(localTries() >= n + 2, 'both the dropped aal1 login and the retired aal2 token are retried');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
