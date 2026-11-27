@@ -28,6 +28,7 @@ const checks = [
     'tests/home-public-read.test.mjs',
     'tests/public-read-gateway.test.mjs',
     'tests/company-page-route.test.mjs',
+    'tests/admin-online.test.mjs',
     'tests/editor-state.test.mjs',
   ]],
   ['Saved-link backlog processing tests', [
