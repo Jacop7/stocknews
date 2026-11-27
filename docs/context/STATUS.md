@@ -35,8 +35,8 @@
 | 직접 호출 위험 | 개발 프로젝트 한정 사용자 수용(2026-11-27). 운영 전 재검토 |
 | 온라인 조회 서버 | **운영 중**(2026-11-27): AWS 같은 서버에 도커 `judoju-news-read`(조회 서버 + Caddy). 주소 `https://52-79-247-25.sslip.io`(무료 sslip.io, Let's Encrypt 자동 인증서). Lightsail 방화벽 80·443 개방(CloudShell `open-instance-public-ports`, 기존 22 유지). 배포·상태 `scripts/ops/read-gateway.ps1 deploy|status` |
 | 앱 연결 | 미리보기 환경에서 `EXPO_PUBLIC_APP_ENV=preview`, `EXPO_PUBLIC_READ_MODE=PREVIEW_SYNTHETIC`, `EXPO_PUBLIC_READ_API_URL=https://52-79-247-25.sslip.io`로 클라우드 조회 확인(홈·섹터). 클라우드에는 아직 게시 기사가 없음. 설치·알림 서비스(127.0.0.1:3100)는 아직 로컬 |
-| 온라인 어드민(CLOUD11-online) | **구현·검수 완료, 미배포·미활성**(2026-11-27, Codex 구현 검수 READY, 커밋 `7c71400`). 공개 인터넷 + 보강안: 주소 `https://admin.52-79-247-25.sslip.io`(예정), 소유자 1명, 비밀번호+TOTP(aal2), 세션 capability를 DB가 확인, secret 키는 broker 컨테이너에만. 계획 `docs/cloud/cloud11-online-admin-plan.md`, 활성화 SQL `supabase/cloud/admin-online-dev/activation.sql`(가드·사후 확인 포함, 재활성화 가능), 운영 `scripts/ops/admin-online.ps1 store-secret|deploy|status|revoke`(revoke는 이 PC에서 secret 키로 DB 확인 4단계 + 영수증) |
-| 남은 것 | CLOUD11 배포·활성화(사용자 입력 대기, NEXT 참고), 마이그레이션 51~55·AI 초안함 반영(CLOUD12), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
+| 온라인 어드민(CLOUD11-online) | **운영 중(첫 로그인·TOTP 등록 전)**(2026-11-27): 활성화 SQL 적용(편집 권한 21·세션 권한 3·관리자 1, 익명 직접 호출 42501), 회원가입 꺼짐 확인, `https://admin.52-79-247-25.sslip.io` 배포(이미지는 PC에서 빌드해 전송, 서버 1GB라 서버 빌드 불가). Codex 구현 검수 READY. 공개 인터넷 + 보강안: 주소 `https://admin.52-79-247-25.sslip.io`(예정), 소유자 1명, 비밀번호+TOTP(aal2), 세션 capability를 DB가 확인, secret 키는 broker 컨테이너에만. 계획 `docs/cloud/cloud11-online-admin-plan.md`, 활성화 SQL `supabase/cloud/admin-online-dev/activation.sql`(가드·사후 확인 포함, 재활성화 가능), 운영 `scripts/ops/admin-online.ps1 store-secret|deploy|status|revoke`(revoke는 이 PC에서 secret 키로 DB 확인 4단계 + 영수증) |
+| 남은 것 | CLOUD11 첫 로그인(TOTP 등록)·실공격 시험(H8), 마이그레이션 51~55·AI 초안함 반영(CLOUD12), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
 ## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
 
