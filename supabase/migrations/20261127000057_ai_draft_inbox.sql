@@ -179,6 +179,9 @@ $$;
 -- Removes the local draft, claims and evidence of an AI-linked issue (unpublished only in 1A).
 create function private.ai_clear_issue(p_issue uuid) returns void language plpgsql set search_path='' as $$
 begin
+  -- Same lock order as intake and the editor save path: issue row, then draft row. Checked after the locks are held.
+  perform 1 from private.issues where id=p_issue for update;
+  perform 1 from private.editor_drafts where issue_id=p_issue for update;
   if exists(select 1 from private.issues where id=p_issue and publication_state<>'DRAFT') then raise exception 'AI_ISSUE_NOT_DRAFT';end if;
   delete from private.ai_claim_links where issue_id=p_issue;
   delete from private.evidence_edges where claim_id in (select id from private.claims where issue_id=p_issue);
@@ -318,6 +321,11 @@ begin
         and coalesce((select o.expires_at from private.ai_draft_origin o where o.issue_id=l.issue_id
           and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=l.issue_id)),'-infinity')<=now()
       for update of l skip locked;
+    -- An editor in the middle of saving holds the issue or draft row: skip it now rather than wait or deadlock.
+    if found and (not exists(select 1 from private.issues where id=iss for update skip locked)
+      or exists(select 1 from private.editor_drafts where issue_id=iss) and not exists(select 1 from private.editor_drafts where issue_id=iss for update skip locked)) then
+      skipped:=skipped+1;continue;
+    end if;
     if found then
       perform private.ai_clear_issue(iss);
       update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
