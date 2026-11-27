@@ -111,3 +111,8 @@ test('an ambiguous fall-back midnight starts the day at its first instant', () =
   const { payload } = toIntakePayload(base({ draft: { schedule: [{ title: '아바나', eventAt: '2027-11-07', timezone: 'America/Havana', factIds: ['f-1'] }] } }));
   assert.equal(payload.draft.schedule[0].period_start, '2027-11-07T00:00:00-04:00');
 });
+
+test('a fractional-hour day start is found exactly', () => {
+  const { payload } = toIntakePayload(base({ draft: { schedule: [{ title: '카트만두', eventAt: '1986-01-01', timezone: 'Asia/Kathmandu', factIds: ['f-1'] }] } }));
+  assert.equal(payload.draft.schedule[0].period_start, '1986-01-01T00:15:00+05:45');
+});

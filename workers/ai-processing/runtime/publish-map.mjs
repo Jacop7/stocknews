@@ -20,18 +20,18 @@ function offsetAt(timeZone, instant) {
 // whole day can be skipped by a date-line change (then there is no start: null).
 function localDayStart(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  const base = Date.parse(date + 'T00:00:00Z');
-  // Every offset in force around that day; an ambiguous (fall-back) midnight round-trips with two of them.
-  const offsets = [...new Set([-36, -24, -12, 0, 12, 24, 36].map(hours => offsetAt(timeZone, new Date(base + hours * 3_600_000))))];
-  for (let hour = 0; hour < 4; hour++) {
-    const wall = date + 'T' + String(hour).padStart(2, '0') + ':00:00';
-    const hits = offsets.filter(offset => {
-      const got = Object.fromEntries(parts.formatToParts(new Date(wall + offset)).map(part => [part.type, part.value]));
-      return got.year + '-' + got.month + '-' + got.day === date && Number(got.hour) === hour && got.minute === '00';
-    }).sort((x, y) => Date.parse(wall + x) - Date.parse(wall + y));
-    if (hits.length) return wall + hits[0];
-  }
-  return null;
+  const local = ms => Object.fromEntries(parts.formatToParts(new Date(ms)).map(part => [part.type, part.value]));
+  const dayOf = ms => { const got = local(ms); return got.year + '-' + got.month + '-' + got.day; };
+  // The earliest instant whose local date is that day: scan in 15-minute steps (offsets are multiples of 15 minutes),
+  // then step back minute by minute. Covers skipped or repeated midnights and fractional-hour starts; a skipped day
+  // has no instant at all (null).
+  const base = Date.parse(date + 'T00:00:00Z'), minute = 60_000;
+  let found = null;
+  for (let ms = base - 30 * 3_600_000; ms <= base + 30 * 3_600_000; ms += 15 * minute) if (dayOf(ms) === date) { found = ms; break; }
+  if (found === null) return null;
+  while (dayOf(found - minute) === date) found -= minute;
+  const got = local(found);
+  return date + 'T' + got.hour + ':' + got.minute + ':00' + offsetAt(timeZone, new Date(found));
 }
 // Stage 1A hosts: the database accepts only these, all official Korean filing hosts. They decide the market (KR) and
 // the source role (PRIMARY), exactly as the database classifies them; any other host holds the draft.
