@@ -55,8 +55,34 @@ test('holds: too many sources cut a cited link, impacts without facts, bad ident
   const many = Array.from({ length: 13 }, (_, n) => ({ docId: 'p' + n, url: dart(100 + n), name: 'D', role: 'PRIMARY', publishedAt: '2026-11-2' + (n % 9) }));
   const cut = base({ draft: { source_refs: [...many, ...base().draft.source_refs] } });
   assert.deepEqual(toIntakePayload(cut), { hold: 'SOURCE_OVERFLOW' });
-  assert.deepEqual(toIntakePayload(base({ draft: { impacts: [{ ...base().draft.impacts[1], factIds: ['f-x'] }] } })), { hold: 'IMPACT_WITHOUT_FACTS' });
+  assert.deepEqual(toIntakePayload(base({ draft: { impacts: [{ ...base().draft.impacts[1], factIds: ['f-1', 'f-x'] }] } })), { hold: 'UNKNOWN_FACT_REF' });
+  assert.deepEqual(toIntakePayload(base({ draft: { impacts: [{ ...base().draft.impacts[1], factIds: [] }] } })), { hold: 'IMPACT_WITHOUT_FACTS' });
+  assert.deepEqual(toIntakePayload(base({ draft: { impacts: [{ ...base().draft.impacts[1], conditions: Array(11).fill('c') }] } })), { hold: 'LIMIT_IMPACT' });
+  assert.deepEqual(toIntakePayload(base({ draft: { key_issues: Array(13).fill({ text: 'k', factIds: [] }) } })), { hold: 'LIMIT_KEY_ISSUES' });
   assert.deepEqual(toIntakePayload(base({ top: { issueId: 'nope' } })), { hold: 'EXPORT_IDENTITY' });
   assert.deepEqual(toIntakePayload(base({ top: { catalogRef: { registry: 'r' } } })), { hold: 'EXPORT_CATALOG_REF' });
   assert.equal(toIntakePayload(base({ top: { storyKey: '공시 이벤트 키' } })).payload.story_key.startsWith('h:'), true);
+});
+
+test('scenarios follow the one-per-direction rule; a missing or repeated one holds the draft', () => {
+  const positive = base().draft.scenarios[0];
+  assert.deepEqual(toIntakePayload(base({ draft: { scenarios: [positive, { ...positive, title: '또 긍정' }] } })), { hold: 'SCENARIO_SHAPE' });
+  assert.deepEqual(toIntakePayload(base({ draft: { scenarios: [] } })), { hold: 'SCENARIO_SHAPE' });
+  const withDamage = base({ draft: { impacts: [...base().draft.impacts, { sectorId: S2, direction: 'DAMAGE', conditionalDirection: 'NONE', category: 'COST', description: '피해', conditions: [], factIds: ['f-2'], companyRoles: [] }] } });
+  assert.deepEqual(toIntakePayload(withDamage).payload.draft.scenarios.map(x => x.direction), ['POSITIVE', 'NEGATIVE']);
+});
+
+test('a COMPANY article with only conditional impacts still gets a primary sector (its first impact)', () => {
+  const { payload } = toIntakePayload(base({ draft: { article_kind: 'COMPANY', primary_company_ref: C1, impacts: [base().draft.impacts[0]], scenarios: [] } }));
+  assert.equal(payload.draft.primary_sector_id, S2); assert.deepEqual(payload.draft.scenarios, []);
+});
+
+test('a date-only schedule becomes a whole-day PERIOD in its zone; other forms are omitted with a reason', () => {
+  const { payload, omitted } = toIntakePayload(base({ draft: { schedule: [
+    { title: '주주총회', eventAt: '2026-12-15', timezone: 'Asia/Seoul', factIds: ['f-1'] },
+    { title: '모호', eventAt: '12월 중', timezone: 'Asia/Seoul', factIds: ['f-1'] },
+    { title: '잘못된 시간대', eventAt: '2026-12-15', timezone: 'Mars/Base', factIds: ['f-1'] }] } }));
+  assert.deepEqual(payload.draft.schedule, [{ kind: 'PERIOD', status: 'VERIFIED', title: '주주총회', timezone: 'Asia/Seoul', evidence_as_of: '2026-11-27T01:00:00.000Z',
+    evidence_fact_ids: ['f-1'], period_label: '2026-12-15', period_start: '2026-12-15T00:00:00+09:00', period_end: '2026-12-16T00:00:00+09:00', precision: 'DAY' }]);
+  assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }, { schedule: 2, reason: 'BAD_TIMEZONE' }]);
 });

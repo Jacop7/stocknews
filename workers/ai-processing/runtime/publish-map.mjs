@@ -10,6 +10,13 @@ const OFFSET_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:Z|
 const sha = value => createHash('sha256').update(value).digest('hex');
 const hold = reason => ({ hold: reason });
 const host = url => { try { return new URL(url).hostname; } catch { return ''; } };
+// Offset of a time zone at a given instant, as +HH:MM (Intl longOffset gives "GMT+09:00" or "GMT").
+function offsetAt(timeZone, instant) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' }).formatToParts(instant).find(part => part.type === 'timeZoneName')?.value ?? 'GMT';
+  return name === 'GMT' ? '+00:00' : name.replace('GMT', '');
+}
+// Limits of the intake check (migration 57); a draft beyond them is held, never trimmed.
+const LIMITS = { key_issues: 12, risks: 20, company_refs: 30, impacts: 30, schedule: 20, evidence: 10, conditions: 10, checks: 10, companies: 20 };
 
 // Keeps a key the DB accepts; anything else becomes a stable hash of itself.
 const safeKey = value => (typeof value === 'string' && KEY.test(value) ? value : 'h:' + sha(String(value)).slice(0, 40));
@@ -37,7 +44,17 @@ export function toIntakePayload(snapshot) {
       recorded_at: new Date(fact.recordedAt).toISOString(), source_urls: urls });
   }
   const factIds = new Set(outFacts.map(fact => fact.id));
-  const known = ids => (ids ?? []).filter(id => factIds.has(id));
+  // Evidence is never silently narrowed: an unknown fact reference holds the whole draft.
+  if ([...(draft.impacts ?? []), ...(draft.schedule ?? [])].some(item => (item.factIds ?? []).some(id => !factIds.has(id)))) return hold('UNKNOWN_FACT_REF');
+  const known = ids => ids ?? [];
+  for (const [name, list] of [['key_issues', draft.key_issues], ['risks', draft.risks], ['company_refs', draft.company_refs], ['impacts', draft.impacts], ['schedule', draft.schedule]]) {
+    if ((list ?? []).length > LIMITS[name]) return hold('LIMIT_' + name.toUpperCase());
+  }
+  for (const item of draft.impacts ?? []) {
+    if ((item.factIds ?? []).length > LIMITS.evidence || (item.conditions ?? []).length > LIMITS.conditions || (item.companyRoles ?? []).length > LIMITS.companies) return hold('LIMIT_IMPACT');
+  }
+  if ((draft.scenarios ?? []).some(item => (item.checks ?? []).length > LIMITS.checks)) return hold('LIMIT_SCENARIO');
+  if ((draft.schedule ?? []).some(item => (item.factIds ?? []).length > LIMITS.evidence)) return hold('LIMIT_SCHEDULE');
 
   // Impacts keep every direction (RELATED is stored, never shown). Path IDs are stable per draft: category + order.
   const impacts = (draft.impacts ?? []).map((item, index) => ({
@@ -49,25 +66,41 @@ export function toIntakePayload(snapshot) {
   if (impacts.some(item => !item.evidence_fact_ids.length)) return hold('IMPACT_WITHOUT_FACTS');
   const positive = impacts.filter(item => item.direction === 'BENEFIT' || item.conditional_direction === 'POSITIVE').map(item => item.path_id);
   const negative = impacts.filter(item => item.direction === 'DAMAGE' || item.conditional_direction === 'NEGATIVE').map(item => item.path_id);
-  // Publication rule: scenarios exist only with positive paths; one per direction that has paths.
-  const scenarios = positive.length ? (draft.scenarios ?? []).filter(item => (item.direction === 'POSITIVE' ? positive : negative).length)
-    .map(item => ({ direction: item.direction, title: item.title, expected_result: item.expected_result, checks: item.checks,
-      path_ids: item.direction === 'POSITIVE' ? positive : negative })) : [];
+  // Publication rule: without positive paths there are no scenarios; otherwise exactly one POSITIVE scenario, and one
+  // NEGATIVE scenario exactly when negative paths exist. A scenario for a direction without paths is dropped (it has no
+  // path to stand on); a missing or repeated scenario for a direction with paths holds the draft.
+  let scenarios = [];
+  if (positive.length) {
+    const of = direction => (draft.scenarios ?? []).filter(item => item.direction === direction);
+    if (of('POSITIVE').length !== 1 || negative.length && of('NEGATIVE').length !== 1) return hold('SCENARIO_SHAPE');
+    scenarios = [...of('POSITIVE'), ...(negative.length ? of('NEGATIVE') : [])].map(item => ({ direction: item.direction, title: item.title,
+      expected_result: item.expected_result, checks: item.checks, path_ids: item.direction === 'POSITIVE' ? positive : negative }));
+  }
 
-  // Primary sector: first benefit, then first damage, then (SECTOR only) the first impact; COMPANY without impacts has none.
+  // Primary sector: first benefit, then first damage, then the first impact of any direction; only an article without
+  // impacts (a COMPANY issue) has none.
   const first = direction => impacts.find(item => item.direction === direction)?.sector_id;
-  const primarySector = first('BENEFIT') ?? first('DAMAGE') ?? (draft.article_kind === 'COMPANY' ? null : impacts[0]?.sector_id ?? null);
+  const primarySector = first('BENEFIT') ?? first('DAMAGE') ?? impacts[0]?.sector_id ?? null;
 
   // Schedule: exact instants with an offset. VERIFIED only when every cited fact comes from PRIMARY links only (the
   // database requires official-original evidence and checks the host itself); otherwise UNVERIFIED.
   const primaryOnly = id => { const fact = facts.find(item => item.id === id); return (fact?.sources ?? []).length > 0 && fact.sources.every(source => source.role === 'PRIMARY'); };
-  const schedule = [];
-  for (const item of draft.schedule ?? []) {
-    if (!OFFSET_ISO.test(item.eventAt ?? '') || typeof item.timezone !== 'string') continue;
+  const schedule = [], omitted = [];
+  for (const [index, item] of (draft.schedule ?? []).entries()) {
     const evidence = known(item.factIds);
-    if (!evidence.length) continue;
-    schedule.push({ kind: 'EXACT', status: evidence.every(primaryOnly) ? 'VERIFIED' : 'UNVERIFIED', title: item.title, timezone: item.timezone,
-      event_at: item.eventAt, evidence_as_of: new Date(snapshot.verifiedAt).toISOString(), evidence_fact_ids: evidence });
+    let zoneOk = true; try { new Intl.DateTimeFormat('en', { timeZone: item.timezone }); } catch { zoneOk = false; }
+    if (!evidence.length || typeof item.timezone !== 'string' || !zoneOk) { omitted.push({ schedule: index, reason: !evidence.length ? 'NO_EVIDENCE' : 'BAD_TIMEZONE' }); continue; }
+    const common = { status: evidence.every(primaryOnly) ? 'VERIFIED' : 'UNVERIFIED', title: item.title, timezone: item.timezone,
+      evidence_as_of: new Date(snapshot.verifiedAt).toISOString(), evidence_fact_ids: evidence };
+    if (OFFSET_ISO.test(item.eventAt ?? '')) { schedule.push({ kind: 'EXACT', ...common, event_at: item.eventAt }); continue; }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(item.eventAt ?? '')) {
+      // A date without a time: the whole day in that zone, end exclusive (start < end).
+      const next = new Date(Date.parse(item.eventAt + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
+      const at = date => date + 'T00:00:00' + offsetAt(item.timezone, new Date(date + 'T12:00:00Z'));
+      schedule.push({ kind: 'PERIOD', ...common, period_label: item.eventAt, period_start: at(item.eventAt), period_end: at(next), precision: 'DAY' });
+      continue;
+    }
+    omitted.push({ schedule: index, reason: 'UNSUPPORTED_TIME' });
   }
 
   const hosts = kept.map(source => host(source.url));
@@ -85,5 +118,5 @@ export function toIntakePayload(snapshot) {
     },
     facts: outFacts
   };
-  return { payload, effectKey: `ai:${issueId}:${version}` };
+  return { payload, effectKey: `ai:${issueId}:${version}`, omitted };
 }

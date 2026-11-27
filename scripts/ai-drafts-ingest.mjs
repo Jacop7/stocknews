@@ -23,21 +23,29 @@ const sql = statement => {
 const exported = JSON.parse(readFileSync(input, 'utf8'));
 if (!Array.isArray(exported?.ready) || !Array.isArray(exported?.revoked)) throw new Error('EXPORT_FILE_INVALID');
 const receipt = { at: new Date().toISOString(), input, dryRun, ready: [], revoked: [] };
-for (const snapshot of exported.ready) {
-  const mapped = toIntakePayload(snapshot);
-  const item = { aiIssueId: snapshot.issueId, version: snapshot.version };
-  if (mapped.hold) { receipt.ready.push({ ...item, outcome: 'HOLD', reason: mapped.hold }); continue; }
-  if (dryRun) { receipt.ready.push({ ...item, outcome: 'MAPPED', facts: mapped.payload.facts.length, impacts: mapped.payload.draft.impacts.length }); continue; }
-  const result = sql(`select private.ai_ingest_draft(${q(mapped.effectKey)},${q(JSON.stringify(mapped.payload))}::jsonb)::text;`);
-  receipt.ready.push(result.error ? { ...item, outcome: 'ERROR', reason: result.error } : { ...item, outcome: JSON.parse(result.value).state, result: JSON.parse(result.value) });
-}
-for (const revoked of exported.revoked) {
-  if (dryRun) { receipt.revoked.push({ ...revoked, outcome: 'WOULD_WITHDRAW' }); continue; }
-  const result = sql(`select private.ai_withdraw_draft(${q(revoked.issueId)},${Number(revoked.version)},'SOURCE_REVOKED')::text;`);
-  receipt.revoked.push(result.error ? { ...revoked, outcome: 'ERROR', reason: result.error } : { ...revoked, outcome: JSON.parse(result.value).state });
-}
 mkdirSync(new URL('../.local-data/ai-inbox/', import.meta.url), { recursive: true });
 const file = new URL(`../.local-data/ai-inbox/receipt-${receipt.at.replace(/[:.]/g, '-')}.json`, import.meta.url);
-writeFileSync(file, JSON.stringify(receipt, null, 2));
+// The receipt is written whatever happens, so every database call already made is on record.
+try {
+  for (const snapshot of exported.ready) {
+    const item = { aiIssueId: snapshot?.issueId, version: snapshot?.version };
+    let mapped;
+    try { mapped = toIntakePayload(snapshot); } catch { receipt.ready.push({ ...item, outcome: 'ERROR', reason: 'MAPPING_FAILED' }); continue; }
+    if (mapped.hold) { receipt.ready.push({ ...item, outcome: 'HOLD', reason: mapped.hold }); continue; }
+    const omitted = mapped.omitted?.length ? { omitted: mapped.omitted } : {};
+    if (dryRun) { receipt.ready.push({ ...item, outcome: 'MAPPED', facts: mapped.payload.facts.length, impacts: mapped.payload.draft.impacts.length, ...omitted }); continue; }
+    const result = sql(`select private.ai_ingest_draft(${q(mapped.effectKey)},${q(JSON.stringify(mapped.payload))}::jsonb)::text;`);
+    receipt.ready.push(result.error ? { ...item, outcome: 'ERROR', reason: result.error, ...omitted } : { ...item, outcome: JSON.parse(result.value).state, result: JSON.parse(result.value), ...omitted });
+  }
+  for (const revoked of exported.revoked) {
+    if (dryRun) { receipt.revoked.push({ ...revoked, outcome: 'WOULD_WITHDRAW' }); continue; }
+    const result = sql(`select private.ai_withdraw_draft(${q(revoked.issueId)},${Number(revoked.version)},'SOURCE_REVOKED')::text;`);
+    receipt.revoked.push(result.error ? { ...revoked, outcome: 'ERROR', reason: result.error } : { ...revoked, outcome: JSON.parse(result.value).state });
+  }
+} finally {
+  writeFileSync(file, JSON.stringify(receipt, null, 2));
+}
 const count = list => list.reduce((acc, item) => ({ ...acc, [item.outcome]: (acc[item.outcome] ?? 0) + 1 }), {});
 console.log(JSON.stringify({ ready: count(receipt.ready), revoked: count(receipt.revoked), receipt: file.pathname.split('/').slice(-2).join('/') }));
+// Any failed database call fails the run (the pull script stops); holds are expected outcomes, not failures.
+if ([...receipt.ready, ...receipt.revoked].some(item => item.outcome === 'ERROR')) process.exit(1);
