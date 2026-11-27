@@ -102,6 +102,8 @@ ${err('bad_nested_company', call(A, 7, payload(A, 7, { draft: { impacts: draft.i
 ${err('bad_nested_schedule', call(A, 7, payload(A, 7, { draft: { schedule: [{ kind: 'EXACT', status: 'VERIFIED', title: 't', timezone: 'Asia/Seoul', evidence_as_of: now, event_at: now, evidence_fact_ids: [facts[0].id], text: 'x' }] } })))}
 ${err('bad_trust_field', call(A, 7, payload(A, 7, { facts: facts.map(f => ({ ...f, official: true })) })))}
 ${err('bad_catalog_ref', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'x' } } })))}
+${err('bad_core', call(A, 7, payload(A, 7, { draft: { title: '  ' } })))}
+${err('bad_market', call(A, 7, payload(A, 7, { draft: { source_market: 'SYNTHETIC' } })))}
 -- A non-official host may be allowed, but only the database decides which hosts are official filings.
 update private.real_mode set allowed_source_hosts=allowed_source_hosts||array['news.example.com'];
 ${err('role_mismatch_primary', call(A, 7, payload(A, 7, { draft: { sources: [...sources, { name: '보도', url: 'https://news.example.com/1', role: 'PRIMARY' }] } })))}
@@ -133,9 +135,16 @@ select 'R|dto|'||concat_ws(',',g->>'sample_kind',g->'ai_origin'->>'link_state',g
 select 'R|list|'||(select x->'ai_origin'->>'state' from jsonb_array_elements(public.m1_editor_articles()) x where x->>'id'=(select issue_id::text from a1));
 reset role;
 select set_config('request.jwt.claims','',true);
-update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from a1) and ai_version=2;
+-- Held draft: expired pending evidence goes while the draft and its own evidence stay; once the draft's own evidence
+-- expires, the draft goes too even though a newer pending version arrived later.
+update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from a1) and ai_version=3;
 select 'R|held_cleanup|'||(private.ai_inbox_cleanup()->>'expired');
 select 'R|held_kept|'||(select string_agg(ai_version::text,',' order by ai_version) from private.ai_draft_origin where issue_id=(select issue_id from a1))||':'||exists(select 1 from private.editor_drafts where issue_id=(select issue_id from a1));
+insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,catalog_ref,expires_at)
+  select issue_id,9,facts,sources,catalog_version,catalog_ref,now()+interval '30 days' from private.ai_draft_origin where issue_id=(select issue_id from a1) and ai_version=2;
+update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from a1) and ai_version=2;
+create temp table held_n as select private.ai_inbox_cleanup()->>'expired' n;
+select 'R|held_expired|'||(select n from held_n)||':'||exists(select 1 from private.editor_drafts where issue_id=(select issue_id from a1))||':'||(select state||'/'||reason from private.ai_issue_links where issue_id=(select issue_id from a1));
 -- 30-day retention.
 update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(D)});
 ${ok('cleanup', "private.ai_inbox_cleanup()->>'expired'")}
@@ -186,7 +195,10 @@ assert.deepEqual(value('bad_catalog_ref'), ['AI_CATALOG_REF_INVALID']);
 assert.deepEqual(value('role_mismatch_primary'), ['AI_SOURCE_ROLE_MISMATCH']);
 assert.deepEqual(value('role_mismatch_reported'), ['AI_SOURCE_ROLE_MISMATCH']);
 assert.deepEqual(value('held_cleanup'), ['0']);
-assert.deepEqual(value('held_kept'), ['2,3:true']);
+assert.deepEqual(value('held_kept'), ['2:true']);
+assert.deepEqual(value('held_expired'), ['1:false:WITHDRAWN/EXPIRED']);
+assert.deepEqual(value('bad_core'), ['AI_DRAFT_CORE_INVALID']);
+assert.deepEqual(value('bad_market'), ['AI_DRAFT_CORE_INVALID']);
 assert.deepEqual(value('trust'), ['RECEIVED']);
 const trust = value('trust_claims')[0].split(',');
 assert.equal(trust[0], 'SENSITIVE_UNCONFIRMED:false', 'f-0 cites a REPORTED source and is SENSITIVE');

@@ -102,6 +102,9 @@ begin
   if not private.ai_keys_ok(d,draft_keys,array['title','summary','issue_analysis','article_kind','source_market','selection_market_basis','sources']) then raise exception 'AI_DRAFT_FIELDS';end if;
   foreach k in array text_fields loop if jsonb_typeof(d->k)<>'string' then raise exception 'AI_DRAFT_FIELDS';end if;end loop;
   if coalesce(d->>'article_kind','') not in ('SECTOR','MACRO','COMPANY') then raise exception 'AI_DRAFT_FIELDS';end if;
+  -- Core text and market values as the publication rules require them, so a received draft is always previewable text.
+  if length(btrim(d->>'title')) not between 1 and 200 or length(btrim(d->>'summary')) not between 1 and 1500 or length(btrim(d->>'issue_analysis')) not between 1 and 20000
+    or d->>'source_market' not in ('KR','US','GLOBAL') or d->>'selection_market_basis' not in ('KR','FOREIGN_US') then raise exception 'AI_DRAFT_CORE_INVALID';end if;
   foreach k in array array['primary_sector_id','primary_company_ref'] loop
     if d ? k and jsonb_typeof(d->k) not in ('string','null') then raise exception 'AI_DRAFT_FIELDS';end if;
   end loop;
@@ -300,8 +303,10 @@ create function private.ai_inbox_cleanup() returns jsonb language plpgsql securi
 declare r record;n integer:=0;
 begin
   for r in select l.ai_issue_id,l.issue_id from private.ai_issue_links l join private.issues i on i.id=l.issue_id
+    -- A draft expires 30 days after its own evidence arrived; newer pending versions beside a held draft never extend it.
     where l.state in ('ACTIVE','HOLD_EDITOR') and i.publication_state='DRAFT'
-      and not exists(select 1 from private.ai_draft_origin o where o.issue_id=l.issue_id and o.expires_at>now())
+      and coalesce((select o.expires_at from private.ai_draft_origin o where o.issue_id=l.issue_id
+        and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=l.issue_id)),'-infinity')<=now()
     for update of l loop
     perform private.ai_clear_issue(r.issue_id);
     update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
