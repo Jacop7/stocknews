@@ -79,9 +79,11 @@ begin
     array['ai_issue_id','ai_version','angle_key','catalog_ref','draft','facts','format','story_key']) then raise exception 'AI_DRAFT_KEYS';end if;
   if p->>'format' is distinct from 'AI_DRAFT_V1' then raise exception 'AI_DRAFT_FORMAT';end if;
   if jsonb_typeof(p->'ai_version')<>'number' or (p->>'ai_version')!~'^[1-9][0-9]{0,8}$' then raise exception 'AI_DRAFT_VERSION';end if;
-  if coalesce(p->>'story_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' or coalesce(p->>'angle_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' then raise exception 'AI_DRAFT_KEYS';end if;
+  if jsonb_typeof(p->'story_key')<>'string' or jsonb_typeof(p->'angle_key')<>'string' or jsonb_typeof(p->'ai_issue_id')<>'string'
+    or p->>'story_key'!~'^[A-Za-z0-9_.:-]{1,200}$' or p->>'angle_key'!~'^[A-Za-z0-9_.:-]{1,200}$' then raise exception 'AI_DRAFT_KEYS';end if;
   -- The server's catalog reference is recorded for audit; IDs are checked one by one against the DB head.
-  if not private.ai_keys_ok(p->'catalog_ref',array['registry','sha256'],array['registry','sha256']) or coalesce(p->'catalog_ref'->>'registry','')!~'^[A-Za-z0-9_.:-]{1,120}$'
+  if not private.ai_keys_ok(p->'catalog_ref',array['registry','sha256'],array['registry','sha256'])
+    or jsonb_typeof(p->'catalog_ref'->'registry')<>'string' or jsonb_typeof(p->'catalog_ref'->'sha256')<>'string' or p->'catalog_ref'->>'registry'!~'^[A-Za-z0-9_.:-]{1,120}$'
     or coalesce(p->'catalog_ref'->>'sha256','')!~'^[0-9a-f]{64}$' then raise exception 'AI_CATALOG_REF_INVALID';end if;
   -- Facts: 1-30, statements only. Trust (claim type, official origin) is derived by the database, never sent.
   if jsonb_typeof(p->'facts')<>'array' or jsonb_array_length(p->'facts') not between 1 and 30 then raise exception 'AI_FACTS_INVALID';end if;
@@ -192,7 +194,7 @@ begin
   if current_user<>'postgres' then raise exception 'AI_INBOX_POSTGRES_ONLY';end if;
   -- Identity, lock and receipt first: an exact retry always gets its stored result, a different payload for the same
   -- AI issue and version always gets AI_DRAFT_CONFLICT, whatever the switch or the validation rules say now.
-  if jsonb_typeof(p_payload)<>'object' or coalesce(ai,'')!~'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  if jsonb_typeof(p_payload)<>'object' or jsonb_typeof(p_payload->'ai_issue_id') is distinct from 'string' or coalesce(ai,'')!~'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     or jsonb_typeof(p_payload->'ai_version')<>'number' or (p_payload->>'ai_version')!~'^[1-9][0-9]{0,8}$' then raise exception 'AI_DRAFT_VERSION';end if;
   ver:=(p_payload->>'ai_version')::integer;
   if p_effect_key is distinct from 'ai:'||ai||':'||ver then raise exception 'AI_EFFECT_KEY_MISMATCH';end if;
@@ -300,22 +302,29 @@ end$$;
 
 -- 30-day retention of unpublished AI drafts and their evidence; runs inside the existing daily retention tick.
 create function private.ai_inbox_cleanup() returns jsonb language plpgsql security definer set search_path='' as $$
-declare r record;n integer:=0;
+declare r record;iss uuid;n integer:=0;
 begin
-  for r in select l.ai_issue_id,l.issue_id from private.ai_issue_links l join private.issues i on i.id=l.issue_id
+  -- Each issue is handled under the same per-issue lock as intake and withdrawal, and re-read after taking it, so a
+  -- concurrent intake can never be undone by a stale view.
+  for r in select l.ai_issue_id from private.ai_issue_links l where l.state in ('ACTIVE','HOLD_EDITOR') and l.issue_id is not null order by l.ai_issue_id loop
+    perform pg_advisory_xact_lock(hashtext('ai-issue:'||r.ai_issue_id));
     -- A draft expires 30 days after its own evidence arrived; newer pending versions beside a held draft never extend it.
-    where l.state in ('ACTIVE','HOLD_EDITOR') and i.publication_state='DRAFT'
-      and coalesce((select o.expires_at from private.ai_draft_origin o where o.issue_id=l.issue_id
-        and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=l.issue_id)),'-infinity')<=now()
-    for update of l loop
-    perform private.ai_clear_issue(r.issue_id);
-    update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
-    n:=n+1;
+    select l.issue_id into iss from private.ai_issue_links l join private.issues i on i.id=l.issue_id
+      where l.ai_issue_id=r.ai_issue_id and l.state in ('ACTIVE','HOLD_EDITOR') and i.publication_state='DRAFT'
+        and coalesce((select o.expires_at from private.ai_draft_origin o where o.issue_id=l.issue_id
+          and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=l.issue_id)),'-infinity')<=now()
+      for update of l;
+    if found then
+      perform private.ai_clear_issue(iss);
+      update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
+      n:=n+1;
+    else
+      -- Expired pending evidence goes; the evidence of the draft itself stays with it.
+      delete from private.ai_draft_origin o using private.ai_issue_links l where l.ai_issue_id=r.ai_issue_id and o.issue_id=l.issue_id and o.expires_at<=now()
+        and o.ai_version is distinct from (select max(c.ai_version) from private.ai_claim_links c where c.issue_id=o.issue_id);
+    end if;
   end loop;
-  -- Expired pending evidence goes; the evidence of a draft that still exists stays with it. Receipts are permanent (small,
-  -- and they keep replays and conflicts exact forever).
-  delete from private.ai_draft_origin o using private.issues i where i.id=o.issue_id and o.expires_at<=now() and i.publication_state='DRAFT'
-    and o.ai_version is distinct from (select max(c.ai_version) from private.ai_claim_links c where c.issue_id=o.issue_id);
+  -- Receipts are permanent (small, and they keep replays and conflicts exact forever).
   return jsonb_build_object('expired',n);
 end$$;
 alter function private.retention_tick() rename to retention_tick_v1;

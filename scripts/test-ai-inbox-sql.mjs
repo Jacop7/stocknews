@@ -102,6 +102,8 @@ ${err('bad_nested_company', call(A, 7, payload(A, 7, { draft: { impacts: draft.i
 ${err('bad_nested_schedule', call(A, 7, payload(A, 7, { draft: { schedule: [{ kind: 'EXACT', status: 'VERIFIED', title: 't', timezone: 'Asia/Seoul', evidence_as_of: now, event_at: now, evidence_fact_ids: [facts[0].id], text: 'x' }] } })))}
 ${err('bad_trust_field', call(A, 7, payload(A, 7, { facts: facts.map(f => ({ ...f, official: true })) })))}
 ${err('bad_catalog_ref', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'x' } } })))}
+${err('bad_story_type', call(A, 7, payload(A, 7, { top: { story_key: 12345 } })))}
+${err('bad_catalog_type', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'r', sha256: 7 } } })))}
 ${err('bad_core', call(A, 7, payload(A, 7, { draft: { title: '  ' } })))}
 ${err('bad_market', call(A, 7, payload(A, 7, { draft: { source_market: 'SYNTHETIC' } })))}
 -- A non-official host may be allowed, but only the database decides which hosts are official filings.
@@ -198,6 +200,8 @@ assert.deepEqual(value('held_cleanup'), ['0']);
 assert.deepEqual(value('held_kept'), ['2:true']);
 assert.deepEqual(value('held_expired'), ['1:false:WITHDRAWN/EXPIRED']);
 assert.deepEqual(value('bad_core'), ['AI_DRAFT_CORE_INVALID']);
+assert.deepEqual(value('bad_story_type'), ['AI_DRAFT_KEYS']);
+assert.deepEqual(value('bad_catalog_type'), ['AI_CATALOG_REF_INVALID']);
 assert.deepEqual(value('bad_market'), ['AI_DRAFT_CORE_INVALID']);
 assert.deepEqual(value('trust'), ['RECEIVED']);
 const trust = value('trust_claims')[0].split(',');
