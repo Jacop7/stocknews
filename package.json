@@ -36,6 +36,8 @@
     "test:company-page-sql": "node scripts/test-company-page-sql.mjs",
     "test:real-mode-sql": "node scripts/test-real-mode-sql.mjs",
     "test:ai-inbox-sql": "node scripts/test-ai-inbox-sql.mjs",
+    "test:real-public-read-sql": "node scripts/test-real-public-read-sql.mjs",
+    "test:real-publish-ingest-sql": "node scripts/test-real-publish-ingest-sql.mjs",
     "test:installation": "node --test tests/installation-boundary.test.mjs tests/view-visit.test.mjs",
     "test:installation-runtime": "node scripts/test-installation-schema.mjs && node scripts/test-installation-views.mjs && node scripts/test-installation-runtime.mjs && node scripts/test-installation-recovery.mjs && node scripts/test-installation-native-recovery.mjs && node scripts/test-installation-catalog-seals.mjs && node scripts/test-installation-stat-windows.mjs && node scripts/test-installation-revocation-race.mjs",
     "test:reservations": "node --test tests/reservation-state.test.mjs",

@@ -8,16 +8,16 @@ test('bounded literal query normalization and cursor bound to tab/query/limit/ca
  assert.equal(normalizeSearch('  ＨＢＭ  Test '),'ｈｂｍ test');assert.equal(normalizeSearch('삼성'),'삼성');
  for(const q of ['', ' '.repeat(5),'a '.repeat(7),'a'.repeat(81),'a\u0000b'])assert.throws(()=>normalizeSearch(q));
  const route=readRoute('/v2/search/news?version=38&q=HBM&limit=2'),card={issue_id:id(1),sample_kind:'SYNTHETIC',title:'합성',summary:'검증',first_published_at:when};
- const value=searchResponse(route,{catalog_version:'38',as_of:when,items:[card],next:{last_id:id(1),last_time:when}}),cursor=encodeURIComponent(value.next_cursor);
+ const value=searchResponse(route,{catalog_version:'38',as_of:when,items:[card],next:{last_id:id(1),last_time:when}},'SYNTHETIC'),cursor=encodeURIComponent(value.next_cursor);
  assert.equal(readRoute('/v2/search/news?version=38&q=hbm&limit=2&cursor='+cursor).args.p_last_id,id(1));
  for(const url of ['/v2/search/companies?version=38&q=hbm&limit=2','/v2/search/news?version=39&q=hbm&limit=2','/v2/search/news?version=38&q=foo&limit=2','/v2/search/news?version=38&q=hbm&limit=3'])assert.throws(()=>readRoute(url+'&cursor='+cursor),e=>e.status===409);
  for(const url of ['/v2/search/news?version=38&q=a&limit=21','/v2/search/news?version=38&q=a&q=b','/v2/saved?version=38&ids='+id(1)+','+id(1),'/v2/saved?version=38&ids='+Array.from({length:21},(_,i)=>id(i)).join(',')])assert.throws(()=>readRoute(url));
 });
 test('public saved/search DTO rejects stale bodies and invented price identity',()=>{
  const route=readRoute('/v2/saved?version=38&ids='+id(1));
- assert.throws(()=>searchResponse(route,{catalog_version:'38',items:[{requested_issue_id:id(1),state:'HIDDEN',title:'old'}]}));
+ assert.throws(()=>searchResponse(route,{catalog_version:'38',items:[{requested_issue_id:id(1),state:'HIDDEN',title:'old'}]},'SYNTHETIC'));
  const company=readRoute('/v2/search/companies?version=38&q=hbm');
- assert.throws(()=>searchResponse(company,{catalog_version:'38',items:[{source_company_ref:id(1),name:'A',search_description:'B',metadata_kind:'USER_REFERENCE_UNVERIFIED',stock_identity_state:'UNRESOLVED',stock_code:'000001',price:100,change_percent:0,stock_url:null}],next:null}));
+ assert.throws(()=>searchResponse(company,{catalog_version:'38',items:[{source_company_ref:id(1),name:'A',search_description:'B',metadata_kind:'USER_REFERENCE_UNVERIFIED',stock_identity_state:'UNRESOLVED',stock_code:'000001',price:100,change_percent:0,stock_url:null}],next:null},'SYNTHETIC'));
 });
 test('minimal device envelope preserves first timestamp, deduplicates and rejects cross-environment/corruption',()=>{
  let v=changeBookmark(emptyBookmarks(),id(1),true,when);v=changeBookmark(v,id(1),true,'2026-11-16T00:00:00.000Z');assert.equal(v.entries.length,1);assert.equal(v.entries[0].saved_at,when);

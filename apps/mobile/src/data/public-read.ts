@@ -2,6 +2,8 @@ import { useCallback,useEffect,useRef,useState } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import {resolveReadTarget} from './read-target';
+// The read mode of this build (environment fixed at bundle time); invalid settings throw.
+export function currentReadMode(){try{return resolveReadTarget({base:process.env.EXPO_PUBLIC_READ_API_URL,mode:process.env.EXPO_PUBLIC_READ_MODE,environment:process.env.EXPO_PUBLIC_APP_ENV}).mode;}catch{return null;}}
 export class PublicReadError extends Error{constructor(message:string,public status:number,public retryAt=0){super(message);}}
 export async function publicRead<T>(path:string,signal:AbortSignal):Promise<T>{
  const target=resolveReadTarget({base:process.env.EXPO_PUBLIC_READ_API_URL,mode:process.env.EXPO_PUBLIC_READ_MODE,environment:process.env.EXPO_PUBLIC_APP_ENV});

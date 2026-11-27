@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {CatalogReadError} from './public-route.mjs';
+import {CatalogReadError,expectKind} from './public-route.mjs';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const timestamp=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const date=x=>typeof x==='string'&&timestamp.test(x)&&Number.isFinite(Date.parse(x));
@@ -53,32 +53,33 @@ export function searchRoute(u){
  }
  return {name:'catalog_public_search_'+type,search:true,context,args:{p_expected:head,p_query:query,p_limit:limit,...(type==='news'?{p_as_of:c?.as_of??null,p_last_time:c?.last_time??null,p_last_id:c?.last_id??null}:{p_last_rank:c?.last_rank??null,p_last_name:c?.last_name??null,p_last_id:c?.last_id??null})}};
 }
-const card=x=>x&&uuid.test(x.issue_id)&&x.sample_kind==='SYNTHETIC'&&typeof x.title==='string'&&typeof x.summary==='string'&&date(x.first_published_at);
-export function searchResponse(route,value){
+const card=(x,kind)=>x&&uuid.test(x.issue_id)&&x.sample_kind===kind&&typeof x.title==='string'&&typeof x.summary==='string'&&date(x.first_published_at);
+export function searchResponse(route,value,kind){
+ expectKind(kind);
  if(!route.search)return value;
- if(route.name==='catalog_public_company')return companyResponse(route,value);
+ if(route.name==='catalog_public_company')return companyResponse(route,value,kind);
  if(!value||String(value.catalog_version)!==route.args.p_expected||!Array.isArray(value.items))fail('INVALID_SEARCH_DTO',502);
  if(route.name==='catalog_public_saved'){
   if(value.items.length!==route.args.p_issues.length||value.items.some((x,i)=>x.requested_issue_id!==route.args.p_issues[i]||!['PUBLISHED','NOT_FOUND','HIDDEN','WITHDRAWN','CORRECTION_PENDING'].includes(x.state)||
-   (x.state==='PUBLISHED'?(!card(x.card)||x.card.issue_id!==x.canonical_issue_id):('card'in x||'body'in x||'title'in x||'summary'in x))))fail('INVALID_SEARCH_DTO',502);
+   (x.state==='PUBLISHED'?(!card(x.card,kind)||x.card.issue_id!==x.canonical_issue_id):('card'in x||'body'in x||'title'in x||'summary'in x))))fail('INVALID_SEARCH_DTO',502);
   return value;
  }
  if(value.items.length>(route.args.p_limit??20))fail('INVALID_SEARCH_DTO',502);
  if(route.name==='catalog_public_company_sectors')return value;
  const news=route.name.endsWith('_news');
- if(news?(!date(value.as_of)||value.items.some(x=>!card(x))):value.items.some(x=>!uuid.test(x.source_company_ref)||typeof x.name!=='string'||typeof x.search_description!=='string'||x.metadata_kind!=='USER_REFERENCE_UNVERIFIED'||x.stock_identity_state!=='UNRESOLVED'||['stock_code','price','change_percent','stock_url'].some(k=>x[k]!==null)))fail('INVALID_SEARCH_DTO',502);
+ if(news?(!date(value.as_of)||value.items.some(x=>!card(x,kind))):value.items.some(x=>!uuid.test(x.source_company_ref)||typeof x.name!=='string'||typeof x.search_description!=='string'||x.metadata_kind!=='USER_REFERENCE_UNVERIFIED'||x.stock_identity_state!=='UNRESOLVED'||['stock_code','price','change_percent','stock_url'].some(k=>x[k]!==null)))fail('INVALID_SEARCH_DTO',502);
  const next_cursor=value.next?Buffer.from(JSON.stringify({version:1,context:route.context,...value.next,...(news?{as_of:value.as_of}:{})})).toString('base64url'):null;
  const {next,...rest}=value;return {...rest,next_cursor};
 }
 
 const unresolved=x=>x&&uuid.test(x.source_company_ref)&&typeof x.name==='string'&&x.metadata_kind==='USER_REFERENCE_UNVERIFIED'&&x.stock_identity_state==='UNRESOLVED'&&['stock_code','price','change_percent','stock_url'].every(k=>x[k]===null);
-function companyResponse(route,value){
+function companyResponse(route,value,kind){
  if(!value||String(value.catalog_version)!==route.args.p_expected||!['AVAILABLE','NOT_FOUND'].includes(value.state))fail('INVALID_SEARCH_DTO',502);
  if(value.state==='NOT_FOUND'){if(Object.keys(value).sort().join(',')!=='catalog_version,state')fail('INVALID_SEARCH_DTO',502);return value;}
  const company=value.company;
  if(!unresolved(company)||company.source_company_ref!==route.args.p_company||typeof company.search_description!=='string'||!Array.isArray(company.related_sectors)||
   !Array.isArray(value.items)||value.items.length>route.args.p_limit||!date(value.as_of)||
-  value.items.some(x=>!card(x)||!['PRIMARY','MENTIONED'].includes(x.company_role)||!['SECTOR','COMPANY','MACRO'].includes(x.article_kind)))fail('INVALID_SEARCH_DTO',502);
+  value.items.some(x=>!card(x,kind)||!['PRIMARY','MENTIONED'].includes(x.company_role)||!['SECTOR','COMPANY','MACRO'].includes(x.article_kind)))fail('INVALID_SEARCH_DTO',502);
  const next_cursor=value.next?Buffer.from(JSON.stringify({version:1,context:route.context,...value.next,as_of:value.as_of})).toString('base64url'):null;
  const {next,...rest}=value;return {...rest,next_cursor};
 }

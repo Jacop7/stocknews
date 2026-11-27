@@ -37,7 +37,8 @@
 | 앱 연결 | 미리보기 환경에서 `EXPO_PUBLIC_APP_ENV=preview`, `EXPO_PUBLIC_READ_MODE=PREVIEW_SYNTHETIC`, `EXPO_PUBLIC_READ_API_URL=https://52-79-247-25.sslip.io`로 클라우드 조회 확인(홈·섹터). 클라우드에는 아직 게시 기사가 없음. 설치·알림 서비스(127.0.0.1:3100)는 아직 로컬 |
 | 온라인 어드민(CLOUD11-online) | **운영 중, 소유자 로그인·TOTP 등록 완료**(2026-11-27). 실측(H8): 실제 세션 값으로 capability 없음·틀림 → 42501 EDITOR_ONLY(트랜잭션 롤백), 쿠키 없음·위조 쿠키·CSRF 없는 쓰기 → 401, 다른 출처·형식 로그인 → 403, 컨테이너 재시작 뒤 세션·로그인 제한 파일 유지. 배포 중 고친 것: QR은 서버가 otpauth URI로 PNG 생성(Supabase SVG가 브라우저에서 안 보임), Windows PowerShell의 브라우저식 User-Agent를 Supabase가 secret 키에 거부 → 운영 스크립트 UA 지정, 비밀번호 재설정 `admin-online.ps1 set-password`(9자 이상, 사용자 선택). 활성화 SQL 적용(편집 권한 21·세션 권한 3·관리자 1, 익명 직접 호출 42501), 회원가입 꺼짐 확인, `https://admin.52-79-247-25.sslip.io` 배포(이미지는 PC에서 빌드해 전송, 서버 1GB라 서버 빌드 불가). Codex 구현 검수 READY. 공개 인터넷 + 보강안: 주소 `https://admin.52-79-247-25.sslip.io`(예정), 소유자 1명, 비밀번호+TOTP(aal2), 세션 capability를 DB가 확인, secret 키는 broker 컨테이너에만. 계획 `docs/cloud/cloud11-online-admin-plan.md`, 활성화 SQL `supabase/cloud/admin-online-dev/activation.sql`(가드·사후 확인 포함, 재활성화 가능), 운영 `scripts/ops/admin-online.ps1 store-secret|deploy|status|revoke`(revoke는 이 PC에서 secret 키로 DB 확인 4단계 + 영수증) |
 | 게시 경로 1A(로컬) | **완료**(2026-11-27): AI 초안 6건이 로컬 접수함에 들어와 실데이터 검증·미리보기 통과(공개 노출 없음, 게시·예약은 1B까지 차단). 계획 `docs/publish-stage1-plan.md` |
-| 남은 것 | CLOUD11 남은 실측(로그아웃 뒤 쿠키 재사용 거부, 합성 초안 저장·미리보기), 게시 경로 1B(실데이터 공개 읽기)·2단계(클라우드), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
+| 게시 경로 1B(로컬) | **구현**(2026-11-27): 마이그레이션 59~61 로컬 적용, 한 번에 한 종류만 공개(스위치), 실데이터 게시·철회·만료, 검토 모드 조회 서버(62332)와 앱 띠·배지. 계획 `docs/publish-stage1b-plan.md` |
+| 남은 것 | CLOUD11 남은 실측(로그아웃 뒤 쿠키 재사용 거부, 합성 초안 저장·미리보기), 게시 경로 1C(수정본 채택)·2단계(클라우드), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
 ## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
 

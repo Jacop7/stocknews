@@ -85,7 +85,7 @@
   - 기사 카드·상세·검색·저장·종목 응답의 `sample_kind`를 `'SYNTHETIC'|'PERMITTED_REAL'`로 넓힌다.
   - 읽기 모드 타입에 `LOCAL_REVIEW_REAL`을 추가한다.
 - 앱:
-  - `read-target.ts`에 `LOCAL_REVIEW_REAL`을 추가한다(로컬 62332, 개발 환경만).
+  - `read-target.ts`에 `LOCAL_REVIEW_REAL`을 추가한다(로컬 62332, 명시적 로컬 빌드 `EXPO_PUBLIC_APP_ENV=local`만. 앱 설정이 허용하는 환경은 local·preview·production뿐이다).
   - 모드를 화면까지 전달해 상단에 "내부 검토용 실데이터 · 투자 권유 아님" 띠를 항상 표시한다.
   - 실데이터 기사에는 "공시 기반" 배지와 출처 링크를 보여준다. 응답의 모드가 요청 모드와 다르면 지금처럼 거부한다.
 

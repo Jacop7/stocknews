@@ -10,7 +10,7 @@ const body=(items=[card()],next=null)=>({catalog_version:'54',state:'AVAILABLE',
 test('company page route binds version, company and limit, and its cursor cannot move to another company',()=>{
  const route=readRoute(`/v2/companies/${company}?version=54&limit=1`);
  assert.equal(route.name,'catalog_public_company');assert.equal(route.args.p_company,company);assert.equal(route.args.p_limit,1);
- const result=searchResponse(route,body([card()],{last_time:'2026-11-14T21:38:16.335272+00:00',last_id:issue}));
+ const result=searchResponse(route,body([card()],{last_time:'2026-11-14T21:38:16.335272+00:00',last_id:issue}),'SYNTHETIC');
  assert.ok(result.next_cursor);assert.ok(!('next' in result));
  const path=`/v2/companies/${company}?version=54&limit=1&cursor=${result.next_cursor}`;
  const next=readRoute(path);assert.equal(next.args.p_last_id,issue);assert.equal(next.args.p_as_of,'2026-11-27T00:00:00.123456+00:00');
@@ -21,9 +21,9 @@ test('company page route binds version, company and limit, and its cursor cannot
 
 test('company page response keeps unverified stock fields null and only known roles and scopes',()=>{
  const route=readRoute(`/v2/companies/${company}?version=54`);
- assert.equal(searchResponse(route,body([card('MENTIONED','SECTOR')])).items[0].company_role,'MENTIONED');
- assert.deepEqual(searchResponse(route,{catalog_version:'54',state:'NOT_FOUND'}),{catalog_version:'54',state:'NOT_FOUND'});
+ assert.equal(searchResponse(route,body([card('MENTIONED','SECTOR')]),'SYNTHETIC').items[0].company_role,'MENTIONED');
+ assert.deepEqual(searchResponse(route,{catalog_version:'54',state:'NOT_FOUND'},'SYNTHETIC'),{catalog_version:'54',state:'NOT_FOUND'});
  const priced=body();priced.company.price=1000;
  for(const value of [priced,body([card('OWNER')]),body([{...card(),sample_kind:'PERMITTED_REAL'}]),{...body(),catalog_version:'53'},{...body(),company:{...body().company,source_company_ref:issue}},
-  {catalog_version:'54',state:'NOT_FOUND',company:body().company}])assert.throws(()=>searchResponse(route,value),/INVALID_SEARCH_DTO/);
+  {catalog_version:'54',state:'NOT_FOUND',company:body().company}])assert.throws(()=>searchResponse(route,value,'SYNTHETIC'),/INVALID_SEARCH_DTO/);
 });

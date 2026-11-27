@@ -85,8 +85,8 @@ export async function previewUpstream(input,name,args,{fetchImpl=fetch}={}){
  let value;try{value=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{reject('PREVIEW_RESPONSE_INVALID',502);}
  if(!response.ok){if(response.status===429)reject('RATE_LIMITED',429);if(value?.code==='P0001'&&['STALE_CATALOG','INVALID_CURSOR_CONTEXT','INVALID_SEARCH_CONTEXT'].includes(value.message))reject('STALE_PUBLIC_DATA',409);reject('PREVIEW_READ_UNAVAILABLE');}return value;
 }
-function previewResponse(route,raw){
- const value=route.search?searchResponse(route,raw):catalogResponse(route,raw);
+export function previewResponse(route,raw){
+ const value=route.search?searchResponse(route,raw,'SYNTHETIC'):catalogResponse(route,raw,'SYNTHETIC');
  if(route.name==='catalog_public_tree'&&(!value||value.metadata_kind!=='USER_REFERENCE_UNVERIFIED'||!Array.isArray(value.parents)||value.parents.length>50||value.parents.some(x=>!Array.isArray(x.sectors))||value.parents.reduce((n,x)=>n+x.sectors.length,0)>200))reject('PREVIEW_RESPONSE_INVALID',502);
  if(route.name==='catalog_public_sector_page'){
   if(!value||!['AVAILABLE','NOT_FOUND'].includes(value.state)||route.args.p_expected!==null&&String(value.catalog_version)!==route.args.p_expected)reject('PREVIEW_RESPONSE_INVALID',502);

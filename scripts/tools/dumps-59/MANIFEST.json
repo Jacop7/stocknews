@@ -1,0 +1,19 @@
+{
+  "purpose": "pg_get_functiondef output of the local DB before migration 59 (2026-11-27), input of gen-migration-59.mjs",
+  "files": {
+    "articles.sql": "875d9062cdea98186cddd7891b16d049b9b5c6be0444dbb55490b1b9228873c1",
+    "core_v1.sql": "e13a92be6e66f05738489114c4012ff5950158f13cf3dd1e135eff58dedf6b91",
+    "evidence.sql": "08b94021c468d4c01e44c80b1158df40aee1e88939a5348db6bb926ac3928845",
+    "evidence_v3.sql": "84db79e03fcfb880a66a7d00312e8c1cccc02e5aef2461cc5e2b65aacf1cb937",
+    "get_draft.sql": "1edaba6ebc3df5146b9a9ff9a2a3cf1c7fa20b6a1490d6171a372c017a7c42fd",
+    "legacy.sql": "108e9722e9a5fb4e5b437ac4cec21550a0a1203275d3f267702797666adfba6b",
+    "publish_legacy.sql": "03b804bf7ed993231c0846d357555aa9c3cef2d54de95e51f6d6ffd17eab5e46",
+    "resolve.sql": "3363da325a5ef94114b54395f4a544ccd8af7885346482a0aafe6aa9ec78f850",
+    "saved.sql": "b80c6076c5a60b98caeb31387c3d1345131f54a76f6c6fe76f8729b4a626a661",
+    "search.sql": "8732eae43f8aa6bfebe61ca120cdb19623c39d7a5de77366a0ef03a7f3b775d4",
+    "set_state.sql": "9b43103dad64429b4b22f34b41ffac76920622fd269e0ad5421ba8b589888bcf",
+    "timeout.sql": "1bce156ff0bc171a72c7aa410d005bc19d433f5e4a50c17661fa5138e5367995",
+    "visible.sql": "ca8765f0b160c2d3b9586298674eac64554d2b90e703f149631c63e078d8f88f"
+  },
+  "migrationSha256": "a1e84dd17debc6654b7bfab50cfd3d80d625722f378e4b2335f4d645fc64bcbc"
+}

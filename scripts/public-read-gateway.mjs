@@ -8,6 +8,12 @@ import {searchRoute,searchResponse} from './catalog/search-route.mjs';
 import {createHomePublicReader} from './home-public-read.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// Read modes (publish stage 1B): each serves exactly one article kind and starts only against the matching identity.
+// LOCAL_REVIEW_REAL is loopback only, on its own port, and has no home ranking route (the ranking is synthetic).
+export const READ_MODES=Object.freeze({
+  LOCAL_SYNTHETIC:Object.freeze({kind:'SYNTHETIC',sampleKind:'SYNTHETIC',contract:'M1',port:62330}),
+  LOCAL_REVIEW_REAL:Object.freeze({kind:'PERMITTED_REAL',sampleKind:'REVIEW_REAL',contract:'M1R',port:62332}),
+});
 class ReadError extends Error{constructor(message,status=400){super(message);this.status=status;}}
 export function publicConfig(){const c=JSON.parse(readFileSync(path.join(root,'.local-data/runtime/public-read.json'),'utf8'));if(c.productId!=='judoju-news'||c.environment!=='local'||c.sampleKind!=='SYNTHETIC'||c.apiUrl!=='http://127.0.0.1:62321'||typeof c.anonKey!=='string'||'serviceKey'in c)throw new ReadError('PUBLIC_CONFIG_REJECTED',503);return c;}
 export function readRoute(raw){
@@ -42,10 +48,14 @@ export function lanInterface(ip){
   const matches=Object.values(networkInterfaces()).flat().filter(x=>x?.family==='IPv4'&&!x.internal&&x.address===ip);
   if(matches.length!==1)throw new ReadError('APPROVED_INTERFACE_NOT_PRESENT');return matches[0];
 }
-export async function createPublicGateway(c,{lan=false,port=62330,transport=upstream,readHomeRanking}={}){
+export async function createPublicGateway(c,{mode='LOCAL_SYNTHETIC',lan=false,port,transport=upstream,readHomeRanking}={}){
+  const m=Object.hasOwn(READ_MODES,mode)?READ_MODES[mode]:null;
+  if(!m)throw new ReadError('READ_MODE_REJECTED',503);
+  if(mode==='LOCAL_REVIEW_REAL'&&(lan||readHomeRanking!==undefined))throw new ReadError('REVIEW_REAL_LOOPBACK_ONLY',503);
+  port??=m.port;
   if(readHomeRanking!==undefined&&(lan||typeof readHomeRanking!=='function'||c.apiUrl!=='http://127.0.0.1:62321'))throw new ReadError('HOME_ROUTE_REQUIRES_LOCAL_SOURCE',503);
   const identity=await transport(c,'m1_public_identity',{});
-  if(identity?.productId!=='judoju-news'||identity.environment!=='local'||identity.sampleKind!=='SYNTHETIC'||identity.bootstrapId!==c.bootstrapId||identity.contract!=='M1')throw new ReadError('PRODUCT_FINGERPRINT_MISMATCH',503);
+  if(identity?.productId!=='judoju-news'||identity.environment!=='local'||identity.sampleKind!==m.sampleKind||identity.bootstrapId!==c.bootstrapId||identity.contract!==m.contract)throw new ReadError('PRODUCT_FINGERPRINT_MISMATCH',503);
   const readHome=readHomeRanking===undefined?null:createHomePublicReader({
     readRanking:readHomeRanking,
     readArticle:(issueId,signal)=>transport(c,'m1_public_article',{p_issue:issueId},signal),
@@ -77,11 +87,11 @@ export async function createPublicGateway(c,{lan=false,port=62330,transport=upst
       if(homeRoute){value=await readHome();}
       else{
         const raw=await transport(c,route.name,route.args);
-        value=route.search?searchResponse(route,raw):catalogResponse(route,raw);
-        if(route.name==='m1_public_catalog'&&(!Array.isArray(value)||value.length>100)||route.name==='m1_public_articles'&&(!Array.isArray(value)||value.length>50||value.some(x=>x.sample_kind!=='SYNTHETIC'))||route.name==='m1_public_article'&&value?.state==='PUBLISHED'&&value.sample_kind!=='SYNTHETIC')throw new ReadError('SYNTHETIC_DTO_REQUIRED',502);
+        value=route.search?searchResponse(route,raw,m.kind):catalogResponse(route,raw,m.kind);
+        if(route.name==='m1_public_catalog'&&(!Array.isArray(value)||value.length>100)||route.name==='m1_public_articles'&&(!Array.isArray(value)||value.length>50||value.some(x=>x.sample_kind!==m.kind))||route.name==='m1_public_article'&&value?.state==='PUBLISHED'&&value.sample_kind!==m.kind)throw new ReadError('SYNTHETIC_DTO_REQUIRED',502);
       }
       if(Buffer.byteLength(JSON.stringify(value))>262144)throw new ReadError('RESPONSE_TOO_LARGE',502);
-      send(200,{productId:'judoju-news',mode:'LOCAL_SYNTHETIC',data:value});
+      send(200,{productId:'judoju-news',mode,data:value});
     }catch(e){const known=e instanceof ReadError||e instanceof CatalogReadError;send(known?e.status:503,{error:known?e.message:'PUBLIC_READ_UNAVAILABLE'},known&&e.status===429?{'Retry-After':'1'}:{});}
     finally{if(acquired){active--;bucket.active--;}}
   });
@@ -91,8 +101,9 @@ export async function createPublicGateway(c,{lan=false,port=62330,transport=upst
   return {server,host,port:server.address().port,close:()=>new Promise(resolve=>{if(timer)clearTimeout(timer);server.close(resolve);server.closeAllConnections();})};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
-  const args=process.argv.slice(2);if(args.some(x=>x!=='--lan'))throw new ReadError('UNSUPPORTED_ARGUMENT');
-  const g=await createPublicGateway(publicConfig(),{lan:args.includes('--lan')});
+  const args=process.argv.slice(2);if(args.some(x=>!['--lan','--review-real'].includes(x)))throw new ReadError('UNSUPPORTED_ARGUMENT');
+  const mode=args.includes('--review-real')?'LOCAL_REVIEW_REAL':'LOCAL_SYNTHETIC';
+  const g=await createPublicGateway(publicConfig(),{mode,lan:args.includes('--lan')});
   for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>g.close());
-  console.log(JSON.stringify({component:'M1_PUBLIC_READ',productId:'judoju-news',host:g.host,port:g.port,mode:'LOCAL_SYNTHETIC',serviceKeyUsed:false,lanTtlHours:args.includes('--lan')?2:null}));
+  console.log(JSON.stringify({component:'M1_PUBLIC_READ',productId:'judoju-news',host:g.host,port:g.port,mode,serviceKeyUsed:false,lanTtlHours:args.includes('--lan')?2:null}));
 }

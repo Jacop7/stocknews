@@ -8,10 +8,10 @@ import {toggleParent,toggleSector,selectionLabels,validSelection,periodRange} fr
 const sector='11000000-0000-4000-8000-000000000001';
 test('v2 composite cursor binds version, period, sector set, limit and preserves microseconds',()=>{
  const route=readRoute('/v2/articles?version=2&limit=1&sectors='+sector),data={catalog_version:'2',as_of:'2026-11-14T14:00:00.123456+00:00',items:[{sample_kind:'SYNTHETIC'}],next:{last_time:'2026-11-14T13:00:00.654321+00:00',last_id:sector}};
- const result=catalogResponse(route,data),path='/v2/articles?version=2&limit=1&sectors='+sector+'&cursor='+result.next_cursor;
+ const result=catalogResponse(route,data,'SYNTHETIC'),path='/v2/articles?version=2&limit=1&sectors='+sector+'&cursor='+result.next_cursor;
  const next=readRoute(path);assert.equal(next.args.p_last_time,data.next.last_time);assert.equal(next.args.p_as_of,data.as_of);assert.equal(next.args.p_last_id,sector);
  for(const altered of [path.replace('version=2','version=3'),path.replace('limit=1','limit=2'),path+'&period=YESTERDAY',path.replace('&sectors='+sector,'')])assert.throws(()=>readRoute(altered),/INVALID_CURSOR_CONTEXT/);
- assert.throws(()=>catalogResponse(route,{...data,items:[{sample_kind:'PERMITTED_REAL'}]}),/SYNTHETIC_DTO_REQUIRED/);
+ assert.throws(()=>catalogResponse(route,{...data,items:[{sample_kind:'PERMITTED_REAL'}]},'SYNTHETIC'),/SYNTHETIC_DTO_REQUIRED/);
 });
 test('v1 routes keep timestamp meaning, v2 rejects arbitrary routes, duplicate fields and malformed cursor context',()=>{
  assert.equal(readRoute('/articles?cursor=2026-11-14T13:00:00Z').name,'m1_public_articles');

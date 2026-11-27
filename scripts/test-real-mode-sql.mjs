@@ -11,6 +11,10 @@ const psql = ['exec', '-i', 'supabase_db_judoju-news-local', 'psql', '-X', '-U',
 const probe = spawnSync(docker, psql, { input: "select to_regprocedure('private.real_mode_on()') is not null;", encoding: 'utf8', windowsHide: true });
 assert.equal(probe.status, 0, probe.stderr);
 const applied = probe.stdout.trim() === 't';
+// Migration 59 (stage 1B) dispatches real publishing by the public-kind switch, which this test keeps off.
+const probe59 = spawnSync(docker, psql, { input: "select to_regprocedure('private.public_read_kind()') is not null;", encoding: 'utf8', windowsHide: true });
+assert.equal(probe59.status, 0, probe59.stderr);
+const stage1b = probe59.stdout.trim() === 't';
 const body = readFileSync(new URL('../supabase/migrations/20261127000056_real_mode_review.sql', import.meta.url), 'utf8')
   .replace(/^begin;\s*$/m, '').replace(/commit;\s*$/, '');
 
@@ -41,6 +45,7 @@ create temp table args as select (select id from ri) issue,(select content from 
 
 -- Switch off (set explicitly: the local DB may have it on for review): real issues are refused; the synthetic template still passes unchanged.
 update private.real_mode set enabled=false;
+${stage1b ? 'update private.real_mode set public_read_enabled=false;' : ''}
 ${expectError('real_off', 'perform private.m1_prepare(a.issue,a.content,a.pol,a.cat) from args a')}
 select 'R|synthetic_template|'||(private.m1_prepare((select issue_id from t),(select content from src),(select version from pol),(select head from h))->>'article_kind');
 -- 1A: real mode can only be switched on in a local environment.
@@ -132,7 +137,7 @@ assert.deepEqual(value('company_zero_preview'), ['true']);
 assert.deepEqual(value('company_impacts_no_primary'), ['PRIMARY_SECTOR_REQUIRED']);
 assert.deepEqual(value('macro_non_official'), ['REAL_MACRO_REQUIRES_OFFICIAL']);
 assert.deepEqual(value('mixed_real'), ['MIXED_SAMPLE_KIND']);
-assert.deepEqual(value('publish_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
+assert.deepEqual(value('publish_real'), [stage1b ? 'REAL_PUBLIC_READ_OFF' : 'REAL_PUBLICATION_NOT_ENABLED_1A']);
 assert.deepEqual(value('schedule_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
 assert.deepEqual(value('fence_evidence'), ['false,false']);
 assert.deepEqual(value('fence_legacy'), ['NOT_FOUND']);

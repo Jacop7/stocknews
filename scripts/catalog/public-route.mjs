@@ -27,9 +27,13 @@ export function catalogRoute(u){
  }
  return {name:'catalog_public_articles',args:{p_expected:head,p_sectors:sectors,p_period:period,p_limit:limit,p_as_of:cursor?.as_of??null,p_last_time:cursor?.last_time??null,p_last_id:cursor?.last_id??null},context};
 }
-export function catalogResponse(route,value){
+// The expected article kind is required (no default): a reader serves exactly one kind, and any other is a 502.
+export const ARTICLE_KINDS=Object.freeze(['SYNTHETIC','PERMITTED_REAL']);
+export function expectKind(kind){if(!ARTICLE_KINDS.includes(kind))throw new TypeError('EXPECTED_KIND_REQUIRED');return kind;}
+export function catalogResponse(route,value,kind){
+ expectKind(kind);
  if(route.name!=='catalog_public_articles')return value;
- if(!value||!Array.isArray(value.items)||value.items.length>50||value.items.some(x=>x.sample_kind!=='SYNTHETIC')||!date(value.as_of)||String(value.catalog_version)!==route.args.p_expected)fail('SYNTHETIC_DTO_REQUIRED',502);
+ if(!value||!Array.isArray(value.items)||value.items.length>50||value.items.some(x=>x.sample_kind!==kind)||!date(value.as_of)||String(value.catalog_version)!==route.args.p_expected)fail('SYNTHETIC_DTO_REQUIRED',502);
  const next_cursor=value.next?Buffer.from(JSON.stringify({version:2,catalog_version:value.catalog_version,as_of:value.as_of,last_time:value.next.last_time,last_id:value.next.last_id,filter_hash:route.context})).toString('base64url'):null;
  const {next,...rest}=value;return {...rest,next_cursor};
 }

@@ -28,6 +28,7 @@ const checks = [
     'tests/home-public-read.test.mjs',
     'tests/public-read-gateway.test.mjs',
     'tests/company-page-route.test.mjs',
+    'tests/read-kind.test.mjs',
     'tests/admin-online.test.mjs',
     'tests/editor-state.test.mjs',
   ]],
@@ -54,6 +55,8 @@ const checks = [
   ['Company scope database test', ['scripts/test-company-page-sql.mjs']],
   ['Real-data review database test (migration 56)', ['scripts/test-real-mode-sql.mjs']],
   ['AI drafts inbox database test (migration 57)', ['scripts/test-ai-inbox-sql.mjs']],
+  ['Real public read database test (migration 59)', ['scripts/test-real-public-read-sql.mjs']],
+  ['Real publish intake and withdrawal database test (migrations 60-61)', ['scripts/test-real-publish-ingest-sql.mjs']],
   ...['workers/collectors', 'workers/ai-processing', 'workers/home-ranking', 'apps/admin', 'apps/mobile'].map(folder => [
     'TypeScript ' + folder, ['node_modules/typescript/bin/tsc', '-p', folder + '/tsconfig.json', '--noEmit'],
   ]),

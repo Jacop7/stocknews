@@ -32,7 +32,10 @@ export type CalendarPeriod='TODAY'|'YESTERDAY'|'THIS_WEEK'|'LAST_WEEK'|'THIS_MON
 export interface CatalogNewsPage {catalog_version:string;as_of:string;period:CalendarPeriod;range_start:string;range_end:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 // Scope (2026-11-27): COMPANY issues appear on the company page only; SECTOR and MACRO issues also feed home and sectors.
 export type ArticleKind='SECTOR'|'COMPANY'|'MACRO';
-export interface PublicNewsSummary {issue_id:string;version_id:string;title:string;summary:string;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC';article_kind:ArticleKind;sector_name:string|null;}
+// One kind per reader (publish stage 1B): synthetic fixtures, or permitted real articles in the local review mode.
+export type PublicArticleSampleKind='SYNTHETIC'|'PERMITTED_REAL';
+export type PublicReadMode='LOCAL_SYNTHETIC'|'PREVIEW_SYNTHETIC'|'LOCAL_REVIEW_REAL';
+export interface PublicNewsSummary {issue_id:string;version_id:string;title:string;summary:string;first_published_at:string;material_change_at:string;sample_kind:PublicArticleSampleKind;article_kind:ArticleKind;sector_name:string|null;}
 export interface SearchNewsPage {catalog_version:string;as_of:string;items:Array<PublicNewsSummary&{sector_id:string|null;legacy_sector:boolean}>;next_cursor:string|null;}
 export interface CompanySectorLink {id:string;name:string;display_order:number;}
 export interface SearchCompany {source_company_ref:string;name:string;search_description:string;metadata_kind:'USER_REFERENCE_UNVERIFIED';stock_identity_state:'UNRESOLVED';stock_code:null;price:null;change_percent:null;stock_url:null;related_sectors:CompanySectorLink[];has_more_sectors:boolean;}
@@ -49,7 +52,7 @@ export interface PublicScenario {direction:'POSITIVE'|'NEGATIVE';title:string;ex
 export interface PublicSchedule {kind:'EXACT'|'PERIOD';title:string;timezone:string;event_at?:string;period_label?:string;date_note?:string;}
 export type ArticleSourceRole = 'PRIMARY' | 'REPORTED';
 export interface PublicArticleBody {key_issues:string[];issue_analysis:string;sources:Array<{name:string;url:string;role?:ArticleSourceRole}>;visible_sections:DetailSection[];source_market:string;selection_market_basis:SelectionMarketBasis;analysis_perspective:'KR_EQUITY';impact_profile:ImpactProfile;article_kind:ArticleKind;impacts:PublicImpact[];scenarios?:PublicScenario[];risks?:string[];schedule?:PublicSchedule[];}
-export type PublicArticleDetail = {state:'PUBLISHED';issue_id:string;version_id:string;title:string;summary:string;body:PublicArticleBody;first_published_at:string;material_change_at:string;sample_kind:'SYNTHETIC'}|{state:'NOT_FOUND'|'HIDDEN'|'WITHDRAWN'|'CORRECTION_PENDING';message:string;canonical_issue_id?:string};
+export type PublicArticleDetail = {state:'PUBLISHED';issue_id:string;version_id:string;title:string;summary:string;body:PublicArticleBody;first_published_at:string;material_change_at:string;sample_kind:PublicArticleSampleKind}|{state:'NOT_FOUND'|'HIDDEN'|'WITHDRAWN'|'CORRECTION_PENDING';message:string;canonical_issue_id?:string};
 export type PermissionPurpose = 'DISCOVERY' | 'LINK_EXTRACTION' | 'QUERY_TERMS' | 'ORIGINAL_ACCESS' | 'STORAGE' | 'ANALYSIS' | 'DISPLAY' | 'MACHINE_ACCESS';
 export interface ProviderPermission {id:string; version:string; endpoint_id:string; status:'UNVERIFIED'|'VERIFIED'|'DENIED'; purposes:Record<PermissionPurpose,'UNKNOWN'|'ALLOW'|'DENY'>; subject:string|null; evidence:string[]; verified_at:string|null; expires_at:string|null; revoked_at:string|null; allowed_hosts:string[]; methods:string[]; max_requests:number; max_bytes:number; timeout_ms:number; retention_days:number|null; contract_id:string|null; credential_status:string;}
 export interface VerifiedQuote {instrumentId:string; venue:'KRX'|'NYSE'|'NASDAQ'; currency:'KRW'|'USD'; sessionId:string; priceType:'LAST'|'CLOSE'; adjustment:'RAW'|'SPLIT'|'TOTAL_RETURN'; price:number|null; referencePrice:number|null; asOf:string; receivedAt:string; sampleKind:SupplySampleKind; permissionVerified:boolean;}
