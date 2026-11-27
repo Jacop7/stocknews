@@ -8,7 +8,7 @@
 2. **AI 모델 결정됨(Sol 중심안)**, **API 키 저장됨**(2026-11-26, worktree `.local-data/ai/openai.key`, git 제외). 모델 목록 조회로 키 유효와 `gpt-6-luna`·`gpt-6.1-sol`·`gpt-6.2-sol` 사용 가능을 확인. 키 내용은 출력·커밋하지 않는다. 플랫폼 월 사용 한도(권장 $200)는 사용자가 설정. 채팅에 한 번 노출된 이전 키는 사용자가 2026-11-26 삭제함(저장된 키와 다름을 해시로 확인).
 4. 프로젝트 루트 `AGENTS.md`가 2026-11-26 세션 중 사라졌다. 의도한 삭제인지 확인.
 
-6. **AI 초안함 = 게시 경로 1단계(로컬)**: `docs/publish-path.md` 1단계(실데이터 모드 `PERMITTED_REAL`·허가 호스트 URL, AI 사실 → claims/evidence 매핑, COMPANY 영향 0개 게시 허용, `ai_submit_draft_v1` 접수 RPC, 서버 초안 9건 풀 방식 투입 → 어드민 검토 → 앱 확인). 그다음 2단계(클라우드 적용 + 접수 전용 DB 역할, 사용자 승인). CLOUD12A(51~55 클라우드)는 2026-11-27 완료.
+6. **AI 초안함 = 게시 경로 1A(로컬) 구현**: 계획 `docs/publish-stage1-plan.md` 5차(Codex APPROVE, 2026-11-27). 순서: (1) 마이그레이션 56 실데이터 스위치·URL 파서·공개 차단 울타리·`m1_prepare_real` 분기·게시/예약 거부·어드민 DTO `sample_kind`, (2) 마이그레이션 57 접수·철회·정리(링크·영수증·근거·claim 연결, advisory 잠금, 카탈로그 ID 확인), (3) AI 저장소 `draft_exports`·`export-requeue`·`exportRequeue` 경로, (4) `publish-map.mjs`·`ai-drafts-pull.ps1`, (5) 어드민 배지·근거 패널·COMPANY 검토, (6) 9건 재처리 → 로컬 접수 → 어드민 미리보기. 각 단계 시험과 Codex 구현 검수. 1B(공개 읽기)는 별도 계획.
 5. **CLOUD11 남은 실측**(2026-11-27 로그인·TOTP 완료): 사용자가 어드민에서 합성 초안 저장·미리보기 후 로그아웃 → 같은 쿠키 재사용 거부와 `admin_online_status` openSessions 0 확인. 비상 시 `scripts/ops/admin-online.ps1 revoke`.
 
 ## 사용자 결정이 필요한 것 (최우선)
