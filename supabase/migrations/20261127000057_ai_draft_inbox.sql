@@ -185,6 +185,8 @@ begin
   delete from private.claims where issue_id=p_issue;
   delete from private.editor_drafts where issue_id=p_issue;
   delete from private.ai_draft_origin where issue_id=p_issue;
+  -- With the draft gone nobody owns it any more; a later AI version may fill the issue again.
+  update private.issues set manual_protected=false where id=p_issue;
 end$$;
 
 create function private.ai_ingest_draft(p_effect_key text,p_payload jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
@@ -221,7 +223,7 @@ begin
     drift:=private.ai_catalog_drift(d,head);
     if jsonb_array_length(drift)>0 then
       result:=jsonb_build_object('state','CATALOG_DRIFT','ai_version',ver,'catalog_version',head,'refs',drift);
-    elsif lnk.issue_id is not null and (i.manual_protected or ed.updated_by is not null) then
+    elsif lnk.issue_id is not null and ed.issue_id is not null and (i.manual_protected or ed.updated_by is not null) then
       -- The editor owns this draft now: keep it, keep its claims, and show the new evidence beside it.
       insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,catalog_ref,expires_at)
         values(lnk.issue_id,ver,p_payload->'facts',d->'sources',head,p_payload->'catalog_ref',now()+interval '30 days');
@@ -302,18 +304,20 @@ end$$;
 
 -- 30-day retention of unpublished AI drafts and their evidence; runs inside the existing daily retention tick.
 create function private.ai_inbox_cleanup() returns jsonb language plpgsql security definer set search_path='' as $$
-declare r record;iss uuid;n integer:=0;
+declare r record;iss uuid;n integer:=0;skipped integer:=0;
 begin
   -- Each issue is handled under the same per-issue lock as intake and withdrawal, and re-read after taking it, so a
-  -- concurrent intake can never be undone by a stale view.
-  for r in select l.ai_issue_id from private.ai_issue_links l where l.state in ('ACTIVE','HOLD_EDITOR') and l.issue_id is not null order by l.ai_issue_id loop
-    perform pg_advisory_xact_lock(hashtext('ai-issue:'||r.ai_issue_id));
+  -- concurrent intake can never be undone by a stale view. Busy issues are skipped (next run takes them) and one pass is
+  -- bounded, so the retention job stays inside its statement and lock timeouts.
+  for r in select l.ai_issue_id from private.ai_issue_links l join private.ai_draft_origin o on o.issue_id=l.issue_id
+    where l.state in ('ACTIVE','HOLD_EDITOR') and o.expires_at<=now() group by l.ai_issue_id order by min(o.expires_at),l.ai_issue_id limit 200 loop
+    if not pg_try_advisory_xact_lock(hashtext('ai-issue:'||r.ai_issue_id)) then skipped:=skipped+1;continue;end if;
     -- A draft expires 30 days after its own evidence arrived; newer pending versions beside a held draft never extend it.
     select l.issue_id into iss from private.ai_issue_links l join private.issues i on i.id=l.issue_id
       where l.ai_issue_id=r.ai_issue_id and l.state in ('ACTIVE','HOLD_EDITOR') and i.publication_state='DRAFT'
         and coalesce((select o.expires_at from private.ai_draft_origin o where o.issue_id=l.issue_id
           and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=l.issue_id)),'-infinity')<=now()
-      for update of l;
+      for update of l skip locked;
     if found then
       perform private.ai_clear_issue(iss);
       update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
@@ -325,7 +329,7 @@ begin
     end if;
   end loop;
   -- Receipts are permanent (small, and they keep replays and conflicts exact forever).
-  return jsonb_build_object('expired',n);
+  return jsonb_build_object('expired',n,'skipped_busy',skipped);
 end$$;
 alter function private.retention_tick() rename to retention_tick_v1;
 create function private.retention_tick() returns jsonb language plpgsql security definer set search_path='' as $$

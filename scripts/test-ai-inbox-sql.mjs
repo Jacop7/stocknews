@@ -147,6 +147,8 @@ insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_ve
 update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from a1) and ai_version=2;
 create temp table held_n as select private.ai_inbox_cleanup()->>'expired' n;
 select 'R|held_expired|'||(select n from held_n)||':'||exists(select 1 from private.editor_drafts where issue_id=(select issue_id from a1))||':'||(select state||'/'||reason from private.ai_issue_links where issue_id=(select issue_id from a1));
+${ok('refill_after_expiry', `${call(A, 10, payload(A, 10, { draft: { title: 'refilled' } }))}->>'state'`)}
+select 'R|refill_draft|'||(select content->>'title' from private.editor_drafts where issue_id=(select issue_id from a1))||':'||(select manual_protected from private.issues where id=(select issue_id from a1));
 -- 30-day retention.
 update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(D)});
 ${ok('cleanup', "private.ai_inbox_cleanup()->>'expired'")}
@@ -199,6 +201,8 @@ assert.deepEqual(value('role_mismatch_reported'), ['AI_SOURCE_ROLE_MISMATCH']);
 assert.deepEqual(value('held_cleanup'), ['0']);
 assert.deepEqual(value('held_kept'), ['2:true']);
 assert.deepEqual(value('held_expired'), ['1:false:WITHDRAWN/EXPIRED']);
+assert.deepEqual(value('refill_after_expiry'), ['RECEIVED']);
+assert.deepEqual(value('refill_draft'), ['refilled:false']);
 assert.deepEqual(value('bad_core'), ['AI_DRAFT_CORE_INVALID']);
 assert.deepEqual(value('bad_story_type'), ['AI_DRAFT_KEYS']);
 assert.deepEqual(value('bad_catalog_type'), ['AI_CATALOG_REF_INVALID']);
