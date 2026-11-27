@@ -50,6 +50,8 @@ USER node
 CMD ["node", "--experimental-strip-types", "scripts/cloud-preview-hosted.mjs"]
 "@ | Set-Content "$stage\Dockerfile" -Encoding ascii
 @"
+# Further sites (CLOUD11-online admin) are dropped into the sites folder by their own deploy script.
+import /etc/caddy/sites/*.caddy
 $hostName {
 	header -Server
 	reverse_proxy 127.0.0.1:62331 {
@@ -89,6 +91,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - $base/sites:/etc/caddy/sites:ro
     depends_on: [gateway]
 volumes:
   caddy_data:
@@ -98,7 +101,7 @@ volumes:
     labels:
       com.judoju.product: judoju-news
 "@ | Set-Content "$stage\compose.yaml" -Encoding ascii
-$remote = (ssh.exe @ssh $server "install -d -m 700 $base $base/private && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
+$remote = (ssh.exe @ssh $server "install -d -m 700 $base $base/private && install -d -m 755 $base/sites && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
 if ($remote -notmatch "^$([regex]::Escape($base))/release-$commit\.[A-Za-z0-9]{8}$") { throw "Unexpected remote dir: $remote" }
 scp.exe @ssh "$stage\gateway.tar" "$stage\Dockerfile" "$stage\Caddyfile" "$stage\compose.yaml" "${server}:$remote/"
 if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }
