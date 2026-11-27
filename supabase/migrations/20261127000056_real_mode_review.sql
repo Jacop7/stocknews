@@ -64,6 +64,42 @@ begin
   return jsonb_build_object('canonical_issue_id',i.id,'state',i.publication_state,'message',case i.publication_state when 'PUBLISHED' then '공개된 글' when 'CORRECTION_PENDING' then '내용 확인 중 · 기존 내용 제공 중지' when 'WITHDRAWN' then '근거 확인 불가로 게시 중단' else '현재 제공하지 않는 글' end);
 end$function$;
 
+CREATE OR REPLACE FUNCTION public.reservation_create(p_issue uuid, p_draft_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_due_at text, p_request uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare i private.issues;d private.editor_drafts;s private.manual_publication_schedules;due timestamptz;h text;prior private.reservation_requests;r jsonb;b jsonb;sid uuid:=gen_random_uuid();
+begin
+ perform private.m1_assert_editor();
+ if exists(select 1 from private.issues where id=p_issue and sample_kind<>'SYNTHETIC') then raise exception 'REAL_PUBLICATION_NOT_ENABLED_1A';end if;
+ if p_request is null or p_due_at is null or length(p_due_at)>50 or p_due_at!~'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$' then raise exception 'RESERVATION_INPUT_INVALID';end if;
+ h:=private.reservation_hash(jsonb_build_object('operation','CREATE','issue',p_issue,'draft',p_draft_revision,'revision',p_issue_revision,'policy',p_policy,'catalog',p_catalog,'due',p_due_at));
+ select * into prior from private.reservation_requests where actor_id=auth.uid() and request_id=p_request;
+ if found then if prior.payload_hash<>h or prior.operation<>'CREATE' then raise exception 'REQUEST_PAYLOAD_CONFLICT';end if;return prior.result;end if;
+ due:=p_due_at::timestamptz;
+ if not isfinite(due) or due<clock_timestamp()+interval '60 seconds' or due>clock_timestamp()+interval '90 days' then raise exception 'RESERVATION_TIME_INVALID';end if;
+ perform 1 from private.catalog_head where singleton for share;
+ select * into strict i from private.issues where id=p_issue for update;
+ select * into strict d from private.editor_drafts where issue_id=p_issue for update;
+ -- A competing identical request may have finished while waiting for this issue.
+ select * into prior from private.reservation_requests where actor_id=auth.uid() and request_id=p_request;
+ if found then if prior.payload_hash<>h or prior.operation<>'CREATE' then raise exception 'REQUEST_PAYLOAD_CONFLICT';end if;return prior.result;end if;
+ if i.publication_state<>'DRAFT' or i.first_published_at is not null or i.current_version_id is not null or i.sample_kind<>'SYNTHETIC'
+ or exists(select 1 from private.issue_aliases where alias_id=i.id) then raise exception 'RESERVATION_DRAFT_REQUIRED';end if;
+ if i.revision is distinct from p_issue_revision or d.revision is distinct from p_draft_revision then raise exception 'REVISION_CONFLICT' using errcode='40001';end if;
+ if i.scheduled_publish_at is not null or exists(select 1 from private.manual_publication_schedules where issue_id=p_issue and status='PENDING') then raise exception 'RESERVATION_PENDING';end if;
+ b:=private.m1_prepare(i.id,d.content,p_policy,p_catalog);
+ insert into private.manual_publication_schedules(id,issue_id,due_at,expires_at,actor_id,actor_auth_session_id,draft_revision,issue_revision,content_hash,policy_version,catalog_version,evidence_digest,request_id,request_hash,effect_key)
+ values(sid,i.id,due,due+interval '15 minutes',auth.uid(),(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'session_id')::uuid,d.revision,i.revision,private.reservation_hash(d.content),p_policy,p_catalog,private.reservation_evidence_hash(i.id),p_request,h,'reservation:'||sid::text);
+ update private.issues set scheduled_publish_at=due where id=i.id;
+ r:=jsonb_build_object('schedule_id',sid,'status','PENDING','revision',1,'due_at',due,'expires_at',due+interval '15 minutes');
+ insert into private.reservation_requests values(auth.uid(),p_request,'CREATE',h,r,clock_timestamp());
+ insert into private.audits(actor_id,action,entity_id,details) values(auth.uid()::text,'RESERVATION_CREATE',sid::text,jsonb_build_object('issue_id',i.id,'due_at',due));
+ return r;
+end$function$;
+
 -- Real-data validator chain (generated from the live M1 chain by scripts/tools/gen-migration-56.mjs).
 CREATE OR REPLACE FUNCTION private.m1_prepare_real_v1(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)
  RETURNS jsonb

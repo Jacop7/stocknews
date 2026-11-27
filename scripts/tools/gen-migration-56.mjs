@@ -59,8 +59,13 @@ selectable = selectable.replace(/\$function\$$/, '$function$;');
 let resolve = sub(read('resolve'), "if not found or i.publication_state='DRAFT' then return", "if not found or i.publication_state='DRAFT' or i.sample_kind<>'SYNTHETIC' then return");
 resolve = resolve.replace(/\$function\$$/, '$function$;');
 
+// 1A: a real draft is never scheduled either; the editor gets the same explicit reason as for publishing.
+let reservation = sub(read('reservation_create'), " perform private.m1_assert_editor();\n if p_request is null",
+  " perform private.m1_assert_editor();\n if exists(select 1 from private.issues where id=p_issue and sample_kind<>'SYNTHETIC') then raise exception 'REAL_PUBLICATION_NOT_ENABLED_1A';end if;\n if p_request is null");
+reservation = reservation.replace(/\$function\$$/, '$function$;');
+
 const fence = readFileSync(new URL('./migration-56-fence.sql', import.meta.url), 'utf8').replace(/\r/g, '');
 const head = readFileSync(new URL('./migration-56-head.sql', import.meta.url), 'utf8').replace(/\r/g, '');
-const sql = `${head}\n${resolve}\n\n-- Real-data validator chain (generated from the live M1 chain by scripts/tools/gen-migration-56.mjs).\n${chain}\n\n-- Reference-catalog sectors are selectable for real issues while real mode is on; fixture sectors stay synthetic-only.\n${selectable}\n\n${fence}`;
+const sql = `${head}\n${resolve}\n\n${reservation}\n\n-- Real-data validator chain (generated from the live M1 chain by scripts/tools/gen-migration-56.mjs).\n${chain}\n\n-- Reference-catalog sectors are selectable for real issues while real mode is on; fixture sectors stay synthetic-only.\n${selectable}\n\n${fence}`;
 writeFileSync(new URL('../../supabase/migrations/20261127000056_real_mode_review.sql', import.meta.url), sql);
 console.log(JSON.stringify({ written: 'supabase/migrations/20261127000056_real_mode_review.sql', bytes: Buffer.byteLength(sql) }));

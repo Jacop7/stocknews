@@ -69,6 +69,18 @@ ${expectError('mixed_real', 'perform private.m1_prepare(a.issue,a.content,a.pol,
 delete from private.claims where issue_id=(select id from ri) and sample_kind='SYNTHETIC';
 -- 1A publish block (immediate and scheduled publication share the core).
 ${expectError('publish_real', "perform private.reservation_publish_core(a.issue,0,0,a.pol,a.cat,'test-effect',gen_random_uuid(),null) from args a")}
+-- Scheduling a real draft is refused with the same reason, as a signed-in editor (admin fixture, rolled back).
+create temp table ed as select gen_random_uuid() u,gen_random_uuid() s;
+insert into auth.users(id,email,aud,role,raw_app_meta_data) select u,'editor-'||u||'@example.invalid','authenticated','authenticated','{"app_role":"admin"}' from ed;
+insert into auth.sessions(id,user_id) select s,u from ed;
+insert into private.admin_memberships(user_id,active) select u,true from ed;
+insert into private.admin_sessions(capability_hash,user_id,auth_session_id,ciphertext,expires_at) select repeat('c',64),u,s,repeat('x',40),now()+interval '1 hour' from ed;
+grant select on args,ed to authenticated;
+select set_config('request.jwt.claims',json_build_object('role','authenticated','sub',u,'session_id',s,'aal','aal2')::text,true) from ed;
+set local role authenticated;
+${expectError('schedule_real', "perform public.reservation_create(a.issue,0,0,a.pol,a.cat,to_char(now()+interval '1 day','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'),gen_random_uuid()) from args a")}
+reset role;
+select set_config('request.jwt.claims','',true);
 -- Public fence: every public read sees the published template first (control), then nothing once it is real,
 -- for anon and authenticated alike.
 -- The template links one visible company so the company page is a real control too; list reads are pinned to its
@@ -120,6 +132,7 @@ assert.deepEqual(value('company_impacts_no_primary'), ['PRIMARY_SECTOR_REQUIRED'
 assert.ok(['REAL_MACRO_REQUIRES_OFFICIAL', 'CLAIM_NOT_VERIFIED'].includes(value('macro_non_official')[0]), value('macro_non_official')[0]);
 assert.deepEqual(value('mixed_real'), ['MIXED_SAMPLE_KIND']);
 assert.deepEqual(value('publish_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
+assert.deepEqual(value('schedule_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
 assert.deepEqual(value('fence_evidence'), ['false,false']);
 assert.deepEqual(value('fence_legacy'), ['NOT_FOUND']);
 const reads = key => Object.fromEntries(value(key)[0].split(',').map(x => x.split('=')).map(([k, v]) => [k, v === 'true']));
