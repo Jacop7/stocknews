@@ -25,8 +25,13 @@ function Invoke-Remote([string]$script) {
 New-Item -ItemType Directory -Force $local | Out-Null
 
 if ($Command -eq 'store-secret') {
-  $secure = Read-Host 'Supabase secret key (input hidden)' -AsSecureString
-  $key = ([System.Net.NetworkCredential]::new('', $secure).Password -replace '[\u200B-\u200D\uFEFF\s]', '').Trim('"', "'")
+  # The key is taken from the clipboard (the terminal panel can split a pasted line into the hidden prompt and the next
+  # prompt); the clipboard is cleared afterwards. Nothing is printed.
+  Add-Type -AssemblyName System.Windows.Forms
+  Read-Host 'Copy the secret key in the Supabase dashboard (copy button), then press Enter here' | Out-Null
+  $raw = [System.Windows.Forms.Clipboard]::GetText()
+  try { [System.Windows.Forms.Clipboard]::Clear() } catch {}
+  $key = ($raw -replace '[\u200B-\u200D\uFEFF\s]', '').Trim('"', "'")
   if ($key -notmatch '^sb_secret_[A-Za-z0-9_-]{16,256}$') { throw "Not a secret key (expected sb_secret_..., length $($key.Length)). Nothing was saved." }
   [System.IO.File]::WriteAllText((Join-Path $local 'secret.key'), $key); Write-Host 'Saved .local-data\admin-online\secret.key (not printed).'; return
 }
