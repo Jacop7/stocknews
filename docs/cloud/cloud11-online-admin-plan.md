@@ -188,6 +188,6 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
 ### 사용자 준비
 
 1. **TOTP 앱**(Google Authenticator 등): 첫 로그인 때 QR을 등록한다.
-2. **Supabase secret 키**(`sb_secret_…`, 이름 `judoju-admin-broker`): 발급해 숨김 입력 스크립트로 저장한다.
+2. **Supabase secret 키**(`sb_secret_…`, 이름 `judoju_admin_broker`): 발급해 숨김 입력 스크립트로 저장한다.
 3. **어드민 계정 비밀번호** 확인. 잊었으면 Supabase에서 재설정한다.
 4. **승인**: Supabase Auth 공개 가입 끄기, 어드민 주소 공개.

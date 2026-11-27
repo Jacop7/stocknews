@@ -85,7 +85,7 @@ code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://__HOST__/login || tr
   $receipt.steps.finalCheck = @{ confirmed = [bool]$ok4; result = $r4 }; $receipt.finishedAt = (Get-Date).ToUniversalTime().ToString('o'); Save-Receipt
   if (-not $ok4) { Stop-Revoke 'STEP4' 'Something re-granted authority or a session reappeared. Run select public.admin_online_status(); in the SQL Editor and investigate before anything else.' }
   Write-Host "Revoke confirmed (all four steps). Receipt: $receiptFile"
-  Write-Host 'Now delete the secret key "judoju-admin-broker" in Supabase > Project Settings > API Keys. Re-enabling later needs a new key, activation.sql and deploy.'
+  Write-Host 'Now delete the secret key "judoju_admin_broker" in Supabase > Project Settings > API Keys. Re-enabling later needs a new key, activation.sql and deploy.'
   return
 }
 

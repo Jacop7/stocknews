@@ -8,7 +8,7 @@
 2. **AI 모델 결정됨(Sol 중심안)**, **API 키 저장됨**(2026-11-26, worktree `.local-data/ai/openai.key`, git 제외). 모델 목록 조회로 키 유효와 `gpt-6-luna`·`gpt-6.1-sol`·`gpt-6.2-sol` 사용 가능을 확인. 키 내용은 출력·커밋하지 않는다. 플랫폼 월 사용 한도(권장 $200)는 사용자가 설정. 채팅에 한 번 노출된 이전 키는 사용자가 2026-11-26 삭제함(저장된 키와 다름을 해시로 확인).
 4. 프로젝트 루트 `AGENTS.md`가 2026-11-26 세션 중 사라졌다. 의도한 삭제인지 확인.
 
-5. **CLOUD11 온라인 어드민 활성화 준비**(2026-11-27 구현·검수 완료): (a) Supabase 대시보드 → Project Settings → API Keys에서 secret 키 `judoju-admin-broker` 생성 후 `scripts/ops/admin-online.ps1 store-secret`(숨김 입력, 채팅에 붙이지 않음), (b) Auth "회원가입 끄기"와 어드민 주소 공개 승인, (c) TOTP 앱(Google Authenticator 등) 준비, (d) 소유자 계정 비밀번호 확인. 그 뒤 자동: activation.sql 드라이런(ROLLBACK) → 적용 → read-gateway 재배포(Caddy sites) → admin deploy → 실공격 시험(H8).
+5. **CLOUD11 온라인 어드민 활성화 준비**(2026-11-27 구현·검수 완료): (a) Supabase 대시보드 → Project Settings → API Keys에서 secret 키 `judoju_admin_broker` 생성 후 `scripts/ops/admin-online.ps1 store-secret`(숨김 입력, 채팅에 붙이지 않음), (b) Auth "회원가입 끄기"와 어드민 주소 공개 승인, (c) TOTP 앱(Google Authenticator 등) 준비, (d) 소유자 계정 비밀번호 확인. 그 뒤 자동: activation.sql 드라이런(ROLLBACK) → 적용 → read-gateway 재배포(Caddy sites) → admin deploy → 실공격 시험(H8).
 
 ## 사용자 결정이 필요한 것 (최우선)
 
