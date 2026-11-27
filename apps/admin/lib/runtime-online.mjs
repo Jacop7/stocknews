@@ -77,7 +77,8 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     clients[client]=[...mine,at];s={clients,all:[...s.all,at]};
     try{writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);}catch{deny('LOGIN_STATE_UNAVAILABLE',503);}
   }
-  function sweep(){for(const [k,v] of pending)if(v.expires<=now())pending.delete(k);}
+  // Expired pending logins also end their aal1 Auth session (best effort; aal1 can never edit or open a session).
+  function sweep(){for(const [k,v] of pending)if(v.expires<=now()){pending.delete(k);try{const token=unseal(v.sealed,config().encryptionKey).accessToken;void api('/auth/v1/logout?scope=local',{token}).catch(()=>{});}catch{}}}
   async function login(email,password,client){
     if(typeof client!=='string'||!/^[0-9a-f:.]{2,45}$/i.test(client))deny('CLIENT_ADDRESS_REQUIRED',400);
     limit(client);
@@ -127,6 +128,8 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
       await broker('open',{accessToken:t.access_token,hash:hash(capability),ciphertext:seal(payload,c.encryptionKey),expires:new Date(expires).toISOString()});
       await api('/rest/v1/rpc/m1_check_editor',{body:{},token:t.access_token,capability});
     }catch(e){try{await broker('close',{hash:hash(capability)});}catch{}try{await api('/auth/v1/logout?scope=local',{token:t.access_token});}catch{}throw e;}
+    // Every other Auth session of the owner ends here, including aal1 leftovers from abandoned or pre-restart logins.
+    try{await api('/auth/v1/logout?scope=others',{token:t.access_token});}catch{}
     return {capability,csrf,expires};
   }
   async function session(capability){

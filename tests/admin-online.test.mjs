@@ -83,6 +83,7 @@ test('online login: owner only, password then TOTP; editor calls carry the capab
     assert.equal(step.step, 'challenge'); assert.match(step.pendingId, /^[A-Za-z0-9_-]{43}$/);
     await assert.rejects(rt.mfaVerify(step.pendingId, '000000'), /MFA_CODE_INVALID/);
     const done = await rt.mfaVerify(step.pendingId, '123456');
+    assert.ok(fake.calls.some(c => c.route === '/auth/v1/logout?scope=others'), 'other owner sessions end after aal2');
     await assert.rejects(rt.mfaVerify(step.pendingId, '123456'), /MFA_PENDING_REQUIRED/);
     const s = await rt.session(done.capability);
     assert.deepEqual(await rt.editorRpc('m1_editor_articles', {}, s), { admin: true });

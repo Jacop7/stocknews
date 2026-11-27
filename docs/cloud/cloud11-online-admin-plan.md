@@ -114,7 +114,7 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
   - 라우트 4개만 둔다: `mfa/factors`(목록), `mfa/enroll`(미등록일 때만), `mfa/challenge`, `mfa/verify`.
   - verify가 성공하면 aal2 토큰으로 교체하고 대기 레코드를 지운 뒤 broker로 세션을 연다.
   - 실패 5회, 만료, 서버 재시작이면 대기 레코드를 버리고 Auth 로그아웃한다.
-- **갱신**: refresh token으로 갱신한 토큰도 `aal2`인지 매번 확인한다. 아니거나 갱신에 실패하면 세션을 닫고(broker close + Auth 로그아웃) 다시 로그인하게 한다.
+- **갱신 없음**: 어드민은 refresh token을 쓰지 않는다. 세션은 access token 만료(최대 1시간)와 함께 끝나고, 다시 로그인(비밀번호+TOTP)해야 한다.
 
 ### H3. secret 키 분리 (Codex 2)
 
@@ -148,10 +148,10 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
   - 한 트랜잭션에서 21+3 EXECUTE 회수, membership 비활성, `admin_sessions` 전부 철회를 한다. 함수 소유자는 자기 함수의 EXECUTE를 회수할 수 있다.
   - DDL 권한이 없는 secret 키로도 이 함수만 부를 수 있다.
 - **실행 순서**(`scripts/ops/admin-online.ps1 revoke`, 이 순서만 유효):
-  1. **DB 차단**: `admin_online_revoke()`를 호출하고, 결과 ACL을 조회해 차단을 확인한다. 실패하거나 확인되지 않으면 **멈춘다**. 사용자에게 SQL Editor에서 같은 함수를 실행하라고 안내하고, 차단이 확인되기 전에는 다음 단계로 가지 않는다.
-  2. **Auth 전체 로그아웃**: 관리 API로 소유자의 모든 세션을 끊는다. HTTP 작업이라 1번과 같은 트랜잭션이 아니다.
-  3. **정리**: 어드민·broker 컨테이너를 중지하고, 서버의 설정·IPC 키 파일을 삭제한다.
-  4. **사후 확인**: ACL을 다시 조회하고 단계별 영수증을 남긴다. 실패한 단계도 기록한다.
+   1. **DB 차단**: `admin_online_revoke()`를 호출하고, DB가 돌려준 상태(`admin_online_status`: 편집 권한·세션 권한·활성 membership·열린 세션이 모두 0)로 차단을 확인한다. 확인되지 않으면 **멈추고** SQL Editor에서 `select public.admin_online_revoke();`를 실행하라고 안내한다.
+   2. **Auth 전체 로그아웃**: `admin_online_signout()`으로 관리자들의 `auth.sessions`를 지운다(refresh token도 함께 삭제). 1번과 별도 단계이며, 확인되지 않으면 멈추고 SQL Editor 실행을 안내한다.
+   3. **정리**: 어드민·broker 컨테이너를 중지하고, 서버의 설정·IPC 키 파일과 Caddy 어드민 사이트를 삭제한다.
+   4. **사후 확인**: 이 PC에서 secret 키로 `admin_online_status()`를 다시 불러 모든 값이 0인지 보고, 단계별 영수증(`.local-data/admin-online/revoke-receipt-*.json`)을 남긴다. 실패한 단계도 기록한다.
 - 이미 발급된 access JWT는 만료(최대 1시간)까지 남지만, 1번에서 membership·세션·EXECUTE가 없어지므로 편집은 즉시 막힌다.
 - secret 키 폐기는 사용자가 대시보드에서 한다(안내 출력).
 

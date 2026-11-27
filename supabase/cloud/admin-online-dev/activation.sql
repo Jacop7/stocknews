@@ -18,7 +18,17 @@ begin
     or (select jsonb_agg(conname||':'||pg_get_constraintdef(oid) order by conname) from pg_constraint where conrelid='private.admin_memberships'::regclass)<>'["admin_memberships_pkey:PRIMARY KEY (user_id)","admin_memberships_user_id_fkey:FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"]'::jsonb
     or not (select relrowsecurity from pg_class where oid='private.admin_sessions'::regclass) or not (select relrowsecurity from pg_class where oid='private.admin_memberships'::regclass)
     then raise exception 'CLOUD11_TABLE_DRIFT';end if;
-  if (select count(*) from private.admin_memberships)<>0 or (select count(*) from private.admin_sessions)<>0 then raise exception 'CLOUD11_NOT_EMPTY';end if;
+  -- Table ACL and policies are pinned: only postgres may touch the admin tables, with no RLS policies.
+  for k,v in select * from jsonb_each_text('{"private.admin_sessions":"{postgres=arwdDxtm/postgres}","private.admin_memberships":"{postgres=arwdDxtm/postgres}","private.audits":"{postgres=arwdDxtm/postgres}"}'::jsonb) loop
+    if (select coalesce(relacl::text,'null') from pg_class where oid=k::regclass) is distinct from v then raise exception 'CLOUD11_TABLE_ACL_DRIFT %',k;end if;
+  end loop;
+  if exists(select 1 from pg_policies where schemaname='private' and tablename in ('admin_sessions','admin_memberships')) then raise exception 'CLOUD11_POLICY_DRIFT';end if;
+  -- First activation: empty tables. Re-activation after admin_online_revoke: no active membership, no open session.
+  if exists(select 1 from private.admin_memberships where active) or exists(select 1 from private.admin_sessions where revoked_at is null) then raise exception 'CLOUD11_NOT_REVOKED';end if;
+  -- service_role may only hold this stage's own admin functions from an earlier activation, never the session RPCs.
+  if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable'
+    and has_function_privilege('service_role',p.oid,'EXECUTE') and n.nspname||'.'||p.proname not in ('public.admin_online_revoke','public.admin_online_status','public.admin_online_signout'))
+    then raise exception 'CLOUD11_SERVICE_ROLE_DRIFT';end if;
   if not exists(select 1 from auth.users where id='e85049b7-7306-42ad-ac16-6c4bf5e82212' and deleted_at is null and not is_sso_user and email_confirmed_at is not null and coalesce(encrypted_password,'')<>'')
     then raise exception 'CLOUD11_OWNER';end if;
   for k in select value from jsonb_array_elements_text('["public.m1_check_editor()","public.m1_editor_articles()","public.m1_get_draft(uuid)","public.m1_operation_status(uuid,text)","public.m1_create_draft(uuid)","public.m1_save_draft(uuid,bigint,jsonb)","public.catalog_save_draft(uuid,bigint,jsonb,bigint)","public.m1_preview_draft(uuid,bigint,bigint,bigint)","public.m1_publish_draft(uuid,bigint,bigint,bigint,bigint,text)","public.m1_set_state(uuid,bigint,text,text)","public.catalog_editor_sectors()","public.catalog_editor_index(integer,integer)","public.catalog_editor_tree(bigint)","public.catalog_editor_sector(uuid,bigint,integer,integer)","public.catalog_editor_companies(integer,integer,text)","public.catalog_editor_company(uuid,bigint)","public.catalog_editor_group(uuid,bigint)","public.catalog_editor_membership(uuid,bigint)","public.catalog_editor_impact(uuid,bigint)","public.catalog_apply(bigint,text,text,uuid,jsonb)","public.catalog_operation_status(bigint,text,text,uuid,jsonb)","public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)","public.m1_read_admin_session(text)","public.m1_close_admin_session(text)"]'::jsonb) loop
@@ -65,6 +75,41 @@ begin
   return jsonb_build_object('created',true,'expires_at',p_expires);
 end$$;
 
+-- H6 evidence: the DB itself reports the admin authority state (service_role only). Used to confirm the revoke and
+-- for the final check, without SQL access.
+create or replace function public.admin_online_status() returns jsonb language plpgsql security definer set search_path='' as $$
+declare editors text[]:=array['public.m1_check_editor()','public.m1_editor_articles()','public.m1_get_draft(uuid)','public.m1_operation_status(uuid,text)',
+  'public.m1_create_draft(uuid)','public.m1_save_draft(uuid,bigint,jsonb)','public.catalog_save_draft(uuid,bigint,jsonb,bigint)','public.m1_preview_draft(uuid,bigint,bigint,bigint)',
+  'public.m1_publish_draft(uuid,bigint,bigint,bigint,bigint,text)','public.m1_set_state(uuid,bigint,text,text)','public.catalog_editor_sectors()','public.catalog_editor_index(integer,integer)',
+  'public.catalog_editor_tree(bigint)','public.catalog_editor_sector(uuid,bigint,integer,integer)','public.catalog_editor_companies(integer,integer,text)','public.catalog_editor_company(uuid,bigint)',
+  'public.catalog_editor_group(uuid,bigint)','public.catalog_editor_membership(uuid,bigint)','public.catalog_editor_impact(uuid,bigint)','public.catalog_apply(bigint,text,text,uuid,jsonb)',
+  'public.catalog_operation_status(bigint,text,text,uuid,jsonb)'];
+  sessions text[]:=array['public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','public.m1_read_admin_session(text)','public.m1_close_admin_session(text)'];
+begin
+  perform private.assert_server();
+  return jsonb_build_object(
+    'editorGrants',(select count(*) from unnest(editors) f where has_function_privilege('authenticated',f,'EXECUTE')),
+    'sessionGrants',(select count(*) from unnest(sessions) f where has_function_privilege('service_role',f,'EXECUTE')),
+    'activeMemberships',(select count(*) from private.admin_memberships where active),
+    'openSessions',(select count(*) from private.admin_sessions where revoked_at is null and expires_at>now()),
+    'adminAuthSessions',(select count(*) from auth.sessions s join private.admin_memberships m on m.user_id=s.user_id));
+end$$;
+revoke all on function public.admin_online_status() from public,anon,authenticated;
+grant execute on function public.admin_online_status() to service_role;
+
+-- H6 step 2: end every Auth session of admin users (refresh tokens cascade). Separate from step 1 by design.
+create or replace function public.admin_online_signout() returns jsonb language plpgsql security definer set search_path='' as $$
+declare n integer;
+begin
+  perform private.assert_server();
+  delete from auth.sessions s using private.admin_memberships m where s.user_id=m.user_id;
+  get diagnostics n=row_count;
+  insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_SIGNOUT',n::text);
+  return jsonb_build_object('authSessionsEnded',n);
+end$$;
+revoke all on function public.admin_online_signout() from public,anon,authenticated;
+grant execute on function public.admin_online_signout() to service_role;
+
 -- H6: emergency revoke, callable only by service_role (the broker's secret key) or the owner in the SQL Editor.
 -- One transaction: remove the API EXECUTE grants, deactivate memberships, revoke every admin session.
 create or replace function public.admin_online_revoke() returns jsonb language plpgsql security definer set search_path='' as $$
@@ -83,13 +128,13 @@ begin
   update private.admin_sessions set revoked_at=now() where revoked_at is null;
   get diagnostics n=row_count;
   insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_REVOKE',n::text);
-  return jsonb_build_object('revoked',true,'sessionsRevoked',n);
+  return jsonb_build_object('revoked',true,'sessionsRevoked',n)||public.admin_online_status();
 end$$;
 revoke all on function public.admin_online_revoke() from public,anon,authenticated;
 grant execute on function public.admin_online_revoke() to service_role;
 
 update auth.users set raw_app_meta_data=coalesce(raw_app_meta_data,'{}'::jsonb)||'{"app_role":"admin","product_id":"judoju-news"}'::jsonb where id='e85049b7-7306-42ad-ac16-6c4bf5e82212';
-insert into private.admin_memberships(user_id,active) values ('e85049b7-7306-42ad-ac16-6c4bf5e82212',true);
+insert into private.admin_memberships(user_id,active) values ('e85049b7-7306-42ad-ac16-6c4bf5e82212',true) on conflict (user_id) do update set active=true,updated_at=now();
 grant execute on function public.m1_check_editor(),public.m1_editor_articles(),public.m1_get_draft(uuid),public.m1_operation_status(uuid,text),public.m1_create_draft(uuid),public.m1_save_draft(uuid,bigint,jsonb),public.catalog_save_draft(uuid,bigint,jsonb,bigint),public.m1_preview_draft(uuid,bigint,bigint,bigint),public.m1_publish_draft(uuid,bigint,bigint,bigint,bigint,text),public.m1_set_state(uuid,bigint,text,text),public.catalog_editor_sectors(),public.catalog_editor_index(integer,integer),public.catalog_editor_tree(bigint),public.catalog_editor_sector(uuid,bigint,integer,integer),public.catalog_editor_companies(integer,integer,text),public.catalog_editor_company(uuid,bigint),public.catalog_editor_group(uuid,bigint),public.catalog_editor_membership(uuid,bigint),public.catalog_editor_impact(uuid,bigint),public.catalog_apply(bigint,text,text,uuid,jsonb),public.catalog_operation_status(bigint,text,text,uuid,jsonb) to authenticated;
 grant execute on function public.m1_open_admin_session(uuid,uuid,text,text,timestamptz),public.m1_read_admin_session(text),public.m1_close_admin_session(text) to service_role;
 insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_ACTIVATE','e85049b7-7306-42ad-ac16-6c4bf5e82212');
@@ -105,9 +150,11 @@ begin
   select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by p.proname),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('anon',p.oid,'EXECUTE');
   if got<>'["public.catalog_public_articles","public.catalog_public_company_sectors","public.catalog_public_saved","public.catalog_public_search_companies","public.catalog_public_search_news","public.catalog_public_sector_page","public.catalog_public_tree","public.m1_public_article","public.m1_public_identity"]'::jsonb then raise exception 'CLOUD11_POST_ANON %',got;end if;
-  if not (has_function_privilege('service_role','public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','EXECUTE') and has_function_privilege('service_role','public.m1_read_admin_session(text)','EXECUTE')
-    and has_function_privilege('service_role','public.m1_close_admin_session(text)','EXECUTE') and has_function_privilege('service_role','public.admin_online_revoke()','EXECUTE'))
-    or has_function_privilege('authenticated','public.admin_online_revoke()','EXECUTE') or has_function_privilege('anon','public.admin_online_revoke()','EXECUTE') then raise exception 'CLOUD11_POST_SERVICE';end if;
+  -- service_role may execute exactly the three session RPCs and this stage's revoke/status/signout functions.
+  select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('service_role',p.oid,'EXECUTE');
+  if got<>'["public.admin_online_revoke","public.admin_online_signout","public.admin_online_status","public.m1_close_admin_session","public.m1_open_admin_session","public.m1_read_admin_session"]'::jsonb
+    then raise exception 'CLOUD11_POST_SERVICE %',got;end if;
   if (select count(*) from private.admin_memberships where active)<>1 or (select raw_app_meta_data->>'app_role' from auth.users where id='e85049b7-7306-42ad-ac16-6c4bf5e82212')<>'admin' then raise exception 'CLOUD11_POST_OWNER';end if;
   if (select provolatile from pg_proc where oid='private.is_admin()'::regprocedure)<>'v' then raise exception 'CLOUD11_POST_IS_ADMIN';end if;
 end$post$;

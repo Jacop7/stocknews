@@ -4,7 +4,7 @@
 #         private configs (owner-only, uid 1000; the secret key only in the broker's), starts "judoju-news-admin" and adds
 #         the admin site to Caddy (https://admin.52-79-247-25.sslip.io). Does NOT activate DB permissions (activation.sql).
 # revoke: the single ordered emergency procedure (docs/cloud/cloud11-online-admin-plan.md H6):
-#         1 DB block via admin_online_revoke (stops if not confirmed) -> 2 Auth lock-out of the owner -> 3 stop and delete files -> 4 checks.
+#         1 DB block confirmed by admin_online_status -> 2 end admin Auth sessions -> 3 stop and delete -> 4 final check from this PC; receipts.
 param([Parameter(Mandatory = $true)][ValidateSet('store-secret', 'deploy', 'status', 'revoke')][string]$Command)
 $ErrorActionPreference = 'Stop'
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -39,39 +39,42 @@ curl -s -m 10 -o /dev/null -w 'https_admin=%{http_code}\n' https://__HOST__/logi
 if ($Command -eq 'status') { Invoke-Remote $statusScript; return }
 
 if ($Command -eq 'revoke') {
-  # 1. DB block: admin_online_revoke inside the broker (the only holder of the secret key). Confirm by a refused session RPC.
-  $block = @'
-set -e
+  # Authoritative order (plan H6). Each step's result goes into a local receipt; a step that cannot be confirmed stops the run.
+  $receipt = [ordered]@{ startedAt = (Get-Date).ToUniversalTime().ToString('o'); steps = [ordered]@{} }
+  $receiptFile = Join-Path $local ('revoke-receipt-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
+  function Save-Receipt { $receipt | ConvertTo-Json -Depth 6 | Set-Content $receiptFile -Encoding utf8 }
+  $inBroker = @'
 sudo -n docker exec -i judoju-news-admin-broker-1 node --input-type=module - <<'JS'
 import { readFileSync } from 'node:fs';
 const c = JSON.parse(readFileSync('/opt/judoju/.local-data/admin-broker/config.json', 'utf8'));
-const h = { apikey: c.secretKey, 'Content-Type': 'application/json' };
-const r = await fetch(c.apiUrl + '/rest/v1/rpc/admin_online_revoke', { method: 'POST', headers: h, body: '{}' });
-const probe = await fetch(c.apiUrl + '/rest/v1/rpc/m1_read_admin_session', { method: 'POST', headers: h, body: JSON.stringify({ p_hash: 'a'.repeat(64) }) });
-const code = (await probe.json().catch(() => ({}))).code;
-console.log(JSON.stringify({ revokeStatus: r.status, sessionRpcAfter: probe.status, code, blocked: r.ok && [401, 403].includes(probe.status) && code === '42501' }));
+const r = await fetch(c.apiUrl + '/rest/v1/rpc/__FN__', { method: 'POST', headers: { apikey: c.secretKey, 'Content-Type': 'application/json' }, body: '{}' });
+console.log('RESULT ' + JSON.stringify({ status: r.status, body: await r.json().catch(() => null) }));
 JS
 '@
-  $out = Invoke-Remote $block; $out
-  if (-not ($out -match '"blocked":true')) {
-    Write-Host 'DB BLOCK NOT CONFIRMED. Stop here. In the Supabase SQL Editor run: select public.admin_online_revoke(); then re-run revoke.'
-    throw 'REVOKE_STEP1_UNCONFIRMED'
-  }
-  # 2. Auth: ban the owner (admin API) so refresh and new sign-ins fail; existing JWTs are already useless after step 1.
-  $ban = @'
-sudo -n docker exec -i judoju-news-admin-broker-1 node --input-type=module - <<'JS'
-import { readFileSync } from 'node:fs';
-const c = JSON.parse(readFileSync('/opt/judoju/.local-data/admin-broker/config.json', 'utf8'));
-const r = await fetch(c.apiUrl + '/auth/v1/admin/users/' + c.ownerUserId, { method: 'PUT', headers: { apikey: c.secretKey, Authorization: 'Bearer ' + c.secretKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ ban_duration: '876000h' }) });
-console.log(JSON.stringify({ authBanStatus: r.status }));
-JS
-'@
-  try { Invoke-Remote $ban } catch { Write-Host 'Auth lock-out failed; DB block stands. Ban the user in Supabase > Authentication.' }
-  # 3. Stop and remove the private files. 4. Receipt.
-  Invoke-Remote "cd $base/current 2>/dev/null && sudo -n docker compose down || true; sudo -n rm -rf $base/private; sudo -n rm -f $readBase/sites/admin.caddy; sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || true; echo STOPPED_AND_REMOVED"
-  Write-Host 'Delete the secret key "judoju-admin-broker" in Supabase > Project Settings > API Keys. Re-enable later: unban the user and re-run activation.'
+  function Invoke-BrokerFn([string]$fn) { $out = Invoke-Remote $inBroker.Replace('__FN__', $fn); $line = ($out | Where-Object { $_ -like 'RESULT *' } | Select-Object -Last 1); if (-not $line) { return $null }; return ($line.Substring(7) | ConvertFrom-Json) }
+  # 1. DB block, confirmed by the DB's own status (all grants, memberships and open sessions zero).
+  $r1 = $null; try { $r1 = Invoke-BrokerFn 'admin_online_revoke' } catch {}
+  $ok1 = $r1 -and $r1.status -eq 200 -and $r1.body.revoked -eq $true -and $r1.body.editorGrants -eq 0 -and $r1.body.sessionGrants -eq 0 -and $r1.body.activeMemberships -eq 0 -and $r1.body.openSessions -eq 0
+  $receipt.steps.dbBlock = @{ confirmed = [bool]$ok1; result = $r1 }; Save-Receipt
+  if (-not $ok1) { Write-Host "STEP 1 NOT CONFIRMED. Run in the Supabase SQL Editor: select public.admin_online_revoke(); then re-run revoke. Receipt: $receiptFile"; throw 'REVOKE_STEP1_UNCONFIRMED' }
+  # 2. End every Auth session of admin users (refresh tokens cascade). Separate HTTP step; stops if not confirmed.
+  $r2 = $null; try { $r2 = Invoke-BrokerFn 'admin_online_signout' } catch {}
+  $ok2 = $r2 -and $r2.status -eq 200 -and $null -ne $r2.body.authSessionsEnded
+  $receipt.steps.authSignout = @{ confirmed = [bool]$ok2; result = $r2 }; Save-Receipt
+  if (-not $ok2) { Write-Host "STEP 2 NOT CONFIRMED (DB block stands). Run in the SQL Editor: select public.admin_online_signout(); then re-run revoke. Receipt: $receiptFile"; throw 'REVOKE_STEP2_UNCONFIRMED' }
+  # 3. Stop the containers, remove the private configs and the Caddy site.
+  $r3 = Invoke-Remote "cd $base/current 2>/dev/null && sudo -n docker compose down >/dev/null 2>&1; sudo -n rm -rf $base/private; sudo -n rm -f $readBase/sites/admin.caddy; sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; test ! -e $base/private && echo REMOVED"
+  $receipt.steps.stopAndDelete = @{ confirmed = [bool]($r3 -match 'REMOVED') }; Save-Receipt
+  # 4. Final check from this PC with the local secret key: the DB reports no authority left.
+  $secret = (Get-Content (Join-Path $local 'secret.key') -Raw).Trim()
+  try { $s = Invoke-RestMethod -Method Post -Uri "$api/rest/v1/rpc/admin_online_status" -Headers @{ apikey = $secret } -ContentType 'application/json' -Body '{}' } catch { $s = $null }
+  $ok4 = $s -and $s.editorGrants -eq 0 -and $s.sessionGrants -eq 0 -and $s.activeMemberships -eq 0 -and $s.openSessions -eq 0 -and $s.adminAuthSessions -eq 0
+  $receipt.steps.finalCheck = @{ confirmed = [bool]$ok4; result = $s }; $receipt.finishedAt = (Get-Date).ToUniversalTime().ToString('o'); Save-Receipt
+  Write-Host "Revoke receipt: $receiptFile (final check confirmed: $([bool]$ok4))"
+  Write-Host 'Delete the secret key "judoju-admin-broker" in Supabase > Project Settings > API Keys. To re-enable later, re-run activation.sql (it accepts the revoked state) and deploy.'
   return
 }
+
 
 # deploy
 $sources = @('package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.node-version', 'apps/admin', 'packages/contracts', 'scripts/admin-broker.mjs')

@@ -5,7 +5,16 @@
   "observedAt": "2026-11-27",
   "method": "Read-only SQL Editor queries",
   "ownerUserId": "e85049b7-7306-42ad-ac16-6c4bf5e82212",
-  "migrations": ["20261114000000", "20261114000001", "20261115000101", "20261115000102", "20261116000103", "20261116000104", "20261116000105", "20261116000106"],
+  "migrations": [
+    "20261114000000",
+    "20261114000001",
+    "20261115000101",
+    "20261115000102",
+    "20261116000103",
+    "20261116000104",
+    "20261116000105",
+    "20261116000106"
+  ],
   "helperHashes": {
     "private.is_admin()": "ec45d50f359553ed5a26de648f96350d372dae1205e78a271edee14dd3e54a3a",
     "private.active_admin_user(uuid,uuid)": "86ee931af6f7fa948cecc015793266d458766640e80a4df5dc34ce70998a3530",
@@ -41,10 +50,36 @@
     "public.catalog_operation_status(bigint,text,text,uuid,jsonb)": "74599c1f054acb2402646f03c0e84adb4d7f2ef47a56556deea68eac03bc4a67"
   },
   "tables": {
-    "private.admin_sessions": {"rls": true, "rows": 0, "constraints": ["admin_sessions_auth_session_id_fkey:FOREIGN KEY (auth_session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE", "admin_sessions_capability_hash_check:CHECK ((capability_hash ~ '^[0-9a-f]{64}$'::text))", "admin_sessions_ciphertext_check:CHECK (((length(ciphertext) >= 20) AND (length(ciphertext) <= 32768)))", "admin_sessions_pkey:PRIMARY KEY (capability_hash)", "admin_sessions_user_id_fkey:FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"]},
-    "private.admin_memberships": {"rls": true, "rows": 0, "constraints": ["admin_memberships_pkey:PRIMARY KEY (user_id)", "admin_memberships_user_id_fkey:FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"]}
+    "private.admin_sessions": {
+      "rls": true,
+      "rows": 0,
+      "constraints": [
+        "admin_sessions_auth_session_id_fkey:FOREIGN KEY (auth_session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE",
+        "admin_sessions_capability_hash_check:CHECK ((capability_hash ~ '^[0-9a-f]{64}$'::text))",
+        "admin_sessions_ciphertext_check:CHECK (((length(ciphertext) >= 20) AND (length(ciphertext) <= 32768)))",
+        "admin_sessions_pkey:PRIMARY KEY (capability_hash)",
+        "admin_sessions_user_id_fkey:FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ]
+    },
+    "private.admin_memberships": {
+      "rls": true,
+      "rows": 0,
+      "constraints": [
+        "admin_memberships_pkey:PRIMARY KEY (user_id)",
+        "admin_memberships_user_id_fkey:FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ]
+    }
   },
   "apiExecuteOnEditorOrSessionFunctions": 0,
   "postgresCanUpdateAuthUsers": true,
-  "authSessionsAalType": "auth.aal_level"
+  "authSessionsAalType": "auth.aal_level",
+  "tableAcl": {
+    "private.admin_sessions": "{postgres=arwdDxtm/postgres}",
+    "private.admin_memberships": "{postgres=arwdDxtm/postgres}",
+    "private.audits": "{postgres=arwdDxtm/postgres}"
+  },
+  "policies": [],
+  "serviceRoleExecute": [],
+  "postgresCanDeleteAuthSessions": true,
+  "authRefreshTokensFk": "refresh_tokens_session_id_fkey:FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE"
 }

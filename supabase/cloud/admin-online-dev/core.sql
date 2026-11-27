@@ -37,6 +37,41 @@ begin
   return jsonb_build_object('created',true,'expires_at',p_expires);
 end$$;
 
+-- H6 evidence: the DB itself reports the admin authority state (service_role only). Used to confirm the revoke and
+-- for the final check, without SQL access.
+create or replace function public.admin_online_status() returns jsonb language plpgsql security definer set search_path='' as $$
+declare editors text[]:=array['public.m1_check_editor()','public.m1_editor_articles()','public.m1_get_draft(uuid)','public.m1_operation_status(uuid,text)',
+  'public.m1_create_draft(uuid)','public.m1_save_draft(uuid,bigint,jsonb)','public.catalog_save_draft(uuid,bigint,jsonb,bigint)','public.m1_preview_draft(uuid,bigint,bigint,bigint)',
+  'public.m1_publish_draft(uuid,bigint,bigint,bigint,bigint,text)','public.m1_set_state(uuid,bigint,text,text)','public.catalog_editor_sectors()','public.catalog_editor_index(integer,integer)',
+  'public.catalog_editor_tree(bigint)','public.catalog_editor_sector(uuid,bigint,integer,integer)','public.catalog_editor_companies(integer,integer,text)','public.catalog_editor_company(uuid,bigint)',
+  'public.catalog_editor_group(uuid,bigint)','public.catalog_editor_membership(uuid,bigint)','public.catalog_editor_impact(uuid,bigint)','public.catalog_apply(bigint,text,text,uuid,jsonb)',
+  'public.catalog_operation_status(bigint,text,text,uuid,jsonb)'];
+  sessions text[]:=array['public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','public.m1_read_admin_session(text)','public.m1_close_admin_session(text)'];
+begin
+  perform private.assert_server();
+  return jsonb_build_object(
+    'editorGrants',(select count(*) from unnest(editors) f where has_function_privilege('authenticated',f,'EXECUTE')),
+    'sessionGrants',(select count(*) from unnest(sessions) f where has_function_privilege('service_role',f,'EXECUTE')),
+    'activeMemberships',(select count(*) from private.admin_memberships where active),
+    'openSessions',(select count(*) from private.admin_sessions where revoked_at is null and expires_at>now()),
+    'adminAuthSessions',(select count(*) from auth.sessions s join private.admin_memberships m on m.user_id=s.user_id));
+end$$;
+revoke all on function public.admin_online_status() from public,anon,authenticated;
+grant execute on function public.admin_online_status() to service_role;
+
+-- H6 step 2: end every Auth session of admin users (refresh tokens cascade). Separate from step 1 by design.
+create or replace function public.admin_online_signout() returns jsonb language plpgsql security definer set search_path='' as $$
+declare n integer;
+begin
+  perform private.assert_server();
+  delete from auth.sessions s using private.admin_memberships m where s.user_id=m.user_id;
+  get diagnostics n=row_count;
+  insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_SIGNOUT',n::text);
+  return jsonb_build_object('authSessionsEnded',n);
+end$$;
+revoke all on function public.admin_online_signout() from public,anon,authenticated;
+grant execute on function public.admin_online_signout() to service_role;
+
 -- H6: emergency revoke, callable only by service_role (the broker's secret key) or the owner in the SQL Editor.
 -- One transaction: remove the API EXECUTE grants, deactivate memberships, revoke every admin session.
 create or replace function public.admin_online_revoke() returns jsonb language plpgsql security definer set search_path='' as $$
@@ -55,7 +90,7 @@ begin
   update private.admin_sessions set revoked_at=now() where revoked_at is null;
   get diagnostics n=row_count;
   insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_REVOKE',n::text);
-  return jsonb_build_object('revoked',true,'sessionsRevoked',n);
+  return jsonb_build_object('revoked',true,'sessionsRevoked',n)||public.admin_online_status();
 end$$;
 revoke all on function public.admin_online_revoke() from public,anon,authenticated;
 grant execute on function public.admin_online_revoke() to service_role;

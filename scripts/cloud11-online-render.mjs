@@ -35,7 +35,17 @@ begin
     or (select jsonb_agg(conname||':'||pg_get_constraintdef(oid) order by conname) from pg_constraint where conrelid='private.admin_memberships'::regclass)<>${json(pre.tables['private.admin_memberships'].constraints)}
     or not (select relrowsecurity from pg_class where oid='private.admin_sessions'::regclass) or not (select relrowsecurity from pg_class where oid='private.admin_memberships'::regclass)
     then raise exception 'CLOUD11_TABLE_DRIFT';end if;
-  if (select count(*) from private.admin_memberships)<>0 or (select count(*) from private.admin_sessions)<>0 then raise exception 'CLOUD11_NOT_EMPTY';end if;
+  -- Table ACL and policies are pinned: only postgres may touch the admin tables, with no RLS policies.
+  for k,v in select * from jsonb_each_text(${json(pre.tableAcl)}) loop
+    if (select coalesce(relacl::text,'null') from pg_class where oid=k::regclass) is distinct from v then raise exception 'CLOUD11_TABLE_ACL_DRIFT %',k;end if;
+  end loop;
+  if exists(select 1 from pg_policies where schemaname='private' and tablename in ('admin_sessions','admin_memberships')) then raise exception 'CLOUD11_POLICY_DRIFT';end if;
+  -- First activation: empty tables. Re-activation after admin_online_revoke: no active membership, no open session.
+  if exists(select 1 from private.admin_memberships where active) or exists(select 1 from private.admin_sessions where revoked_at is null) then raise exception 'CLOUD11_NOT_REVOKED';end if;
+  -- service_role may only hold this stage's own admin functions from an earlier activation, never the session RPCs.
+  if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable'
+    and has_function_privilege('service_role',p.oid,'EXECUTE') and n.nspname||'.'||p.proname not in ('public.admin_online_revoke','public.admin_online_status','public.admin_online_signout'))
+    then raise exception 'CLOUD11_SERVICE_ROLE_DRIFT';end if;
   if not exists(select 1 from auth.users where id=${q(pre.ownerUserId)} and deleted_at is null and not is_sso_user and email_confirmed_at is not null and coalesce(encrypted_password,'')<>'')
     then raise exception 'CLOUD11_OWNER';end if;
   for k in select value from jsonb_array_elements_text(${json([...editors, ...sessions])}) loop
@@ -45,7 +55,7 @@ end$guard$;
 
 ${core}
 update auth.users set raw_app_meta_data=coalesce(raw_app_meta_data,'{}'::jsonb)||'{"app_role":"admin","product_id":"judoju-news"}'::jsonb where id=${q(pre.ownerUserId)};
-insert into private.admin_memberships(user_id,active) values (${q(pre.ownerUserId)},true);
+insert into private.admin_memberships(user_id,active) values (${q(pre.ownerUserId)},true) on conflict (user_id) do update set active=true,updated_at=now();
 grant execute on function ${editors.join(',')} to authenticated;
 grant execute on function ${sessions.join(',')} to service_role;
 insert into private.audits(actor_id,action,entity_id) values('system','ADMIN_ONLINE_ACTIVATE',${q(pre.ownerUserId)});
@@ -61,9 +71,11 @@ begin
   select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by p.proname),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('anon',p.oid,'EXECUTE');
   if got<>${json(readRpcs)} then raise exception 'CLOUD11_POST_ANON %',got;end if;
-  if not (has_function_privilege('service_role','public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','EXECUTE') and has_function_privilege('service_role','public.m1_read_admin_session(text)','EXECUTE')
-    and has_function_privilege('service_role','public.m1_close_admin_session(text)','EXECUTE') and has_function_privilege('service_role','public.admin_online_revoke()','EXECUTE'))
-    or has_function_privilege('authenticated','public.admin_online_revoke()','EXECUTE') or has_function_privilege('anon','public.admin_online_revoke()','EXECUTE') then raise exception 'CLOUD11_POST_SERVICE';end if;
+  -- service_role may execute exactly the three session RPCs and this stage's revoke/status/signout functions.
+  select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') into got from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname in ('public','private','judoju_control') and p.proname<>'rls_auto_enable' and has_function_privilege('service_role',p.oid,'EXECUTE');
+  if got<>'["public.admin_online_revoke","public.admin_online_signout","public.admin_online_status","public.m1_close_admin_session","public.m1_open_admin_session","public.m1_read_admin_session"]'::jsonb
+    then raise exception 'CLOUD11_POST_SERVICE %',got;end if;
   if (select count(*) from private.admin_memberships where active)<>1 or (select raw_app_meta_data->>'app_role' from auth.users where id=${q(pre.ownerUserId)})<>'admin' then raise exception 'CLOUD11_POST_OWNER';end if;
   if (select provolatile from pg_proc where oid='private.is_admin()'::regprocedure)<>'v' then raise exception 'CLOUD11_POST_IS_ADMIN';end if;
 end$post$;

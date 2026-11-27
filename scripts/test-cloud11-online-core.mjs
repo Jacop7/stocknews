@@ -55,10 +55,14 @@ grant execute on function public.m1_check_editor(),public.m1_save_draft(uuid,big
 grant execute on function public.m1_open_admin_session(uuid,uuid,text,text,timestamptz) to service_role;
 select set_config('request.jwt.claims',${q(JSON.stringify({ role: 'service_role' }))},true);
 select 'R|revoke|'||(public.admin_online_revoke()->>'revoked');
+select 'R|status_after|'||(select string_agg(key||'='||value,',' order by key) from jsonb_each_text(public.admin_online_status()));
+select 'R|signout|'||(public.admin_online_signout()->>'authSessionsEnded');
+select 'R|auth_sessions_left|'||(select count(*) from auth.sessions where user_id in (${q(U)},${q(OTHER)}));
 select 'R|after_revoke_grants|'||(has_function_privilege('authenticated','public.m1_check_editor()','EXECUTE') or has_function_privilege('authenticated','public.m1_save_draft(uuid,bigint,jsonb)','EXECUTE')
   or has_function_privilege('service_role','public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','EXECUTE'));
 select 'R|after_revoke_members|'||(select count(*) from private.admin_memberships where active);
 select 'R|after_revoke_sessions|'||(select count(*) from private.admin_sessions where revoked_at is null);
+select 'R|status_fn_acl|'||has_function_privilege('anon','public.admin_online_status()','EXECUTE')||','||has_function_privilege('authenticated','public.admin_online_signout()','EXECUTE')||','||has_function_privilege('service_role','public.admin_online_signout()','EXECUTE');
 select 'R|revoke_fn_acl|'||has_function_privilege('anon','public.admin_online_revoke()','EXECUTE')||','||has_function_privilege('authenticated','public.admin_online_revoke()','EXECUTE')||','||has_function_privilege('service_role','public.admin_online_revoke()','EXECUTE');
 rollback;`;
 const run = spawnSync(docker, ['exec', '-i', 'supabase_db_judoju-news-local', 'psql', '-X', '-U', 'postgres', '-d', 'postgres', '-At', '-v', 'ON_ERROR_STOP=1'], { input: sql, encoding: 'utf8', windowsHide: true });
@@ -73,4 +77,10 @@ assert.deepEqual(value('revoke_as_user'), ['SERVER_ONLY']);
 assert.deepEqual(value('revoke'), ['true']); assert.deepEqual(value('after_revoke_grants'), ['false']);
 assert.deepEqual(value('after_revoke_members'), ['0']); assert.deepEqual(value('after_revoke_sessions'), ['0']);
 assert.deepEqual(value('revoke_fn_acl'), ['false,false,true']);
+// The local DB may already hold other admin members' Auth sessions; sign-out must end exactly the counted ones.
+const status = Object.fromEntries(value('status_after')[0].split(',').map(x => x.split('=')));
+assert.deepEqual([status.activeMemberships, status.editorGrants, status.openSessions, status.sessionGrants], ['0', '0', '0', '0']);
+assert.ok(Number(status.adminAuthSessions) >= 3);
+assert.deepEqual(value('signout'), [status.adminAuthSessions]); assert.deepEqual(value('auth_sessions_left'), ['0']);
+assert.deepEqual(value('status_fn_acl'), ['false,false,true']);
 console.log(JSON.stringify({ status: 'PASS', phase: 'CLOUD11_ONLINE_CORE', rolledBack: true, checks: lines.length }));
