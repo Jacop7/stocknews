@@ -1,4 +1,4 @@
-# 게시 경로 1단계 계획: AI 초안함과 실데이터 모드 (로컬, 2026-11-27, 4차)
+# 게시 경로 1단계 계획: AI 초안함과 실데이터 모드 (로컬, 2026-11-27, 5차)
 
 `docs/publish-path.md`의 1단계를 구현 단위로 나눈 계획이다. 사용자 결정(2026-11-27): 로컬에서 시작해 클라우드 미리보기까지, 사람 승인 후 게시, 푸시 접수(1단계는 풀), 섹터 영향 없는 종목 기사 허용. 1차 검수(HOLD, 12건)는 [F#], 2차 검수(HOLD, 7건)는 [G#], 3차 검수(HOLD, 3건)는 [H#]로 표시해 반영했다.
 
@@ -97,10 +97,13 @@
   - 출처 철회가 일어나면 같은 트랜잭션에서 해당 행을 `REVOKED`로 바꾸고 사실·초안 내용을 지운다(ID·버전·상태만 남김). 내보낸 뒤 30일이 지난 행은 정리 작업이 지운다. [G5]
   - 내보내기는 `jobs.state='DRAFT_READY'`이고 `issues.version`이 스냅샷 버전과 같으며, 스냅샷이 `REVOKED`가 아닌 것만 읽는다. 원문 본문은 넣지 않는다.
 - **기존 초안 재처리** [G3, H1]: 이미 `DRAFT_READY`인 초안(9건)에는 스냅샷이 없다. 커밋 뒤 원문과 실행 기록(`runs.response`)이 정리되므로(store `releaseOriginals`) 저장된 기록으로는 다시 만들 수 없다. 그래서 다시 처리한다.
-  - `cli.mjs export-requeue --job <id>`: `DRAFT_READY` 작업을 `FETCH` 상태(새 링크와 같은 시작 상태, store `claim`이 집는 상태)로 되돌리고 `next_at=now`로 둔다. 기존 이슈 행은 그대로 둔다.
+  - `cli.mjs export-requeue --job <id>`: `DRAFT_READY` 작업을 `FETCH` 상태(새 링크와 같은 시작 상태, store `claim`이 집는 상태)로 되돌린다. `next_at=now`, 작업 payload에 `exportRequeue: true`를 둔다. 기존 이슈 행은 그대로 둔다.
   - 다시 처리하면 원문을 다시 읽고(허가·robots 규칙 동일), 추출·검증·작성을 거쳐 `commitDraft`에 온다.
-  - 사실이 같으면 지금은 `DUPLICATE`로 끝난다. 그때 현재 이슈 버전의 스냅샷이 없으면, 이번 실행의 검증 사실과 현재 이슈 payload로 스냅샷을 쓰도록 `commitDraft`를 바꾼다(버전은 올리지 않음). 사실이 달라지면 평소처럼 새 버전이 된다.
-  - 하루 호출 상한(150) 안에서만 돈다. 재처리 대상은 명령 인자로 정한 작업만이다. store 시험에 `DUPLICATE` 스냅샷 기록 시험을 추가한다.
+  - 사실이 같으면 지금은 두 곳에서 `DUPLICATE`로 끝난다: 작성 전 조기 중복 판정(pipeline `recordDuplicate`)과 `commitDraft`. 이 시점에는 독립 검증 결과가 아직 없으므로 조기 판정에서는 스냅샷을 만들 수 없다. [H4]
+    - `exportRequeue`인 작업은 조기 중복 판정을 건너뛰고 작성·독립 검증까지 간다.
+    - `commitDraft`에서도 `exportRequeue`이면 사실이 같아도 `DUPLICATE`로 끝내지 않는다. `UPDATE`(새 버전)로 기록하고, 같은 트랜잭션에서 검증 사실이 담긴 스냅샷을 쓴다. 로컬 DB에는 아직 이전 버전이 없으므로 버전이 오르는 것은 문제없다.
+    - `exportRequeue`가 아닌 작업의 중복 처리는 지금과 같다.
+  - 하루 호출 상한(150) 안에서만 돈다. 재처리 대상은 명령 인자로 정한 작업만이다. 시험: `exportRequeue` 작업이 조기 중복을 건너뛰고 새 버전과 스냅샷을 남김, 일반 작업의 중복 처리는 불변.
 - `workers/ai-processing/runtime/publish-map.mjs`(순수 함수, 시험 포함): 스냅샷을 `AI_DRAFT_V1`로 바꾼다.
   - `source_market`: 출처가 모두 국내 공시·국내 보도면 `KR`, 해외 출처가 있으면 `GLOBAL`. `selection_market_basis='KR'`.
   - **근거 ID** [H2]: 매핑 모듈은 AI 사실 ID(`f-…`)를 그대로 둔다(`evidence_fact_ids`). claim UUID로 바꾸는 일은 DB 접수 함수가 claim을 만든 직후 같은 트랜잭션에서 한다(A3-7). 대상은 영향 `evidence_ids`, 일정 `evidence_ids`, 기타 근거 참조다. 모르는 사실 ID가 있으면 `UNKNOWN_FACT_REF`로 거부한다.
