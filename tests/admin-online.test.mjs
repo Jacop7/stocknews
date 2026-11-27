@@ -139,6 +139,13 @@ test('online login: prior sessions must end before a session opens; expired pend
     for (let i = 0; i < 70; i++) await tick();
     const m = localTries(); await tick();
     assert.ok(localTries() > m, 'retries continue while the token is still valid, however many sweeps ran');
+    // A failed normal logout is retried too.
+    const lo = fakeSupabase({ failLocal: true }), rt4 = runtimeWith(lo, path.join(dir, 'd.json'));
+    const l1 = await rt4.login(email, 'right', '203.0.113.200'), d = await rt4.mfaVerify(l1.pendingId, '123456'), s4 = await rt4.session(d.capability);
+    const loTries = () => lo.calls.filter(c => c.route === '/auth/v1/logout?scope=local' && c.headers.Authorization === 'Bearer ' + lo.aal2).length;
+    await assert.rejects(rt4.logout(d.capability, s4)); const k = loTries();
+    await rt4.mfaVerify('A'.repeat(43), '123456').catch(() => {}); await new Promise(r => setTimeout(r, 5));
+    assert.ok(loTries() > k, 'failed admin logout is queued and retried');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
