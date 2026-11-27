@@ -185,9 +185,18 @@ $hostName {
 	}
 }
 "@ | Set-Content "$stage\admin.caddy" -Encoding ascii
-$remote = (ssh.exe @ssh $server "install -d -m 700 $base && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
+# Images are built on this PC (the 1 GB server cannot build Next.js without starving the collector) from the same
+# committed sources, then shipped as one image archive; the server only loads and runs them. No secret is in an image.
+$docker = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+& $docker build -q --platform linux/amd64 --target admin -t "judoju-news-admin-web:$commit" $stage | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Local admin image build failed' }
+& $docker build -q --platform linux/amd64 --target broker -t "judoju-news-admin-broker:$commit" $stage | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Local broker image build failed' }
+& $docker save -o "$stage\images.tar" "judoju-news-admin-web:$commit" "judoju-news-admin-broker:$commit"
+if ($LASTEXITCODE -ne 0) { throw 'Image export failed' }
+$remote =(ssh.exe @ssh $server "install -d -m 700 $base && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
 if ($remote -notmatch "^$([regex]::Escape($base))/release-$commit\.[A-Za-z0-9]{8}$") { throw "Unexpected remote dir: $remote" }
-scp.exe @ssh "$stage\source.tar" "$stage\Dockerfile" "$stage\compose.yaml" "$stage\admin.caddy" "$stage\admin-config.json" "$stage\broker-config.json" "${server}:$remote/"
+scp.exe @ssh "$stage\images.tar" "$stage\compose.yaml" "$stage\admin.caddy" "$stage\admin-config.json" "$stage\broker-config.json" "${server}:$remote/"
 if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }
 Remove-Item "$stage\admin-config.json", "$stage\broker-config.json" -Force
 $deploy = @'
@@ -198,8 +207,7 @@ sudo -n install -m 600 -o 1000 -g 1000 "$R/admin-config.json" "$B/private/admin/
 sudo -n install -m 600 -o 1000 -g 1000 "$R/broker-config.json" "$B/private/broker/config.json"
 rm -f "$R/admin-config.json" "$R/broker-config.json"
 cd "$R"
-sudo -n docker build -q --target admin -t "judoju-news-admin-web:$C" . >/dev/null
-sudo -n docker build -q --target broker -t "judoju-news-admin-broker:$C" . >/dev/null
+sudo -n docker load -q -i "$R/images.tar" >/dev/null && rm -f "$R/images.tar"
 ln -sfn "$R" "$B/current"
 cd "$B/current" && sudo -n docker compose up -d --no-build
 # The public site is added only after the admin answered locally; otherwise the deploy fails and nothing is exposed.
