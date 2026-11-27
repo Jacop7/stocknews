@@ -6,5 +6,5 @@ export interface Draft {issue_id:string;issue_revision:number;draft_revision:num
 // Publish stage 1A: evidence of an AI draft from the database's immutable origin record.
 export interface AiOriginFact {id:string;statement:string;verification_class:'ORDINARY_FACT'|'SYSTEMIC_MACRO'|'SENSITIVE_UNCONFIRMED';independently_verified:boolean;korea_path_verified:boolean;recorded_at:string;source_urls:string[];}
 export interface AiOriginVersion {ai_version:number;facts:AiOriginFact[];sources:Array<{name:string;url:string;role:'PRIMARY'|'REPORTED'}>;received_at:string;claim_ids?:Record<string,string>;}
-export interface AiOrigin {link_state:'ACTIVE'|'WITHDRAWN'|'HOLD_EDITOR';draft:AiOriginVersion|null;pending:AiOriginVersion|null;}
+export interface AiOrigin {link_state:'ACTIVE'|'WITHDRAWN'|'HOLD_EDITOR';draft:AiOriginVersion|null;pending:AiOriginVersion|null;adoptable?:boolean;}
 export interface Preview {title:string;summary:string;body:PublicArticleBody;sample_kind:'SYNTHETIC'|'PERMITTED_REAL';}

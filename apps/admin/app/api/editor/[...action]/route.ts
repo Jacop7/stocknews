@@ -38,7 +38,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{action:
       logoutStarted=true;
       await logout(capability,s);const response=reply({loggedOut:true});response.cookies.set(cookieName(),'',cookie({maxAge:0}));return response;
     }
-    const routes:Record<string,string>={create:'m1_create_draft',save:'m1_save_draft','save-catalog':'catalog_save_draft',preview:'m1_preview_draft',publish:'m1_publish_draft',state:'m1_set_state'};
+    const routes:Record<string,string>={create:'m1_create_draft',save:'m1_save_draft','save-catalog':'catalog_save_draft',preview:'m1_preview_draft',publish:'m1_publish_draft',state:'m1_set_state',adopt:'m1_adopt_ai_version'};
     if(!routes[name])throw new AdminError('ROUTE_NOT_FOUND',404);
     return reply(await editorRpc(routes[name],data,s));
   }catch(e){const response=reply({error:e instanceof AdminError?e.message:'REQUEST_FAILED',not_applied:e instanceof AdminError&&e.notApplied===true},e instanceof AdminError?e.status:500);if(logoutStarted)response.cookies.set(cookieName(),'',cookie({maxAge:0}));return response;}

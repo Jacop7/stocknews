@@ -1,0 +1,8 @@
+{
+  "purpose": "pg_get_functiondef output of the local DB before migration 62 (2026-11-27), input of gen-migration-62.mjs",
+  "files": {
+    "get_draft.sql": "1a967424fda00af9096e53422b27c595ff3af7a6a09a21194a9d2971b5e286c6",
+    "ingest.sql": "49be497cb803f42b7bcc80a423ab2f8559c7dc663400993d1b765f0ccdea38fa"
+  },
+  "migrationSha256": "2bba04aaa0a01e7956dc4a4231f223d66761531700ebb5b76e920f9f27a3bf27"
+}

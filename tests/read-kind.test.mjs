@@ -101,3 +101,14 @@ test('the admin shows the publish button for a real draft only when the server a
   assert.match(ui, /\{!previewMode&&!realDraft&&<ReservationManager/);
   for (const reason of ['AI_SOURCE_REVOKED', 'FACT_RECORD_EXPIRED', 'CORRECTION_TIMEOUT']) assert.ok(ui.includes(reason + ':'), reason);
 });
+
+test('the admin offers adoption of a held AI version only when the server marks it adoptable', async () => {
+  const { readFileSync } = await import('node:fs');
+  const panel = readFileSync(new URL('../apps/admin/components/AiOriginPanel.tsx', import.meta.url), 'utf8');
+  assert.ok(panel.includes("{origin.pending && origin.adoptable === true && onAdopt && <button"));
+  assert.ok(panel.includes('직접 고친 내용은 사라집니다'));
+  const route = readFileSync(new URL('../apps/admin/app/api/editor/[...action]/route.ts', import.meta.url), 'utf8');
+  assert.ok(route.includes("adopt:'m1_adopt_ai_version'"));
+  const ui = readFileSync(new URL('../apps/admin/components/AdminConsole.tsx', import.meta.url), 'utf8');
+  assert.ok(ui.includes("api('adopt',{p_issue:issue,p_ai_version:version,p_expected_revision:draft.draft_revision,p_effect_key:crypto.randomUUID()},csrf)"));
+});

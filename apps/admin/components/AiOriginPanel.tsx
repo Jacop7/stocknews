@@ -16,11 +16,16 @@ function Version({ title, value }: { title: string; value: AiOriginVersion }) {
   </div>;
 }
 
-export default function AiOriginPanel({ origin }: { origin: AiOrigin }) {
+// Publish stage 1C: the newest held version can be adopted when the server says so (it re-checks everything).
+export default function AiOriginPanel({ origin, onAdopt, disabled = false }: { origin: AiOrigin; onAdopt?: (version: number) => void; disabled?: boolean }) {
   return <section className='panel' aria-label='AI 초안 근거'>
     <h2>AI 초안 근거</h2>
     <p>원문 본문은 저장하지 않습니다. 사실 문장과 출처 링크만 보관하며, 30일 뒤 정리됩니다.{origin.link_state === 'HOLD_EDITOR' ? ' 편집자가 수정한 초안이라 새 AI 버전은 아래에 따로 보관합니다.' : ''}</p>
     {origin.draft && <Version title='이 초안의 근거' value={origin.draft} />}
     {origin.pending && <Version title='새로 들어온 근거(초안에 반영 안 됨)' value={origin.pending} />}
+    {origin.pending && origin.adoptable === true && onAdopt && <button className='primary' disabled={disabled} onClick={() => {
+      const version = origin.pending!.ai_version;
+      if (window.confirm(`초안 내용이 AI 버전 ${version}으로 바뀝니다. 직접 고친 내용은 사라집니다. 게시 중이면 공개에서 내려가고, 다시 게시해야 합니다.`)) onAdopt(version);
+    }}>이 버전 채택</button>}
   </section>;
 }

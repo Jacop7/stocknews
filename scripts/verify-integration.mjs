@@ -57,6 +57,7 @@ const checks = [
   ['AI drafts inbox database test (migration 57)', ['scripts/test-ai-inbox-sql.mjs']],
   ['Real public read database test (migration 59)', ['scripts/test-real-public-read-sql.mjs']],
   ['Real publish intake and withdrawal database test (migrations 60-61)', ['scripts/test-real-publish-ingest-sql.mjs']],
+  ['AI version adoption database test (migration 62)', ['scripts/test-ai-adoption-sql.mjs']],
   ...['workers/collectors', 'workers/ai-processing', 'workers/home-ranking', 'apps/admin', 'apps/mobile'].map(folder => [
     'TypeScript ' + folder, ['node_modules/typescript/bin/tsc', '-p', folder + '/tsconfig.json', '--noEmit'],
   ]),
