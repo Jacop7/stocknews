@@ -33,7 +33,9 @@
 | 공개 읽기(CLOUD10B) | **실측 확인 완료(PASS)**: 읽기 함수 9개 성공, 거부 대상 6개 차단. 증명 `.local-data/cloud-preview/access-proof.json`(git 제외) |
 | 키 | publishable 키만 `.local-data/cloud-preview/`(git 제외). 서비스·secret 키는 쓰지 않음 |
 | 직접 호출 위험 | 개발 프로젝트 한정 사용자 수용(2026-11-27). 운영 전 재검토 |
-| 남은 것 | 온라인 조회 게이트웨이(AWS, HTTPS 주소 필요) → 앱 연결, 어드민 연결(CLOUD11), 마이그레이션 51~55·AI 초안함 반영(CLOUD12) |
+| 온라인 조회 서버 | **운영 중**(2026-11-27): AWS 같은 서버에 도커 `judoju-news-read`(조회 서버 + Caddy). 주소 `https://52-79-247-25.sslip.io`(무료 sslip.io, Let's Encrypt 자동 인증서). Lightsail 방화벽 80·443 개방(CloudShell `open-instance-public-ports`, 기존 22 유지). 배포·상태 `scripts/ops/read-gateway.ps1 deploy|status` |
+| 앱 연결 | 미리보기 환경에서 `EXPO_PUBLIC_APP_ENV=preview`, `EXPO_PUBLIC_READ_MODE=PREVIEW_SYNTHETIC`, `EXPO_PUBLIC_READ_API_URL=https://52-79-247-25.sslip.io`로 클라우드 조회 확인(홈·섹터). 클라우드에는 아직 게시 기사가 없음. 설치·알림 서비스(127.0.0.1:3100)는 아직 로컬 |
+| 남은 것 | 어드민 연결(CLOUD11), 마이그레이션 51~55·AI 초안함 반영(CLOUD12), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
 ## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
 
