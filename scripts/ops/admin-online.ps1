@@ -41,10 +41,10 @@ if ($Command -eq 'set-password') {
   # The owner chooses a new password (typed twice, hidden); it goes only to Supabase Auth (admin API, local secret key).
   $secret = (Get-Content (Join-Path $local 'secret.key') -Raw).Trim()
   $plain = { param($s) [System.Net.NetworkCredential]::new('', $s).Password }
-  $p1 = & $plain (Read-Host 'New admin password (12+ characters, hidden)' -AsSecureString)
+  $p1 = & $plain (Read-Host 'New admin password (9+ characters, hidden)' -AsSecureString)
   $p2 = & $plain (Read-Host 'Type it again (hidden)' -AsSecureString)
   if ($p1 -ne $p2) { throw 'The two entries differ. Nothing was changed.' }
-  if ($p1.Length -lt 12 -or $p1.Length -gt 72) { throw 'Use 12 to 72 characters. Nothing was changed.' }
+  if ($p1.Length -lt 9 -or $p1.Length -gt 72) { throw 'Use 9 to 72 characters. Nothing was changed.' }
   $body = @{ password = $p1 } | ConvertTo-Json -Compress; $p1 = $null; $p2 = $null
   try { Invoke-RestMethod -Method Put -Uri "$api/auth/v1/admin/users/$owner" -Headers @{ apikey = $secret; Authorization = "Bearer $secret" } -ContentType 'application/json' -Body $body -TimeoutSec 20 | Out-Null }
   catch { $body = $null; throw "Password change failed (HTTP $($_.Exception.Response.StatusCode.value__)). Nothing was printed." }
