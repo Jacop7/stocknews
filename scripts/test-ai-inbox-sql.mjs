@@ -3,7 +3,7 @@
 // published synthetic M1 issue whose draft serves as the shape template for AI_DRAFT_V1 payloads.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 const docker = process.platform === 'win32' ? 'C:/Program Files/Docker/Docker/resources/bin/docker.exe' : 'docker';
@@ -24,8 +24,8 @@ const claimIds = [...new Set([...template.impacts.flatMap(x => x.evidence_ids), 
 const factOf = id => 'f-' + claimIds.indexOf(id);
 const sources = template.sources.map((s, n) => ({ name: s.name, url: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=2026112700' + n, role: 'PRIMARY' }));
 const now = new Date(Date.now() - 3600_000).toISOString();
-const facts = claimIds.map(id => ({ id: factOf(id), statement: '공시 사실 ' + factOf(id), verification_class: 'OFFICIAL', independently_verified: true,
-  korea_path_verified: true, official: true, macro: false, sensitive: false, recorded_at: now, source_urls: [sources[0].url] }));
+const facts = claimIds.map(id => ({ id: factOf(id), statement: '공시 사실 ' + factOf(id), verification_class: 'ORDINARY_FACT', independently_verified: true,
+  korea_path_verified: true, recorded_at: now, source_urls: [sources[0].url] }));
 const draft = {
   title: template.title, summary: template.summary, issue_analysis: template.issue_analysis, key_issues: template.key_issues, risks: template.risks ?? [],
   article_kind: template.article_kind, primary_sector_id: template.primary_sector_id, source_market: 'KR', selection_market_basis: 'KR', sources,
@@ -33,12 +33,21 @@ const draft = {
   scenarios: template.scenarios ?? [], schedule: (template.schedule ?? []).map(({ evidence_ids, ...x }) => ({ ...x, evidence_fact_ids: (evidence_ids ?? []).map(factOf) }))
 };
 const payload = (ai, version, change = {}) => ({ format: 'AI_DRAFT_V1', ai_issue_id: ai, ai_version: version, story_key: 'story-' + ai.slice(0, 8), angle_key: 'angle-1',
+  catalog_ref: { registry: 'registry-v1:test' },
   draft: { ...draft, ...change.draft }, facts: change.facts ?? facts, ...change.top });
 const call = (ai, version, p) => `private.ai_ingest_draft(${q(`ai:${ai}:${version}`)},${q(JSON.stringify(p))}::jsonb)`;
 const ok = (name, expr) => `select 'R|${name}|'||(${expr})::text;`;
 const err = (name, sql) => `do $$ begin perform ${sql}; raise notice 'R|${name}|PASSED'; exception when others then raise notice 'R|${name}|%', sqlerrm; end $$;`;
 
-const A = randomUUID(), B = randomUUID(), C = randomUUID(), D = randomUUID();
+const A = randomUUID(), B = randomUUID(), C = randomUUID(), D = randomUUID(), E = randomUUID(), F = randomUUID(), G = randomUUID();
+// A second sector of the current catalog that the template's first impact company is not a member of (for the
+// company-in-sector check), and the company itself.
+const head = `(select (public.catalog_public_tree(null)->>'catalog_version')::bigint)`;
+const memberCompany = run(`select m.source_company_ref from private.catalog_memberships m where m.active and m.sector_id=${q(draft.impacts[0].sector_id)}::uuid
+  and private.search_membership_visible(m.id,${head}) order by 1 limit 1;`).stdout.trim();
+const otherSector = run(`select s.id from private.sectors s where private.catalog_sector_selectable(s.id,${head},'SYNTHETIC') and s.id<>${q(draft.impacts[0].sector_id)}::uuid
+  and not exists(select 1 from private.catalog_memberships m where m.sector_id=s.id and m.source_company_ref=${q(memberCompany || '00000000-0000-4000-8000-000000000000')}::uuid) order by 1 limit 1;`).stdout.trim();
+assert.ok(memberCompany && otherSector, 'catalog needs a member company of the template sector and another sector without it');
 const unknownSector = '00000000-0000-4000-8000-000000000001';
 const sql = `begin;
 ${applied ? '' : body}
@@ -83,11 +92,43 @@ ${ok('wd_old', `private.ai_withdraw_draft(${q(B)},2,'SOURCE_REVOKED')->>'state'`
 ${ok('wd_new', `private.ai_withdraw_draft(${q(B)},4,'SOURCE_REVOKED')->>'state'`)}
 ${ok('wd_cleared', "not exists(select 1 from private.editor_drafts where issue_id=(select issue_id from b1)) and not exists(select 1 from private.claims where issue_id=(select issue_id from b1)) and not exists(select 1 from private.ai_draft_origin where issue_id=(select issue_id from b1))")}
 -- Invalid payloads are refused before anything is stored.
-${err('bad_top', call(randomUUID(), 1, payload(A, 1, { top: { extra: 1 } })).replace(/ai:[^:]+:1/, 'ai:x:1'))}
+${err('bad_top', call(G, 1, payload(G, 1, { top: { extra: 1 } })))}
 ${err('bad_fact_url', call(A, 7, payload(A, 7, { facts: facts.map(f => ({ ...f, source_urls: ['https://evil.example/x'] })) })))}
 ${err('bad_field', call(A, 7, payload(A, 7, { draft: { scheduled_publish_at: '2026-12-01T00:00:00Z' } })))}
 ${err('bad_fact_ref', call(A, 7, payload(A, 7, { draft: { impacts: draft.impacts.map(x => ({ ...x, evidence_fact_ids: ['f-missing'] })) } })))}
 ${err('bad_source', call(A, 7, payload(A, 7, { draft: { sources: [{ name: 'x', url: 'https://fixture.invalid/a', role: 'PRIMARY' }] } })))}
+${err('bad_nested_scenario', call(A, 7, payload(A, 7, { draft: { scenarios: [{ direction: 'POSITIVE', title: 't', expected_result: 'r', checks: ['c'], path_ids: ['p'], original_body: 'x' }] } })))}
+${err('bad_nested_company', call(A, 7, payload(A, 7, { draft: { impacts: draft.impacts.map(x => ({ ...x, companies: [{ company_ref: memberCompany, role: 'r', note: 'x' }] })) } })))}
+${err('bad_nested_schedule', call(A, 7, payload(A, 7, { draft: { schedule: [{ kind: 'EXACT', status: 'VERIFIED', title: 't', timezone: 'Asia/Seoul', evidence_as_of: now, event_at: now, evidence_fact_ids: [facts[0].id], text: 'x' }] } })))}
+${err('bad_trust_field', call(A, 7, payload(A, 7, { facts: facts.map(f => ({ ...f, official: true })) })))}
+${err('bad_catalog_ref', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'x', hash: 'y' } } })))}
+-- Trust is derived: a fact citing a REPORTED source is not an official original; the class decides the claim type.
+${ok('trust', `${call(E, 1, payload(E, 1, { draft: { sources: [...sources, { name: '보도', url: 'https://kind.krx.co.kr/news/1', role: 'REPORTED' }] },
+  facts: facts.map((f, n) => n === 0 ? { ...f, verification_class: 'SENSITIVE_UNCONFIRMED', source_urls: [sources[0].url, 'https://kind.krx.co.kr/news/1'] } : f) }))}->>'state'`)}
+${ok('trust_claims', `(select string_agg(c.claim_type||':'||c.official_original,',' order by l.fact_id) from private.ai_claim_links l join private.claims c on c.id=l.claim_id
+  where l.issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(E)}))`)}
+-- A company may only sit on an impact of a sector it belongs to.
+${ok('company_sector', `${call(F, 1, payload(F, 1, { draft: { impacts: draft.impacts.map((x, n) => n === 0 ? { ...x, sector_id: otherSector, companies: [{ company_ref: memberCompany, role: '공급사' }] } : x) } }))}->'refs'`)}
+-- An exact retry returns the stored result even after the switch is off; a different payload still conflicts.
+update private.real_mode set enabled=false;
+${ok('replay_off', `(${call(A, 1, payload(A, 1))})->>'state'`)}
+${err('conflict_off', call(A, 1, payload(A, 1, { draft: { title: 'other' } })))}
+update private.real_mode set enabled=true;
+-- Admin evidence: draft and pending versions are kept apart (A is held by the editor at v2 claims with v3 pending).
+create temp table ed as select gen_random_uuid() u,gen_random_uuid() s;
+insert into auth.users(id,email,aud,role,raw_app_meta_data) select u,'editor-'||u||'@example.invalid','authenticated','authenticated','{"app_role":"admin"}' from ed;
+insert into auth.sessions(id,user_id) select s,u from ed;
+insert into private.admin_memberships(user_id,active) select u,true from ed;
+insert into private.admin_sessions(capability_hash,user_id,auth_session_id,ciphertext,expires_at) select repeat('d',64),u,s,repeat('x',40),now()+interval '1 hour' from ed;
+grant select on a1,ed to authenticated;
+select set_config('request.jwt.claims',json_build_object('role','authenticated','sub',u,'session_id',s,'aal','aal2')::text,true) from ed;
+set local role authenticated;
+select 'R|dto|'||concat_ws(',',g->>'sample_kind',g->'ai_origin'->>'link_state',g->'ai_origin'->'draft'->>'ai_version',g->'ai_origin'->'pending'->>'ai_version',
+  (select count(*) from jsonb_object_keys(g->'ai_origin'->'draft'->'claim_ids'))::text)
+  from (select public.m1_get_draft((select issue_id from a1)) g) x;
+select 'R|list|'||(select x->'ai_origin'->>'state' from jsonb_array_elements(public.m1_editor_articles()) x where x->>'id'=(select issue_id::text from a1));
+reset role;
+select set_config('request.jwt.claims','',true);
 -- 30-day retention.
 update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(D)});
 ${ok('cleanup', "private.ai_inbox_cleanup()->>'expired'")}
@@ -130,7 +171,33 @@ assert.deepEqual(value('bad_fact_url'), ['AI_FACT_SOURCE_NOT_ALLOWED']);
 assert.deepEqual(value('bad_field'), ['AI_DRAFT_FIELDS']);
 assert.deepEqual(value('bad_fact_ref'), ['UNKNOWN_FACT_REF']);
 assert.deepEqual(value('bad_source'), ['AI_SOURCES_INVALID']);
+assert.deepEqual(value('bad_nested_scenario'), ['AI_SCENARIOS_INVALID']);
+assert.deepEqual(value('bad_nested_company'), ['AI_IMPACTS_INVALID']);
+assert.deepEqual(value('bad_nested_schedule'), ['AI_SCHEDULE_INVALID']);
+assert.deepEqual(value('bad_trust_field'), ['AI_FACTS_INVALID']);
+assert.deepEqual(value('bad_catalog_ref'), ['AI_CATALOG_REF_INVALID']);
+assert.deepEqual(value('trust'), ['RECEIVED']);
+const trust = value('trust_claims')[0].split(',');
+assert.equal(trust[0], 'SENSITIVE_UNCONFIRMED:false', 'f-0 cites a REPORTED source and is SENSITIVE');
+assert.ok(trust.slice(1).every(x => x === 'ORDINARY_FACT:true'), trust.join());
+assert.deepEqual(JSON.parse(value('company_sector')[0]), [`company_sector:${memberCompany}@${otherSector}`]);
+assert.deepEqual(value('replay_off'), ['RECEIVED']);
+assert.deepEqual(value('conflict_off'), ['AI_DRAFT_CONFLICT']);
+assert.deepEqual(value('dto'), [`PERMITTED_REAL,HOLD_EDITOR,2,3,${facts.length}`]);
+assert.deepEqual(value('list'), ['HOLD_EDITOR']);
 assert.ok(Number(value('cleanup')[0]) >= 1);
 assert.deepEqual(value('cleanup_state'), ['WITHDRAWN:EXPIRED']);
 assert.deepEqual(value('acl'), ['false,false']);
-console.log(JSON.stringify({ status: 'PASS', phase: 'AI_INBOX_1A_57', migrationApplied: applied, rolledBack: true, checks: lines.length }));
+// Two connections: while one intake for an AI issue is in flight (and not yet committed), a second connection cannot
+// take that issue's lock, so a parallel intake or withdrawal for the same issue waits. Both transactions roll back.
+const H = randomUUID();
+const first = spawn(docker, psql, { windowsHide: true });
+let firstOut = '';first.stdout.on('data', b => { firstOut += b; });first.stderr.on('data', b => { firstOut += b; });
+const closed = new Promise(resolve => first.on('close', resolve));
+first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');select pg_sleep(4);rollback;`);
+await new Promise(resolve => setTimeout(resolve, 2500));
+const second = run(`begin;select 'R|second_lock|'||pg_try_advisory_xact_lock(hashtext(${q('ai-issue:' + H)}));rollback;`).stdout;
+await closed;
+assert.match(firstOut, /R\|first\|RECEIVED/);
+assert.match(second, /R\|second_lock\|false/);
+console.log(JSON.stringify({ status: 'PASS', phase: 'AI_INBOX_1A_57', migrationApplied: applied, rolledBack: true, checks: lines.length + 2 }));

@@ -27,6 +27,7 @@ create table private.ai_draft_origin (
   facts jsonb not null,
   sources jsonb not null,
   catalog_version bigint not null,
+  catalog_ref jsonb not null,
   received_at timestamptz not null default now(),
   expires_at timestamptz not null,
   primary key (issue_id, ai_version)
@@ -44,41 +45,62 @@ alter table private.ai_draft_origin enable row level security;
 alter table private.ai_claim_links enable row level security;
 revoke all on private.ai_issue_links, private.ai_draft_receipts, private.ai_draft_origin, private.ai_claim_links from public, anon, authenticated, service_role;
 
--- Payload checks shared by intake. Raises on any malformed input (nothing is stored then).
+-- Payload checks shared by intake. Raises on any malformed input (nothing is stored then). Every object at every depth
+-- has a fixed key set and typed values, so no original text or control field can ride along in a nested object.
+create function private.ai_string_array(p jsonb,p_max integer,p_len integer) returns boolean language sql immutable set search_path='' as $$
+  select jsonb_typeof(p)='array' and jsonb_array_length(p)<=p_max
+    and not exists(select 1 from jsonb_array_elements(p) v where jsonb_typeof(v.value)<>'string' or length(v.value#>>'{}')>p_len)
+$$;
+create function private.ai_keys_ok(p jsonb,p_allowed text[],p_required text[]) returns boolean language sql immutable set search_path='' as $$
+  select jsonb_typeof(p)='object'
+    and (select coalesce(array_agg(key),'{}') from jsonb_object_keys(p) key)<@p_allowed
+    and p_required<@(select coalesce(array_agg(key),'{}') from jsonb_object_keys(p) key)
+$$;
 create function private.ai_payload_check(p jsonb) returns void language plpgsql immutable set search_path='' as $$
 declare d jsonb;x jsonb;y jsonb;k text;facts text[]:='{}';fid text;
+  text_fields constant text[]:=array['title','summary','issue_analysis','article_kind','source_market','selection_market_basis'];
   draft_keys constant text[]:=array['title','summary','issue_analysis','key_issues','risks','article_kind','primary_sector_id','primary_company_ref','company_refs',
     'source_market','selection_market_basis','sources','impacts','scenarios','schedule'];
   impact_keys constant text[]:=array['sector_id','path_id','direction','conditional_direction','description','conditions','evidence_fact_ids','companies'];
-  fact_keys constant text[]:=array['id','statement','verification_class','independently_verified','korea_path_verified','official','macro','sensitive','recorded_at','source_urls'];
+  scenario_keys constant text[]:=array['direction','title','expected_result','checks','path_ids'];
+  schedule_keys constant text[]:=array['kind','status','title','timezone','evidence_as_of','event_at','period_label','period_start','period_end','precision','evidence_fact_ids'];
+  fact_keys constant text[]:=array['id','statement','verification_class','independently_verified','korea_path_verified','recorded_at','source_urls'];
 begin
   if p is null or jsonb_typeof(p)<>'object' or pg_column_size(p)>262144 then raise exception 'AI_DRAFT_INVALID';end if;
-  if (select array_agg(key order by key) from jsonb_object_keys(p) key)<>array['ai_issue_id','ai_version','angle_key','draft','facts','format','story_key'] then raise exception 'AI_DRAFT_KEYS';end if;
+  if not private.ai_keys_ok(p,array['ai_issue_id','ai_version','angle_key','catalog_ref','draft','facts','format','story_key'],
+    array['ai_issue_id','ai_version','angle_key','catalog_ref','draft','facts','format','story_key']) then raise exception 'AI_DRAFT_KEYS';end if;
   if p->>'format' is distinct from 'AI_DRAFT_V1' then raise exception 'AI_DRAFT_FORMAT';end if;
   if jsonb_typeof(p->'ai_version')<>'number' or (p->>'ai_version')!~'^[1-9][0-9]{0,8}$' then raise exception 'AI_DRAFT_VERSION';end if;
   if coalesce(p->>'story_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' or coalesce(p->>'angle_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' then raise exception 'AI_DRAFT_KEYS';end if;
-  -- Facts: 1-30, statements only (no original bodies), booleans and a timestamp.
+  -- The server's catalog reference is recorded for audit; IDs are checked one by one against the DB head.
+  if not private.ai_keys_ok(p->'catalog_ref',array['registry'],array['registry']) or coalesce(p->'catalog_ref'->>'registry','')!~'^[A-Za-z0-9_.:-]{1,120}$' then raise exception 'AI_CATALOG_REF_INVALID';end if;
+  -- Facts: 1-30, statements only. Trust (claim type, official origin) is derived by the database, never sent.
   if jsonb_typeof(p->'facts')<>'array' or jsonb_array_length(p->'facts') not between 1 and 30 then raise exception 'AI_FACTS_INVALID';end if;
   for x in select value from jsonb_array_elements(p->'facts') loop
-    if jsonb_typeof(x)<>'object' or not (select array_agg(key) from jsonb_object_keys(x) key)<@fact_keys or not fact_keys<@(select array_agg(key) from jsonb_object_keys(x) key) then raise exception 'AI_FACTS_INVALID';end if;
+    if not private.ai_keys_ok(x,fact_keys,fact_keys) then raise exception 'AI_FACTS_INVALID';end if;
     fid:=x->>'id';
-    if fid is null or fid!~'^[A-Za-z0-9_.:-]{1,80}$' or fid=any(facts) or length(btrim(coalesce(x->>'statement',''))) not between 1 and 1000
-      or length(coalesce(x->>'verification_class','')) not between 1 and 40
-      or jsonb_typeof(x->'independently_verified')<>'boolean' or jsonb_typeof(x->'korea_path_verified')<>'boolean' or jsonb_typeof(x->'official')<>'boolean'
-      or jsonb_typeof(x->'macro')<>'boolean' or jsonb_typeof(x->'sensitive')<>'boolean' or jsonb_typeof(x->'recorded_at')<>'string' or jsonb_typeof(x->'source_urls')<>'array'
-      or jsonb_array_length(x->'source_urls') not between 1 and 12 then raise exception 'AI_FACTS_INVALID';end if;
+    if jsonb_typeof(x->'id')<>'string' or fid!~'^[A-Za-z0-9_.:-]{1,80}$' or fid=any(facts) or jsonb_typeof(x->'statement')<>'string' or length(btrim(x->>'statement')) not between 1 and 1000
+      or coalesce(x->>'verification_class','') not in ('ORDINARY_FACT','SYSTEMIC_MACRO','SENSITIVE_UNCONFIRMED')
+      or jsonb_typeof(x->'independently_verified')<>'boolean' or jsonb_typeof(x->'korea_path_verified')<>'boolean'
+      or jsonb_typeof(x->'recorded_at')<>'string' or not private.ai_string_array(x->'source_urls',12,2000) or jsonb_array_length(x->'source_urls')=0 then raise exception 'AI_FACTS_INVALID';end if;
     perform (x->>'recorded_at')::timestamptz;
     if (x->>'recorded_at')::timestamptz>now()+interval '5 minutes' then raise exception 'AI_FACTS_INVALID';end if;
-    for y in select value from jsonb_array_elements(x->'source_urls') loop if jsonb_typeof(y)<>'string' or not private.real_source_url_ok(y#>>'{}') then raise exception 'AI_FACT_SOURCE_NOT_ALLOWED';end if;end loop;
+    for y in select value from jsonb_array_elements(x->'source_urls') loop if not private.real_source_url_ok(y#>>'{}') then raise exception 'AI_FACT_SOURCE_NOT_ALLOWED';end if;end loop;
     facts:=array_append(facts,fid);
   end loop;
-  -- Draft: known keys only (no reservation, sample kind or other control fields).
+  -- Draft: known keys only (no reservation, sample kind or other control fields), typed at every depth.
   d:=p->'draft';
-  if jsonb_typeof(d)<>'object' or not (select coalesce(array_agg(key),'{}') from jsonb_object_keys(d) key)<@draft_keys then raise exception 'AI_DRAFT_FIELDS';end if;
+  if not private.ai_keys_ok(d,draft_keys,array['title','summary','issue_analysis','article_kind','source_market','selection_market_basis','sources']) then raise exception 'AI_DRAFT_FIELDS';end if;
+  foreach k in array text_fields loop if jsonb_typeof(d->k)<>'string' then raise exception 'AI_DRAFT_FIELDS';end if;end loop;
   if coalesce(d->>'article_kind','') not in ('SECTOR','MACRO','COMPANY') then raise exception 'AI_DRAFT_FIELDS';end if;
+  foreach k in array array['primary_sector_id','primary_company_ref'] loop
+    if d ? k and jsonb_typeof(d->k) not in ('string','null') then raise exception 'AI_DRAFT_FIELDS';end if;
+  end loop;
+  if d ? 'key_issues' and not private.ai_string_array(d->'key_issues',12,1000) or d ? 'risks' and not private.ai_string_array(d->'risks',20,1500)
+    or d ? 'company_refs' and not private.ai_string_array(d->'company_refs',30,36) then raise exception 'AI_DRAFT_FIELDS';end if;
   if jsonb_typeof(d->'sources')<>'array' or jsonb_array_length(d->'sources') not between 1 and 12 then raise exception 'AI_SOURCES_INVALID';end if;
   for x in select value from jsonb_array_elements(d->'sources') loop
-    if jsonb_typeof(x)<>'object' or not (select array_agg(key) from jsonb_object_keys(x) key)<@array['name','url','role'] or length(btrim(coalesce(x->>'name',''))) not between 1 and 100
+    if not private.ai_keys_ok(x,array['name','url','role'],array['name','url','role']) or jsonb_typeof(x->'name')<>'string' or length(btrim(x->>'name')) not between 1 and 100
       or coalesce(x->>'role','') not in ('PRIMARY','REPORTED') or not private.real_source_url_ok(x->>'url') then raise exception 'AI_SOURCES_INVALID';end if;
   end loop;
   for x in select value from jsonb_array_elements(p->'facts') loop
@@ -86,35 +108,55 @@ begin
       if not exists(select 1 from jsonb_array_elements(d->'sources') s where s.value->>'url'=y#>>'{}') then raise exception 'AI_FACT_SOURCE_UNLISTED';end if;
     end loop;
   end loop;
-  if jsonb_typeof(coalesce(d->'impacts','[]'))<>'array' or jsonb_array_length(coalesce(d->'impacts','[]'))>30 then raise exception 'AI_IMPACTS_INVALID';end if;
+  if d ? 'impacts' and (jsonb_typeof(d->'impacts')<>'array' or jsonb_array_length(d->'impacts')>30) then raise exception 'AI_IMPACTS_INVALID';end if;
   for x in select value from jsonb_array_elements(coalesce(d->'impacts','[]')) loop
-    if jsonb_typeof(x)<>'object' or not (select array_agg(key) from jsonb_object_keys(x) key)<@impact_keys or jsonb_typeof(x->'evidence_fact_ids')<>'array' then raise exception 'AI_IMPACTS_INVALID';end if;
-    for y in select value from jsonb_array_elements(x->'evidence_fact_ids') loop if jsonb_typeof(y)<>'string' or not (y#>>'{}')=any(facts) then raise exception 'UNKNOWN_FACT_REF';end if;end loop;
+    if not private.ai_keys_ok(x,impact_keys,array['sector_id','path_id','direction','description','evidence_fact_ids'])
+      or exists(select 1 from unnest(array['sector_id','path_id','direction','conditional_direction','description']) f where x ? f and jsonb_typeof(x->f)<>'string')
+      or x ? 'conditions' and not private.ai_string_array(x->'conditions',10,1000) or not private.ai_string_array(x->'evidence_fact_ids',10,80)
+      or x ? 'companies' and (jsonb_typeof(x->'companies')<>'array' or jsonb_array_length(x->'companies')>20) then raise exception 'AI_IMPACTS_INVALID';end if;
+    for y in select value from jsonb_array_elements(coalesce(x->'companies','[]')) loop
+      if not private.ai_keys_ok(y,array['company_ref','role'],array['company_ref','role']) or jsonb_typeof(y->'company_ref')<>'string' or jsonb_typeof(y->'role')<>'string' or length(y->>'role')>80 then raise exception 'AI_IMPACTS_INVALID';end if;
+    end loop;
+    for y in select value from jsonb_array_elements(x->'evidence_fact_ids') loop if not (y#>>'{}')=any(facts) then raise exception 'UNKNOWN_FACT_REF';end if;end loop;
   end loop;
-  if jsonb_typeof(coalesce(d->'schedule','[]'))<>'array' or jsonb_array_length(coalesce(d->'schedule','[]'))>20 then raise exception 'AI_SCHEDULE_INVALID';end if;
+  if d ? 'scenarios' and (jsonb_typeof(d->'scenarios')<>'array' or jsonb_array_length(d->'scenarios')>2) then raise exception 'AI_SCENARIOS_INVALID';end if;
+  for x in select value from jsonb_array_elements(coalesce(d->'scenarios','[]')) loop
+    if not private.ai_keys_ok(x,scenario_keys,scenario_keys) or jsonb_typeof(x->'direction')<>'string' or jsonb_typeof(x->'title')<>'string' or jsonb_typeof(x->'expected_result')<>'string'
+      or not private.ai_string_array(x->'checks',10,1000) or not private.ai_string_array(x->'path_ids',30,80) then raise exception 'AI_SCENARIOS_INVALID';end if;
+  end loop;
+  if d ? 'schedule' and (jsonb_typeof(d->'schedule')<>'array' or jsonb_array_length(d->'schedule')>20) then raise exception 'AI_SCHEDULE_INVALID';end if;
   for x in select value from jsonb_array_elements(coalesce(d->'schedule','[]')) loop
-    if jsonb_typeof(x)<>'object' or x ? 'evidence_ids' or jsonb_typeof(x->'evidence_fact_ids')<>'array' then raise exception 'AI_SCHEDULE_INVALID';end if;
-    for y in select value from jsonb_array_elements(x->'evidence_fact_ids') loop if jsonb_typeof(y)<>'string' or not (y#>>'{}')=any(facts) then raise exception 'UNKNOWN_FACT_REF';end if;end loop;
+    if not private.ai_keys_ok(x,schedule_keys,array['kind','status','title','timezone','evidence_as_of','evidence_fact_ids'])
+      or exists(select 1 from unnest(schedule_keys) f where f<>'evidence_fact_ids' and x ? f and (jsonb_typeof(x->f)<>'string' or length(x->>f)>200))
+      or not private.ai_string_array(x->'evidence_fact_ids',10,80) then raise exception 'AI_SCHEDULE_INVALID';end if;
+    for y in select value from jsonb_array_elements(x->'evidence_fact_ids') loop if not (y#>>'{}')=any(facts) then raise exception 'UNKNOWN_FACT_REF';end if;end loop;
   end loop;
 end$$;
 
--- Catalog IDs the draft refers to, checked one by one against the current head (no version-string matching).
+-- Catalog IDs the draft refers to, checked one by one against the current head (no version-string matching). A company
+-- named on an impact must be a visible member of that impact's sector.
 create function private.ai_catalog_drift(d jsonb,p_head bigint) returns jsonb language sql stable set search_path='' as $$
   with sectors as (
     select d->>'primary_sector_id' ref where jsonb_typeof(d->'primary_sector_id')='string'
     union select x->>'sector_id' from jsonb_array_elements(coalesce(d->'impacts','[]')) x
   ), companies as (
     select d->>'primary_company_ref' ref where jsonb_typeof(d->'primary_company_ref')='string'
-    union select value from jsonb_array_elements_text(case when jsonb_typeof(d->'company_refs')='array' then d->'company_refs' else '[]' end)
-    union select c->>'company_ref' from jsonb_array_elements(coalesce(d->'impacts','[]')) x,jsonb_array_elements(case when jsonb_typeof(x->'companies')='array' then x->'companies' else '[]' end) c
-  )
+    union select value from jsonb_array_elements_text(coalesce(d->'company_refs','[]'))
+    union select c->>'company_ref' from jsonb_array_elements(coalesce(d->'impacts','[]')) x,jsonb_array_elements(coalesce(x->'companies','[]')) c
+  ), placed as (
+    select c->>'company_ref' company,x->>'sector_id' sector from jsonb_array_elements(coalesce(d->'impacts','[]')) x,jsonb_array_elements(coalesce(x->'companies','[]')) c
+  ), uuid_re as (select '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'::text re)
   select coalesce(jsonb_agg(item order by item),'[]') from (
-    select 'sector:'||coalesce(s.ref,'null') item from sectors s
-      where s.ref is null or s.ref!~'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or not private.catalog_sector_selectable(s.ref::uuid,p_head,'PERMITTED_REAL')
+    select 'sector:'||coalesce(s.ref,'null') item from sectors s,uuid_re u
+      where s.ref is null or s.ref!~u.re or not private.catalog_sector_selectable(s.ref::uuid,p_head,'PERMITTED_REAL')
     union all
-    select 'company:'||coalesce(k.ref,'null') from companies k
-      where k.ref is null or k.ref!~'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or not exists(select 1 from private.catalog_source_companies c where c.id=k.ref::uuid and c.active
+    select 'company:'||coalesce(k.ref,'null') from companies k,uuid_re u
+      where k.ref is null or k.ref!~u.re or not exists(select 1 from private.catalog_source_companies c where c.id=k.ref::uuid and c.active
         and exists(select 1 from private.catalog_memberships m where m.source_company_ref=c.id and private.search_membership_visible(m.id,p_head)))
+    union all
+    select 'company_sector:'||pl.company||'@'||pl.sector from placed pl,uuid_re u
+      where pl.company~u.re and pl.sector~u.re and not exists(select 1 from private.catalog_memberships m
+        where m.source_company_ref=pl.company::uuid and m.sector_id=pl.sector::uuid and m.active and private.search_membership_visible(m.id,p_head))
   ) bad
 $$;
 
@@ -134,8 +176,10 @@ declare ai text:=p_payload->>'ai_issue_id';ver integer;h text;rcpt private.ai_dr
   iss uuid;st uuid;head bigint;result jsonb;map jsonb:='{}';cid uuid;v_content jsonb;items jsonb;drift jsonb;i private.issues;ed private.editor_drafts;
 begin
   if current_user<>'postgres' then raise exception 'AI_INBOX_POSTGRES_ONLY';end if;
-  if not private.real_mode_on() then raise exception 'REAL_MODE_OFF';end if;
-  perform private.ai_payload_check(p_payload);
+  -- Identity, lock and receipt first: an exact retry always gets its stored result, a different payload for the same
+  -- AI issue and version always gets AI_DRAFT_CONFLICT, whatever the switch or the validation rules say now.
+  if jsonb_typeof(p_payload)<>'object' or coalesce(ai,'')!~'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    or jsonb_typeof(p_payload->'ai_version')<>'number' or (p_payload->>'ai_version')!~'^[1-9][0-9]{0,8}$' then raise exception 'AI_DRAFT_VERSION';end if;
   ver:=(p_payload->>'ai_version')::integer;
   if p_effect_key is distinct from 'ai:'||ai||':'||ver then raise exception 'AI_EFFECT_KEY_MISMATCH';end if;
   perform pg_advisory_xact_lock(hashtext('ai-issue:'||ai));
@@ -145,6 +189,8 @@ begin
     if rcpt.payload_sha256<>h then raise exception 'AI_DRAFT_CONFLICT';end if;
     return rcpt.result;
   end if;
+  if not private.real_mode_on() then raise exception 'REAL_MODE_OFF';end if;
+  perform private.ai_payload_check(p_payload);
   d:=p_payload->'draft';
   perform 1 from private.catalog_head where singleton for share;
   select version into strict head from private.catalog_head where singleton;
@@ -161,8 +207,8 @@ begin
       result:=jsonb_build_object('state','CATALOG_DRIFT','ai_version',ver,'catalog_version',head,'refs',drift);
     elsif lnk.issue_id is not null and (i.manual_protected or ed.updated_by is not null) then
       -- The editor owns this draft now: keep it, keep its claims, and show the new evidence beside it.
-      insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,expires_at)
-        values(lnk.issue_id,ver,p_payload->'facts',d->'sources',head,now()+interval '30 days');
+      insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,catalog_ref,expires_at)
+        values(lnk.issue_id,ver,p_payload->'facts',d->'sources',head,p_payload->'catalog_ref',now()+interval '30 days');
       update private.ai_issue_links set current_version=ver,state='HOLD_EDITOR',reason='EDITOR_OWNS_DRAFT',updated_at=now() where ai_issue_id=ai;
       result:=jsonb_build_object('state','HOLD_EDITOR','ai_version',ver,'issue_id',lnk.issue_id);
     else
@@ -179,8 +225,11 @@ begin
       delete from private.claims where issue_id=iss;
       for x in select value from jsonb_array_elements(p_payload->'facts') loop
         insert into private.claims(issue_id,claim_type,korea_path_verified,fact_current,official_original,verified,valid_until,sample_kind)
-          values(iss,case when (x->>'sensitive')::boolean then 'SENSITIVE_UNCONFIRMED' when (x->>'macro')::boolean then 'SYSTEMIC_MACRO' else 'ORDINARY_FACT' end,
-            (x->>'korea_path_verified')::boolean,(x->>'recorded_at')::timestamptz>now()-interval '30 days',(x->>'official')::boolean,
+          -- Trust is derived here: the claim type is the AI verification class, and a fact is an official original only
+          -- when every source it cites is a PRIMARY (filing) source of this draft.
+          values(iss,x->>'verification_class',
+            (x->>'korea_path_verified')::boolean,(x->>'recorded_at')::timestamptz>now()-interval '30 days',
+            not exists(select 1 from jsonb_array_elements_text(x->'source_urls') u where not exists(select 1 from jsonb_array_elements(d->'sources') s where s.value->>'url'=u.value and s.value->>'role'='PRIMARY')),
             (x->>'independently_verified')::boolean,(x->>'recorded_at')::timestamptz+interval '30 days','PERMITTED_REAL') returning id into cid;
         insert into private.ai_claim_links(issue_id,fact_id,claim_id,ai_version) values(iss,x->>'id',cid,ver);
         map:=map||jsonb_build_object(x->>'id',cid);
@@ -200,8 +249,8 @@ begin
       if found then update private.editor_drafts set content=v_content,revision=revision+1,updated_at=now(),updated_by=null where issue_id=iss;
       else insert into private.editor_drafts(issue_id,content,updated_by) values(iss,v_content,null);end if;
       delete from private.ai_draft_origin where issue_id=iss;
-      insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,expires_at)
-        values(iss,ver,p_payload->'facts',d->'sources',head,now()+interval '30 days');
+      insert into private.ai_draft_origin(issue_id,ai_version,facts,sources,catalog_version,catalog_ref,expires_at)
+        values(iss,ver,p_payload->'facts',d->'sources',head,p_payload->'catalog_ref',now()+interval '30 days');
       insert into private.ai_issue_links(ai_issue_id,issue_id,current_version,state) values(ai,iss,ver,'ACTIVE')
         on conflict(ai_issue_id) do update set issue_id=excluded.issue_id,current_version=excluded.current_version,state='ACTIVE',reason='',updated_at=now();
       result:=jsonb_build_object('state','RECEIVED','ai_version',ver,'issue_id',iss,'catalog_version',head,'claims',jsonb_array_length(p_payload->'facts'));
@@ -269,17 +318,25 @@ begin
   or exists(select 1 from jsonb_array_elements(case when jsonb_typeof(result->'content'->'impacts')='array' then result->'content'->'impacts' else '[]' end) item where item->>'sector_id'=s.id::text)
   order by s.id limit 64
  )page;
- select jsonb_build_object('ai_version',o.ai_version,'facts',o.facts,'sources',o.sources,'received_at',o.received_at,
-   'claim_ids',(select coalesce(jsonb_object_agg(c.fact_id,c.claim_id),'{}') from private.ai_claim_links c where c.issue_id=p_issue),
+ -- The draft's own evidence (the version its claims came from) and, when the editor holds the draft, the newest
+ -- evidence waiting beside it; versions are never mixed.
+ if exists(select 1 from private.ai_issue_links l where l.issue_id=p_issue) then
+  select jsonb_build_object(
    'link_state',(select l.state from private.ai_issue_links l where l.issue_id=p_issue),
-   'pending_versions',(select count(*) from private.ai_draft_origin q where q.issue_id=p_issue)-1)
-   into origin from private.ai_draft_origin o where o.issue_id=p_issue order by o.ai_version desc limit 1;
+   'draft',(select jsonb_build_object('ai_version',o.ai_version,'facts',o.facts,'sources',o.sources,'received_at',o.received_at,
+      'claim_ids',(select coalesce(jsonb_object_agg(c.fact_id,c.claim_id),'{}') from private.ai_claim_links c where c.issue_id=p_issue and c.ai_version=o.ai_version))
+     from private.ai_draft_origin o where o.issue_id=p_issue and o.ai_version=(select max(c.ai_version) from private.ai_claim_links c where c.issue_id=p_issue)),
+   'pending',(select jsonb_build_object('ai_version',o.ai_version,'facts',o.facts,'sources',o.sources,'received_at',o.received_at)
+     from private.ai_draft_origin o where o.issue_id=p_issue and o.ai_version>coalesce((select max(c.ai_version) from private.ai_claim_links c where c.issue_id=p_issue),0)
+     order by o.ai_version desc limit 1)) into origin;
+ end if;
  return result||jsonb_build_object('sector_labels',labels,'sample_kind',k,'ai_origin',origin);
 end$$;
 create or replace function public.m1_editor_articles() returns jsonb language plpgsql security definer set search_path='' as $$
 begin perform private.m1_assert_editor();return coalesce((select jsonb_agg(row_to_json(t)) from(select i.id,i.publication_state,i.revision,d.revision draft_revision,d.content->>'title' title,d.updated_at,i.sample_kind,
-  exists(select 1 from private.ai_issue_links l where l.issue_id=i.id) ai_draft from private.issues i join private.editor_drafts d on d.issue_id=i.id order by d.updated_at desc limit 100)t),'[]');end$$;
+  (select jsonb_build_object('state',l.state,'ai_version',l.current_version,'facts',(select jsonb_array_length(o.facts) from private.ai_draft_origin o where o.issue_id=i.id order by o.ai_version desc limit 1))
+   from private.ai_issue_links l where l.issue_id=i.id) ai_origin from private.issues i join private.editor_drafts d on d.issue_id=i.id order by d.updated_at desc limit 100)t),'[]');end$$;
 
-revoke all on function private.ai_payload_check(jsonb), private.ai_catalog_drift(jsonb,bigint), private.ai_clear_issue(uuid), private.ai_ingest_draft(text,jsonb),
+revoke all on function private.ai_string_array(jsonb,integer,integer), private.ai_keys_ok(jsonb,text[],text[]), private.ai_payload_check(jsonb), private.ai_catalog_drift(jsonb,bigint), private.ai_clear_issue(uuid), private.ai_ingest_draft(text,jsonb),
   private.ai_withdraw_draft(text,integer,text), private.ai_inbox_cleanup(), private.retention_tick(), private.retention_tick_v1() from public, anon, authenticated, service_role;
 commit;

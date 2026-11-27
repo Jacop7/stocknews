@@ -49,6 +49,10 @@ const checks = [
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',
   ]],
+  // Local database checks, each in one transaction that is rolled back.
+  ['Company scope database test', ['scripts/test-company-page-sql.mjs']],
+  ['Real-data review database test (migration 56)', ['scripts/test-real-mode-sql.mjs']],
+  ['AI drafts inbox database test (migration 57)', ['scripts/test-ai-inbox-sql.mjs']],
   ...['workers/collectors', 'workers/ai-processing', 'workers/home-ranking', 'apps/admin', 'apps/mobile'].map(folder => [
     'TypeScript ' + folder, ['node_modules/typescript/bin/tsc', '-p', folder + '/tsconfig.json', '--noEmit'],
   ]),
