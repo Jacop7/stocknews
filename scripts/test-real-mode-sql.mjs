@@ -71,7 +71,11 @@ delete from private.claims where issue_id=(select id from ri) and sample_kind='S
 ${expectError('publish_real', "perform private.reservation_publish_core(a.issue,0,0,a.pol,a.cat,'test-effect',gen_random_uuid(),null) from args a")}
 -- Public fence: every public read sees the published template first (control), then nothing once it is real,
 -- for anon and authenticated alike.
-create temp table probe_input as select t.issue_id,(select head from h) head,
+-- The template links one visible company so the company page is a real control too; list reads are pinned to its
+-- publication time so the check does not age.
+update private.article_versions v set public_body=v.public_body||jsonb_build_object('company_refs',jsonb_build_array((select id from co)))
+  from private.issues i where i.id=(select issue_id from t) and v.id=i.current_version_id;
+create temp table probe_input as select t.issue_id,(select head from h) head,i.first_published_at+interval '1 second' as_of,
   split_part(trim(v.public_body->>'title'),' ',1) word,coalesce(v.public_body->'company_refs','[]'::jsonb) companies
   from t join private.issues i on i.id=t.issue_id join private.article_versions v on v.id=i.current_version_id;
 grant select on t,h,probe_input to anon,authenticated;
@@ -86,11 +90,11 @@ select 'R|reads_${phase}_${role}|'||concat_ws(',',
   'resolve='||((select public.resolve_issue(issue_id)->>'state' from probe_input)='PUBLISHED'),
   'get_public_article='||((select public.get_public_article(issue_id)->>'state' from probe_input)='PUBLISHED'),
   'm1_public_article='||((select public.m1_public_article(issue_id)->>'state' from probe_input)='PUBLISHED'),
-  'm1_public_articles='||(select exists(select 1 from jsonb_array_elements(coalesce(public.m1_public_articles(null,50,null)->'items',public.m1_public_articles(null,50,null))) x where x->>'issue_id'=p.issue_id::text) from probe_input p),
-  'catalog_articles='||(select exists(select 1 from jsonb_array_elements(public.catalog_public_articles(p.head,'{}','THIS_MONTH',50)->'items') x where x->>'issue_id'=p.issue_id::text) from probe_input p),
-  'search='||(select exists(select 1 from jsonb_array_elements(public.catalog_public_search_news(p.head,p.word,20)->'items') x where x->>'issue_id'=p.issue_id::text) from probe_input p),
+  'm1_public_articles='||(select exists(select 1 from jsonb_array_elements(coalesce(public.m1_public_articles(null,50,p.as_of)->'items',public.m1_public_articles(null,50,p.as_of))) x where x->>'issue_id'=p.issue_id::text) from probe_input p),
+  'catalog_articles='||(select exists(select 1 from jsonb_array_elements(public.catalog_public_articles(p.head,'{}','TODAY',50,p.as_of)->'items') x where x->>'issue_id'=p.issue_id::text) from probe_input p),
+  'search='||(select exists(select 1 from jsonb_array_elements(public.catalog_public_search_news(p.head,p.word,20,p.as_of)->'items') x where x->>'issue_id'=p.issue_id::text) from probe_input p),
   'saved='||(select exists(select 1 from jsonb_array_elements(public.catalog_public_saved(p.head,array[p.issue_id])->'items') x where x->>'state'='PUBLISHED') from probe_input p),
-  'company='||(select coalesce(bool_or(exists(select 1 from jsonb_array_elements(public.catalog_public_company(p.head,c::uuid,20)->'items') x where x->>'issue_id'=p.issue_id::text)),false) from probe_input p,jsonb_array_elements_text(p.companies) c));
+  'company='||(select coalesce(bool_or(exists(select 1 from jsonb_array_elements(public.catalog_public_company(p.head,c::uuid,20,p.as_of)->'items') x where x->>'issue_id'=p.issue_id::text)),false) from probe_input p,jsonb_array_elements_text(p.companies) c));
 reset role;`).join('\n')).join('\n')}
 -- New objects carry no API privileges.
 select 'R|acl|'||bool_or(has_function_privilege(r,f,'EXECUTE'))||','||bool_or(has_table_privilege(r,'private.real_mode','SELECT'))
@@ -121,8 +125,9 @@ assert.deepEqual(value('fence_legacy'), ['NOT_FOUND']);
 const reads = key => Object.fromEntries(value(key)[0].split(',').map(x => x.split('=')).map(([k, v]) => [k, v === 'true']));
 for (const role of ['anon', 'authenticated']) {
   const control = reads('reads_control_' + role), real = reads('reads_real_' + role);
-  // Control: the template is really visible through the main routes, so the fence result is not vacuous.
-  for (const k of ['news_public', 'news_list', 'resolve', 'get_public_article', 'm1_public_article', 'saved']) assert.equal(control[k], true, role + ' control ' + k);
+  // Control: the template is visible through every one of the ten reads, so no fence result is vacuous.
+  assert.equal(Object.keys(control).length, 10);
+  for (const [k, v] of Object.entries(control)) assert.equal(v, true, role + ' control ' + k);
   assert.deepEqual(Object.entries(real).filter(([, v]) => v).map(([k]) => k), [], role + ' real issue leaked');
 }
 assert.deepEqual(value('acl'), ['false,false']);
