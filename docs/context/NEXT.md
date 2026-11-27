@@ -8,7 +8,7 @@
 2. **AI 모델 결정됨(Sol 중심안)**, **API 키 저장됨**(2026-11-26, worktree `.local-data/ai/openai.key`, git 제외). 모델 목록 조회로 키 유효와 `gpt-6-luna`·`gpt-6.1-sol`·`gpt-6.2-sol` 사용 가능을 확인. 키 내용은 출력·커밋하지 않는다. 플랫폼 월 사용 한도(권장 $200)는 사용자가 설정. 채팅에 한 번 노출된 이전 키는 사용자가 2026-11-26 삭제함(저장된 키와 다름을 해시로 확인).
 4. 프로젝트 루트 `AGENTS.md`가 2026-11-26 세션 중 사라졌다. 의도한 삭제인지 확인.
 
-5. **CLOUD11 첫 로그인**(2026-11-27 활성화·배포 완료): 사용자가 `https://admin.52-79-247-25.sslip.io`에서 소유자 이메일·비밀번호로 로그인 → TOTP QR 등록 → 6자리 코드. 그 뒤 실공격 시험(H8). secret 키 `judoju_admin_broker`는 `.local-data/admin-online/secret.key`(git 제외).
+5. **CLOUD11 남은 실측**(2026-11-27 로그인·TOTP 완료): 사용자가 어드민에서 합성 초안 저장·미리보기 후 로그아웃 → 같은 쿠키 재사용 거부와 `admin_online_status` openSessions 0 확인. 비상 시 `scripts/ops/admin-online.ps1 revoke`.
 
 ## 사용자 결정이 필요한 것 (최우선)
 
