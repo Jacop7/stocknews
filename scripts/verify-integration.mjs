@@ -45,6 +45,7 @@ const checks = [
     'tests/backlog-dart.test.mjs',
     'tests/backlog-live-formats.test.mjs',
     'tests/backlog-scope.test.mjs',
+    'tests/publish-map.test.mjs',
   ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',
