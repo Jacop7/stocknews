@@ -69,7 +69,21 @@ const ids = (value, allowed, nonempty = false) => {
 const quantitativeUnits = new Set(['%', '%p', 'usd', 'krw', 'eur', 'jpy', 'shares', '명', '개', '대', '건', '배',
   '년', '월', '일', '시', '분', '초', '억원', '조원', 'mw', 'gw', 'kw', 'gwh', 'mwh', '톤', 'kg', 'km', 'm', 'mm', 'nm',
   // Units used in Korean filing tables; the value is compared in the stated unit, never converted.
-  '백만원', '천원', '만원', '백만달러', '천달러', '억달러', '주', '천주', '만주', 'bp']);
+  '백만원', '천원', '만원', '백만달러', '천달러', '억달러', '주', '천주', '만주', 'bp',
+  // Exchange rates applied in filings (1,343.60KRW/USD, 1달러 1343.60원) and housing units (1,995세대).
+  'krw/usd', '세대']);
+// Filing statements: numbers and the fact's own value (a company or product name) are facts, not expression, so they
+// are masked before looking for copied wording. Official filings use fixed regulatory phrases ("2025년도 연결재무제표
+// 기준"), so their shared run must be longer before it counts as copying.
+const maskFacts = (value, factValue) => (factValue ? value.split(factValue).join(' ') : value).replace(/\d+(?:[,.]\d+)*/g, '#');
+function copiesSource(statement, factValue, sourceText, official) {
+  return sharesRun(maskFacts(statement, factValue), maskFacts(sourceText, factValue), official ? 30 : 20);
+}
+// Exchange filing tables put the unit in the row label, e.g. "계약금액(원)" on the line right above "51,812,866,780".
+function headerUnitInDocument(documents, refs, unitPattern, number) {
+  const header = new RegExp('\\((?:단위\\s*[:：]?\\s*)?(?:' + unitPattern + ')\\)[ \\t]*\\n[ \\t]*' + number + '(?![0-9]|[.,][0-9])', 'i');
+  return refs.some(ref => header.test(documents.find(doc => doc.id === ref.docId)?.text.normalize('NFKC').replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '') ?? ''));
+}
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function sourceInstantSupported(item, refs) {
   return refs.some(ref => (ref.quote.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})/g) ?? [])
@@ -160,7 +174,8 @@ export function validateTriage(raw, documents, catalog) {
     if (candidate.subjectId !== null) assert(entities.includes(candidate.subjectId), 'UNKNOWN_ENTITY');
     for (const key of ['id', 'predicate', 'value', 'unit', 'period']) text(candidate[key], 200, ['unit', 'period'].includes(key));
     // Canonical unit names: models write the Korean or per-share form (원, 원/주, KRW/주, 달러) for the same unit.
-    const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '주': 'shares', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy' };
+    const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '주': 'shares', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy',
+      '원/달러': 'krw/usd', '원/usd': 'krw/usd', 'krw/usd': 'krw/usd' };
     candidate.value = candidate.value.trim();
     candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
     // "백만 원" and "백만원" are the same table unit.
@@ -168,19 +183,32 @@ export function validateTriage(raw, documents, catalog) {
     text(candidate.statement, 1000);
     const refs = references(candidate.refs, documents);
     // Statements reach the writer, so they must be the extractor's own wording, not copied source prose.
-    assert(!refs.some(ref => sharesRun(candidate.statement, ref.quote)) && !documents.some(doc => sharesRun(candidate.statement, doc.text)), 'FACT_STATEMENT_COPIES_SOURCE');
+    const official = doc => doc.sources?.length > 0 && doc.sources.every(source => source.kind === 'OFFICIAL');
+    const refOfficial = ref => official(documents.find(doc => doc.id === ref.docId) ?? {});
+    assert(!refs.some(ref => copiesSource(candidate.statement, candidate.value, ref.quote, refOfficial(ref))) &&
+      !documents.some(doc => copiesSource(candidate.statement, candidate.value, doc.text, official(doc))), 'FACT_STATEMENT_COPIES_SOURCE');
     // Every number in the statement must appear in its quotes. A unit written next to it (원, %, 억원…) is accepted
-    // when the bare number is quoted and that unit word occurs in the quotes (e.g. a table header "(원/주)").
+    // when the bare number is quoted and that unit word occurs in the quotes (e.g. a table header "(원/주)"), when the
+    // filing table states it in the row label right above the number, or for 달러 when the quote writes $ or USD.
+    // Digits inside identifiers (GEN6, HBM4) are names, not quantities.
     const quoted = refs.map(ref => ref.quote).join(' '), quotedTokens = numericTokens(quoted);
     const bare = token => token.replace(/(?:%p|%|조원|억원|달러|원)$/i, '');
-    assert(numericTokens(candidate.statement).every(token => quotedTokens.includes(token) ||
-      quotedTokens.map(bare).includes(bare(token)) && quoted.includes(token.slice(bare(token).length))), 'FACT_NUMBER_MISMATCH');
+    const quotedNumber = token => quotedTokens.map(value => bare(value).replace(/^\$/, '')).includes(bare(token));
+    const unitWord = { '원': '원', '%': '%', '%p': '%p', '달러': '달러|usd|\\$', '억원': '억\\s*원', '조원': '조\\s*원' };
+    const unitStated = token => {
+      const word = token.slice(bare(token).length);
+      if (!word || quoted.includes(word) || word === '달러' && /\$|USD/i.test(quoted) || word === '원' && /KRW/i.test(quoted)) return true;
+      const number = bare(token).replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return Boolean(unitWord[word]) && headerUnitInDocument(documents, refs, unitWord[word], number);
+    };
+    const statementNumbers = numericTokens(candidate.statement.replace(/[A-Za-z]+[A-Za-z0-9_.-]*\d[A-Za-z0-9_.-]*/g, ' '));
+    assert(statementNumbers.every(token => quotedTokens.includes(token) || quotedNumber(token) && unitStated(token)), 'FACT_NUMBER_MISMATCH');
     if (dateValue(candidate, refs)) candidate.unit = '';
     else if (numericTokens(candidate.value).length) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const unit = candidate.unit.toLowerCase();
       const aliases = { usd: ['usd', '달러', '$', 'us$'], krw: ['krw', '원'], eur: ['eur', '유로', '€'], shares: ['shares', '주'],
-        '%p': ['%p', '%포인트', '퍼센트포인트', 'percentage points'] };
+        '%p': ['%p', '%포인트', '퍼센트포인트', 'percentage points'], 'krw/usd': ['krw/usd', '원/달러', '원/usd', '원'] };
       const units = aliases[unit] ?? [unit];
       const normalize = value => value.normalize('NFKC').toLowerCase().replace(/−/g, '-').replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '');
       // Filing tables write losses in accounting form, e.g. (1,849,423,316); it is compared exactly as written.
@@ -209,7 +237,8 @@ export function validateTriage(raw, documents, catalog) {
           const alone = new RegExp('(?:^|[^0-9.+±-])' + number + '(?![0-9]|[.,][0-9])');
           // The header may be quoted separately (same filing, same fact); share counts may be labelled 주식수.
           const header = new RegExp('(?:\\(|단위\\s*[:：]?\\s*)(?:' + suffix + ')(?=[/)\\s,]|$)' + (unit === 'shares' ? '|주식수|\\(주\\)' : ''));
-          return alone.test(normalize(ref.quote)) && refs.some(other => header.test(normalize(other.quote)));
+          // Or the filing table states the unit in the row label right above the quoted number, e.g. "계약금액(원)".
+          return alone.test(normalize(ref.quote)) && (refs.some(other => header.test(normalize(other.quote))) || headerUnitInDocument(documents, [ref], suffix, number));
         }), 'FACT_UNIT_MISMATCH');
         if (unit === 'shares') assert(refs.some(ref => /주식|지분|매입|매수|취득|발행|\bshares?\b/i.test(ref.quote)), 'FACT_SHARE_CONTEXT_REQUIRED');
       }

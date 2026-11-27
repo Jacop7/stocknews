@@ -113,3 +113,39 @@ test('a conditional "매도해야 … 이어진다" is not advice; advisory endi
     assert.throws(() => assertHedged([phrase]), /ASSERTIVE_INVESTMENT_WORDING/, phrase);
   }
 });
+
+// Exchange filing tables (2026-11-27): units sit in the row label above the number, notes use fixed regulatory
+// phrases, and names or identifiers are facts. Each is accepted only where the number itself is still exact.
+test('exchange filing tables: row-label units, fixed filing phrases, names and identifiers', () => {
+  const c = config(); c.sources[0].kind = 'OFFICIAL';
+  const body = '단일판매ㆍ공급계약 체결\n2. 계약내역\n계약금액(원)\n51,812,866,780\n최근매출액(원)\n1,999,705,307,561\n매출액대비(%)\n2.60\n' +
+    '3. 계약상대방\nMicron Semiconductor Technology India\n- 상기 최근 매출액은 2025년도 연결재무제표 기준입니다.\n' +
+    '확정 계약금액\n12,307,107,208\n(단위 : 백만원)\n투자금액 4,000\n채무보증금액은 $1,000,000 상환 후 $24,000,000 입니다.\n' +
+    '2026년 11월 25일 서울외국환중개 고시 매매기준환율 1,343.60KRW/USD을 적용하여 환산한 금액입니다.\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = fact => {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f5', predicate: 'X', period: '', ...fact, refs: fact.refs.map(quote => ({ docId: 'd', quote })) });
+    return validateTriage(input, [doc], c.catalog).value.facts.at(-1);
+  };
+  // The row label "계약금액(원)" states the unit of the number below it, in the statement and in the value.
+  assert.equal(run({ value: '51,812,866,780', unit: '원', statement: '계약금액은 51,812,866,780원이다.', refs: ['51,812,866,780'] }).unit, 'krw');
+  assert.equal(run({ value: '2.60', unit: '%', statement: '계약금액은 최근 매출액의 2.60%다.', refs: ['2.60'] }).unit, '%');
+  // An unlabelled cell or a scaled table header never stands in for a plain-won unit.
+  assert.throws(() => run({ value: '12,307,107,208', unit: '원', statement: '확정 계약금액은 12,307,107,208원이다.', refs: ['12,307,107,208'] }), /FACT_NUMBER_MISMATCH|FACT_UNIT_MISMATCH/);
+  assert.throws(() => run({ value: '4,000', unit: '원', statement: '투자금액은 4,000원이다.', refs: ['투자금액 4,000'] }), /FACT_NUMBER_MISMATCH|FACT_UNIT_MISMATCH/);
+  // Fixed filing phrases and the counterparty's name are not copied expression; long copied prose still is.
+  assert.equal(run({ value: '1,999,705,307,561', unit: '원', statement: '최근 매출액은 2025년도 연결재무제표 기준 1,999,705,307,561원이다.',
+    refs: ['최근매출액(원)\n1,999,705,307,561', '상기 최근 매출액은 2025년도 연결재무제표 기준입니다.'] }).unit, 'krw');
+  assert.equal(run({ value: 'Micron Semiconductor Technology India', unit: '', statement: '계약 상대방은 Micron Semiconductor Technology India다.',
+    refs: ['3. 계약상대방\nMicron Semiconductor Technology India'] }).value, 'Micron Semiconductor Technology India');
+  assert.throws(() => run({ value: '1,343.60', unit: 'KRW/USD', statement: '서울외국환중개 고시 매매기준환율 1,343.60KRW/USD을 적용하여 환산한 금액이다.',
+    refs: ['2026년 11월 25일 서울외국환중개 고시 매매기준환율 1,343.60KRW/USD을 적용하여 환산한 금액입니다.'] }), /FACT_STATEMENT_COPIES_SOURCE/);
+  // Exchange rates and dollar amounts written with $ pass; digits inside identifiers are not quantities.
+  assert.equal(run({ value: '1,343.60', unit: '원/달러', statement: '원화 환산에 적용된 환율은 1,343.60원/달러다.',
+    refs: ['2026년 11월 25일 서울외국환중개 고시 매매기준환율 1,343.60KRW/USD을 적용하여 환산한 금액입니다.'] }).unit, 'krw/usd');
+  assert.equal(run({ value: '24,000,000', unit: 'USD', statement: '상환 후 보증 잔액은 24,000,000달러다.',
+    refs: ['채무보증금액은 $1,000,000 상환 후 $24,000,000 입니다.'] }).unit.toLowerCase(), 'usd');
+  assert.equal(run({ value: '12,307,107,208', unit: '원', statement: 'GEN6 검사장비 확정 계약금액이 공시됐다.',
+    refs: ['확정 계약금액\n12,307,107,208', '계약금액(원)'] }).value, '12,307,107,208');
+});
