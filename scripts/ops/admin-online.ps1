@@ -26,7 +26,7 @@ New-Item -ItemType Directory -Force $local | Out-Null
 
 if ($Command -eq 'store-secret') {
   $secure = Read-Host 'Supabase secret key (input hidden)' -AsSecureString
-  $key = ([System.Net.NetworkCredential]::new('', $secure).Password -replace '[​-‍﻿\s]', '').Trim('"', "'")
+  $key = ([System.Net.NetworkCredential]::new('', $secure).Password -replace '[\u200B-\u200D\uFEFF\s]', '').Trim('"', "'")
   if ($key -notmatch '^sb_secret_[A-Za-z0-9_-]{16,256}$') { throw "Not a secret key (expected sb_secret_..., length $($key.Length)). Nothing was saved." }
   [System.IO.File]::WriteAllText((Join-Path $local 'secret.key'), $key); Write-Host 'Saved .local-data\admin-online\secret.key (not printed).'; return
 }

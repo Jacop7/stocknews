@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Force $folder | Out-Null
 $secure = Read-Host 'Public key (input hidden)' -AsSecureString
 $raw = [System.Net.NetworkCredential]::new('', $secure).Password
 # Drop surrounding quotes, whitespace and invisible characters that copy/paste can add.
-$key = ($raw -replace '[​-‍﻿\s]', '').Trim('"', "'")
+$key = ($raw -replace '[\u200B-\u200D\uFEFF\s]', '').Trim('"', "'")
 
 function Get-Kind([string]$value) {
   if ($value -match '^sb_publishable_[A-Za-z0-9_-]{16,256}$') { return 'PUBLISHABLE' }
