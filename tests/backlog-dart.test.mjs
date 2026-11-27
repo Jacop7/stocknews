@@ -78,3 +78,25 @@ test('DART links are read through the document API only with an enabled grant; o
   const disabled = structuredClone(settings); disabled.sources.at(-1).status = 'DISABLED';
   assert.equal((await read(request(filingUrl(rcpt), disabled))).reason, 'ORIGINAL_ACCESS_NOT_ENABLED');
 });
+
+// Exchange disclosures (supply contracts, share cancellations, guarantees) come back from the document API as HTML
+// forms with a "회사명/보고서명/(날짜)보고서명" title and a style block, not DART XML (2026-11-27).
+test('exchange filing HTML gets its company and report title, and its style block stays out of the text', () => {
+  const html = `<html>\r\n <head> <meta content="text/html; charset=euc-kr" http-equiv="Content-Type"> <STYLE>\r\n.xforms * { font-family: 돋움체;}\r\n</STYLE>
+    <title>가상정밀/단일판매ㆍ공급계약체결/(2026.11.26)단일판매ㆍ공급계약체결</title></head>
+    <body><div class="xforms"><span>단일판매ㆍ공급계약 체결</span><table><tbody>
+    <tr><td><span>1. 판매ㆍ공급계약 구분</span></td><td><span class="xforms_input">제품공급</span></td></tr>
+    <tr><td><span>계약금액(원)</span></td><td><span class="xforms_input">12,000,000,000</span></td></tr>
+    <tr><td><span>최근매출액(원)</span></td><td><span class="xforms_input">34,000,000,000</span></td></tr></tbody></table></div></body></html>`;
+  const { title, text } = filingText(html);
+  assert.equal(title, '가상정밀 단일판매ㆍ공급계약체결');
+  assert(text.startsWith('단일판매ㆍ공급계약 체결') && /계약금액\(원\)\s+12,000,000,000/.test(text));
+  assert(!/font-family|xforms|돋움체/.test(text));
+  // A page with neither a DART document name nor a usable HTML title still has no title (held, not guessed).
+  assert.equal(filingText('<html><head><title>안내</title></head><body>본문</body></html>').title, '');
+});
+
+test('IR announcements and shareholder meeting notices or results are routine; contracts and cancellations are not', () => {
+  for (const name of ['기업설명회(IR)개최(안내공시)', '주주총회소집결의', '임시주주총회결과']) assert(routineFiling(name), name);
+  for (const name of ['단일판매ㆍ공급계약체결', '주식소각결정', '타인에대한채무보증결정']) assert(!routineFiling(name), name);
+});

@@ -57,9 +57,15 @@ export function firstXmlEntry(zip) {
 const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 // Filing XML → plain text (tags removed, entities decoded), capped to the pipeline's body limit by UTF-8 bytes.
 export function filingText(xml) {
-  const title = /<DOCUMENT-NAME[^>]*>([^<]*)</i.exec(xml)?.[1]?.trim() ?? '';
-  const company = /<COMPANY-NAME[^>]*>([^<]*)</i.exec(xml)?.[1]?.trim() ?? '';
-  let text = xml.replace(/<\?[^>]*\?>/g, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(TABLE-GROUP|TABLE|TR)\b[^>]*>/gi, '\n')
+  let title = /<DOCUMENT-NAME[^>]*>([^<]*)</i.exec(xml)?.[1]?.trim() ?? '';
+  let company = /<COMPANY-NAME[^>]*>([^<]*)</i.exec(xml)?.[1]?.trim() ?? '';
+  // Exchange filings (KRX/KOSDAQ disclosures such as supply contracts or share cancellations) come back as HTML
+  // forms titled "회사명/보고서명/(날짜)보고서명" instead of DART XML.
+  if (!title) {
+    const parts = (/<title[^>]*>([^<]*)</i.exec(xml)?.[1] ?? '').split('/').map(part => part.replace(/\s+/g, ' ').trim());
+    if (parts.length >= 2 && parts[0] && parts[1]) { company = company || parts[0]; title = parts[1]; }
+  }
+  let text = xml.replace(/<(style|script|head)\b[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<\?[^>]*\?>/g, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<(TABLE-GROUP|TABLE|TR)\b[^>]*>/gi, '\n')
     .replace(/<\/?(P|TD|TH|TITLE|TU|TE)\b[^>]*>/gi, ' ').replace(/<[^>]+>/g, ' ')
     .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, code) => code[0] === '#'
       ? String.fromCodePoint(code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : Number(code.slice(1))) : entities[code.toLowerCase()] ?? match)
@@ -74,7 +80,7 @@ export function filingText(xml) {
 
 // Routine ownership and offering paperwork rarely carries a new catalyst; skipping it keeps the daily model budget
 // for contracts, investments, results, capital actions and similar filings.
-const routine = /(임원\s*ㆍ?\s*주요주주\s*특정증권등\s*소유상황보고서|주식등의\s*대량보유상황보고서|최대주주등\s*소유주식변동신고서|증권발행실적보고서|투자설명서|일괄신고추가서류|자기주식\s*처분\s*결과보고서|주주총회소집공고|의결권대리행사권유|기업지배구조보고서|대규모기업집단현황공시|특정증권등\s*거래계획보고서|주주명부폐쇄기간|기준일\s*설정|\[첨부정정\]|분기보고서|반기보고서|사업보고서)/;
+const routine = /(임원\s*ㆍ?\s*주요주주\s*특정증권등\s*소유상황보고서|주식등의\s*대량보유상황보고서|최대주주등\s*소유주식변동신고서|증권발행실적보고서|투자설명서|일괄신고추가서류|자기주식\s*처분\s*결과보고서|주주총회소집공고|주주총회\s*소집\s*결의|(?:임시|정기)?주주총회\s*결과|기업설명회\s*\(IR\)\s*개최|의결권대리행사권유|기업지배구조보고서|대규모기업집단현황공시|특정증권등\s*거래계획보고서|주주명부폐쇄기간|기준일\s*설정|\[첨부정정\]|분기보고서|반기보고서|사업보고서)/;
 export const routineFiling = reportName => routine.test(reportName.replace(/\s+/g, ' '));
 
 export function createDartClient({ apiKey, transport = createOriginalTransport(), now = Date.now } = {}) {
