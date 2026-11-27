@@ -29,7 +29,7 @@
 
 | 항목 | 상태 |
 |---|---|
-| 컨테이너 | `judoju-news-ai-processor-1` (compose 프로젝트 `judoju-news-ai`), 이미지 `judoju-news-ai-processor:6675cea` (2026-11-27 KST), 프롬프트 `BACKLOG_PROMPTS_V10`(글 범위 COMPANY, 종목 기사는 섹터 블록 없음, 핵심 이슈는 사실만, 조건부 섹터는 저장만 하고 화면 비노출) |
+| 컨테이너 | `judoju-news-ai-processor-1` (compose 프로젝트 `judoju-news-ai`), 이미지 `judoju-news-ai-processor:189da62` (2026-11-27 KST), 프롬프트 `BACKLOG_PROMPTS_V11`(글 범위 COMPANY, 종목 기사는 섹터 블록 없음, 핵심 이슈는 사실만, 조건부 섹터는 저장만 하고 화면 비노출) |
 | 실행 | `JUDOJU_AI_EXECUTE=1`, 원문 읽기·AI 호출 ON, **하루 호출 상한 150**(선별 gpt-6-luna, 작성 gpt-6.1-sol, 검증 gpt-6.2-sol) |
 | 근거 | DART 공시는 OpenDART API로만(관심 기업 339곳). 증권사 사이트 허가는 OFF(텔레그램 링크는 신호). 뉴스는 신호로만 |
 | 결과 | **검증 통과 초안 3건**(`DRAFT_READY`, 게시 권한 없음): 심텍 전환사채·신주인수권부사채, 하나금융지주 사채 한도 정정. 모델 호출 누적 100건 |
