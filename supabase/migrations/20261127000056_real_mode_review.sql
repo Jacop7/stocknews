@@ -247,6 +247,7 @@ CREATE OR REPLACE FUNCTION private.m1_prepare_real_v5(p_issue uuid, p_input json
  SET search_path TO ''
 AS $function$
 begin
+ if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;
  if not private.m1_core_evidence(p_issue,coalesce(p_input->>'article_kind','')) then raise exception 'CLAIM_NOT_VERIFIED';end if;
  return private.m1_prepare_real_v4(p_issue,p_input,p_policy,p_catalog)||jsonb_build_object('_issue_id',p_issue);
 end$function$;
@@ -289,9 +290,9 @@ CREATE OR REPLACE FUNCTION private.m1_prepare_real(p_issue uuid, p_input jsonb, 
 AS $function$
 declare b jsonb;input_impact jsonb;x jsonb;stored jsonb:='[]';item jsonb;companies jsonb;seen text[];company_name text;
 begin
- -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B). Checked first so
- -- the editor sees this reason rather than the generic evidence failure.
- if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;
+ -- The switch and the issue kind come first, before any other rule can answer.
+ if not private.real_mode_on() then raise exception 'REAL_MODE_OFF';end if;
+ if not exists(select 1 from private.issues where id=p_issue and sample_kind='PERMITTED_REAL') then raise exception 'REAL_ISSUE_REQUIRED';end if;
  b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);
  for item in select value from jsonb_array_elements(b->'impacts') loop
   select value into input_impact from jsonb_array_elements(p_input->'impacts') where value->>'sector_id'=item->>'sector_id' and value->>'path_id'=item->>'path_id' limit 1;

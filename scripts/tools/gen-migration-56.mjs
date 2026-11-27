@@ -39,7 +39,11 @@ const v3 = sub(rename(read('m1_prepare_v3'), 'm1_prepare_v3', 'm1_prepare_real_v
 let v4 = sub(rename(read('m1_prepare_v4'), 'm1_prepare_v4', 'm1_prepare_real_v4'), 'private.m1_prepare_v3(', 'private.m1_prepare_real_v3(');
 // A COMPANY issue with a primary sector must carry a path in that sector, exactly as SECTOR does.
 v4 = sub(v4, "if b->>'article_kind'='SECTOR' and not exists", "if (b->>'article_kind'='SECTOR' or b->>'article_kind'='COMPANY' and b->>'primary_sector_id' is not null) and not exists");
-const v5 = sub(rename(read('m1_prepare_v5'), 'm1_prepare_v5', 'm1_prepare_real_v5'), 'private.m1_prepare_v4(', 'private.m1_prepare_real_v4(');
+let v5 = sub(rename(read('m1_prepare_v5'), 'm1_prepare_v5', 'm1_prepare_real_v5'), 'private.m1_prepare_v4(', 'private.m1_prepare_real_v4(');
+// Real MACRO articles: every fact must be an official original (independent-source edges come in 1B). Checked right
+// before the general evidence rule so the editor sees this reason rather than the generic evidence failure.
+v5 = sub(v5, "begin\n if not private.m1_core_evidence(",
+  "begin\n if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;\n if not private.m1_core_evidence(");
 let v7 = sub(rename(read('m1_prepare_v7'), 'm1_prepare_v7', 'm1_prepare_real_v7'), 'private.m1_prepare_v5(', 'private.m1_prepare_real_v5(', 2);
 // Real COMPANY issues keep their scope through the whole chain (zero impacts allowed in v1).
 v7 = sub(v7, `b:=private.m1_prepare_real_v5(p_issue,jsonb_set(p_input,'{article_kind}','"SECTOR"'),p_policy,p_catalog)||jsonb_build_object('article_kind','COMPANY');`,
@@ -47,7 +51,7 @@ v7 = sub(v7, `b:=private.m1_prepare_real_v5(p_issue,jsonb_set(p_input,'{article_
 v7 = sub(v7, '  -- A company issue passes every SECTOR rule (primary sector, impact paths, evidence), then keeps its scope.\n', '');
 let top = sub(rename(read('m1_prepare'), 'm1_prepare', 'm1_prepare_real'), 'private.m1_prepare_v7(', 'private.m1_prepare_real_v7(');
 top = sub(top, " b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);",
-  " -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B). Checked first so\n -- the editor sees this reason rather than the generic evidence failure.\n if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;\n b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);");
+  " -- The switch and the issue kind come first, before any other rule can answer.\n if not private.real_mode_on() then raise exception 'REAL_MODE_OFF';end if;\n if not exists(select 1 from private.issues where id=p_issue and sample_kind='PERMITTED_REAL') then raise exception 'REAL_ISSUE_REQUIRED';end if;\n b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);");
 const chain = [v1, v2, v3, v4, v5, v7, top].map(f => f.replace(/\$function\$$/, '$function$;')).join('\n\n');
 
 let selectable = read('selectable');
