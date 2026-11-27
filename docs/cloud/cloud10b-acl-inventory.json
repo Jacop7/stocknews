@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "productId": "judoju-news",
+  "stage": "CLOUD10B",
+  "projectRef": "nxfpfvsdwbziowkxsxnh",
+  "observedAt": "2026-11-27",
+  "method": "Read-only queries in the Supabase SQL Editor (no writes, no grants, no keys read)",
+  "dataApiEnabledObserved": true,
+  "migrations": [
+    "20261114000000",
+    "20261114000001",
+    "20261115000101",
+    "20261115000102",
+    "20261116000103",
+    "20261116000104",
+    "20261116000105",
+    "20261116000106"
+  ],
+  "functionsTotal": 178,
+  "relationsTotal": 72,
+  "relationsWithApiPrivileges": [],
+  "callableByApiRoles": [
+    {
+      "fn": "public.catalog_public_articles",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "4bf9a035c99eff5746d7379377d111135cba39dc944d90ad553a1fc3edd9e0ae",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_company_sectors",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "47ff3832090482e052fa3eb3094cd77259b7b2d90b48c584cd9eceb23f107713",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_saved",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "c76621d227f276a97a220ca5943850247a4fc4d82fa11a3f5fea53b2330a261b",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_search_companies",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "f1733c69193921798360e88088670e839de24b245b3f03202177057f206ae6bd",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_search_news",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "f1eaa30ad5b4662afc581f0bb2b173d849101ce53b04b3cecf5f166852e303fa",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_sector_page",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "d3913a88a21d8014e9c387a99a92f9de0dfba7cf88753daa435928f3b59a61de",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.catalog_public_tree",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "339383f18cb77b5d2299cb4b54a1067e17e1ff9e9862b0271abe2d4f2ee34d63",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_public_article",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "6dda21f8f1bc0b9372025b24cf854f3ae197f768f959665e3bf0e8544d0682ad",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.m1_public_identity",
+      "by": [
+        "anon"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "stable",
+      "overloads": 1,
+      "definitionSha256": "24dd0628d52086c821e0b6d8c06b8dfa72b0d16a1dc179754086a79aba67fe1e",
+      "returns": "jsonb"
+    },
+    {
+      "fn": "public.rls_auto_enable",
+      "by": [
+        "PUBLIC",
+        "anon",
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "returns": "event_trigger",
+      "note": "Supabase-managed baseline; an event-trigger function cannot be invoked through the Data API",
+      "owner": "postgres",
+      "searchPath": "pg_catalog",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4"
+    }
+  ],
+  "roleConfig": {
+    "anon": [
+      "statement_timeout=3s"
+    ],
+    "authenticated": [
+      "statement_timeout=8s"
+    ]
+  },
+  "environmentIdentity": {
+    "stage": "CLOUD02_CONTROL_ONLY",
+    "environment": "dev",
+    "projectRef": "nxfpfvsdwbziowkxsxnh"
+  },
+  "inventoryVersion": 2,
+  "sequencesWithApiPrivileges": [],
+  "tablesWithApiPrivileges": [],
+  "cronPresent": false,
+  "defaultAclNote": "Objects created by postgres in public get no anon/authenticated default privileges (postgres default ACL grants postgres and service_role only). Supabase-managed default ACLs for supabase_admin-created objects (public, graphql, graphql_public, storage) grant API roles, as on every Supabase project; product migrations run as postgres.",
+  "schemaUsage": {
+    "auth": {
+      "anon": true,
+      "authenticated": true,
+      "anonCreate": false
+    },
+    "public": {
+      "anon": true,
+      "authenticated": true,
+      "anonCreate": false
+    },
+    "storage": {
+      "anon": true,
+      "authenticated": true,
+      "anonCreate": false
+    },
+    "extensions": {
+      "anon": true,
+      "authenticated": true,
+      "anonCreate": false
+    },
+    "graphql_public": {
+      "anon": true,
+      "authenticated": true,
+      "anonCreate": false
+    },
+    "private": {
+      "anon": false,
+      "authenticated": false,
+      "anonCreate": false
+    },
+    "judoju_control": {
+      "anon": false,
+      "authenticated": false,
+      "anonCreate": false
+    }
+  },
+  "authenticatedDenial": "Inventory-proven (has_function_privilege false for all nine); no authenticated session exists to call with"
+}

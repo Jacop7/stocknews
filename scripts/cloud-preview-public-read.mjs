@@ -9,6 +9,11 @@ import {catalogResponse,CatalogReadError} from './catalog/public-route.mjs';
 import {searchResponse} from './catalog/search-route.mjs';
 export const PROJECT='nxfpfvsdwbziowkxsxnh',UPSTREAM='https://'+PROJECT+'.supabase.co';
 export const READ_RPCS=Object.freeze(['m1_public_identity','m1_public_article','catalog_public_tree','catalog_public_sector_page','catalog_public_articles','catalog_public_search_news','catalog_public_search_companies','catalog_public_saved','catalog_public_company_sectors'].sort());
+// CLOUD10B: the exact probes that must be refused, and what counts as refused. A refusal is a permission error
+// (42501) or "not exposed/not found" from the Data API (PGRST202 function, PGRST205 table), with 401/403/404.
+// Validation errors (400), rate limits (429) and server errors (5xx) never count as proof of refusal.
+export const DENIED_PROBES=Object.freeze(['rpc rls_auto_enable','rpc m1_prepare','rpc catalog_editor_tree','rpc m1_save_draft','rpc catalog_public_company','table news_public']);
+export const deniedResponse=(status,code)=>[401,403,404].includes(status)&&['42501','PGRST202','PGRST205'].includes(code);
 const root=fileURLToPath(new URL('../',import.meta.url));
 const isolatedConfigs=new WeakSet();
 class PreviewError extends Error{constructor(code,status=503){super(code);this.status=status;}}
@@ -48,6 +53,15 @@ export function loadApprovedPreviewConfig(options={}){
  try{proofBytes=readRegularPrivate('.local-data/cloud-preview/access-proof.json',privateRoot);proof=JSON.parse(proofBytes);}catch{reject('PREVIEW_READ_NOT_ACTIVATED');}
  const names=Array.isArray(proof.readRpcNames)?[...proof.readRpcNames].sort():[];
  if(proof.state!=='CLOUD10B_PUBLIC_READ_VERIFIED'||proof.productId!=='judoju-news'||proof.projectRef!==PROJECT||proof.environment!=='preview'||proof.dataApiEnabledObserved!==true||proof.writeGrants!==0||proof.M2!==false||proof.prodWrites!==0||JSON.stringify(names)!==JSON.stringify(READ_RPCS)||!(/^[a-f0-9]{64}$/).test(proof.userAuthorizationSha256??'')||!(/^[a-f0-9]{64}$/).test(proof.reviewedResultSha256??''))reject('PREVIEW_READ_NOT_ACTIVATED');
+ // The proof binds files, not just hash-shaped strings (CLOUD10B review): the user's authorization text, the live
+ // verification result and the tracked ACL inventory are re-read and re-hashed, and the live result must be a pass.
+ try{
+  const authorization=readRegularPrivate('.local-data/cloud-preview/user-authorization.txt',privateRoot),liveBytes=readRegularPrivate('.local-data/cloud-preview/live-result.json',privateRoot);
+  const live=JSON.parse(liveBytes),inventory=readFileSync(path.join(root,'docs/cloud/cloud10b-acl-inventory.json'));
+  if(sha(authorization)!==proof.userAuthorizationSha256||sha(liveBytes)!==proof.reviewedResultSha256||sha(inventory)!==proof.inventorySha256||authorization.length<10)throw 0;
+  if(live.state!=='PASS'||live.projectRef!==PROJECT||JSON.stringify([...(live.allowed??[])].map(x=>x.name).sort())!==JSON.stringify(READ_RPCS)||live.allowed.some(x=>x.ok!==true||x.status!==200)||!Array.isArray(live.denied)||
+   JSON.stringify(live.denied.map(x=>x.name))!==JSON.stringify(DENIED_PROBES)||live.denied.some(x=>!deniedResponse(x.status,x.code)))throw 0;
+ }catch{reject('PREVIEW_READ_NOT_ACTIVATED');}
  let c;try{c=JSON.parse(readRegularPrivate('.local-data/cloud-preview/public-config.json',privateRoot));}catch{reject('PREVIEW_CONFIG_REJECTED');}
  if(c.proofSha256!==sha(proofBytes))reject('PREVIEW_CONFIG_REJECTED');const result=validatedConfig(c);if(isolated)isolatedConfigs.add(result);return result;
 }

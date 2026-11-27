@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request} from 'node:http';
-import {classifyPublicKey,loadApprovedPreviewConfig,assertPreviewIdentity,previewRoute,previewUpstream,createPreviewGateway,PROJECT,UPSTREAM,READ_RPCS} from '../scripts/cloud-preview-public-read.mjs';
+import {classifyPublicKey,loadApprovedPreviewConfig,assertPreviewIdentity,previewRoute,previewUpstream,createPreviewGateway,PROJECT,UPSTREAM,READ_RPCS,DENIED_PROBES} from '../scripts/cloud-preview-public-read.mjs';
 import {resolveReadTarget} from '../apps/mobile/src/data/read-target.ts';
 const id='00000000-0000-4000-8000-000000000001',when='2026-11-16T00:00:00Z';
 const identity={productId:'judoju-news',environment:'preview',bootstrapId:null,sampleKind:'SYNTHETIC',contract:'M1'};
@@ -116,8 +116,11 @@ function cleanDir(dir){
  const absolute=path.resolve(dir),parent=realpathSync(tmpdir());assert.equal(realpathSync(path.dirname(absolute)),parent);assert.ok(path.basename(absolute).startsWith('judoju-cloud10b-')&&!lstatSync(absolute).isSymbolicLink());assert.equal(realpathSync(absolute),absolute);rmSync(absolute,{recursive:true,force:false});
 }
 function fakeSettings(dir){
- const proof={state:'CLOUD10B_PUBLIC_READ_VERIFIED',productId:'judoju-news',projectRef:PROJECT,environment:'preview',dataApiEnabledObserved:true,writeGrants:0,M2:false,prodWrites:0,readRpcNames:READ_RPCS,userAuthorizationSha256:'0'.repeat(64),reviewedResultSha256:'1'.repeat(64)};
- const folder=path.join(dir,'.local-data/cloud-preview');mkdirSync(folder,{recursive:true});const proofBytes=Buffer.from(JSON.stringify(proof));writeFileSync(path.join(folder,'access-proof.json'),proofBytes);writeFileSync(path.join(folder,'public-config.json'),JSON.stringify({...config,proofSha256:createHash('sha256').update(proofBytes).digest('hex')}));return folder;
+ const h=b=>createHash('sha256').update(b).digest('hex'),folder=path.join(dir,'.local-data/cloud-preview');mkdirSync(folder,{recursive:true});
+ const authorization=Buffer.from('synthetic fixture authorization'),live=Buffer.from(JSON.stringify({state:'PASS',projectRef:PROJECT,allowed:READ_RPCS.map(name=>({name,ok:true,status:200})),denied:DENIED_PROBES.map(name=>({name,status:404,code:'PGRST202',denied:true}))}));
+ writeFileSync(path.join(folder,'user-authorization.txt'),authorization);writeFileSync(path.join(folder,'live-result.json'),live);
+ const proof={state:'CLOUD10B_PUBLIC_READ_VERIFIED',productId:'judoju-news',projectRef:PROJECT,environment:'preview',dataApiEnabledObserved:true,writeGrants:0,M2:false,prodWrites:0,readRpcNames:READ_RPCS,userAuthorizationSha256:h(authorization),reviewedResultSha256:h(live),inventorySha256:h(readFileSync(new URL('../docs/cloud/cloud10b-acl-inventory.json',import.meta.url)))};
+ const proofBytes=Buffer.from(JSON.stringify(proof));writeFileSync(path.join(folder,'access-proof.json'),proofBytes);writeFileSync(path.join(folder,'public-config.json'),JSON.stringify({...config,proofSha256:createHash('sha256').update(proofBytes).digest('hex')}));return folder;
 }
 test('isolated synthetic proof/config validates SHA/project/key with no product-root access',()=>{
  const dir=ownDir();try{
@@ -176,4 +179,18 @@ test('three delayed body timeouts release gateway slots for next healthy request
   const results=await Promise.race([Promise.all([http(g,'/v2/catalog'),http(g,'/v2/catalog'),http(g,'/v2/catalog')]),guard]);assert.equal(aborted,3,'ABORT_DEADLINE_REQUIRED');assert.ok(results.every(x=>x.status===503&&x.text==='{"error":"PREVIEW_READ_UNAVAILABLE"}'));
   block=false;assert.equal((await http(g,'/v2/catalog')).status,200);
  }finally{clearTimeout(guardTimer);listeners.forEach(([signal,handler])=>signal.removeEventListener('abort',handler));await g.close();}
+});
+test('CLOUD10B proof is bound to the authorization, live result and inventory files, not to hash-shaped strings',()=>{
+ const dir=ownDir();try{
+  const folder=fakeSettings(dir);assert.equal(loadApprovedPreviewConfig({privateRoot:dir}).keyKind,'PUBLISHABLE');
+  for(const [file,content] of [['user-authorization.txt','other authorization text'],['live-result.json',JSON.stringify({state:'FAIL'})]]){
+   const p=path.join(folder,file),original=readFileSync(p);writeFileSync(p,content);assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);writeFileSync(p,original);
+  }
+  // Wrong probe names, a 400 validation error or a 500 never count as a refusal.
+  const live=path.join(folder,'live-result.json'),good=JSON.parse(readFileSync(live));
+  for(const denied of [good.denied.map((x,i)=>i?x:{...x,name:'n1'}),good.denied.map((x,i)=>i?x:{...x,status:400,code:'PGRST100'}),good.denied.map((x,i)=>i?x:{...x,status:500,code:'42501'}),good.denied.slice(1)]){
+   writeFileSync(live,JSON.stringify({...good,denied}));assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);
+  }
+  rmSync(path.join(folder,'live-result.json'));assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);
+ }finally{cleanDir(dir);}
 });
