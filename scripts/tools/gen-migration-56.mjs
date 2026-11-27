@@ -55,8 +55,12 @@ selectable = sub(selectable, " select p_article_mode='SYNTHETIC'\n", " select (p
 selectable = sub(selectable, " or (c.usage_scope='LEGACY_FIXTURE' and m.metadata_kind='SYNTHETIC_FIXTURE'", " or (p_article_mode='SYNTHETIC' and c.usage_scope='LEGACY_FIXTURE' and m.metadata_kind='SYNTHETIC_FIXTURE'");
 selectable = selectable.replace(/\$function\$$/, '$function$;');
 
+// Public fence: alias resolution never reports a real issue (state or canonical ID).
+let resolve = sub(read('resolve'), "if not found or i.publication_state='DRAFT' then return", "if not found or i.publication_state='DRAFT' or i.sample_kind<>'SYNTHETIC' then return");
+resolve = resolve.replace(/\$function\$$/, '$function$;');
+
 const fence = readFileSync(new URL('./migration-56-fence.sql', import.meta.url), 'utf8').replace(/\r/g, '');
 const head = readFileSync(new URL('./migration-56-head.sql', import.meta.url), 'utf8').replace(/\r/g, '');
-const sql = `${head}\n-- Real-data validator chain (generated from the live M1 chain by scripts/tools/gen-migration-56.mjs).\n${chain}\n\n-- Reference-catalog sectors are selectable for real issues while real mode is on; fixture sectors stay synthetic-only.\n${selectable}\n\n${fence}`;
+const sql = `${head}\n${resolve}\n\n-- Real-data validator chain (generated from the live M1 chain by scripts/tools/gen-migration-56.mjs).\n${chain}\n\n-- Reference-catalog sectors are selectable for real issues while real mode is on; fixture sectors stay synthetic-only.\n${selectable}\n\n${fence}`;
 writeFileSync(new URL('../../supabase/migrations/20261127000056_real_mode_review.sql', import.meta.url), sql);
 console.log(JSON.stringify({ written: 'supabase/migrations/20261127000056_real_mode_review.sql', bytes: Buffer.byteLength(sql) }));

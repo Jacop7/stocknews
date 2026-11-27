@@ -75,4 +75,7 @@ revoke all on function private.m1_prepare(uuid,jsonb,bigint,bigint), private.m1_
   private.m1_prepare_real_v4(uuid,jsonb,bigint,bigint), private.m1_prepare_real_v5(uuid,jsonb,bigint,bigint), private.m1_prepare_real_v7(uuid,jsonb,bigint,bigint),
   private.reservation_publish_core(uuid,bigint,bigint,bigint,bigint,text,uuid,uuid), private.m1_current_evidence(uuid), private.m0_get_public_article_legacy(uuid)
   from public, anon, authenticated, service_role;
+-- Renamed predecessors keep their old ACL on rename; they are internal now.
+revoke all on function private.m1_prepare_v8(uuid,jsonb,bigint,bigint), private.reservation_publish_core_v1(uuid,bigint,bigint,bigint,bigint,text,uuid,uuid),
+  private.m1_current_evidence_v3(uuid), private.m0_get_public_article_legacy_v1(uuid) from public, anon, authenticated, service_role;
 commit;
