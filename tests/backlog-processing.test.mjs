@@ -373,3 +373,23 @@ test('publish 1A: expired jobs are not re-queued and expired tombstones are not 
   h.store.db.prepare('UPDATE draft_exports SET expires_at=?').run(stamp);
   assert.deepEqual(h.store.exports(stamp + 1), { ready: [], revoked: [] });
 });
+
+test('publish 1A: a re-queued draft is not shown its own issue as an existing story; a held re-queue can be re-queued', async t => {
+  const seen = [];
+  const h = harness(t, { modelOverride: (request) => {
+    if (request.stage === 'triage') return triage(request.input.document.id, false);
+    if (request.stage === 'draft') { seen.push(['draft', request.input.existingIssues.length]); return draft(request.input); }
+    seen.push(['verify', request.input.existingIssues.length]); return verification(request.input);
+  } });
+  h.add(); await h.drain();
+  const job = h.store.db.prepare("SELECT id FROM jobs WHERE state='DRAFT_READY'").get();
+  seen.length = 0;
+  h.store.requeueForExport(job.id, stamp); h.advance(60000);
+  assert.equal((await h.drain()).at(-1).state, 'DRAFT_READY');
+  assert.deepEqual(seen, [['draft', 0], ['verify', 0]], 'its own issue is not an existing story to the writer or verifier');
+  // A re-queue that ended on hold can be re-queued; an ordinary hold cannot.
+  h.store.db.prepare("UPDATE jobs SET state='HOLD_VALIDATION',payload=json_set(payload,'$.exportRequeue',json('true')) WHERE id=?").run(job.id);
+  assert.equal(h.store.requeueForExport(job.id, stamp + 120000).state, 'FETCH');
+  h.store.db.prepare("UPDATE jobs SET state='HOLD_VALIDATION',payload=json_remove(payload,'$.exportRequeue') WHERE id=?").run(job.id);
+  assert.throws(() => h.store.requeueForExport(job.id, stamp + 120000), /REQUEUE_REQUIRES_DRAFT_READY/);
+});

@@ -295,11 +295,12 @@ export class BacklogStore {
   requeueForExport(jobId, now) {
     return this.transaction(() => {
       const job = this.db.prepare('SELECT * FROM jobs WHERE id=?').get(jobId);
-      assert(job && job.state === 'DRAFT_READY', 'REQUEUE_REQUIRES_DRAFT_READY');
+      // A re-queue that ended on hold may be re-queued again (its issue is still the committed version).
+      assert(job && (job.state === 'DRAFT_READY' || job.state.startsWith('HOLD_') && JSON.parse(job.payload).exportRequeue === true), 'REQUEUE_REQUIRES_DRAFT_READY');
       assert(job.expires_at > now, 'REQUEUE_JOB_EXPIRED');
       const payload = JSON.parse(job.payload);
       this.db.prepare("UPDATE jobs SET state='FETCH',next_at=?,lease=NULL,lease_until=0,payload=? WHERE id=?")
-        .run(now, canonical({ ...payload, exportRequeue: true }), jobId);
+        .run(now, canonical({ ...payload, exportRequeue: true, exportRequeueAt: now }), jobId);
       this.db.prepare("INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,'FETCH','EXPORT_REQUEUE',?)").run(jobId, now);
       return { jobId, state: 'FETCH', exportRequeue: true };
     });
@@ -330,7 +331,7 @@ export class BacklogStore {
       this.db.prepare('INSERT INTO issues(id,story_key,angle_key,version,payload,fact_ids,created_at,updated_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(story_key,angle_key) DO UPDATE SET version=excluded.version,payload=excluded.payload,fact_ids=excluded.fact_ids,updated_at=excluded.updated_at,expires_at=excluded.expires_at')
         .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
       if (catalogRef) this.exportSnapshot(id, version, job.payload.storyKey, draft, facts, catalogRef, now);
-      const { exportRequeue, ...rest } = job.payload;
+      const { exportRequeue, exportRequeueAt, ...rest } = job.payload;
       this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0,expires_at=max(expires_at,?) WHERE id=?").run(canonical({ ...rest, issueId: id, version, action }), expiresAt, job.id);
       this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
       this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));

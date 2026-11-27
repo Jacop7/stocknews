@@ -12,7 +12,10 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
     if (!authorize()) return hold('AUTHORITY_CHANGED');
     const modelId = config.models[stage];
     if (!modelId.trim() || modelId.length >= 120 || canonical(input).length > 150000) return hold('MODEL_INPUT_LIMIT');
-    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V12' });
+    // An operator re-queue (publish 1A) asks for a fresh writing and verification: its own run identity, so an earlier,
+    // already purged run with the same input is not taken as its answer.
+    const requeue = stage !== 'triage' && job.payload.exportRequeueAt ? { requeue: job.payload.exportRequeueAt } : {};
+    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V12', ...requeue });
     const scope = job.payload.docId + ':' + stage;
     const reserved = store.beginRun(key, scope, stage, modelId, config.maxDailyCalls, now(), retentionUntil, documentIds);
     if (reserved.state === 'CACHED') return { state: 'RESULT', value: reserved.value };
@@ -119,7 +122,9 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
         const input = { facts, triage: job.payload.triage, catalog: config.catalog,
           // A deleted original arrives as purged: the verifier checks those facts against their stored quotes.
           originals: context.documents.map(doc => ({ id: doc.id, title: doc.title, text: doc.text, publishedAt: doc.publishedAt, ...(doc.purged ? { purged: true } : {}) })),
-          existingIssues: context.issues.map(issue => ({ id: issue.id, version: issue.version, title: issue.payload.title,
+          // An operator re-queue re-issues its own issue: that issue is the one being rewritten, not another existing
+          // story, so the writer and the verifier do not see it as a duplicate (the commit still checks its version).
+          existingIssues: context.issues.filter(issue => !(job.payload.exportRequeue && issue.id === job.payload.issueId)).map(issue => ({ id: issue.id, version: issue.version, title: issue.payload.title,
             angleKey: issue.angle_key, factIds: JSON.parse(issue.fact_ids) })) };
         if (job.state === 'DRAFT') {
           const angle = digest(job.payload.triage.impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort());
@@ -142,7 +147,7 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
         assert(job.state === 'VERIFY' && job.payload.contextDigest === digest(input), 'CONTEXT_CHANGED');
         const result = await executeModel(job, 'verify', { ...input, draft: job.payload.draft }, config, () => authority(docIds), retentionUntil, docIds);
         if (result.state !== 'RESULT') return modelHold(result);
-        validateVerification(result.value, facts, context.issues.length > 0);
+        validateVerification(result.value, facts, input.existingIssues.length > 0);
         assert(authority(docIds), 'AUTHORITY_CHANGED');
         return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), now() + DRAFT_DAYS * day,
           { registry: config.catalog.version, sha256: digest(config.catalog) });
