@@ -47,7 +47,7 @@ v7 = sub(v7, `b:=private.m1_prepare_real_v5(p_issue,jsonb_set(p_input,'{article_
 v7 = sub(v7, '  -- A company issue passes every SECTOR rule (primary sector, impact paths, evidence), then keeps its scope.\n', '');
 let top = sub(rename(read('m1_prepare'), 'm1_prepare', 'm1_prepare_real'), 'private.m1_prepare_v7(', 'private.m1_prepare_real_v7(');
 top = sub(top, " b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);",
-  " b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);\n -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B).\n if b->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;");
+  " -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B). Checked first so\n -- the editor sees this reason rather than the generic evidence failure.\n if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;\n b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);");
 const chain = [v1, v2, v3, v4, v5, v7, top].map(f => f.replace(/\$function\$$/, '$function$;')).join('\n\n');
 
 let selectable = read('selectable');

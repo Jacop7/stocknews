@@ -289,9 +289,10 @@ CREATE OR REPLACE FUNCTION private.m1_prepare_real(p_issue uuid, p_input jsonb, 
 AS $function$
 declare b jsonb;input_impact jsonb;x jsonb;stored jsonb:='[]';item jsonb;companies jsonb;seen text[];company_name text;
 begin
+ -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B). Checked first so
+ -- the editor sees this reason rather than the generic evidence failure.
+ if p_input->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;
  b:=private.m1_prepare_real_v7(p_issue,p_input,p_policy,p_catalog);
- -- Real MACRO articles: every fact must be an official original (independent-source edges come in 1B).
- if b->>'article_kind'='MACRO' and exists(select 1 from private.claims c where c.issue_id=p_issue and not c.official_original) then raise exception 'REAL_MACRO_REQUIRES_OFFICIAL';end if;
  for item in select value from jsonb_array_elements(b->'impacts') loop
   select value into input_impact from jsonb_array_elements(p_input->'impacts') where value->>'sector_id'=item->>'sector_id' and value->>'path_id'=item->>'path_id' limit 1;
   companies:='[]';seen:='{}';

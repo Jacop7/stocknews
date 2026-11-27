@@ -129,7 +129,7 @@ assert.deepEqual(value('synthetic_real_url'), ['SYNTHETIC_SOURCE_REQUIRED']);
 assert.deepEqual(value('company_zero'), ['COMPANY']);
 assert.deepEqual(value('company_zero_preview'), ['true']);
 assert.deepEqual(value('company_impacts_no_primary'), ['PRIMARY_SECTOR_REQUIRED']);
-assert.ok(['REAL_MACRO_REQUIRES_OFFICIAL', 'CLAIM_NOT_VERIFIED'].includes(value('macro_non_official')[0]), value('macro_non_official')[0]);
+assert.deepEqual(value('macro_non_official'), ['REAL_MACRO_REQUIRES_OFFICIAL']);
 assert.deepEqual(value('mixed_real'), ['MIXED_SAMPLE_KIND']);
 assert.deepEqual(value('publish_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
 assert.deepEqual(value('schedule_real'), ['REAL_PUBLICATION_NOT_ENABLED_1A']);
