@@ -197,9 +197,15 @@ sudo -n docker build -q --target admin -t "judoju-news-admin-web:$C" . >/dev/nul
 sudo -n docker build -q --target broker -t "judoju-news-admin-broker:$C" . >/dev/null
 ln -sfn "$R" "$B/current"
 cd "$B/current" && sudo -n docker compose up -d --no-build
+# The public site is added only after the admin answered locally; otherwise the deploy fails and nothing is exposed.
+up=0
+for i in $(seq 1 24); do sleep 5; s=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: __HOST__' http://127.0.0.1:62333/login || true); [ "$s" = 200 ] && { up=1; echo "ADMIN_UP image=$C"; break; }; done
+if [ "$up" != 1 ]; then echo "ADMIN_NOT_READY image=$C"; sudo -n docker compose logs --tail 30 admin broker 2>&1 | sed -E 's/(sb_[a-z]+_)[A-Za-z0-9_-]+/\1REDACTED/g' || true; exit 1; fi
 sudo -n install -d -m 755 "$RB/sites" && sudo -n install -m 644 "$R/admin.caddy" "$RB/sites/admin.caddy"
-for i in $(seq 1 24); do sleep 5; s=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: __HOST__' http://127.0.0.1:62333/login || true); [ "$s" = 200 ] && { echo "ADMIN_UP image=$C"; break; }; done
 sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null && echo CADDY_RELOADED
+code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://__HOST__/login || true)
+[ "$code" = 200 ] || { echo "ADMIN_HTTPS_NOT_READY code=$code"; exit 1; }
+echo "ADMIN_HTTPS_UP"
 '@
 Invoke-Remote ($deploy.Replace('__REMOTE__', $remote).Replace('__BASE__', $base).Replace('__READBASE__', $readBase).Replace('__COMMIT__', $commit).Replace('__HOST__', $hostName))
 Invoke-Remote $statusScript
