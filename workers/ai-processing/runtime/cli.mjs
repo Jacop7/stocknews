@@ -37,19 +37,38 @@ export function readSavedLinks(filename, kind, now = Date.now()) {
 async function main(argv) {
   const command = argv[0];
   if (!command || command === '--help') {
-    console.log('Commands: export-drafts --db DB; export-requeue --db DB --job ID; import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
+    console.log('Commands: export-drafts --db DB; push-drafts --db DB [--check]; export-requeue --db DB --job ID; import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
     return;
   }
-  const flags = new Set(['--once', '--execute-originals', '--execute-models']), options = {};
+  const flags = new Set(['--once', '--execute-originals', '--execute-models', '--check']), options = {};
   for (let i = 1; i < argv.length; i++) {
     const key = argv[i]; assert(['--db', '--telegram', '--web', '--discovery', '--format', '--config', '--job', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
     assert(!Object.hasOwn(options, key), 'DUPLICATE_ARGUMENT');
     options[key] = flags.has(key) ? true : argv[++i];
     assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
   }
-  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
+  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue', 'push-drafts'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
   const filename = resolve(options['--db']);
-  if (['status', 'export-drafts', 'export-requeue'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  if (['status', 'export-drafts', 'export-requeue', 'push-drafts'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  // Publish stage 2A: one manual cloud delivery pass (same gate as the service: the push setting file), or --check,
+  // which only connects with the intake secret and reports the session role and the queue status (nothing is sent).
+  if (command === 'push-drafts') {
+    const { deliveryCycle, loadIntakeSecret, connectIntake, loadPushConfig } = await import('./intake-client.mjs');
+    const { deliveryStatus } = await import('./delivery.mjs');
+    const store = new BacklogStore(filename);
+    try {
+      if (options['--check']) {
+        const client = await connectIntake(loadIntakeSecret());
+        try {
+          const sessionUser = await client.whoami();
+          // A working connection ends any earlier connection backoff, so pending withdrawals go on the next cycle.
+          if (sessionUser === 'judoju_ai_intake') store.db.prepare("DELETE FROM delivery_meta WHERE key IN ('connect_failures','connect_retry_at')").run();
+          console.log(JSON.stringify({ push: loadPushConfig(), sessionUser, queue: deliveryStatus(store.db, Date.now()) }));
+        } finally { await client.close(); }
+      } else console.log(JSON.stringify(await deliveryCycle({ db: store.db })));
+    } finally { store.close(); }
+    return;
+  }
   // Publish stage 1A: ready export snapshots and revoked issue versions, as JSON on stdout (read only).
   if (command === 'export-drafts') {
     const store = new BacklogStore(filename);

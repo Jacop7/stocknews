@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { digest, canonical, day, urlKey, sourceGrant } from './contracts.mjs';
+import { ensureDeliveries, enqueueSubmit, enqueueWithdraw } from './delivery.mjs';
 
 const decode = row => row ? { ...row, payload: JSON.parse(row.payload) } : null;
 // Retention (2026-11-26 user decision): an original's title/body is deleted as soon as its analysis is written
@@ -46,6 +47,8 @@ export class BacklogStore {
     if (!this.db.prepare('PRAGMA table_info(documents)').all().some(column => column.name === 'body_expires_at')) {
       this.db.exec('ALTER TABLE documents ADD COLUMN body_expires_at INTEGER');
     }
+    // Publish stage 2A: the cloud delivery queue (created and back-filled from existing snapshots on first open).
+    ensureDeliveries(this.db);
   }
   close() { this.db.close(); }
   transaction(callback) {
@@ -272,11 +275,16 @@ export class BacklogStore {
           statement: fact.statement, verificationClass: fact.verificationClass, independentlyVerified: true, koreaPathVerified: true, recordedAt: now,
           sources, sourceUrls: sources.map(source => source.url) };
       }) };
-    this.db.prepare("INSERT INTO draft_exports(issue_id,version,state,payload,created_at,expires_at) VALUES (?,?,'READY',?,?,?) ON CONFLICT(issue_id,version) DO NOTHING")
-      .run(issueId, version, canonical(snapshot), now, now + 30 * day);
+    const inserted = this.db.prepare("INSERT INTO draft_exports(issue_id,version,state,payload,created_at,expires_at) VALUES (?,?,'READY',?,?,?) ON CONFLICT(issue_id,version) DO NOTHING")
+      .run(issueId, version, canonical(snapshot), now, now + 30 * day).changes > 0;
+    // Stage 2A: the same transaction queues its cloud delivery (stored exactly as it will be sent).
+    if (inserted) enqueueSubmit(this.db, JSON.parse(canonical(snapshot)), now, now + 30 * day);
   }
-  revokeExports(issueId) {
+  revokeExports(issueId, now = Date.now()) {
     this.db.prepare("UPDATE draft_exports SET state='REVOKED',payload='{}' WHERE issue_id=?").run(issueId);
+    // Stage 2A: unfinished cloud submits stop and lose their content; a withdrawal is queued for the newest version.
+    const newest = this.db.prepare('SELECT max(version) v FROM draft_exports WHERE issue_id=?').get(issueId)?.v;
+    if (newest) enqueueWithdraw(this.db, issueId, newest, now);
   }
   // Ready snapshots whose job is still DRAFT_READY for exactly that issue version, plus revoked ones (for withdrawal).
   exports(now) {
@@ -357,7 +365,7 @@ export class BacklogStore {
         for (const issue of this.db.prepare('SELECT id,payload FROM issues WHERE expires_at>?').all(now)) {
           if ((JSON.parse(issue.payload).source_refs ?? []).some(source => !sourceGrant(config, source.url, now))) {
             this.db.prepare('UPDATE issues SET payload=?,fact_ids=? WHERE id=?').run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
-            this.revokeExports(issue.id);
+            this.revokeExports(issue.id, now);
           }
         }
         // Editor proposals carry their own source_refs and can outlive the 30-day source record.
@@ -392,7 +400,7 @@ export class BacklogStore {
         for (const issue of this.db.prepare('SELECT id,payload FROM issues').all()) if ((JSON.parse(issue.payload).source_refs ?? []).some(source => source.docId === id)) {
           this.db.prepare("UPDATE issues SET payload=?,fact_ids='[]' WHERE id=?")
             .run(canonical({ state: 'HOLD_SOURCE_CHANGED', publicationAuthorized: false }), issue.id);
-          this.revokeExports(issue.id);
+          this.revokeExports(issue.id, now);
         }
         for (const job of this.db.prepare('SELECT id,payload FROM jobs').all()) {
           const payload = JSON.parse(job.payload);

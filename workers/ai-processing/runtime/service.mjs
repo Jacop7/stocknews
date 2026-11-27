@@ -13,6 +13,8 @@ import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
 import { readSavedLinks } from './cli.mjs';
 import { createDartClient, createDartReader, readCorpCodes } from './dart.mjs';
+import { deliveryCycle } from './intake-client.mjs';
+import { deliveryStatus } from './delivery.mjs';
 
 const env = process.env;
 const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUDOJU_AI_CONFIG ?? '/ai/config.json',
@@ -62,8 +64,13 @@ async function main() {
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }
       if (result.state !== 'IDLE' && result.state !== 'PAUSED') log({ event: 'AI_STEP', state: result.state, reason: result.reason ?? null });
+      // Publish stage 2A: cloud delivery, only while the push setting file says so (re-read every cycle).
+      try {
+        const delivery = await deliveryCycle({ db: store.db });
+        if (!['OFF', 'IDLE'].includes(delivery.state)) log({ event: 'AI_DELIVERY', ...delivery });
+      } catch { log({ event: 'AI_DELIVERY_FAILED' }); }
       writeFileSync(paths.heartbeat, String(Date.now()));
-      writeFileSync(paths.status + '.pending', JSON.stringify({ at: Date.now(), execute, ...store.status() }));
+      writeFileSync(paths.status + '.pending', JSON.stringify({ at: Date.now(), execute, ...store.status(), delivery: deliveryStatus(store.db, Date.now()) }));
       renameSync(paths.status + '.pending', paths.status);
       const idle = result.state === 'IDLE' || result.state === 'PAUSED';
       await sleep(idle ? 30_000 : 1000, undefined, { signal: stop.signal }).catch(error => { if (!stop.signal.aborted) throw error; });
