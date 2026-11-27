@@ -17,7 +17,10 @@ select e.content::text from public.news_public n join private.article_versions v
 assert.equal(probe[0], 't', 'migration 56 must be applied first');
 const applied = probe[1] === 't';
 const template = JSON.parse(probe[2]);
-const body = readFileSync(new URL('../supabase/migrations/20261127000057_ai_draft_inbox.sql', import.meta.url), 'utf8').replace(/^begin;\s*$/m, '').replace(/commit;\s*$/, '');
+const migrationBody = name => readFileSync(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8').replace(/^begin;\s*$/m, '').replace(/commit;\s*$/, '');
+const applied58 = run("select pg_get_functiondef('public.m1_get_draft(uuid)'::regprocedure) like '%company_labels%';").stdout.trim() === 't';
+// 57, and 58 (company names in the draft detail) when not applied yet; 58 always comes after 57.
+const body = (applied ? '' : migrationBody('20261127000057_ai_draft_inbox.sql')) + (applied58 ? '' : migrationBody('20261127000058_draft_company_labels.sql'));
 
 // AI_DRAFT_V1 from the template: claim IDs become AI fact IDs, sources move to an allowed official host.
 const claimIds = [...new Set([...template.impacts.flatMap(x => x.evidence_ids), ...(template.schedule ?? []).flatMap(x => x.evidence_ids ?? [])])];
@@ -50,7 +53,7 @@ const otherSector = run(`select s.id from private.sectors s where private.catalo
 assert.ok(memberCompany && otherSector, 'catalog needs a member company of the template sector and another sector without it');
 const unknownSector = '00000000-0000-4000-8000-000000000001';
 const sql = `begin;
-${applied ? '' : body}
+${body}
 create temp table h as select (public.catalog_public_tree(null)->>'catalog_version')::bigint head,(select version from private.policies where active order by version desc limit 1) pol;
 ${err('off', call(A, 1, payload(A, 1)))}
 update private.real_mode set enabled=true;
@@ -134,6 +137,7 @@ set local role authenticated;
 select 'R|dto|'||concat_ws(',',g->>'sample_kind',g->'ai_origin'->>'link_state',g->'ai_origin'->'draft'->>'ai_version',g->'ai_origin'->'pending'->>'ai_version',
   (select count(*) from jsonb_object_keys(g->'ai_origin'->'draft'->'claim_ids'))::text)
   from (select public.m1_get_draft((select issue_id from a1)) g) x;
+select 'R|labels|'||(select (jsonb_typeof(g->'company_labels')='array' and jsonb_array_length(g->'company_labels')=(select count(distinct r) from (select g->'content'->>'primary_company_ref' r union select value from jsonb_array_elements_text(coalesce(g->'content'->'company_refs','[]')) union select c->>'company_ref' from jsonb_array_elements(g->'content'->'impacts') i,jsonb_array_elements(coalesce(i->'companies','[]')) c) z where r is not null))::text from (select public.m1_get_draft((select issue_id from a1)) g) x);
 select 'R|list|'||(select x->'ai_origin'->>'state' from jsonb_array_elements(public.m1_editor_articles()) x where x->>'id'=(select issue_id::text from a1));
 reset role;
 select set_config('request.jwt.claims','',true);
@@ -216,6 +220,7 @@ assert.deepEqual(value('replay_off'), ['RECEIVED']);
 assert.deepEqual(value('conflict_off'), ['AI_DRAFT_CONFLICT']);
 assert.deepEqual(value('dto'), [`PERMITTED_REAL,HOLD_EDITOR,2,3,${facts.length}`]);
 assert.deepEqual(value('list'), ['HOLD_EDITOR']);
+assert.deepEqual(value('labels'), ['true']);
 assert.ok(Number(value('cleanup')[0]) >= 1);
 assert.deepEqual(value('cleanup_state'), ['WITHDRAWN:EXPIRED']);
 assert.deepEqual(value('acl'), ['false,false']);
@@ -232,7 +237,7 @@ const releaseKey = q('ai-test-release:' + H);
 const held = key => `exists(select 1 from pg_locks where locktype='advisory' and granted and pid<>pg_backend_pid() and objid::bigint=(hashtext(${key})::bigint & 4294967295))`;
 const waitFor = (cond, label) => `t0:=clock_timestamp();while not (${cond}) loop if clock_timestamp()-t0>interval '120 seconds' then raise exception 'R_TIMEOUT_${label}';end if;perform pg_sleep(0.05);end loop;`;
 // First: intake (holds the issue lock), then keep the transaction open until the second side signals, then roll back.
-await new Promise(resolve => first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');
+await new Promise(resolve => first.stdin.end('begin;' + body + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');
 do $$ declare t0 timestamptz; begin ${waitFor(held(releaseKey), 'RELEASE')} end $$;rollback;`, resolve));
 // Second: wait until the first holds the issue lock, try a competing intake of the same issue and version (it must block
 // on that lock, never pass it), signal release, and wait until the first has let go.
