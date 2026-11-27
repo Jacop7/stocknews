@@ -86,3 +86,11 @@ test('a date-only schedule becomes a whole-day PERIOD in its zone; other forms a
     evidence_fact_ids: ['f-1'], period_label: '2026-12-15', period_start: '2026-12-15T00:00:00+09:00', period_end: '2026-12-16T00:00:00+09:00', precision: 'DAY' }]);
   assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }, { schedule: 2, reason: 'BAD_TIMEZONE' }]);
 });
+
+test('day periods use the offset at local midnight on DST days; impossible dates are omitted', () => {
+  const { payload, omitted } = toIntakePayload(base({ draft: { schedule: [
+    { title: 'DST', eventAt: '2026-03-08', timezone: 'America/New_York', factIds: ['f-1'] },
+    { title: '없는 날', eventAt: '2026-02-30', timezone: 'Asia/Seoul', factIds: ['f-1'] }] } }));
+  assert.deepEqual(payload.draft.schedule.map(x => [x.period_start, x.period_end]), [['2026-03-08T00:00:00-05:00', '2026-03-09T00:00:00-04:00']]);
+  assert.deepEqual(omitted, [{ schedule: 1, reason: 'UNSUPPORTED_TIME' }]);
+});

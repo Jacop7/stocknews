@@ -93,10 +93,17 @@ export function toIntakePayload(snapshot) {
     const common = { status: evidence.every(primaryOnly) ? 'VERIFIED' : 'UNVERIFIED', title: item.title, timezone: item.timezone,
       evidence_as_of: new Date(snapshot.verifiedAt).toISOString(), evidence_fact_ids: evidence };
     if (OFFSET_ISO.test(item.eventAt ?? '')) { schedule.push({ kind: 'EXACT', ...common, event_at: item.eventAt }); continue; }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(item.eventAt ?? '')) {
-      // A date without a time: the whole day in that zone, end exclusive (start < end).
+    const realDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '') && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
+      && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
+    if (realDate(item.eventAt)) {
+      // A date without a time: the whole day in that zone, end exclusive (start < end). The offset is the one in force
+      // at local midnight (a DST change during the day must not move the boundary).
       const next = new Date(Date.parse(item.eventAt + 'T00:00:00Z') + 86_400_000).toISOString().slice(0, 10);
-      const at = date => date + 'T00:00:00' + offsetAt(item.timezone, new Date(date + 'T12:00:00Z'));
+      const at = date => {
+        let offset = offsetAt(item.timezone, new Date(date + 'T12:00:00Z'));
+        for (let i = 0; i < 2; i++) offset = offsetAt(item.timezone, new Date(date + 'T00:00:00' + offset));
+        return date + 'T00:00:00' + offset;
+      };
       schedule.push({ kind: 'PERIOD', ...common, period_label: item.eventAt, period_start: at(item.eventAt), period_end: at(next), precision: 'DAY' });
       continue;
     }
