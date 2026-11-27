@@ -100,7 +100,10 @@ function previewResponse(route,raw){
  if(Buffer.byteLength(JSON.stringify(value))>262144)reject('PREVIEW_RESPONSE_TOO_LARGE',502);return value;
 }
 export async function createPreviewGateway(input,options={}){
- const {transport=previewUpstream,port=62331,now=Date.now}=options;
+ const {transport=previewUpstream,port=62331,now=Date.now,forwardedPeer=false}=options;
+ // Hosted behind the local HTTPS proxy (Caddy on the same host): the proxy connects from 127.0.0.1 and overwrites
+ // X-Forwarded-For with the client address, which then keys the per-client rate limit. Off by default.
+ if(typeof forwardedPeer!=='boolean')reject('PREVIEW_CONFIG_REJECTED');
  if(Object.hasOwn(options,'privateRoot')||transport===previewUpstream&&isolatedConfigs.has(input))reject('ISOLATED_CONFIG_REQUIRES_FIXTURE');
  const c=validatedConfig(input);
  // Injected test transports are an instruction boundary, not an OS sandbox.
@@ -123,7 +126,9 @@ export async function createPreviewGateway(input,options={}){
     send(204,null,{'Access-Control-Allow-Methods':'GET, HEAD','Access-Control-Allow-Headers':'Accept, Cache-Control, Content-Type'});return;
    }
    if(!['GET','HEAD'].includes(req.method))reject('METHOD_REJECTED',405);
-   const route=previewRoute(req.url??''),at=now(),peer=req.socket.remoteAddress;
+   const forwarded=String(req.headers['x-forwarded-for']??'');
+   if(forwardedPeer&&!/^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-f:]{2,39})$/i.test(forwarded))reject('HOST_OR_PEER_REJECTED',403);
+   const route=previewRoute(req.url??''),at=now(),peer=forwardedPeer?forwarded:req.socket.remoteAddress;
    for(const [key,b]of peers)if(at-b.updated>60000&&b.active===0)peers.delete(key);
    if(!peers.has(peer)&&peers.size>=512)reject('RATE_LIMITED',429);
    bucket=peers.get(peer)??{times:[],tokens:12,updated:at,active:0};peers.set(peer,bucket);bucket.tokens=Math.min(12,bucket.tokens+(at-bucket.updated)/1000);bucket.updated=at;bucket.times=bucket.times.filter(t=>at-t<60000);globalTimes=globalTimes.filter(t=>at-t<60000);

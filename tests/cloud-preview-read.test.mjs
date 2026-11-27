@@ -32,6 +32,7 @@ test('pure target chooses existing local default and only explicit development p
  assert.equal(resolveReadTarget({base:'http://192.168.200.132:62330'}).mode,'LOCAL_SYNTHETIC');
  for(const environment of ['development','preview'])assert.equal(resolveReadTarget({base:'http://127.0.0.1:62331',mode:'PREVIEW_SYNTHETIC',environment}).mode,'PREVIEW_SYNTHETIC');
  for(const base of [UPSTREAM,'http://127.0.0.1:62331/','http://localhost:62331','http://user@127.0.0.1:62331','http://127.0.0.1:62331?x=1','http://127.0.0.1:62331#x','http://192.168.200.132:62331'])assert.throws(()=>resolveReadTarget({base,mode:'PREVIEW_SYNTHETIC',environment:'preview'}));
+ assert.equal(resolveReadTarget({base:'https://52-79-247-25.sslip.io',mode:'PREVIEW_SYNTHETIC',environment:'preview'}).mode,'PREVIEW_SYNTHETIC');for(const base of ['http://52-79-247-25.sslip.io','https://52-79-247-25.sslip.io/','https://evil.sslip.io'])assert.throws(()=>resolveReadTarget({base,mode:'PREVIEW_SYNTHETIC',environment:'preview'}));assert.throws(()=>resolveReadTarget({base:'https://52-79-247-25.sslip.io',mode:'PREVIEW_SYNTHETIC',environment:'production'}));
  for(const environment of [undefined,'local','production',''])assert.throws(()=>resolveReadTarget({base:'http://127.0.0.1:62331',mode:'PREVIEW_SYNTHETIC',environment}));
  assert.throws(()=>resolveReadTarget({mode:'UNKNOWN'}));assert.throws(()=>resolveReadTarget({base:'http://127.0.0.1:62331'}));
 });
@@ -198,4 +199,16 @@ test('0A000 counts as a refusal only for the event-trigger probe',()=>{
  assert.equal(deniedResponse(400,'0A000','rpc rls_auto_enable'),true);
  for(const name of DENIED_PROBES.filter(x=>x!=='rpc rls_auto_enable'))assert.equal(deniedResponse(400,'0A000',name),false);
  assert.equal(deniedResponse(400,'PGRST100','rpc rls_auto_enable'),false);assert.equal(deniedResponse(500,'0A000','rpc rls_auto_enable'),false);
+});
+test('hosted behind the local proxy: the proxy-set client address keys the rate limit; a missing or malformed one is refused',async()=>{
+ const g=await createPreviewGateway(config,{port:0,forwardedPeer:true,transport:async(c,name,args)=>name==='m1_public_identity'?identity:fixture(name,args)});
+ try{
+  const get=(xff)=>fetch('http://127.0.0.1:'+g.port+'/v2/catalog',{headers:xff===undefined?{}:{'X-Forwarded-For':xff}});
+  assert.equal((await get('203.0.113.7')).status,200);
+  for(const bad of [undefined,'','1.2.3.4, 5.6.7.8','evil host'])assert.equal((await get(bad)).status,403);
+  // Each client has its own bucket: one client exhausting its burst does not block another.
+  let limited=0;for(let i=0;i<14;i++)if((await get('203.0.113.8')).status===429)limited++;
+  assert.ok(limited>0);assert.equal((await get('203.0.113.9')).status,200);
+ }finally{await g.close();}
+ await assert.rejects(createPreviewGateway(config,{port:0,forwardedPeer:'yes',transport:async()=>identity}),/PREVIEW_CONFIG_REJECTED/);
 });
