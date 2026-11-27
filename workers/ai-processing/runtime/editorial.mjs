@@ -136,7 +136,10 @@ export function validateTriage(raw, documents, catalog) {
     return { state: 'EXCLUDED', reason: value.classification };
   }
   if (value.classification !== 'RELEVANT_EVENT' || !value.newCatalyst || !value.koreanImpact) return { state: 'HOLD', reason: 'TRIAGE_UNCLEAR' };
-  if (value.articleKind !== 'MACRO') assert(value.sectorIds.length > 0 && value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
+  // A sector issue needs a sector and a company. A company issue needs its company only: share cancellations,
+  // guarantees, earnings or management changes often move no sector, and company articles show no sector area.
+  if (value.articleKind === 'SECTOR') assert(value.sectorIds.length > 0 && value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
+  if (value.articleKind === 'COMPANY') assert(value.event.entityIds.length > 0, 'KOREAN_ENTITY_REQUIRED');
   // Scope (2026-11-27): a COMPANY issue concerns one company's own event (its filing, financing, compensation,
   // capacity). It is shown on that company's page, not in the home or sector feed. It names the company.
   if (value.articleKind === 'COMPANY') {
@@ -306,7 +309,8 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   });
   assert(new Set(impacts.map(item => item.pathId)).size === impacts.length, 'DUPLICATE_IMPACT');
   assert(impacts.length === triage.impacts.length, 'IMPACT_OMISSION');
-  assert(impacts.length > 0, 'KOREAN_IMPACT_REQUIRED');
+  // Company issues may move no sector (share cancellation, guarantee, earnings); sector and macro issues need one.
+  assert(impacts.length > 0 || triage.articleKind === 'COMPANY', 'KOREAN_IMPACT_REQUIRED');
   const positive = impacts.some(item => item.direction === 'BENEFIT' || item.direction === 'RELATED' && item.conditionalDirection === 'POSITIVE');
   const negative = impacts.some(item => item.direction === 'DAMAGE' || item.direction === 'RELATED' && item.conditionalDirection === 'NEGATIVE');
   draft.scenarios.forEach(check); draft.risks.forEach(check);
@@ -375,7 +379,7 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     risks: draft.risks.map(item => ({ ...item, text: render(item.text) })), schedule: draft.schedule.map(item => ({ ...item, title: render(item.title) })) };
   return { ...rendered, calculations, disclaimer: DISCLAIMER, fact_provenance: provenance,
     impacts: impacts.map(item => ({ ...item, description: render(item.description), conditions: item.conditions.map(render) })), visible_sections: visible,
-    impact_profile: !hasBenefit && !hasDamage ? 'RELATED_CONDITIONAL' : positive ? negative ? 'POSITIVE_NEGATIVE' : 'POSITIVE_ONLY' : 'DAMAGE_ONLY',
+    impact_profile: !impacts.length ? 'NO_SECTOR_IMPACT' : !hasBenefit && !hasDamage ? 'RELATED_CONDITIONAL' : positive ? negative ? 'POSITIVE_NEGATIVE' : 'POSITIVE_ONLY' : 'DAMAGE_ONLY',
     analysis_perspective: 'KR_EQUITY', article_kind: triage.articleKind, publication_state: 'DRAFT', publicationAuthorized: false,
     // COMPANY issues appear on the company page only; SECTOR and MACRO issues also feed home and sector lists.
     // Every company with a stated role is linked, so sector issues also appear on each linked company's page.

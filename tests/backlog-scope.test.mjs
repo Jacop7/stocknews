@@ -31,7 +31,7 @@ test('a COMPANY issue without its company in the event, or with an unknown compa
   const { c, doc } = setup();
   assert.throws(() => validateTriage(companyTriage({ primaryCompanyId: null }), [doc], c.catalog), /PRIMARY_COMPANY_REQUIRED/);
   assert.throws(() => validateTriage(companyTriage({ primaryCompanyId: 'helios' }), [doc], c.catalog), /PRIMARY_COMPANY_REQUIRED/);
-  assert.throws(() => validateTriage(companyTriage({ sectorIds: [], impacts: [] }), [doc], c.catalog), /KOREAN_ENTITY_REQUIRED/);
+  assert.throws(() => validateTriage(companyTriage({ event: { ...triage('d').event, entityIds: [] } }), [doc], c.catalog), /KOREAN_ENTITY_REQUIRED/);
 });
 
 test('SECTOR and MACRO issues carry no primary company but still link every company with a role', () => {
@@ -104,4 +104,20 @@ test('conditional (related) sectors are stored but never shown', () => {
   const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
   assert.equal(result.impacts[0].direction, 'RELATED'); assert.deepEqual(result.company_refs, ['orion']);
   assert(!result.visible_sections.some(section => section.endsWith('_SECTORS')));
+});
+
+test('a company issue with no sector impact passes and is written without scenarios or sector area', () => {
+  const { c, doc } = setup();
+  const own = companyTriage({ sectorIds: [], impacts: [] });
+  const accepted = validateTriage(own, [doc], c.catalog);
+  assert.equal(accepted.state, 'RELEVANT');
+  const facts = accepted.value.facts;
+  const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  const raw = { ...draft(brief), scenarios: [] };
+  const result = validateDraft(raw, { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
+  assert.equal(result.impact_profile, 'NO_SECTOR_IMPACT'); assert.deepEqual(result.company_refs, ['orion']);
+  assert(!result.visible_sections.includes('SCENARIOS') && !result.visible_sections.some(section => section.endsWith('_SECTORS')));
+  // A scenario without any sector impact is still refused, and a sector issue still needs a sector.
+  assert.throws(() => validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp }), /NEGATIVE_ONLY_SCENARIO/);
+  assert.throws(() => validateTriage({ ...triage('d'), sectorIds: [], impacts: [] }, [doc], c.catalog), /KOREAN_ENTITY_REQUIRED/);
 });
