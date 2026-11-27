@@ -88,6 +88,16 @@ test('revocation still withdraws the draft immediately', async t => {
   h.settings.sources[0].revokedAt = new Date(h.now()).toISOString();
   h.store.maintain(h.settings, h.now());
   assert.equal(JSON.parse(h.row('SELECT payload FROM issues').payload).state, 'HOLD_SOURCE_REVOKED');
+  // Publish 1A: its export snapshot is revoked in the same pass, content wiped, and offered for withdrawal.
+  assert.deepEqual({ ...h.row('SELECT state,payload FROM draft_exports') }, { state: 'REVOKED', payload: '{}' });
+  assert.equal(h.store.exports(h.now()).ready.length, 0); assert.equal(h.store.exports(h.now()).revoked.length, 1);
+});
+
+test('publish 1A: export snapshots expire with the 30-day draft clock', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  assert.equal(h.row('SELECT count(*) n FROM draft_exports').n, 1);
+  h.advance(31 * 86_400_000); h.store.maintain(h.settings, h.now());
+  assert.equal(h.row('SELECT count(*) n FROM draft_exports').n, 0);
 });
 
 test('an original already read is analysed before older links still waiting to be fetched', async t => {

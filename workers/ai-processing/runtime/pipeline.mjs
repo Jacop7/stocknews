@@ -125,7 +125,8 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
           const angle = digest(job.payload.triage.impacts.map(item => [item.sectorId, item.direction, item.conditionalDirection, item.category]).sort());
           const duplicate = context.issues.find(issue => issue.angle_key === angle &&
             facts.every(fact => JSON.parse(issue.fact_ids).includes(fact.id)));
-          if (duplicate) return store.recordDuplicate(job, duplicate, context.documents, now());
+          // An operator re-queue for export goes on to writing and verification so its snapshot carries a fresh check.
+          if (duplicate && !job.payload.exportRequeue) return store.recordDuplicate(job, duplicate, context.documents, now());
           const prior = context.issues.find(issue => issue.angle_key === angle);
           if (prior && JSON.parse(prior.fact_ids).some(id => !facts.some(fact => fact.id === id))) {
             return settle('HOLD_INCOMPLETE_UPDATE', job.payload, 'PRIOR_FACTS_REQUIRE_REBASE');
@@ -143,7 +144,8 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
         if (result.state !== 'RESULT') return modelHold(result);
         validateVerification(result.value, facts, context.issues.length > 0);
         assert(authority(docIds), 'AUTHORITY_CHANGED');
-        return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), now() + DRAFT_DAYS * day);
+        return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), now() + DRAFT_DAYS * day,
+          { registry: config.catalog.version, sha256: digest(config.catalog) });
       } catch (error) {
         const reason = /^[A-Z][A-Z_]{2,80}$/.test(error.message ?? '') ? error.message : 'PROCESSING_VALIDATION_FAILED';
         if (!store.owns(job, now())) return hold('LEASE_STALE');

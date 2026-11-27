@@ -37,19 +37,32 @@ export function readSavedLinks(filename, kind, now = Date.now()) {
 async function main(argv) {
   const command = argv[0];
   if (!command || command === '--help') {
-    console.log('Commands: import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
+    console.log('Commands: export-drafts --db DB; export-requeue --db DB --job ID; import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
     return;
   }
   const flags = new Set(['--once', '--execute-originals', '--execute-models']), options = {};
   for (let i = 1; i < argv.length; i++) {
-    const key = argv[i]; assert(['--db', '--telegram', '--web', '--discovery', '--format', '--config', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
+    const key = argv[i]; assert(['--db', '--telegram', '--web', '--discovery', '--format', '--config', '--job', ...flags].includes(key), 'UNKNOWN_ARGUMENT');
     assert(!Object.hasOwn(options, key), 'DUPLICATE_ARGUMENT');
     options[key] = flags.has(key) ? true : argv[++i];
     assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
   }
-  assert(['import', 'status', 'work'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
+  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
   const filename = resolve(options['--db']);
-  if (command === 'status') assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  if (['status', 'export-drafts', 'export-requeue'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  // Publish stage 1A: ready export snapshots and revoked issue versions, as JSON on stdout (read only).
+  if (command === 'export-drafts') {
+    const store = new BacklogStore(filename);
+    try { console.log(JSON.stringify(store.exports(Date.now()))); } finally { store.close(); }
+    return;
+  }
+  // Publish stage 1A: re-queue one DRAFT_READY job so it is processed again and leaves an export snapshot.
+  if (command === 'export-requeue') {
+    assert(typeof options['--job'] === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(options['--job']), 'JOB_ID_REQUIRED');
+    const store = new BacklogStore(filename);
+    try { console.log(JSON.stringify(store.requeueForExport(options['--job'], Date.now()))); } finally { store.close(); }
+    return;
+  }
   if (command === 'import') assert(options['--telegram'] || options['--web'] || options['--discovery'], 'SAVED_INPUT_REQUIRED');
   assert(Boolean(options['--discovery']) === Boolean(options['--format']), 'DISCOVERY_FORMAT_REQUIRED');
   if (command === 'import') for (const type of ['telegram', 'web', 'discovery']) if (options['--' + type]) {

@@ -38,6 +38,11 @@ export class BacklogStore {
     // News is never read (decision B): only where and when a story link was seen, for discovery and ranking.
     this.db.exec(`CREATE TABLE IF NOT EXISTS news_signals(url TEXT PRIMARY KEY,host TEXT NOT NULL,first_seen INTEGER NOT NULL,
       last_seen INTEGER NOT NULL,sources TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT`);
+    // Publish stage 1A: an export snapshot per DRAFT_READY issue version, written in the same transaction. It holds the
+    // draft and its independently verified facts (statements and source links only, never quotes or bodies). A source
+    // revocation marks it REVOKED and wipes its content; it expires with the 30-day draft clock.
+    this.db.exec(`CREATE TABLE IF NOT EXISTS draft_exports(issue_id TEXT NOT NULL,version INTEGER NOT NULL,state TEXT NOT NULL CHECK(state IN ('READY','REVOKED')),
+      payload TEXT NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,PRIMARY KEY(issue_id,version)) STRICT`);
     if (!this.db.prepare('PRAGMA table_info(documents)').all().some(column => column.name === 'body_expires_at')) {
       this.db.exec('ALTER TABLE documents ADD COLUMN body_expires_at INTEGER');
     }
@@ -254,7 +259,41 @@ export class BacklogStore {
       return { state: 'DUPLICATE', issueId: issue.id, jobId: job.id };
     });
   }
-  commitDraft(job, draft, facts, expectedIssues, now, expiresAt = job.expires_at) {
+  // Snapshot of one ready issue version for the publish inbox (stage 1A). Facts reach the writer only after independent
+  // verification; commitDraft runs only after that verification approved every fact and the Korea path.
+  exportSnapshot(issueId, version, storyKey, draft, facts, catalogRef, now) {
+    const urlOf = new Map((draft.source_refs ?? []).map(source => [source.docId, source.url]));
+    const snapshot = { format: 'AI_DRAFT_EXPORT_V1', issueId, version, storyKey, angleKey: draft.angleKey, draft, catalogRef, verifiedAt: now,
+      facts: facts.map(fact => ({ id: fact.id, statement: fact.statement, verificationClass: fact.verificationClass, independentlyVerified: true,
+        koreaPathVerified: true, recordedAt: now, sourceUrls: [...new Set(fact.refs.map(ref => urlOf.get(ref.docId)).filter(Boolean))] })) };
+    this.db.prepare("INSERT INTO draft_exports(issue_id,version,state,payload,created_at,expires_at) VALUES (?,?,'READY',?,?,?) ON CONFLICT(issue_id,version) DO NOTHING")
+      .run(issueId, version, canonical(snapshot), now, now + 30 * day);
+  }
+  revokeExports(issueId) {
+    this.db.prepare("UPDATE draft_exports SET state='REVOKED',payload='{}' WHERE issue_id=?").run(issueId);
+  }
+  // Ready snapshots whose job is still DRAFT_READY for exactly that issue version, plus revoked ones (for withdrawal).
+  exports(now) {
+    const ready = this.db.prepare(`SELECT e.issue_id issueId,e.version,e.payload FROM draft_exports e JOIN issues i ON i.id=e.issue_id AND i.version=e.version
+      WHERE e.state='READY' AND e.expires_at>? AND EXISTS(SELECT 1 FROM jobs j WHERE j.state='DRAFT_READY' AND json_extract(j.payload,'$.issueId')=e.issue_id
+        AND json_extract(j.payload,'$.version')=e.version) ORDER BY e.created_at,e.issue_id`).all(now).map(row => JSON.parse(row.payload));
+    const revoked = this.db.prepare("SELECT issue_id issueId,max(version) version FROM draft_exports WHERE state='REVOKED' GROUP BY issue_id ORDER BY issue_id").all().map(row => ({ issueId: row.issueId, version: row.version }));
+    return { ready, revoked };
+  }
+  // Operator re-queue of an existing DRAFT_READY job so it is processed again and leaves an export snapshot (stage 1A,
+  // for drafts committed before snapshots existed). The issue row stays; the job restarts from FETCH.
+  requeueForExport(jobId, now) {
+    return this.transaction(() => {
+      const job = this.db.prepare('SELECT * FROM jobs WHERE id=?').get(jobId);
+      assert(job && job.state === 'DRAFT_READY', 'REQUEUE_REQUIRES_DRAFT_READY');
+      const payload = JSON.parse(job.payload);
+      this.db.prepare("UPDATE jobs SET state='FETCH',next_at=?,lease=NULL,lease_until=0,payload=? WHERE id=?")
+        .run(now, canonical({ ...payload, exportRequeue: true }), jobId);
+      this.db.prepare("INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,'FETCH','EXPORT_REQUEUE',?)").run(jobId, now);
+      return { jobId, state: 'FETCH', exportRequeue: true };
+    });
+  }
+  commitDraft(job, draft, facts, expectedIssues, now, expiresAt = job.expires_at, catalogRef = null) {
     return this.transaction(() => {
       assert(this.owns(job, now), 'LEASE_STALE');
       const current = this.db.prepare('SELECT * FROM issues WHERE story_key=? AND angle_key=?').get(job.payload.storyKey, draft.angleKey);
@@ -269,7 +308,9 @@ export class BacklogStore {
       const previousIds = current ? JSON.parse(current.fact_ids) : [];
       const newIds = facts.map(item => item.id).sort();
       assert(!current || previousIds.every(id => newIds.includes(id)), 'INCOMPLETE_UPDATE');
-      if (current && newIds.every(fact => previousIds.includes(fact))) {
+      // An operator re-queue (exportRequeue) commits a new version even with the same facts, so the draft gets an export
+      // snapshot with its fresh verification. Ordinary duplicates are unchanged.
+      if (current && newIds.every(fact => previousIds.includes(fact)) && !job.payload.exportRequeue) {
         this.db.prepare("UPDATE jobs SET state='DUPLICATE',lease=NULL,lease_until=0 WHERE id=?").run(job.id);
         this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));
         return { state: 'DUPLICATE', issueId: id, jobId: job.id };
@@ -277,7 +318,9 @@ export class BacklogStore {
       action = current ? 'UPDATE' : expectedIssues.length ? 'NEW_ANGLE' : 'NEW_STORY';
       this.db.prepare('INSERT INTO issues(id,story_key,angle_key,version,payload,fact_ids,created_at,updated_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(story_key,angle_key) DO UPDATE SET version=excluded.version,payload=excluded.payload,fact_ids=excluded.fact_ids,updated_at=excluded.updated_at,expires_at=excluded.expires_at')
         .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
-      this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0 WHERE id=?").run(canonical({ ...job.payload, issueId: id, version, action }), job.id);
+      if (catalogRef) this.exportSnapshot(id, version, job.payload.storyKey, draft, facts, catalogRef, now);
+      const { exportRequeue, ...rest } = job.payload;
+      this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0 WHERE id=?").run(canonical({ ...rest, issueId: id, version, action }), job.id);
       this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
       this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));
       return { state: 'DRAFT_READY', action, issueId: id, version, jobId: job.id, publicationAuthorized: false };
@@ -294,13 +337,16 @@ export class BacklogStore {
       this.db.prepare('UPDATE runs SET response=NULL WHERE expires_at<=?').run(now);
       // Unpublished drafts expire on their own 30-day clock, not with their originals.
       this.db.prepare('DELETE FROM issues WHERE expires_at<=?').run(now);
+      this.db.prepare('DELETE FROM draft_exports WHERE expires_at<=?').run(now);
       if (config) {
         for (const source of this.db.prepare('SELECT url,doc_id FROM document_sources').all()) if (!sourceGrant(config, source.url, now)) {
           removed.add(source.doc_id); this.db.prepare('DELETE FROM document_sources WHERE url=?').run(source.url);
         }
         for (const issue of this.db.prepare('SELECT id,payload FROM issues WHERE expires_at>?').all(now)) {
-          if ((JSON.parse(issue.payload).source_refs ?? []).some(source => !sourceGrant(config, source.url, now))) this.db.prepare('UPDATE issues SET payload=?,fact_ids=? WHERE id=?')
-            .run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
+          if ((JSON.parse(issue.payload).source_refs ?? []).some(source => !sourceGrant(config, source.url, now))) {
+            this.db.prepare('UPDATE issues SET payload=?,fact_ids=? WHERE id=?').run(canonical({ state: 'HOLD_SOURCE_REVOKED', publicationAuthorized: false }), '[]', issue.id);
+            this.revokeExports(issue.id);
+          }
         }
         // Editor proposals carry their own source_refs and can outlive the 30-day source record.
         for (const proposal of this.db.prepare('SELECT id,payload FROM proposals').all()) {
@@ -334,6 +380,7 @@ export class BacklogStore {
         for (const issue of this.db.prepare('SELECT id,payload FROM issues').all()) if ((JSON.parse(issue.payload).source_refs ?? []).some(source => source.docId === id)) {
           this.db.prepare("UPDATE issues SET payload=?,fact_ids='[]' WHERE id=?")
             .run(canonical({ state: 'HOLD_SOURCE_CHANGED', publicationAuthorized: false }), issue.id);
+          this.revokeExports(issue.id);
         }
         for (const job of this.db.prepare('SELECT id,payload FROM jobs').all()) {
           const payload = JSON.parse(job.payload);

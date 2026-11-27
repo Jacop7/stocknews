@@ -311,3 +311,40 @@ test('damage-only drafts suppress scenarios, reject invented IDs/numbers and req
   const wrongEntity = structuredClone(raw); wrongEntity.impacts[0].companyIds = ['invented-company'];
   assert.throws(() => validateDraft(wrongEntity, context), /UNKNOWN_REFERENCE/);
 });
+
+test('publish 1A: a ready draft leaves one export snapshot with verified facts and source links only', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  const { ready, revoked } = h.store.exports(stamp + 1);
+  assert.equal(ready.length, 1); assert.deepEqual(revoked, []);
+  const snap = ready[0], issue = h.store.db.prepare('SELECT * FROM issues').get();
+  assert.equal(snap.format, 'AI_DRAFT_EXPORT_V1'); assert.equal(snap.issueId, issue.id); assert.equal(snap.version, issue.version);
+  assert.deepEqual(snap.catalogRef, { registry: h.settings.catalog.version, sha256: digest(h.settings.catalog) });
+  assert.ok(snap.facts.length > 0 && snap.facts.every(f => f.independentlyVerified && f.koreaPathVerified && f.sourceUrls.length > 0 && typeof f.statement === 'string'));
+  // No quotes, bodies or original text travel with the snapshot.
+  assert.ok(!JSON.stringify(snap.facts).includes('quote') && !JSON.stringify(snap).includes(originalText.slice(0, 40)));
+});
+
+test('publish 1A: an operator re-queue reprocesses an existing draft into a new version with a snapshot; ordinary duplicates stay duplicates', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  h.store.db.prepare('DELETE FROM draft_exports').run();
+  const job = h.store.db.prepare("SELECT id FROM jobs WHERE state='DRAFT_READY'").get();
+  assert.throws(() => h.store.requeueForExport('missing', stamp), /REQUEUE_REQUIRES_DRAFT_READY/);
+  assert.equal(h.store.requeueForExport(job.id, stamp).state, 'FETCH');
+  h.advance(60000);
+  const results = await h.drain();
+  assert.equal(results.at(-1).state, 'DRAFT_READY'); assert.equal(results.at(-1).version, 2);
+  assert.equal(h.store.exports(stamp + 120000).ready.length, 1);
+  assert.equal(JSON.parse(h.store.db.prepare('SELECT payload FROM jobs WHERE id=?').get(job.id).payload).exportRequeue, undefined);
+  // Without the operator flag the same body is still an ordinary duplicate.
+  h.add('https://news.publisher.co.kr/article/copy');
+  assert.equal((await h.drain(3)).at(-1).state, 'DUPLICATE');
+});
+
+test('publish 1A: a revoked source marks the snapshot REVOKED and wipes its content', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  const issue = h.store.db.prepare('SELECT id FROM issues').get();
+  h.store.revokeExports(issue.id);
+  const row = h.store.db.prepare('SELECT state,payload FROM draft_exports').get();
+  assert.deepEqual([row.state, row.payload], ['REVOKED', '{}']);
+  assert.deepEqual(h.store.exports(stamp + 1), { ready: [], revoked: [{ issueId: issue.id, version: 1 }] });
+});
