@@ -262,10 +262,16 @@ export class BacklogStore {
   // Snapshot of one ready issue version for the publish inbox (stage 1A). Facts reach the writer only after independent
   // verification; commitDraft runs only after that verification approved every fact and the Korea path.
   exportSnapshot(issueId, version, storyKey, draft, facts, catalogRef, now) {
-    const urlOf = new Map((draft.source_refs ?? []).map(source => [source.docId, source.url]));
+    // Every source link of every document a fact cites, with its role (PRIMARY original or REPORTED coverage); the
+    // database still decides officialness from the host. Values, units and periods stay for the editor's evidence view.
+    const sourcesOf = docId => (draft.source_refs ?? []).filter(source => source.docId === docId).map(source => ({ docId, url: source.url, role: source.role }));
     const snapshot = { format: 'AI_DRAFT_EXPORT_V1', issueId, version, storyKey, angleKey: draft.angleKey, draft, catalogRef, verifiedAt: now,
-      facts: facts.map(fact => ({ id: fact.id, statement: fact.statement, verificationClass: fact.verificationClass, independentlyVerified: true,
-        koreaPathVerified: true, recordedAt: now, sourceUrls: [...new Set(fact.refs.map(ref => urlOf.get(ref.docId)).filter(Boolean))] })) };
+      facts: facts.map(fact => {
+        const sources = [...new Map(fact.refs.flatMap(ref => sourcesOf(ref.docId)).map(source => [source.url, source])).values()];
+        return { id: fact.id, subjectId: fact.subjectId, predicate: fact.predicate, value: fact.value, unit: fact.unit, period: fact.period,
+          statement: fact.statement, verificationClass: fact.verificationClass, independentlyVerified: true, koreaPathVerified: true, recordedAt: now,
+          sources, sourceUrls: sources.map(source => source.url) };
+      }) };
     this.db.prepare("INSERT INTO draft_exports(issue_id,version,state,payload,created_at,expires_at) VALUES (?,?,'READY',?,?,?) ON CONFLICT(issue_id,version) DO NOTHING")
       .run(issueId, version, canonical(snapshot), now, now + 30 * day);
   }
@@ -274,11 +280,15 @@ export class BacklogStore {
   }
   // Ready snapshots whose job is still DRAFT_READY for exactly that issue version, plus revoked ones (for withdrawal).
   exports(now) {
+    // One read transaction, so a version can never appear both ready and revoked.
+    return this.transaction(() => {
     const ready = this.db.prepare(`SELECT e.issue_id issueId,e.version,e.payload FROM draft_exports e JOIN issues i ON i.id=e.issue_id AND i.version=e.version
       WHERE e.state='READY' AND e.expires_at>? AND EXISTS(SELECT 1 FROM jobs j WHERE j.state='DRAFT_READY' AND json_extract(j.payload,'$.issueId')=e.issue_id
         AND json_extract(j.payload,'$.version')=e.version) ORDER BY e.created_at,e.issue_id`).all(now).map(row => JSON.parse(row.payload));
-    const revoked = this.db.prepare("SELECT issue_id issueId,max(version) version FROM draft_exports WHERE state='REVOKED' GROUP BY issue_id ORDER BY issue_id").all().map(row => ({ issueId: row.issueId, version: row.version }));
+    const revoked = this.db.prepare("SELECT issue_id issueId,max(version) version FROM draft_exports WHERE state='REVOKED' AND expires_at>? GROUP BY issue_id ORDER BY issue_id").all(now)
+      .map(row => ({ issueId: row.issueId, version: row.version }));
     return { ready, revoked };
+    });
   }
   // Operator re-queue of an existing DRAFT_READY job so it is processed again and leaves an export snapshot (stage 1A,
   // for drafts committed before snapshots existed). The issue row stays; the job restarts from FETCH.
@@ -286,6 +296,7 @@ export class BacklogStore {
     return this.transaction(() => {
       const job = this.db.prepare('SELECT * FROM jobs WHERE id=?').get(jobId);
       assert(job && job.state === 'DRAFT_READY', 'REQUEUE_REQUIRES_DRAFT_READY');
+      assert(job.expires_at > now, 'REQUEUE_JOB_EXPIRED');
       const payload = JSON.parse(job.payload);
       this.db.prepare("UPDATE jobs SET state='FETCH',next_at=?,lease=NULL,lease_until=0,payload=? WHERE id=?")
         .run(now, canonical({ ...payload, exportRequeue: true }), jobId);
@@ -320,7 +331,7 @@ export class BacklogStore {
         .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
       if (catalogRef) this.exportSnapshot(id, version, job.payload.storyKey, draft, facts, catalogRef, now);
       const { exportRequeue, ...rest } = job.payload;
-      this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0 WHERE id=?").run(canonical({ ...rest, issueId: id, version, action }), job.id);
+      this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0,expires_at=max(expires_at,?) WHERE id=?").run(canonical({ ...rest, issueId: id, version, action }), expiresAt, job.id);
       this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
       this.releaseOriginals((draft.source_refs ?? []).map(source => source.docId));
       return { state: 'DRAFT_READY', action, issueId: id, version, jobId: job.id, publicationAuthorized: false };

@@ -348,3 +348,28 @@ test('publish 1A: a revoked source marks the snapshot REVOKED and wipes its cont
   assert.deepEqual([row.state, row.payload], ['REVOKED', '{}']);
   assert.deepEqual(h.store.exports(stamp + 1), { ready: [], revoked: [{ issueId: issue.id, version: 1 }] });
 });
+
+test('publish 1A: snapshot facts keep values and every source with its role; the ready job lives as long as its export', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  const snap = h.store.exports(stamp + 1).ready[0];
+  for (const fact of snap.facts) {
+    for (const key of ['value', 'unit', 'period', 'predicate']) assert.ok(key in fact, key);
+    assert.ok(fact.sources.length > 0 && fact.sources.every(s => typeof s.url === 'string' && ['PRIMARY', 'REPORTED'].includes(s.role)));
+    assert.deepEqual(fact.sourceUrls, fact.sources.map(s => s.url));
+  }
+  const job = h.store.db.prepare("SELECT expires_at FROM jobs WHERE state='DRAFT_READY'").get();
+  const exp = h.store.db.prepare('SELECT expires_at FROM draft_exports').get();
+  assert.ok(job.expires_at >= exp.expires_at, 'job outlives or matches its export');
+  h.advance(20 * day); h.store.maintain(h.settings, stamp + 20 * day);
+  assert.equal(h.store.exports(stamp + 20 * day).ready.length, 1, 'still exported after the source link deadline');
+});
+
+test('publish 1A: expired jobs are not re-queued and expired tombstones are not emitted', async t => {
+  const h = harness(t); h.add(); await h.drain();
+  const job = h.store.db.prepare("SELECT id FROM jobs WHERE state='DRAFT_READY'").get();
+  h.store.db.prepare('UPDATE jobs SET expires_at=? WHERE id=?').run(stamp, job.id);
+  assert.throws(() => h.store.requeueForExport(job.id, stamp + 1), /REQUEUE_JOB_EXPIRED/);
+  h.store.revokeExports(h.store.db.prepare('SELECT id FROM issues').get().id);
+  h.store.db.prepare('UPDATE draft_exports SET expires_at=?').run(stamp);
+  assert.deepEqual(h.store.exports(stamp + 1), { ready: [], revoked: [] });
+});
