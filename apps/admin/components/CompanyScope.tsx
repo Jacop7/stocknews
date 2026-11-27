@@ -40,6 +40,6 @@ export default function CompanyScope({ kind, primary, refs, labels, impacts, sec
       </li>))}</ul>
     </>}
     {error && <p role='alert'>{error}</p>}
-    <ul>{found.map(company => <li key={company.id}>{company.name}{company.active ? '' : ' · 비활성'} <button type='button' disabled={disabled || refs.includes(company.id)} onClick={() => add(company)}>추가</button></li>)}</ul>
+    <ul>{found.map(company => <li key={company.id}>{company.name}{company.active ? '' : ' · 비활성'} <button type='button' disabled={disabled || refs.includes(company.id) || !company.active} title={company.active ? undefined : '비활성 기업은 추가할 수 없습니다'} onClick={() => add(company)}>추가</button></li>)}</ul>
   </div>;
 }
