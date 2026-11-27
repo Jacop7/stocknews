@@ -49,3 +49,12 @@
 ## 검수 결과
 
 - Codex 1차 HOLD(4건) → 2차 HOLD(거부 판정 느슨) → 3차 **APPROVE**(조건: 사용자의 직접 RPC 가용성 위험 수용).
+
+## 실측 후 예외 1건: `rls_auto_enable` (2026-11-27)
+
+- 실측: 공개 키로 `rpc/rls_auto_enable` 호출 → HTTP 400, `0A000`("cannot display a value of type event_trigger"). 나머지 거부 대상 5개는 401/404와 42501·PGRST202로 막혔다.
+- 함수 본문(읽기 전용 조회, Supabase 관리 함수, plpgsql, 정의 SHA-256 `b21d8881…`): `pg_event_trigger_ddl_commands()`의 결과를 돌며, 방금 만들어진 `public` 테이블에 RLS를 켜는 일만 한다.
+  - `pg_event_trigger_ddl_commands()`는 이벤트 트리거 밖에서 부르면 오류를 낸다. 그래서 직접 호출은 어떤 테이블도 바꿀 수 없다.
+  - 설령 실행되더라도 하는 일은 새 테이블에 RLS를 켜는 것(보호 강화)뿐이다.
+  - 쓰기·외부 호출·시퀀스 사용이 없다.
+- 결정: 이 한 probe에 한해 `400 + 0A000`을 거부로 인정한다(`deniedResponse`의 이름별 예외, 테스트 포함). 공개 실행 권한을 회수하는 것은 Supabase 관리 객체 변경이므로 하지 않는다.

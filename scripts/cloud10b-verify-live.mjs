@@ -59,7 +59,7 @@ for (const [name, run] of deniedCalls) {
   const result = await run();
   // Only a permission error or "not exposed" counts; 400/429/5xx do not prove the caller lacks access.
   const code = typeof result.data?.code === 'string' ? result.data.code : null;
-  denied.push({ name, status: result.status, code, denied: deniedResponse(result.status, code) });
+  denied.push({ name, status: result.status, code, denied: deniedResponse(result.status, code, name) });
 }
 const pass = allowed.every(item => item.ok) && denied.every(item => item.denied);
 const live = { schemaVersion: 1, stage: 'CLOUD10B', state: pass ? 'PASS' : 'FAIL', projectRef: PROJECT, observedAt: new Date().toISOString(), keyKind,

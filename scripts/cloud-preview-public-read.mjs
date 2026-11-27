@@ -13,7 +13,10 @@ export const READ_RPCS=Object.freeze(['m1_public_identity','m1_public_article','
 // (42501) or "not exposed/not found" from the Data API (PGRST202 function, PGRST205 table), with 401/403/404.
 // Validation errors (400), rate limits (429) and server errors (5xx) never count as proof of refusal.
 export const DENIED_PROBES=Object.freeze(['rpc rls_auto_enable','rpc m1_prepare','rpc catalog_editor_tree','rpc m1_save_draft','rpc catalog_public_company','table news_public']);
-export const deniedResponse=(status,code)=>[401,403,404].includes(status)&&['42501','PGRST202','PGRST205'].includes(code);
+// One probe-specific exception, observed live on 2026-11-27: the managed event-trigger function rls_auto_enable is
+// refused by PostgreSQL before its body runs (400, 0A000 "cannot display a value of type event_trigger").
+export const deniedResponse=(status,code,name)=>[401,403,404].includes(status)&&['42501','PGRST202','PGRST205'].includes(code)||
+ name==='rpc rls_auto_enable'&&status===400&&code==='0A000';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const isolatedConfigs=new WeakSet();
 class PreviewError extends Error{constructor(code,status=503){super(code);this.status=status;}}
@@ -60,7 +63,7 @@ export function loadApprovedPreviewConfig(options={}){
   const live=JSON.parse(liveBytes),inventory=readFileSync(path.join(root,'docs/cloud/cloud10b-acl-inventory.json'));
   if(sha(authorization)!==proof.userAuthorizationSha256||sha(liveBytes)!==proof.reviewedResultSha256||sha(inventory)!==proof.inventorySha256||authorization.length<10)throw 0;
   if(live.state!=='PASS'||live.projectRef!==PROJECT||JSON.stringify([...(live.allowed??[])].map(x=>x.name).sort())!==JSON.stringify(READ_RPCS)||live.allowed.some(x=>x.ok!==true||x.status!==200)||!Array.isArray(live.denied)||
-   JSON.stringify(live.denied.map(x=>x.name))!==JSON.stringify(DENIED_PROBES)||live.denied.some(x=>!deniedResponse(x.status,x.code)))throw 0;
+   JSON.stringify(live.denied.map(x=>x.name))!==JSON.stringify(DENIED_PROBES)||live.denied.some(x=>!deniedResponse(x.status,x.code,x.name)))throw 0;
  }catch{reject('PREVIEW_READ_NOT_ACTIVATED');}
  let c;try{c=JSON.parse(readRegularPrivate('.local-data/cloud-preview/public-config.json',privateRoot));}catch{reject('PREVIEW_CONFIG_REJECTED');}
  if(c.proofSha256!==sha(proofBytes))reject('PREVIEW_CONFIG_REJECTED');const result=validatedConfig(c);if(isolated)isolatedConfigs.add(result);return result;

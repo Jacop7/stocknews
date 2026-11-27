@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request} from 'node:http';
-import {classifyPublicKey,loadApprovedPreviewConfig,assertPreviewIdentity,previewRoute,previewUpstream,createPreviewGateway,PROJECT,UPSTREAM,READ_RPCS,DENIED_PROBES} from '../scripts/cloud-preview-public-read.mjs';
+import {classifyPublicKey,loadApprovedPreviewConfig,assertPreviewIdentity,previewRoute,previewUpstream,createPreviewGateway,PROJECT,UPSTREAM,READ_RPCS,DENIED_PROBES,deniedResponse} from '../scripts/cloud-preview-public-read.mjs';
 import {resolveReadTarget} from '../apps/mobile/src/data/read-target.ts';
 const id='00000000-0000-4000-8000-000000000001',when='2026-11-16T00:00:00Z';
 const identity={productId:'judoju-news',environment:'preview',bootstrapId:null,sampleKind:'SYNTHETIC',contract:'M1'};
@@ -193,4 +193,9 @@ test('CLOUD10B proof is bound to the authorization, live result and inventory fi
   }
   rmSync(path.join(folder,'live-result.json'));assert.throws(()=>loadApprovedPreviewConfig({privateRoot:dir}),/PREVIEW_READ_NOT_ACTIVATED/);
  }finally{cleanDir(dir);}
+});
+test('0A000 counts as a refusal only for the event-trigger probe',()=>{
+ assert.equal(deniedResponse(400,'0A000','rpc rls_auto_enable'),true);
+ for(const name of DENIED_PROBES.filter(x=>x!=='rpc rls_auto_enable'))assert.equal(deniedResponse(400,'0A000',name),false);
+ assert.equal(deniedResponse(400,'PGRST100','rpc rls_auto_enable'),false);assert.equal(deniedResponse(500,'0A000','rpc rls_auto_enable'),false);
 });

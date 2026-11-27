@@ -25,6 +25,16 @@
 | 배포·되돌리기 | `scripts/ops/collector.ps1 deploy` / `rollback` (아래 NEXT의 주의 참고). 2026-11-26 실제 서버에서 status·deploy·rollback을 시험했고, 검수 수정본을 이 스크립트로 배포함 |
 | 접속 키 | worktree의 `.local-data/collector-cloud/ssh-lightsail/` (git 제외, 채팅·로그에 내용 출력 금지) |
 
+## 클라우드 Supabase (개발 프로젝트 `judoju-news-dev`, 2026-11-27)
+
+| 항목 | 상태 |
+|---|---|
+| 적용된 마이그레이션 | CLOUD02~CLOUD10C 8개(구조·카탈로그·검색·예약·공개 읽기 권한). 로컬 마이그레이션 51~55는 아직 없음 |
+| 공개 읽기(CLOUD10B) | **실측 확인 완료(PASS)**: 읽기 함수 9개 성공, 거부 대상 6개 차단. 증명 `.local-data/cloud-preview/access-proof.json`(git 제외) |
+| 키 | publishable 키만 `.local-data/cloud-preview/`(git 제외). 서비스·secret 키는 쓰지 않음 |
+| 직접 호출 위험 | 개발 프로젝트 한정 사용자 수용(2026-11-27). 운영 전 재검토 |
+| 남은 것 | 온라인 조회 게이트웨이(AWS, HTTPS 주소 필요) → 앱 연결, 어드민 연결(CLOUD11), 마이그레이션 51~55·AI 초안함 반영(CLOUD12) |
+
 ## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
 
 | 항목 | 상태 |

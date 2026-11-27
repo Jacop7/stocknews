@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "productId": "judoju-news",
   "stage": "CLOUD10B",
-  "state": "OFFLINE_TEST_CONFIG_ISOLATION_PREPARED_NOT_ACTIVATED",
+  "state": "LIVE_PUBLIC_READ_VERIFIED",
   "projectRef": "nxfpfvsdwbziowkxsxnh",
   "physicalEnvironment": "dev",
   "logicalEnvironment": "preview",
   "identityAndRpcContractUnchanged": true,
   "historicalRpcContractSha256": "48c05ed243da32efe4316ca4fc3339977808bb3437e1cada16f989add1a2b405",
-  "actualKeysRead": 0,
-  "remoteDatabaseRequests": 0,
+  "actualKeysRead": 1,
+  "remoteDatabaseRequests": 15,
   "grantsPerformed": 0,
   "dataApiWrites": 0,
   "runtimeSettingsWritten": 0,
-  "liveVerified": false,
+  "liveVerified": true,
   "appConnected": false,
   "adminConnected": false,
   "workerConnected": false,
@@ -49,5 +49,14 @@
   },
   "realActivationOrKeysRequireSeparatePlanImplementationDualAndConcreteUserApproval": true,
   "directRpcPrivilegeBoundaryNotBridgeCorsRate": true,
-  "beforeAndAfterHistoricalAuthUnknownPreserved": true
+  "beforeAndAfterHistoricalAuthUnknownPreserved": true,
+  "liveVerifiedAt": "2026-11-27",
+  "activation": {
+    "inventory": "docs/cloud/cloud10b-acl-inventory.json",
+    "plan": "docs/cloud/cloud10b-activation-plan.md",
+    "verifier": "scripts/cloud10b-verify-live.mjs",
+    "proof": ".local-data/cloud-preview/access-proof.json (git-ignored, bound to user authorization, live result and inventory)",
+    "review": "Codex HOLD, HOLD, APPROVE (conditional on user risk acceptance); 0A000 exception for rls_auto_enable APPROVED after body review",
+    "userRiskAcceptance": "2026-11-27 direct-RPC availability risk accepted for the dev project"
+  }
 }
