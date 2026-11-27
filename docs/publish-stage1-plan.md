@@ -1,6 +1,6 @@
-# 게시 경로 1단계 계획: AI 초안함과 실데이터 모드 (로컬, 2026-11-27, 3차)
+# 게시 경로 1단계 계획: AI 초안함과 실데이터 모드 (로컬, 2026-11-27, 4차)
 
-`docs/publish-path.md`의 1단계를 구현 단위로 나눈 계획이다. 사용자 결정(2026-11-27): 로컬에서 시작해 클라우드 미리보기까지, 사람 승인 후 게시, 푸시 접수(1단계는 풀), 섹터 영향 없는 종목 기사 허용. 1차 검수(HOLD, 12건)는 [F#], 2차 검수(HOLD, 7건)는 [G#]로 표시해 반영했다.
+`docs/publish-path.md`의 1단계를 구현 단위로 나눈 계획이다. 사용자 결정(2026-11-27): 로컬에서 시작해 클라우드 미리보기까지, 사람 승인 후 게시, 푸시 접수(1단계는 풀), 섹터 영향 없는 종목 기사 허용. 1차 검수(HOLD, 12건)는 [F#], 2차 검수(HOLD, 7건)는 [G#], 3차 검수(HOLD, 3건)는 [H#]로 표시해 반영했다.
 
 ## 현재 구조의 전제 (조사 결과)
 
@@ -72,7 +72,7 @@
    - 링크가 `WITHDRAWN`이고 버전이 묘비 버전 이하면 `WITHDRAWN`. 묘비보다 새 버전(출처 철회 뒤 새 출처로 다시 작성된 초안)은 다시 `ACTIVE`로 받는다. [G2]
 5. **편집자 보호**: `issues.manual_protected`가 참이거나 `editor_drafts.updated_by`가 있으면 덮지 않는다. 링크를 `HOLD_EDITOR`로 두고 그 결과를 저장한다. 새 근거는 `ai_draft_origin`에 남겨 편집자가 볼 수 있게 한다.
 6. 처음이면 story(`event_key='ai:'||AI 스토리 키`)와 issue(`sample_kind='PERMITTED_REAL'`)를 만든다.
-7. **사실 교체**: 이 이슈의 이전 claim을 지우고(1A는 게시본이 없으므로 참조하는 버전이 없다) 새 사실로 다시 만든다. 사실 하나가 claim 하나가 되고, `ai_claim_links`로 AI 사실 ID와 묶는다.
+7. **사실 교체**: 이 이슈의 이전 claim을 지우고(1A는 게시본이 없으므로 참조하는 버전이 없다) 새 사실로 다시 만든다. 사실 하나가 claim 하나가 되고, `ai_claim_links`로 AI 사실 ID와 묶는다. 이어서 페이로드의 `evidence_fact_ids`를 claim UUID(`evidence_ids`)로 바꾼다(모르는 ID는 `UNKNOWN_FACT_REF`). [H2]
    - `verified`: 독립 검증 통과 여부.
    - `korea_path_verified`: 한국 상장사·섹터 경로 검증 통과 여부.
    - `fact_current`: 접수 시점에 사실 기록 30일 안인지.
@@ -96,15 +96,17 @@
   - 내용은 이슈 ID·버전, 초안, 작성기에 들어간 검증 사실 전체(ID, 문장, 단위·기간, 검증 등급, 독립 검증 결과, 출처 문서 ID·역할·URL), 카탈로그 버전·해시다.
   - 출처 철회가 일어나면 같은 트랜잭션에서 해당 행을 `REVOKED`로 바꾸고 사실·초안 내용을 지운다(ID·버전·상태만 남김). 내보낸 뒤 30일이 지난 행은 정리 작업이 지운다. [G5]
   - 내보내기는 `jobs.state='DRAFT_READY'`이고 `issues.version`이 스냅샷 버전과 같으며, 스냅샷이 `REVOKED`가 아닌 것만 읽는다. 원문 본문은 넣지 않는다.
-- **기존 초안 백필** [G3]: 이미 `DRAFT_READY`인 초안(9건)에는 스냅샷이 없다. `cli.mjs export-backfill` 명령이 저장된 실행 기록(`runs.response`)으로 스냅샷을 다시 만든다.
-  - 추출 실행의 사실을 이슈의 `fact_ids`로 고르고, 검증 실행 결과를 함께 가져온다. 원문 문서는 쓰지 않는다.
-  - 사실이나 검증 결과가 하나라도 없거나 만료됐으면 만들지 않는다. 그 스토리는 재처리 대상으로 표시한다(`BACKFILL_REPROCESS`).
-  - 백필은 dry-run 출력(건수·누락 사유)을 먼저 보고 나서 기록한다. store 시험에 백필 시험을 추가한다.
+- **기존 초안 재처리** [G3, H1]: 이미 `DRAFT_READY`인 초안(9건)에는 스냅샷이 없다. 커밋 뒤 원문과 실행 기록(`runs.response`)이 정리되므로(store `releaseOriginals`) 저장된 기록으로는 다시 만들 수 없다. 그래서 다시 처리한다.
+  - `cli.mjs export-requeue --job <id>`: `DRAFT_READY` 작업을 `FETCH` 상태(새 링크와 같은 시작 상태, store `claim`이 집는 상태)로 되돌리고 `next_at=now`로 둔다. 기존 이슈 행은 그대로 둔다.
+  - 다시 처리하면 원문을 다시 읽고(허가·robots 규칙 동일), 추출·검증·작성을 거쳐 `commitDraft`에 온다.
+  - 사실이 같으면 지금은 `DUPLICATE`로 끝난다. 그때 현재 이슈 버전의 스냅샷이 없으면, 이번 실행의 검증 사실과 현재 이슈 payload로 스냅샷을 쓰도록 `commitDraft`를 바꾼다(버전은 올리지 않음). 사실이 달라지면 평소처럼 새 버전이 된다.
+  - 하루 호출 상한(150) 안에서만 돈다. 재처리 대상은 명령 인자로 정한 작업만이다. store 시험에 `DUPLICATE` 스냅샷 기록 시험을 추가한다.
 - `workers/ai-processing/runtime/publish-map.mjs`(순수 함수, 시험 포함): 스냅샷을 `AI_DRAFT_V1`로 바꾼다.
   - `source_market`: 출처가 모두 국내 공시·국내 보도면 `KR`, 해외 출처가 있으면 `GLOBAL`. `selection_market_basis='KR'`.
-  - 일정 [G4]: `{title,eventAt,timezone,factIds}`를 `kind='EXACT'`, `status='VERIFIED'`, `title`, `timezone`(IANA 이름 확인), `event_at`, `evidence_as_of`(사실 기록 시각, 접수 시점 이전), `evidence_ids`(사실 ID → claim ID)로 바꾼다.
+  - **근거 ID** [H2]: 매핑 모듈은 AI 사실 ID(`f-…`)를 그대로 둔다(`evidence_fact_ids`). claim UUID로 바꾸는 일은 DB 접수 함수가 claim을 만든 직후 같은 트랜잭션에서 한다(A3-7). 대상은 영향 `evidence_ids`, 일정 `evidence_ids`, 기타 근거 참조다. 모르는 사실 ID가 있으면 `UNKNOWN_FACT_REF`로 거부한다.
+  - 일정 [G4]: `{title,eventAt,timezone,factIds}`를 `kind='EXACT'`, `status='VERIFIED'`, `title`, `timezone`(IANA 이름 확인), `event_at`, `evidence_as_of`(사실 기록 시각, 접수 시점 이전), `evidence_fact_ids`로 바꾼다.
     - DB는 VERIFIED 일정의 근거가 모두 공식 원문(`official_original`) claim이길 요구한다(13번). 근거 중 공식 원문이 아닌 것이 있으면 `status='UNVERIFIED'`로 낮춘다.
-    - 시각이 없는 날짜만 있으면 `kind='PERIOD'`(`period_label`, `period_start`=`period_end`=그 날짜, `precision='DAY'`)로 바꾼다.
+    - 시각이 없는 날짜만 있으면 `kind='PERIOD'`(`period_label`, `period_start`=그 날짜 00:00, `period_end`=다음 날 00:00(끝 제외, 기존 계약 `start<end`), 그 시간대 기준, `precision='DAY'`)로 바꾼다. [H3]
     - 그 밖의 형식은 그 일정만 빼고 이유를 남긴다. 매핑 시험은 DB 형식 검사(19번)와 같은 규칙을 쓴다.
   - 출처가 12개를 넘으면 1차(PRIMARY)를 먼저 두고 최신순으로 자른다. 잘린 출처가 인용된 사실이 있으면 그 초안은 보류한다(`SOURCE_OVERFLOW`).
   - COMPANY 영향 0개 허용. 대표 섹터는 첫 수혜→피해 섹터, 없으면 null. 조건부(RELATED) 섹터는 저장만 한다.
