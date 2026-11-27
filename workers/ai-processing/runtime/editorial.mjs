@@ -71,7 +71,7 @@ const quantitativeUnits = new Set(['%', '%p', 'usd', 'krw', 'eur', 'jpy', 'share
   // Units used in Korean filing tables; the value is compared in the stated unit, never converted.
   '백만원', '천원', '만원', '백만달러', '천달러', '억달러', '주', '천주', '만주', 'bp',
   // Exchange rates applied in filings (1,343.60KRW/USD, 1달러 1343.60원) and housing units (1,995세대).
-  'krw/usd', '세대']);
+  'krw/usd', '세대', '개월']);
 // Filing statements: numbers and the fact's own value (a company or product name) are facts, not expression, so they
 // are masked before looking for copied wording. Official filings use fixed regulatory phrases ("2025년도 연결재무제표
 // 기준"), so their shared run must be longer before it counts as copying.
@@ -175,8 +175,10 @@ export function validateTriage(raw, documents, catalog) {
     for (const key of ['id', 'predicate', 'value', 'unit', 'period']) text(candidate[key], 200, ['unit', 'period'].includes(key));
     // Canonical unit names: models write the Korean or per-share form (원, 원/주, KRW/주, 달러) for the same unit.
     const canonicalUnits = { '원': 'krw', '원/주': 'krw', 'krw/주': 'krw', '주': 'shares', '달러': 'usd', 'us$': 'usd', '$': 'usd', '$/주': 'usd', '유로': 'eur', '엔': 'jpy',
-      '원/달러': 'krw/usd', '원/usd': 'krw/usd', 'krw/usd': 'krw/usd' };
+      '원/달러': 'krw/usd', '원/usd': 'krw/usd', 'krw/usd': 'krw/usd', '\\/usd': 'krw/usd', '₩/usd': 'krw/usd' };
     candidate.value = candidate.value.trim();
+    // "130%" with unit % is the number 130 in percent; the sign belongs to the unit, not the value.
+    if (/^[+-]?\d+(?:[,.]\d+)*%$/.test(candidate.value) && ['%', ''].includes(candidate.unit.trim())) { candidate.value = candidate.value.slice(0, -1); candidate.unit = '%'; }
     candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
     // "백만 원" and "백만원" are the same table unit.
     if (quantitativeUnits.has(candidate.unit.replace(/\s+/g, '').toLowerCase())) candidate.unit = candidate.unit.replace(/\s+/g, '');
@@ -197,7 +199,7 @@ export function validateTriage(raw, documents, catalog) {
     const unitWord = { '원': '원', '%': '%', '%p': '%p', '달러': '달러|usd|\\$', '억원': '억\\s*원', '조원': '조\\s*원' };
     const unitStated = token => {
       const word = token.slice(bare(token).length);
-      if (!word || quoted.includes(word) || word === '달러' && /\$|USD/i.test(quoted) || word === '원' && /KRW/i.test(quoted)) return true;
+      if (!word || quoted.includes(word) || word === '달러' && /\$|USD/i.test(quoted) || word === '원' && /KRW|₩|\\\d/i.test(quoted)) return true;
       const number = bare(token).replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return Boolean(unitWord[word]) && headerUnitInDocument(documents, refs, unitWord[word], number);
     };
@@ -208,7 +210,7 @@ export function validateTriage(raw, documents, catalog) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const unit = candidate.unit.toLowerCase();
       const aliases = { usd: ['usd', '달러', '$', 'us$'], krw: ['krw', '원'], eur: ['eur', '유로', '€'], shares: ['shares', '주'],
-        '%p': ['%p', '%포인트', '퍼센트포인트', 'percentage points'], 'krw/usd': ['krw/usd', '원/달러', '원/usd', '원'] };
+        '%p': ['%p', '%포인트', '퍼센트포인트', 'percentage points'], 'krw/usd': ['krw/usd', '원/달러', '원/usd', '/usd', '원'] };
       const units = aliases[unit] ?? [unit];
       const normalize = value => value.normalize('NFKC').toLowerCase().replace(/−/g, '-').replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '');
       // Filing tables write losses in accounting form, e.g. (1,849,423,316); it is compared exactly as written.
@@ -217,7 +219,7 @@ export function validateTriage(raw, documents, catalog) {
       if (!numeric) {
         // Product identifiers such as HBM4 are categorical, not malformed quantities.
         const identifier = new RegExp('(?<![A-Za-z0-9_.-])' + escape(candidate.value) + '(?![A-Za-z0-9_]|[.-][A-Za-z0-9_])');
-        assert(!unit && /^[A-Za-z][A-Za-z0-9_.-]*$/.test(candidate.value) && !/^(?:USD|KRW|EUR|JPY|HKD|AUD|CAD|NZD|SGD|TWD)\d/i.test(candidate.value) && refs.some(ref => identifier.test(ref.quote)), 'FACT_VALUE_MISMATCH');
+        assert(!unit && /^[A-Za-z][A-Za-z0-9_.&-]*(?: [A-Za-z0-9][A-Za-z0-9_.&-]*)*$/.test(candidate.value) && !/^(?:USD|KRW|EUR|JPY|HKD|AUD|CAD|NZD|SGD|TWD)\d/i.test(candidate.value) && refs.some(ref => identifier.test(ref.quote)), 'FACT_VALUE_MISMATCH');
       } else {
         assert(unit, 'FACT_UNIT_REQUIRED');
         assert(quantitativeUnits.has(unit), 'FACT_UNIT_UNSUPPORTED');

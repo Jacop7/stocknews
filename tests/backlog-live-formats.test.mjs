@@ -149,3 +149,22 @@ test('exchange filing tables: row-label units, fixed filing phrases, names and i
   assert.equal(run({ value: '12,307,107,208', unit: '원', statement: 'GEN6 검사장비 확정 계약금액이 공시됐다.',
     refs: ['확정 계약금액\n12,307,107,208', '계약금액(원)'] }).value, '12,307,107,208');
 });
+
+test('percent values written with the sign, won-per-dollar written with a backslash, months and spaced product names', () => {
+  const c = config(); c.sources[0].kind = 'OFFICIAL';
+  const body = "담보한도는 피담보채무 약정한도의 130%로 설정된 금액임\n고시환율(\\1,343.90/USD)을 적용하여 원화로 환산한 금액입니다.\n" +
+    '매 3개월에 해당되는 날\n반도체 검사장비 (GEN6 SSD TESTER)\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = fact => {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f5', predicate: 'X', period: '', ...fact, refs: fact.refs.map(quote => ({ docId: 'd', quote })) });
+    return validateTriage(input, [doc], c.catalog).value.facts.at(-1);
+  };
+  const percent = run({ value: '130%', unit: '%', statement: '담보한도는 약정한도의 130%다.', refs: ['피담보채무 약정한도의 130%로 설정된 금액임'] });
+  assert.deepEqual([percent.value, percent.unit], ['130', '%']);
+  assert.equal(run({ value: '1,343.90', unit: '\\/USD', statement: '환산 환율은 1,343.90원/달러다.', refs: ['고시환율(\\1,343.90/USD)을 적용하여'] }).unit, 'krw/usd');
+  assert.equal(run({ value: '3', unit: '개월', statement: '조기상환 주기는 3개월이다.', refs: ['매 3개월에 해당되는 날'] }).unit, '개월');
+  assert.equal(run({ value: 'GEN6 SSD TESTER', unit: '', statement: '계약 품목은 GEN6 SSD TESTER다.', refs: ['반도체 검사장비 (GEN6 SSD TESTER)'] }).value, 'GEN6 SSD TESTER');
+  // A spaced name must still be quoted exactly.
+  assert.throws(() => run({ value: 'GEN7 SSD TESTER', unit: '', statement: '계약 품목은 GEN7 SSD TESTER다.', refs: ['반도체 검사장비 (GEN6 SSD TESTER)'] }), /FACT_VALUE_MISMATCH|FACT_NUMBER_MISMATCH/);
+});

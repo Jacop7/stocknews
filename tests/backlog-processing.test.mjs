@@ -196,7 +196,8 @@ test('structured quantities, RELATED direction and scheduled dates must be suppo
   const c = config(), doc = { id: 'd', title: '가상 원문', text: originalText, sources: [{ ...c.sources[0], url }] };
   const invalid = triage('d'); invalid.facts[0].value = '799';
   assert.throws(() => validateTriage(invalid, [doc], c.catalog), /FACT_VALUE_MISMATCH|FACT_UNIT_MISMATCH/);
-  invalid.facts[0].value = '799%'; assert.throws(() => validateTriage(invalid, [doc], c.catalog), /FACT_VALUE_MISMATCH/);
+  // "799%" is read as 799 percent (sign moved to the unit) and still fails because the quote does not say it.
+  invalid.facts[0].value = '799%'; assert.throws(() => validateTriage(invalid, [doc], c.catalog), /FACT_VALUE_MISMATCH|FACT_UNIT_MISMATCH/);
   const shares = triage('d'); shares.facts[0].value = '700'; shares.facts[0].unit = 'USD';
   shares.facts[0].statement = '700주를 취득했다.'; shares.facts[0].refs = [{ docId: 'd', quote: shares.facts[0].statement }];
   assert.throws(() => validateTriage(shares, [{ ...doc, text: originalText + shares.facts[0].statement }], c.catalog), /FACT_UNIT_MISMATCH/);
