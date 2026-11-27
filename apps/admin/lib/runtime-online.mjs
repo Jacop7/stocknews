@@ -51,13 +51,13 @@ const claimsOf=token=>{try{if(typeof token!=='string'||token.length>16384||token
 export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPrivateJson(onlineConfigPath())),fetcher=globalThis.fetch,brokerTransport,now=Date.now,statePath=onlineStatePath}={}){
   const pending=new Map();
   const config=()=>loadConfig();
-  async function api(route,{method='POST',token,body,capability,apikey}={}){
+  async function api(route,{method='POST',token,body,capability,apikey,maxBytes=262144}={}){
     const c=config(),headers={apikey:apikey??c.publishableKey,'Content-Type':'application/json'};
     if(token)headers.Authorization='Bearer '+token;
     if(capability!==undefined)headers['x-judoju-capability']=capability;
     let r;try{r=await fetcher(c.apiUrl+route,{method,headers,body:body===undefined?undefined:JSON.stringify(body),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(8000)});}catch{deny('BACKEND_UNAVAILABLE',503);}
     if(r.status===204)return null;
-    const text=await r.text();if(text.length>262144)deny('BACKEND_RESPONSE_TOO_LARGE',502);
+    const text=await r.text();if(text.length>maxBytes)deny('BACKEND_RESPONSE_TOO_LARGE',502);
     let v=null;try{v=text?JSON.parse(text):null;}catch{deny('BACKEND_RESPONSE_INVALID',502);}
     if(!r.ok){const code=String(v?.message??v?.msg??v?.error_code??'REQUEST_REJECTED');throw new AdminError(/^[A-Z0-9_]{1,80}$/.test(code)?code:'REQUEST_REJECTED',r.status===401||r.status===403?403:409,confirmedSqlRejection(v));}
     return v;
@@ -122,7 +122,8 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     if((u?.factors??[]).some(f=>f.factor_type==='totp'&&f.status==='verified'))deny('MFA_ALREADY_ENROLLED',409);
     // Earlier unfinished enrolments are removed so only one TOTP factor can exist.
     for(const f of u?.factors??[])if(f.status!=='verified')await api('/auth/v1/factors/'+encodeURIComponent(f.id),{method:'DELETE',token});
-    const f=await api('/auth/v1/factors',{body:{factor_type:'totp',friendly_name:'judoju-admin'},token});
+    // The enrolment response carries the QR code as an SVG data URI, which can exceed the normal 256 KB response cap.
+    const f=await api('/auth/v1/factors',{body:{factor_type:'totp',friendly_name:'judoju-admin'},token,maxBytes:2097152});
     if(!uuid.test(f?.id??'')||typeof f?.totp?.qr_code!=='string'||typeof f.totp.secret!=='string')deny('MFA_ENROLL_FAILED',502);
     p.factorId=f.id;p.enrolled=true;return {qrCode:f.totp.qr_code,secret:f.totp.secret};
   }
