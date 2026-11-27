@@ -17,8 +17,9 @@ import './editor.css';
 const menus=[['articles','기사 관리'],['sectors','섹터 관리'],['keywords','키워드 설정'],['analytics','뉴스 조회 통계'],['reservations','예약·유지관리'],['ranking','홈 순위 관리'],['sources','수집 상태'],['settings','설정']];
 const lines=(x:string)=>x.split('\n');
 const clean=(x:string[])=>x.map(s=>s.trim()).filter(Boolean);
-// Supabase returns the TOTP QR as an unencoded SVG data URI; characters such as # break it unless encoded.
-function qrImageSrc(value:string):string{const m=/^data:image\/svg\+xml;(?:utf-8|charset=utf-8),(<svg[\s\S]*)$/i.exec(value);return m?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(m[1]):value;}
+// Supabase returns the TOTP QR as an unencoded SVG data URI with the media type "img/svg+xml"; browsers need
+// "image/svg+xml" and an encoded body (characters such as # break it).
+function qrImageSrc(value:string):string{const m=/^data:(?:image|img)\/svg\+xml;(?:utf-8|charset=utf-8),\s*(<(?:\?xml|svg)[\s\S]*)$/i.exec(value);return m?'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(m[1]):value;}
 async function api<T>(action:string,data?:unknown,csrf?:string):Promise<T>{
  const r=await fetch('/api/editor/'+action,{method:data===undefined?'GET':'POST',cache:'no-store',credentials:'same-origin',headers:data===undefined?{}:{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':csrf}:{})},body:data===undefined?undefined:JSON.stringify(data)});
  const value=await r.json();if(!r.ok)throw new EditorApiError(value.error??'REQUEST_FAILED',r.status,value.not_applied);return value as T;
