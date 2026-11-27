@@ -39,7 +39,8 @@ update rc set content=jsonb_set(content,'{sources}',(select jsonb_agg(jsonb_set(
 insert into private.editor_drafts(issue_id,content) select id,(select content from rc) from ri;
 create temp table args as select (select id from ri) issue,(select content from rc) content,(select version from pol) pol,(select head from h) cat;
 
--- Switch off: real issues are refused; the synthetic template still passes unchanged.
+-- Switch off (set explicitly: the local DB may have it on for review): real issues are refused; the synthetic template still passes unchanged.
+update private.real_mode set enabled=false;
 ${expectError('real_off', 'perform private.m1_prepare(a.issue,a.content,a.pol,a.cat) from args a')}
 select 'R|synthetic_template|'||(private.m1_prepare((select issue_id from t),(select content from src),(select version from pol),(select head from h))->>'article_kind');
 -- 1A: real mode can only be switched on in a local environment.

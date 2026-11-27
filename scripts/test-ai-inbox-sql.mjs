@@ -55,6 +55,7 @@ const unknownSector = '00000000-0000-4000-8000-000000000001';
 const sql = `begin;
 ${body}
 create temp table h as select (public.catalog_public_tree(null)->>'catalog_version')::bigint head,(select version from private.policies where active order by version desc limit 1) pol;
+update private.real_mode set enabled=false;
 ${err('off', call(A, 1, payload(A, 1)))}
 update private.real_mode set enabled=true;
 -- Intake.
