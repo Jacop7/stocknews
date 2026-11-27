@@ -33,7 +33,7 @@ const draft = {
   scenarios: template.scenarios ?? [], schedule: (template.schedule ?? []).map(({ evidence_ids, ...x }) => ({ ...x, evidence_fact_ids: (evidence_ids ?? []).map(factOf) }))
 };
 const payload = (ai, version, change = {}) => ({ format: 'AI_DRAFT_V1', ai_issue_id: ai, ai_version: version, story_key: 'story-' + ai.slice(0, 8), angle_key: 'angle-1',
-  catalog_ref: { registry: 'registry-v1:test' },
+  catalog_ref: { registry: 'registry-v1:test', sha256: 'a'.repeat(64) },
   draft: { ...draft, ...change.draft }, facts: change.facts ?? facts, ...change.top });
 const call = (ai, version, p) => `private.ai_ingest_draft(${q(`ai:${ai}:${version}`)},${q(JSON.stringify(p))}::jsonb)`;
 const ok = (name, expr) => `select 'R|${name}|'||(${expr})::text;`;
@@ -101,10 +101,14 @@ ${err('bad_nested_scenario', call(A, 7, payload(A, 7, { draft: { scenarios: [{ d
 ${err('bad_nested_company', call(A, 7, payload(A, 7, { draft: { impacts: draft.impacts.map(x => ({ ...x, companies: [{ company_ref: memberCompany, role: 'r', note: 'x' }] })) } })))}
 ${err('bad_nested_schedule', call(A, 7, payload(A, 7, { draft: { schedule: [{ kind: 'EXACT', status: 'VERIFIED', title: 't', timezone: 'Asia/Seoul', evidence_as_of: now, event_at: now, evidence_fact_ids: [facts[0].id], text: 'x' }] } })))}
 ${err('bad_trust_field', call(A, 7, payload(A, 7, { facts: facts.map(f => ({ ...f, official: true })) })))}
-${err('bad_catalog_ref', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'x', hash: 'y' } } })))}
+${err('bad_catalog_ref', call(A, 7, payload(A, 7, { top: { catalog_ref: { registry: 'x' } } })))}
+-- A non-official host may be allowed, but only the database decides which hosts are official filings.
+update private.real_mode set allowed_source_hosts=allowed_source_hosts||array['news.example.com'];
+${err('role_mismatch_primary', call(A, 7, payload(A, 7, { draft: { sources: [...sources, { name: '보도', url: 'https://news.example.com/1', role: 'PRIMARY' }] } })))}
+${err('role_mismatch_reported', call(A, 7, payload(A, 7, { draft: { sources: sources.map(x => ({ ...x, role: 'REPORTED' })) } })))}
 -- Trust is derived: a fact citing a REPORTED source is not an official original; the class decides the claim type.
-${ok('trust', `${call(E, 1, payload(E, 1, { draft: { sources: [...sources, { name: '보도', url: 'https://kind.krx.co.kr/news/1', role: 'REPORTED' }] },
-  facts: facts.map((f, n) => n === 0 ? { ...f, verification_class: 'SENSITIVE_UNCONFIRMED', source_urls: [sources[0].url, 'https://kind.krx.co.kr/news/1'] } : f) }))}->>'state'`)}
+${ok('trust', `${call(E, 1, payload(E, 1, { draft: { sources: [...sources, { name: '보도', url: 'https://news.example.com/1', role: 'REPORTED' }] },
+  facts: facts.map((f, n) => n === 0 ? { ...f, verification_class: 'SENSITIVE_UNCONFIRMED', source_urls: [sources[0].url, 'https://news.example.com/1'] } : f) }))}->>'state'`)}
 ${ok('trust_claims', `(select string_agg(c.claim_type||':'||c.official_original,',' order by l.fact_id) from private.ai_claim_links l join private.claims c on c.id=l.claim_id
   where l.issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(E)}))`)}
 -- A company may only sit on an impact of a sector it belongs to.
@@ -129,6 +133,9 @@ select 'R|dto|'||concat_ws(',',g->>'sample_kind',g->'ai_origin'->>'link_state',g
 select 'R|list|'||(select x->'ai_origin'->>'state' from jsonb_array_elements(public.m1_editor_articles()) x where x->>'id'=(select issue_id::text from a1));
 reset role;
 select set_config('request.jwt.claims','',true);
+update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from a1) and ai_version=2;
+select 'R|held_cleanup|'||(private.ai_inbox_cleanup()->>'expired');
+select 'R|held_kept|'||(select string_agg(ai_version::text,',' order by ai_version) from private.ai_draft_origin where issue_id=(select issue_id from a1))||':'||exists(select 1 from private.editor_drafts where issue_id=(select issue_id from a1));
 -- 30-day retention.
 update private.ai_draft_origin set expires_at=now()-interval '1 second' where issue_id=(select issue_id from private.ai_issue_links where ai_issue_id=${q(D)});
 ${ok('cleanup', "private.ai_inbox_cleanup()->>'expired'")}
@@ -176,6 +183,10 @@ assert.deepEqual(value('bad_nested_company'), ['AI_IMPACTS_INVALID']);
 assert.deepEqual(value('bad_nested_schedule'), ['AI_SCHEDULE_INVALID']);
 assert.deepEqual(value('bad_trust_field'), ['AI_FACTS_INVALID']);
 assert.deepEqual(value('bad_catalog_ref'), ['AI_CATALOG_REF_INVALID']);
+assert.deepEqual(value('role_mismatch_primary'), ['AI_SOURCE_ROLE_MISMATCH']);
+assert.deepEqual(value('role_mismatch_reported'), ['AI_SOURCE_ROLE_MISMATCH']);
+assert.deepEqual(value('held_cleanup'), ['0']);
+assert.deepEqual(value('held_kept'), ['2,3:true']);
 assert.deepEqual(value('trust'), ['RECEIVED']);
 const trust = value('trust_claims')[0].split(',');
 assert.equal(trust[0], 'SENSITIVE_UNCONFIRMED:false', 'f-0 cites a REPORTED source and is SENSITIVE');
@@ -191,13 +202,27 @@ assert.deepEqual(value('acl'), ['false,false']);
 // Two connections: while one intake for an AI issue is in flight (and not yet committed), a second connection cannot
 // take that issue's lock, so a parallel intake or withdrawal for the same issue waits. Both transactions roll back.
 const H = randomUUID();
+const lockKey = q('ai-issue:' + H);
 const first = spawn(docker, psql, { windowsHide: true });
 let firstOut = '';first.stdout.on('data', b => { firstOut += b; });first.stderr.on('data', b => { firstOut += b; });
 const closed = new Promise(resolve => first.on('close', resolve));
-first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');select pg_sleep(4);rollback;`);
-await new Promise(resolve => setTimeout(resolve, 2500));
-const second = run(`begin;select 'R|second_lock|'||pg_try_advisory_xact_lock(hashtext(${q('ai-issue:' + H)}));rollback;`).stdout;
+// Wait until the SQL is flushed to the first connection: the synchronous second call below blocks the event loop.
+await new Promise(resolve => first.stdin.end('begin;' + (applied ? '' : body) + `update private.real_mode set enabled=true;select 'R|first|'||(${call(H, 1, payload(H, 1))}->>'state');select pg_sleep(8);rollback;`, resolve));
+// The second connection waits until the first one holds the issue's advisory lock (pg_locks, not a fixed delay), then
+// tries a competing intake of the same issue and version: it must block on that lock (lock_timeout), never pass it.
+const second = run(`do $$ declare t0 timestamptz:=clock_timestamp();
+begin
+  while not exists(select 1 from pg_locks where locktype='advisory' and granted and pid<>pg_backend_pid()
+    and objid::bigint=(hashtext(${lockKey})::bigint & 4294967295)) loop
+    if clock_timestamp()-t0>interval '20 seconds' then raise notice 'R|second|NO_LOCK_SEEN';return;end if;
+    perform pg_sleep(0.05);
+  end loop;
+  set local lock_timeout='1s';
+  -- With 57 applied this is a real competing intake; when 57 exists only inside the first transaction it takes the same lock.
+  begin if to_regprocedure('private.ai_ingest_draft(text,jsonb)') is not null then perform ${call(H, 1, payload(H, 1))}; else perform pg_advisory_xact_lock(hashtext(${lockKey})); end if; raise notice 'R|second|PASSED';
+  exception when lock_not_available then raise notice 'R|second|BLOCKED'; when others then raise notice 'R|second|%',sqlerrm; end;
+end $$;`);
 await closed;
 assert.match(firstOut, /R\|first\|RECEIVED/);
-assert.match(second, /R\|second_lock\|false/);
+assert.match(second.stdout + second.stderr, /R\|second\|BLOCKED/);
 console.log(JSON.stringify({ status: 'PASS', phase: 'AI_INBOX_1A_57', migrationApplied: applied, rolledBack: true, checks: lines.length + 2 }));

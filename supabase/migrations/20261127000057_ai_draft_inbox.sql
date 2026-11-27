@@ -4,6 +4,14 @@ begin;
 -- Each AI issue maps to one PERMITTED_REAL issue; versions only move forward; editor work is never overwritten;
 -- withdrawals leave a tombstone; unpublished AI evidence is removed after 30 days.
 
+-- Which allowed hosts publish official filings is decided here, never by the sender: a fact is an official original
+-- only when every source it cites is on an official-filing host.
+alter table private.real_mode add column official_source_hosts text[] not null default array['dart.fss.or.kr','kind.krx.co.kr'];
+alter table private.real_mode add constraint real_mode_official_subset check (official_source_hosts<@allowed_source_hosts);
+create function private.real_source_host(p_url text) returns text language sql immutable set search_path='' as $f$
+  select (regexp_match(p_url,'^https://([^/?#]*)'))[1]
+$f$;
+
 create table private.ai_issue_links (
   ai_issue_id text primary key check (ai_issue_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'),
   issue_id uuid unique references private.issues(id),
@@ -73,7 +81,8 @@ begin
   if jsonb_typeof(p->'ai_version')<>'number' or (p->>'ai_version')!~'^[1-9][0-9]{0,8}$' then raise exception 'AI_DRAFT_VERSION';end if;
   if coalesce(p->>'story_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' or coalesce(p->>'angle_key','')!~'^[A-Za-z0-9_.:-]{1,200}$' then raise exception 'AI_DRAFT_KEYS';end if;
   -- The server's catalog reference is recorded for audit; IDs are checked one by one against the DB head.
-  if not private.ai_keys_ok(p->'catalog_ref',array['registry'],array['registry']) or coalesce(p->'catalog_ref'->>'registry','')!~'^[A-Za-z0-9_.:-]{1,120}$' then raise exception 'AI_CATALOG_REF_INVALID';end if;
+  if not private.ai_keys_ok(p->'catalog_ref',array['registry','sha256'],array['registry','sha256']) or coalesce(p->'catalog_ref'->>'registry','')!~'^[A-Za-z0-9_.:-]{1,120}$'
+    or coalesce(p->'catalog_ref'->>'sha256','')!~'^[0-9a-f]{64}$' then raise exception 'AI_CATALOG_REF_INVALID';end if;
   -- Facts: 1-30, statements only. Trust (claim type, official origin) is derived by the database, never sent.
   if jsonb_typeof(p->'facts')<>'array' or jsonb_array_length(p->'facts') not between 1 and 30 then raise exception 'AI_FACTS_INVALID';end if;
   for x in select value from jsonb_array_elements(p->'facts') loop
@@ -102,6 +111,8 @@ begin
   for x in select value from jsonb_array_elements(d->'sources') loop
     if not private.ai_keys_ok(x,array['name','url','role'],array['name','url','role']) or jsonb_typeof(x->'name')<>'string' or length(btrim(x->>'name')) not between 1 and 100
       or coalesce(x->>'role','') not in ('PRIMARY','REPORTED') or not private.real_source_url_ok(x->>'url') then raise exception 'AI_SOURCES_INVALID';end if;
+    -- The role label must agree with the database's own host classification.
+    if (x->>'role'='PRIMARY') is distinct from (private.real_source_host(x->>'url')=any(coalesce((select official_source_hosts from private.real_mode where id=1),'{}'::text[]))) then raise exception 'AI_SOURCE_ROLE_MISMATCH';end if;
   end loop;
   for x in select value from jsonb_array_elements(p->'facts') loop
     for y in select value from jsonb_array_elements(x->'source_urls') loop
@@ -226,10 +237,10 @@ begin
       for x in select value from jsonb_array_elements(p_payload->'facts') loop
         insert into private.claims(issue_id,claim_type,korea_path_verified,fact_current,official_original,verified,valid_until,sample_kind)
           -- Trust is derived here: the claim type is the AI verification class, and a fact is an official original only
-          -- when every source it cites is a PRIMARY (filing) source of this draft.
+          -- when every source it cites is on an official-filing host (database classification, not the sender's label).
           values(iss,x->>'verification_class',
             (x->>'korea_path_verified')::boolean,(x->>'recorded_at')::timestamptz>now()-interval '30 days',
-            not exists(select 1 from jsonb_array_elements_text(x->'source_urls') u where not exists(select 1 from jsonb_array_elements(d->'sources') s where s.value->>'url'=u.value and s.value->>'role'='PRIMARY')),
+            not exists(select 1 from jsonb_array_elements_text(x->'source_urls') u where not private.real_source_host(u.value)=any(coalesce((select official_source_hosts from private.real_mode where id=1),'{}'::text[]))),
             (x->>'independently_verified')::boolean,(x->>'recorded_at')::timestamptz+interval '30 days','PERMITTED_REAL') returning id into cid;
         insert into private.ai_claim_links(issue_id,fact_id,claim_id,ai_version) values(iss,x->>'id',cid,ver);
         map:=map||jsonb_build_object(x->>'id',cid);
@@ -296,8 +307,10 @@ begin
     update private.ai_issue_links set state='WITHDRAWN',reason='EXPIRED',updated_at=now() where ai_issue_id=r.ai_issue_id;
     n:=n+1;
   end loop;
-  delete from private.ai_draft_origin o using private.issues i where i.id=o.issue_id and o.expires_at<=now() and i.publication_state='DRAFT';
-  delete from private.ai_draft_receipts where received_at<now()-interval '90 days';
+  -- Expired pending evidence goes; the evidence of a draft that still exists stays with it. Receipts are permanent (small,
+  -- and they keep replays and conflicts exact forever).
+  delete from private.ai_draft_origin o using private.issues i where i.id=o.issue_id and o.expires_at<=now() and i.publication_state='DRAFT'
+    and o.ai_version is distinct from (select max(c.ai_version) from private.ai_claim_links c where c.issue_id=o.issue_id);
   return jsonb_build_object('expired',n);
 end$$;
 alter function private.retention_tick() rename to retention_tick_v1;
@@ -337,6 +350,6 @@ begin perform private.m1_assert_editor();return coalesce((select jsonb_agg(row_t
   (select jsonb_build_object('state',l.state,'ai_version',l.current_version,'facts',(select jsonb_array_length(o.facts) from private.ai_draft_origin o where o.issue_id=i.id order by o.ai_version desc limit 1))
    from private.ai_issue_links l where l.issue_id=i.id) ai_origin from private.issues i join private.editor_drafts d on d.issue_id=i.id order by d.updated_at desc limit 100)t),'[]');end$$;
 
-revoke all on function private.ai_string_array(jsonb,integer,integer), private.ai_keys_ok(jsonb,text[],text[]), private.ai_payload_check(jsonb), private.ai_catalog_drift(jsonb,bigint), private.ai_clear_issue(uuid), private.ai_ingest_draft(text,jsonb),
+revoke all on function private.real_source_host(text), private.ai_string_array(jsonb,integer,integer), private.ai_keys_ok(jsonb,text[],text[]), private.ai_payload_check(jsonb), private.ai_catalog_drift(jsonb,bigint), private.ai_clear_issue(uuid), private.ai_ingest_draft(text,jsonb),
   private.ai_withdraw_draft(text,integer,text), private.ai_inbox_cleanup(), private.retention_tick(), private.retention_tick_v1() from public, anon, authenticated, service_role;
 commit;
