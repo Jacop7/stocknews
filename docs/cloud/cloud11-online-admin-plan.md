@@ -168,6 +168,8 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
   - membership 1행
   - EXECUTE 부여(21개 → authenticated, 3개 → service_role)
 - 적용 후 같은 트랜잭션 안에서 결과 ACL이 정확히 이 목록인지 확인한다.
+- SQL Editor로 적용할 때는 줄바꿈이 LF여야 한다(CRLF로 붙으면 함수 정의 해시가 달라 `CLOUD11_POST_DEFINITION`으로 중단·롤백). 붙인 뒤 편집기 내용의 SHA-256을 로컬 파일과 대조한다.
+- 2026-11-27 드라이런(ROLLBACK 버전, sha256 5be336a1…): 가드·코어·권한·사후 확인 모두 통과, 롤백 확인(`admin_online_status` 없음, PGRST202).
 
 ### H8. 시험
 
