@@ -85,7 +85,10 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     if(sweeping)return;sweeping=true;
     try{for(const [k,v] of pending)if(v.expires<=now()){
       let token=null;try{token=unseal(v.sealed,config().encryptionKey).accessToken;}catch{pending.delete(k);continue;}
-      try{await api('/auth/v1/logout?scope=local',{token});pending.delete(k);}catch{v.logoutTries=(v.logoutTries??0)+1;if(v.logoutTries>=60)pending.delete(k);}
+      // Retried until the logout succeeds or the token itself has expired (then it can no longer be used by anyone).
+      let exp=0;try{exp=Number(claimsOf(token).exp)*1000;}catch{}
+      if(!Number.isFinite(exp)||exp<=now()){pending.delete(k);continue;}
+      try{await api('/auth/v1/logout?scope=local',{token});pending.delete(k);}catch{}
     }}finally{sweeping=false;}
   }
   // Any token whose logout is wanted is queued as an expired (unusable) record first, so a failed logout is retried.
@@ -162,7 +165,7 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
   async function logout(capability,s){
     let failure=null;
     try{await broker('close',{hash:hash(capability)});}catch(e){failure=e;}
-    try{await api('/auth/v1/logout?scope=local',{token:s?.accessToken});}catch(e){failure??=e;}
+    try{await api('/auth/v1/logout?scope=local',{token:s?.accessToken});}catch(e){failure??=e;if(typeof s?.accessToken==='string')retire(s.accessToken);}
     if(failure)throw failure instanceof AdminError?failure:new AdminError('LOGOUT_INCOMPLETE',502);
   }
   function assertWrite(headers,csrf,provided){

@@ -135,6 +135,10 @@ test('online login: prior sessions must end before a session opens; expired pend
     const q2 = await rt3.login(email, 'right', '203.0.113.9'); await assert.rejects(rt3.mfaVerify(q2.pendingId, '123456'), /PRIOR_SESSIONS_NOT_ENDED/);
     const n = localTries(); await rt3.login(email, 'right', '203.0.113.10').catch(() => {});
     assert.ok(localTries() >= n + 2, 'both the dropped aal1 login and the retired aal2 token are retried');
+    const tick = async () => { await rt3.mfaVerify('A'.repeat(43), '123456').catch(() => {}); await new Promise(r => setTimeout(r, 5)); };
+    for (let i = 0; i < 70; i++) await tick();
+    const m = localTries(); await tick();
+    assert.ok(localTries() > m, 'retries continue while the token is still valid, however many sweeps ran');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
