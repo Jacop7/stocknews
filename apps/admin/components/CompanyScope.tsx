@@ -7,8 +7,9 @@ import { useState } from 'react';
 type Label = { id: string; name: string; active: boolean };
 type Found = { id: string; name: string; active: boolean };
 
-export default function CompanyScope({ kind, primary, refs, labels, disabled, onChange }: {
+export default function CompanyScope({ kind, primary, refs, labels, impacts, sectorName, disabled, onChange }: {
   kind: string; primary: string | null; refs: string[]; labels: Label[]; disabled: boolean;
+  impacts: Array<{ sector_id: string; direction: string; companies?: Array<{ company_ref: string; role: string }> }>; sectorName: (id: string) => string;
   onChange: (value: { primary_company_ref: string | null; company_refs: string[] }) => void;
 }) {
   const [query, setQuery] = useState(''), [found, setFound] = useState<Found[]>([]), [error, setError] = useState('');
@@ -32,6 +33,12 @@ export default function CompanyScope({ kind, primary, refs, labels, disabled, on
     {missingPrimary && <p role='status'>종목 기사는 관련 기업 중 하나를 대표 기업으로 골라야 미리보기와 저장 검증을 통과합니다.</p>}
     <ul>{refs.map(id => <li key={id}>{name(id)}{inactive(id) ? ' · 비활성' : ''}{primary === id ? ' · 대표' : ''} <button type='button' disabled={disabled} onClick={() => remove(id)}>빼기</button></li>)}</ul>
     <div className='toolbar'><input aria-label='기업 검색' value={query} disabled={disabled} onChange={e => setQuery(e.target.value)} /><button type='button' disabled={disabled} onClick={() => void search()}>기업 검색</button></div>
+    {impacts.some(item => (item.companies ?? []).length > 0) && <>
+      <h3>섹터 영향별 기업과 역할</h3>
+      <ul>{impacts.flatMap((item, n) => (item.companies ?? []).map(company => <li key={n + ':' + company.company_ref}>
+        {sectorName(item.sector_id)} ({item.direction === 'BENEFIT' ? '수혜' : item.direction === 'DAMAGE' ? '피해' : '조건부'}) · {name(company.company_ref)} · {company.role}{refs.includes(company.company_ref) ? '' : ' · 관련 기업 목록에 없음'}
+      </li>))}</ul>
+    </>}
     {error && <p role='alert'>{error}</p>}
     <ul>{found.map(company => <li key={company.id}>{company.name}{company.active ? '' : ' · 비활성'} <button type='button' disabled={disabled || refs.includes(company.id)} onClick={() => add(company)}>추가</button></li>)}</ul>
   </div>;
