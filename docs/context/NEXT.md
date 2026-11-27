@@ -2,6 +2,12 @@
 
 세션이 끝날 때 갱신한다. 위에서부터 순서대로 진행하고, 사용자 입력이 필요한 항목은 따로 모은다.
 
+## 재부팅 후 재개 (2026-11-28)
+
+- 마지막 커밋 `26e8061`(2A S5 처리기 클라우드 전달 대기열, 푸시 OFF·미배포), 원격 브랜치와 같음, 작업 트리 깨끗함.
+- 재부팅 뒤: Docker Desktop 실행 → 로컬 Supabase(`judoju-news` 소유 checkout에서 `supabase start`) 확인. 로컬 실데이터 공개 스위치는 OFF 상태 유지.
+- 다음: 2A 클라우드 4가지 승인 대기(클라우드 dev DB에 실데이터 초안 30일 보관·`judoju_ai_intake` 역할·Supabase Cron 켜기·`m1_adopt_ai_version` 편집자 권한). 승인 전에는 S1~S4·S6~S8·배포를 하지 않는다. 계획 `docs/publish-stage2-plan.md` rev 6.
+
 ## 사용자 입력이 필요한 것
 
 1. **OpenDART API 키 저장** — 키는 채팅에 붙이지 말고 worktree의 `.local-data/dart/opendart.key`(git 제외)에 직접 저장한다.
