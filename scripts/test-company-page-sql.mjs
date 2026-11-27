@@ -1,5 +1,6 @@
 // Checks migrations 51 (company scope and page), 52 (company articles hide sector blocks) 53 (related companies
-// block removed) and 54 (companies per sector impact, related sectors only without benefit/damage) inside one transaction on the local Supabase DB and rolls it back. A migration not applied yet is
+// block removed) 54 (companies per sector impact) and 55 (related sectors never shown; idempotent, always
+// replayed) inside one transaction on the local Supabase DB and rolls it back. A migration not applied yet is
 // applied inside that transaction; an applied one is checked as it is.
 // Requires the local stack (supabase_db_judoju-news-local) with at least two current published M1 issues.
 import assert from 'node:assert/strict';
@@ -10,7 +11,7 @@ const psql=['exec','-i','supabase_db_judoju-news-local','psql','-X','-U','postgr
 const probe=spawnSync(docker,psql,{input:"select to_regprocedure('public.catalog_public_company(bigint,uuid,integer,timestamptz,timestamptz,uuid)') is not null;select to_regprocedure('private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)') is not null;select to_regprocedure('private.visible_sections_v2(text,jsonb,timestamptz,timestamptz)') is not null and to_regprocedure('private.m1_prepare_v6(uuid,jsonb,bigint,bigint)') is null;select to_regprocedure('private.m1_prepare_v7(uuid,jsonb,bigint,bigint)') is not null;",encoding:'utf8',windowsHide:true});
 assert.equal(probe.status,0,probe.stderr);const applied=probe.stdout.trim().split(/\r?\n/).map(x=>x==='t');
 const body=name=>readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8').replace(/^notify .*$/m,'').replace(/^begin;\s*$/m,'').replace(/commit;\s*$/,'');
-const migration='begin;'+(applied[0]?'':body('20261127000051_company_scope_and_page.sql'))+(applied[1]?'':body('20261127000052_company_hides_sector_sections.sql'))+(applied[2]?'':body('20261127000053_drop_related_companies.sql'))+(applied[3]?'':body('20261127000054_impact_companies_and_related_rule.sql'));
+const migration='begin;'+(applied[0]?'':body('20261127000051_company_scope_and_page.sql'))+(applied[1]?'':body('20261127000052_company_hides_sector_sections.sql'))+(applied[2]?'':body('20261127000053_drop_related_companies.sql'))+(applied[3]?'':body('20261127000054_impact_companies_and_related_rule.sql'))+body('20261127000055_hide_related_sectors.sql');
 const checks=`
 create temp table h as select (public.catalog_public_tree(null)->>'catalog_version')::bigint head;
 create temp table t as select n.issue_id,n.version_id,n.first_published_at,row_number() over(order by n.first_published_at desc) r from public.news_public n
@@ -48,6 +49,7 @@ create temp table imp as select private.m1_prepare(d.issue_id,jsonb_set(d.conten
  jsonb_build_array(jsonb_build_object('company_ref',(select id from co),'role','장비 공급'))),d.pol,d.cat) b from d;
 select 'R|impact_company_role|'||(private.public_body(b,private.visible_sections(b->>'_profile',b,now(),now()),now())->'impacts'->0->'companies'->0->>'role') from imp;
 select 'R|impact_company_named|'||(private.public_body(b,private.visible_sections(b->>'_profile',b,now(),now()),now())->'impacts'->0->'companies'->0->>'name' is not null) from imp;
+select 'R|related_only_hidden|'||(not 'RELATED_SECTORS'=any(private.visible_sections('RELATED_CONDITIONAL',b||'{"_profile":"RELATED_CONDITIONAL","_positive_paths":[],"benefit_sector_ids":[],"damage_sector_ids":[],"related_sector_ids":["x"]}',now(),now()))) from imp;
 select 'R|related_hidden|'||(not 'RELATED_SECTORS'=any(private.visible_sections(b->>'_profile',b||'{"related_sector_ids":["x"]}',now(),now()))) from imp;
 do $$ declare r record; begin for r in select * from d loop
   begin perform private.m1_prepare(r.issue_id,jsonb_set(r.content,'{impacts,0,companies}','[{"company_ref":"00000000-0000-4000-8000-000000000000","role":"장비 공급"}]'),r.pol,r.cat); raise notice 'R|unexpected_pass|impact company';
@@ -69,5 +71,6 @@ assert.deepEqual(value('missing'),['NOT_FOUND']);
 assert(!/_SECTORS|RELATED_COMPANIES/.test(value('company_sections')[0]));assert.match(value('sector_sections')[0],/_SECTORS/);
 assert.deepEqual(value('related_stored'),['false']);assert.deepEqual(value('related_public'),['false']);
 assert.deepEqual(value('impact_company_role'),['장비 공급']);assert.deepEqual(value('impact_company_named'),['true']);assert.deepEqual(value('related_hidden'),['true']);
+assert.deepEqual(value('related_only_hidden'),['true']);
 assert.deepEqual(value('impact_rejected'),['IMPACT_COMPANIES_INVALID']);
 console.log(JSON.stringify({status:'PASS',phase:'COMPANY_SCOPE_AND_PAGE',migrationsAlreadyApplied:{'51':applied[0],'52':applied[1],'53':applied[2],'54':applied[3]},rolledBack:true,checks:lines.length}));

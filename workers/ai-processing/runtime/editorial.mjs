@@ -361,8 +361,10 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   const visible = ['KEY_ISSUES', 'ISSUE_ANALYSIS'];
   if (draft.scenarios.length) visible.push('SCENARIOS');
   // Company issues keep the common layout without sector blocks (filings differ in form; the sector link stays in
-  // impacts and company_refs for the company page). Sector and macro issues show them.
-  if (triage.articleKind !== 'COMPANY') for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS'], ['RELATED', 'RELATED_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
+  // impacts and company_refs for the company page). Sector and macro issues show their benefit and damage sectors.
+  // Conditional (RELATED) sectors are never shown (2026-11-27): the analysis and scenarios carry the conditions, and
+  // the sector link stays stored for the sector feed and company pages.
+  if (triage.articleKind !== 'COMPANY') for (const [kind, section] of [['BENEFIT', 'BENEFIT_SECTORS'], ['DAMAGE', 'DAMAGE_SECTORS']]) if (impacts.some(item => item.direction === kind)) visible.push(section);
   if (draft.risks.length) visible.push('RISKS'); if (draft.schedule.length) visible.push('SCHEDULE'); visible.push('SOURCES', 'DISCLAIMER');
   const hasBenefit = impacts.some(item => item.direction === 'BENEFIT'), hasDamage = impacts.some(item => item.direction === 'DAMAGE');
   const render = value => renderCalculations(value, calculations);

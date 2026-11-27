@@ -91,3 +91,17 @@ test('related sectors are kept only when no clear benefit or damage sector exist
   const onlyRelated = { ...triage('d'), sectorIds: ['materials'] }; onlyRelated.impacts = [related];
   assert.deepEqual(validateTriage(onlyRelated, [doc], c.catalog).value.impacts.map(item => item.direction), ['RELATED']);
 });
+
+test('conditional (related) sectors are stored but never shown', () => {
+  const { c, doc } = setup();
+  c.catalog.sectors.push({ id: 'materials', name: '소재' });
+  const onlyRelated = { ...triage('d'), sectorIds: ['materials'] };
+  onlyRelated.impacts = [{ sectorId: 'materials', companyIds: ['orion'], direction: 'RELATED', conditionalDirection: 'POSITIVE', category: 'DEMAND',
+    path: '규정 확정에 따라 수출 참여가 유지되는 경로', conditions: ['현지 생산 기준 확정 여부 확인'], factIds: ['local-f1'] }];
+  const accepted = validateTriage(onlyRelated, [doc], c.catalog);
+  const facts = accepted.value.facts;
+  const brief = writingBrief({ facts, triage: accepted.value, documents: [doc], catalog: c.catalog, existingIssues: [] });
+  const result = validateDraft(draft(brief), { facts, documents: [doc], triage: accepted.value, catalog: c.catalog, now: stamp });
+  assert.equal(result.impacts[0].direction, 'RELATED'); assert.deepEqual(result.company_refs, ['orion']);
+  assert(!result.visible_sections.some(section => section.endsWith('_SECTORS')));
+});
