@@ -115,6 +115,7 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
   - verify가 성공하면 aal2 토큰으로 교체하고 대기 레코드를 지운 뒤 broker로 세션을 연다.
   - 실패 5회, 만료, 서버 재시작이면 대기 레코드를 버리고 Auth 로그아웃한다.
 - **갱신 없음**: 어드민은 refresh token을 쓰지 않는다. 세션은 access token 만료(최대 1시간)와 함께 끝나고, 다시 로그인(비밀번호+TOTP)해야 한다.
+- **이전 세션 정리**: TOTP 확인 직후, 세션을 열기 전에 소유자의 다른 Auth 세션을 모두 끝낸다(`logout scope=others`). 확인되지 않으면 새 로그인도 끝내고 세션을 열지 않는다. 만료된 로그인 대기(aal1)는 1분 타이머로 로그아웃하며, 실패하면 지우지 않고 재시도한다. 재시작으로 사라진 대기는 aal1이라 편집 권한이 없고, 다음 로그인 때 함께 끝난다.
 
 ### H3. secret 키 분리 (Codex 2)
 
@@ -147,11 +148,11 @@ Tailscale 안은 쓰지 않는다. 앞부분 "어드민 실행 (AWS)"에 적은 
 - **권한**: 활성화 SQL이 `public.admin_online_revoke()`를 함께 설치한다(security definer, 소유자 postgres, `service_role`만 실행).
   - 한 트랜잭션에서 21+3 EXECUTE 회수, membership 비활성, `admin_sessions` 전부 철회를 한다. 함수 소유자는 자기 함수의 EXECUTE를 회수할 수 있다.
   - DDL 권한이 없는 secret 키로도 이 함수만 부를 수 있다.
-- **실행 순서**(`scripts/ops/admin-online.ps1 revoke`, 이 순서만 유효):
+- **실행 순서**(`scripts/ops/admin-online.ps1 revoke`, 이 순서만 유효). 1·2·4번은 이 PC에 저장된 secret 키로 Supabase에 직접 요청하므로 서버·broker가 죽어 있어도 동작한다. 확인되지 않은 단계가 있으면 오류로 멈추고(exit 1) 할 일을 안내한다.
    1. **DB 차단**: `admin_online_revoke()`를 호출하고, DB가 돌려준 상태(`admin_online_status`: 편집 권한·세션 권한·활성 membership·열린 세션이 모두 0)로 차단을 확인한다. 확인되지 않으면 **멈추고** SQL Editor에서 `select public.admin_online_revoke();`를 실행하라고 안내한다.
    2. **Auth 전체 로그아웃**: `admin_online_signout()`으로 관리자들의 `auth.sessions`를 지운다(refresh token도 함께 삭제). 1번과 별도 단계이며, 확인되지 않으면 멈추고 SQL Editor 실행을 안내한다.
-   3. **정리**: 어드민·broker 컨테이너를 중지하고, 서버의 설정·IPC 키 파일과 Caddy 어드민 사이트를 삭제한다.
-   4. **사후 확인**: 이 PC에서 secret 키로 `admin_online_status()`를 다시 불러 모든 값이 0인지 보고, 단계별 영수증(`.local-data/admin-online/revoke-receipt-*.json`)을 남긴다. 실패한 단계도 기록한다.
+   3. **정리**: 어드민·broker 컨테이너 중지, 서버의 설정·IPC 키 파일과 Caddy 어드민 사이트 삭제, Caddy 재적용을 각각 서버에서 확인한다(어드민 주소가 더 이상 응답하지 않아야 함).
+   4. **사후 확인**: `admin_online_status()`를 다시 불러 권한·세션·관리자 Auth 세션이 모두 0인지 본다. 단계별 영수증(`.local-data/admin-online/revoke-receipt-*.json`)을 남기고, 실패한 단계도 기록한다. 네 단계가 모두 확인된 뒤에만 secret 키 폐기를 안내한다.
 - 이미 발급된 access JWT는 만료(최대 1시간)까지 남지만, 1번에서 membership·세션·EXECUTE가 없어지므로 편집은 즉시 막힌다.
 - secret 키 폐기는 사용자가 대시보드에서 한다(안내 출력).
 

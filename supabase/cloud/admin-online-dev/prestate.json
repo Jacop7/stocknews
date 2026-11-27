@@ -81,5 +81,12 @@
   "policies": [],
   "serviceRoleExecute": [],
   "postgresCanDeleteAuthSessions": true,
-  "authRefreshTokensFk": "refresh_tokens_session_id_fkey:FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE"
+  "authRefreshTokensFk": "refresh_tokens_session_id_fkey:FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE",
+  "activatedHashes": {
+    "private.is_admin()": "091ba513c3eac023a109bf23d2f7fe9c8084ee8803a0c9d032c402ab527f95f7",
+    "public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)": "0d12f5f64189aa404c94909c6c7156118fdd25a0bd4c03ce1dd0ebecf1ce9a6d",
+    "public.admin_online_status()": "5eb432bdc01855d95913e5f3b102713ad0611f53a500c48a26efc7ef1d9b192c",
+    "public.admin_online_signout()": "c47099b0f96d074e18557d259b4fb89a8f535d3f0230d117525bd820e9572111",
+    "public.admin_online_revoke()": "c9ae19423674ca5092cd47942b263d39203c46da3b305d11591a529e4eca0931"
+  }
 }

@@ -11,6 +11,7 @@ const U = '11111111-1111-4111-8111-111111111111', OTHER = '22222222-2222-4222-82
 const S2 = '33333333-3333-4333-8333-333333333333', S1 = '44444444-4444-4444-8444-444444444444', SO = '55555555-5555-4555-8555-555555555555';
 const cap = randomBytes(32).toString('base64url'), capHash = createHash('sha256').update(cap).digest('hex');
 const otherCap = randomBytes(32).toString('base64url');
+const pre = JSON.parse(readFileSync(new URL('../supabase/cloud/admin-online-dev/prestate.json', import.meta.url), 'utf8'));
 const q = value => "'" + String(value).replaceAll("'", "''") + "'";
 const claims = (sub, session, aal, role = 'authenticated') => JSON.stringify({ role, sub, session_id: session, aal });
 const headers = capability => JSON.stringify(capability === undefined ? {} : { 'x-judoju-capability': capability });
@@ -18,6 +19,7 @@ const probe = (name, c, h) => `select set_config('request.jwt.claims',${q(c)},tr
 
 const sql = `begin;
 ${core}
+${Object.keys(pre.activatedHashes).map(k => `select 'R|hash|${k}|'||encode(sha256(convert_to(pg_get_functiondef(${q(k)}::regprocedure),'UTF8')),'hex');`).join(String.fromCharCode(10))}
 insert into auth.users(id,email,aud,role,raw_app_meta_data) values (${q(U)},'owner@example.invalid','authenticated','authenticated','{"app_role":"admin"}'),(${q(OTHER)},'other@example.invalid','authenticated','authenticated','{"app_role":"admin"}');
 insert into auth.sessions(id,user_id,aal) values (${q(S2)},${q(U)},'aal2'),(${q(S1)},${q(U)},'aal1'),(${q(SO)},${q(OTHER)},'aal2');
 insert into private.admin_memberships(user_id,active) values (${q(U)},true),(${q(OTHER)},true);
@@ -69,6 +71,8 @@ const run = spawnSync(docker, ['exec', '-i', 'supabase_db_judoju-news-local', 'p
 assert.equal(run.status, 0, run.stderr);
 const lines = (run.stdout + run.stderr).split(/\r?\n/).map(line => line.replace(/^NOTICE:\s*/, '')).filter(line => line.startsWith('R|')).map(line => line.split('|').slice(1));
 const value = key => lines.filter(([k]) => k === key).map(([, v]) => v);
+// The pinned hardened hashes (used by the re-activation guard and post-check) match core.sql.
+for (const [k, v] of Object.entries(pre.activatedHashes)) assert.deepEqual(lines.filter(l => l[0] === 'hash' && l[1] === k).map(l => l[2]), [v], 'activated hash ' + k);
 assert.deepEqual(value('ok'), ['true']);
 for (const name of ['no_capability', 'wrong_capability', 'capability_of_other_session', 'aal1_claim', 'aal2_claim_on_aal1_session', 'other_user', 'anon_role', 'malformed_headers', 'revoked_session', 'expired_session', 'inactive_membership'])
   assert.deepEqual(value(name), ['false'], name);

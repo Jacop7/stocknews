@@ -4,7 +4,8 @@
 #         private configs (owner-only, uid 1000; the secret key only in the broker's), starts "judoju-news-admin" and adds
 #         the admin site to Caddy (https://admin.52-79-247-25.sslip.io). Does NOT activate DB permissions (activation.sql).
 # revoke: the single ordered emergency procedure (docs/cloud/cloud11-online-admin-plan.md H6):
-#         1 DB block confirmed by admin_online_status -> 2 end admin Auth sessions -> 3 stop and delete -> 4 final check from this PC; receipts.
+#         runs from this PC with the local secret key: 1 DB block (DB-confirmed) -> 2 end admin Auth sessions -> 3 stop and
+#         delete on the server (each part checked) -> 4 final DB check; receipt per run; any unconfirmed step exits 1.
 param([Parameter(Mandatory = $true)][ValidateSet('store-secret', 'deploy', 'status', 'revoke')][string]$Command)
 $ErrorActionPreference = 'Stop'
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -39,39 +40,52 @@ curl -s -m 10 -o /dev/null -w 'https_admin=%{http_code}\n' https://__HOST__/logi
 if ($Command -eq 'status') { Invoke-Remote $statusScript; return }
 
 if ($Command -eq 'revoke') {
-  # Authoritative order (plan H6). Each step's result goes into a local receipt; a step that cannot be confirmed stops the run.
+  # Authoritative order (plan H6). Runs from this PC with the locally stored secret key, so it works even when the
+  # server, the broker or the admin is down. Each step goes into a local receipt; any step not confirmed stops the run
+  # with an error (exit code 1) and says what to do.
   $receipt = [ordered]@{ startedAt = (Get-Date).ToUniversalTime().ToString('o'); steps = [ordered]@{} }
   $receiptFile = Join-Path $local ('revoke-receipt-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.json')
   function Save-Receipt { $receipt | ConvertTo-Json -Depth 6 | Set-Content $receiptFile -Encoding utf8 }
-  $inBroker = @'
-sudo -n docker exec -i judoju-news-admin-broker-1 node --input-type=module - <<'JS'
-import { readFileSync } from 'node:fs';
-const c = JSON.parse(readFileSync('/opt/judoju/.local-data/admin-broker/config.json', 'utf8'));
-const r = await fetch(c.apiUrl + '/rest/v1/rpc/__FN__', { method: 'POST', headers: { apikey: c.secretKey, 'Content-Type': 'application/json' }, body: '{}' });
-console.log('RESULT ' + JSON.stringify({ status: r.status, body: await r.json().catch(() => null) }));
-JS
-'@
-  function Invoke-BrokerFn([string]$fn) { $out = Invoke-Remote $inBroker.Replace('__FN__', $fn); $line = ($out | Where-Object { $_ -like 'RESULT *' } | Select-Object -Last 1); if (-not $line) { return $null }; return ($line.Substring(7) | ConvertFrom-Json) }
-  # 1. DB block, confirmed by the DB's own status (all grants, memberships and open sessions zero).
-  $r1 = $null; try { $r1 = Invoke-BrokerFn 'admin_online_revoke' } catch {}
-  $ok1 = $r1 -and $r1.status -eq 200 -and $r1.body.revoked -eq $true -and $r1.body.editorGrants -eq 0 -and $r1.body.sessionGrants -eq 0 -and $r1.body.activeMemberships -eq 0 -and $r1.body.openSessions -eq 0
+  function Stop-Revoke([string]$step, [string]$advice) { $receipt.stoppedAt = $step; Save-Receipt; Write-Host "$step NOT CONFIRMED. $advice Receipt: $receiptFile"; throw "REVOKE_${step}_UNCONFIRMED" }
+  $secretPath = Join-Path $local 'secret.key'
+  $secret = if (Test-Path $secretPath) { (Get-Content $secretPath -Raw).Trim() } else { '' }
+  function Invoke-AdminFn([string]$fn) {
+    if (-not $secret) { return @{ error = 'NO_LOCAL_SECRET_KEY' } }
+    try { return @{ body = (Invoke-RestMethod -Method Post -Uri "$api/rest/v1/rpc/$fn" -Headers @{ apikey = $secret } -ContentType 'application/json' -Body '{}' -TimeoutSec 20) } }
+    catch { return @{ error = [string]$_.Exception.Message } }
+  }
+  $zero = { param($b) $b -and $b.editorGrants -eq 0 -and $b.sessionGrants -eq 0 -and $b.activeMemberships -eq 0 -and $b.openSessions -eq 0 }
+  # 1. DB block, confirmed by the DB's own status.
+  $r1 = Invoke-AdminFn 'admin_online_revoke'
+  $ok1 = $r1.body -and $r1.body.revoked -eq $true -and (& $zero $r1.body)
   $receipt.steps.dbBlock = @{ confirmed = [bool]$ok1; result = $r1 }; Save-Receipt
-  if (-not $ok1) { Write-Host "STEP 1 NOT CONFIRMED. Run in the Supabase SQL Editor: select public.admin_online_revoke(); then re-run revoke. Receipt: $receiptFile"; throw 'REVOKE_STEP1_UNCONFIRMED' }
-  # 2. End every Auth session of admin users (refresh tokens cascade). Separate HTTP step; stops if not confirmed.
-  $r2 = $null; try { $r2 = Invoke-BrokerFn 'admin_online_signout' } catch {}
-  $ok2 = $r2 -and $r2.status -eq 200 -and $null -ne $r2.body.authSessionsEnded
+  if (-not $ok1) { Stop-Revoke 'STEP1' 'In the Supabase SQL Editor run: select public.admin_online_revoke(); and check every count is 0, then also run: select public.admin_online_signout(); (steps 3-4 can then be re-run with this command once the key works).' }
+  # 2. End every Auth session of admin users (refresh tokens cascade).
+  $r2 = Invoke-AdminFn 'admin_online_signout'
+  $ok2 = $r2.body -and $null -ne $r2.body.authSessionsEnded
   $receipt.steps.authSignout = @{ confirmed = [bool]$ok2; result = $r2 }; Save-Receipt
-  if (-not $ok2) { Write-Host "STEP 2 NOT CONFIRMED (DB block stands). Run in the SQL Editor: select public.admin_online_signout(); then re-run revoke. Receipt: $receiptFile"; throw 'REVOKE_STEP2_UNCONFIRMED' }
-  # 3. Stop the containers, remove the private configs and the Caddy site.
-  $r3 = Invoke-Remote "cd $base/current 2>/dev/null && sudo -n docker compose down >/dev/null 2>&1; sudo -n rm -rf $base/private; sudo -n rm -f $readBase/sites/admin.caddy; sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; test ! -e $base/private && echo REMOVED"
-  $receipt.steps.stopAndDelete = @{ confirmed = [bool]($r3 -match 'REMOVED') }; Save-Receipt
-  # 4. Final check from this PC with the local secret key: the DB reports no authority left.
-  $secret = (Get-Content (Join-Path $local 'secret.key') -Raw).Trim()
-  try { $s = Invoke-RestMethod -Method Post -Uri "$api/rest/v1/rpc/admin_online_status" -Headers @{ apikey = $secret } -ContentType 'application/json' -Body '{}' } catch { $s = $null }
-  $ok4 = $s -and $s.editorGrants -eq 0 -and $s.sessionGrants -eq 0 -and $s.activeMemberships -eq 0 -and $s.openSessions -eq 0 -and $s.adminAuthSessions -eq 0
-  $receipt.steps.finalCheck = @{ confirmed = [bool]$ok4; result = $s }; $receipt.finishedAt = (Get-Date).ToUniversalTime().ToString('o'); Save-Receipt
-  Write-Host "Revoke receipt: $receiptFile (final check confirmed: $([bool]$ok4))"
-  Write-Host 'Delete the secret key "judoju-admin-broker" in Supabase > Project Settings > API Keys. To re-enable later, re-run activation.sql (it accepts the revoked state) and deploy.'
+  if (-not $ok2) { Stop-Revoke 'STEP2' 'The DB block stands. In the SQL Editor run: select public.admin_online_signout(); then re-run revoke.' }
+  # 3. Stop the containers, remove the private configs and the Caddy site; every part is checked on the server.
+  $teardown = @'
+set -u
+cd __BASE__/current 2>/dev/null && sudo -n docker compose down >/dev/null 2>&1
+running=$(sudo -n docker ps -q --filter name=judoju-news-admin- | wc -l); echo "containers_running=$running"
+sudo -n rm -rf __BASE__/private; test -e __BASE__/private && echo private=present || echo private=removed
+sudo -n rm -f __READBASE__/sites/admin.caddy; test -e __READBASE__/sites/admin.caddy && echo site=present || echo site=removed
+sudo -n docker exec judoju-news-read-proxy-1 caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 && echo caddy=reloaded || echo caddy=reload_failed
+code=$(curl -s -m 10 -o /dev/null -w '%{http_code}' https://__HOST__/login || true); echo "admin_https=$code"
+'@.Replace('__BASE__', $base).Replace('__READBASE__', $readBase).Replace('__HOST__', $hostName)
+  $t = ''; try { $t = (Invoke-Remote $teardown) -join "`n" } catch { $t = 'SSH_FAILED ' + $_.Exception.Message }
+  $ok3 = $t -match 'containers_running=0' -and $t -match 'private=removed' -and $t -match 'site=removed' -and $t -match 'caddy=reloaded' -and $t -notmatch 'admin_https=200'
+  $receipt.steps.stopAndDelete = @{ confirmed = [bool]$ok3; output = $t }; Save-Receipt
+  if (-not $ok3) { Stop-Revoke 'STEP3' 'DB block and sign-out stand. Check the server (status command) and re-run revoke; if the server is unreachable, stop the instance in the Lightsail console.' }
+  # 4. Final check: the DB reports no authority and no admin Auth session left.
+  $r4 = Invoke-AdminFn 'admin_online_status'
+  $ok4 = (& $zero $r4.body) -and $r4.body.adminAuthSessions -eq 0
+  $receipt.steps.finalCheck = @{ confirmed = [bool]$ok4; result = $r4 }; $receipt.finishedAt = (Get-Date).ToUniversalTime().ToString('o'); Save-Receipt
+  if (-not $ok4) { Stop-Revoke 'STEP4' 'Something re-granted authority or a session reappeared. Run select public.admin_online_status(); in the SQL Editor and investigate before anything else.' }
+  Write-Host "Revoke confirmed (all four steps). Receipt: $receiptFile"
+  Write-Host 'Now delete the secret key "judoju-admin-broker" in Supabase > Project Settings > API Keys. Re-enabling later needs a new key, activation.sql and deploy.'
   return
 }
 

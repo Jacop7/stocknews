@@ -18,7 +18,7 @@ const onlineConfig = validateOnlineConfig({ apiUrl: API, brokerSocket: '/run/jud
   ownerEmailSha256: createHash('sha256').update(email).digest('hex'), ownerUserId: OWNER, projectRef: 'nxfpfvsdwbziowkxsxnh', publishableKey: 'sb_publishable_SYNTHETIC_ONLY_1234567890' });
 
 // A fake Supabase: Auth password/user/factors/challenge/verify/logout and the RPCs, recording every request.
-function fakeSupabase({ verified = true, aalAfterVerify = 'aal2', userId = OWNER } = {}) {
+function fakeSupabase({ verified = true, aalAfterVerify = 'aal2', userId = OWNER, failOthers = false, failLocal = false } = {}) {
   const calls = [], sessions = new Map();
   const aal1 = jwt({ sub: userId, session_id: SESSION, aal: 'aal1' }), aal2 = jwt({ sub: userId, session_id: SESSION, aal: aalAfterVerify });
   const fetcher = async (url, init) => {
@@ -30,6 +30,8 @@ function fakeSupabase({ verified = true, aalAfterVerify = 'aal2', userId = OWNER
     if (route === '/auth/v1/factors' && init.method === 'POST') return ok({ id: FACTOR, totp: { qr_code: 'data:image/svg+xml;utf-8,<svg/>', secret: 'ABC' } });
     if (route.endsWith('/challenge')) return ok({ id: '55555555-5555-4555-8555-555555555555' });
     if (route.endsWith('/verify')) return body.code === '123456' ? ok({ access_token: aal2, refresh_token: 'r2' }) : bad('INVALID_TOTP', 422);
+    if (route === '/auth/v1/logout?scope=others' && failOthers) return bad('AUTH_DOWN', 500);
+    if (route === '/auth/v1/logout?scope=local' && failLocal) return bad('AUTH_DOWN', 500);
     if (route.startsWith('/auth/v1/logout')) return new Response(null, { status: 204 });
     if (route === '/rest/v1/rpc/m1_open_admin_session') { sessions.set(body.p_hash, { ciphertext: body.p_ciphertext, user_id: body.p_user, auth_session_id: body.p_auth_session, expires_at: body.p_expires }); return ok({ created: true }); }
     if (route === '/rest/v1/rpc/m1_read_admin_session') return ok(sessions.get(body.p_hash) ?? null);
@@ -67,9 +69,9 @@ test('broker opens a session only for a live aal2 owner token and takes the ids 
   await assert.rejects(broker.handle(...signed('open', { accessToken: fake.aal2, hash: 'c'.repeat(64), ciphertext: 'x'.repeat(40), expires: new Date(Date.now() + 9 * 3600000).toISOString() })), /BROKER_INPUT_REJECTED/);
 });
 
-function runtimeWith(fake, statePath) {
+function runtimeWith(fake, statePath, now = Date.now) {
   const broker = createBroker(brokerConfig, { fetcher: fake.fetcher });
-  return createOnlineRuntime({ loadConfig: () => onlineConfig, fetcher: fake.fetcher, statePath: () => statePath,
+  return createOnlineRuntime({ loadConfig: () => onlineConfig, fetcher: fake.fetcher, statePath: () => statePath, now,
     brokerTransport: async (op, body, headers) => broker.handle(op, body, headers) });
 }
 
@@ -107,6 +109,24 @@ test('online login: first sign-in enrols TOTP; five wrong codes drop the pending
     const weak = fakeSupabase({ aalAfterVerify: 'aal1' }), rt2 = runtimeWith(weak, path.join(dir, 'limits2.json'));
     const s2 = await rt2.login(email, 'right', '203.0.113.3'); await assert.rejects(rt2.mfaVerify(s2.pendingId, '123456'), /MFA_NOT_AAL2/);
     assert.equal(weak.calls.some(c => c.route === '/rest/v1/rpc/m1_open_admin_session'), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('online login: prior sessions must end before a session opens; expired pending logins are logged out with retry', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'judoju-admin-online-'));
+  try {
+    const down = fakeSupabase({ failOthers: true }), rt = runtimeWith(down, path.join(dir, 'a.json'));
+    const step = await rt.login(email, 'right', '203.0.113.4');
+    await assert.rejects(rt.mfaVerify(step.pendingId, '123456'), /PRIOR_SESSIONS_NOT_ENDED/);
+    assert.equal(down.calls.some(c => c.route === '/rest/v1/rpc/m1_open_admin_session'), false);
+    assert.ok(down.calls.some(c => c.route === '/auth/v1/logout?scope=local'), 'the new login is ended too');
+    let t = Date.now(); const flaky = fakeSupabase({ failLocal: true }), rt2 = runtimeWith(flaky, path.join(dir, 'b.json'), () => t);
+    const p = await rt2.login(email, 'right', '203.0.113.5'); t += 301000;
+    await assert.rejects(rt2.mfaVerify(p.pendingId, '123456'), /MFA_PENDING_REQUIRED/);
+    await rt2.login(email, 'right', '203.0.113.6').catch(() => {});
+    const tries = () => flaky.calls.filter(c => c.route === '/auth/v1/logout?scope=local').length;
+    assert.ok(tries() >= 1, 'expired pending login is logged out'); const before = tries();
+    await rt2.login(email, 'right', '203.0.113.7').catch(() => {}); assert.ok(tries() > before, 'a failed logout is retried, not forgotten');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -78,7 +78,17 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     try{writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});renameSync(file+'.tmp',file);}catch{deny('LOGIN_STATE_UNAVAILABLE',503);}
   }
   // Expired pending logins also end their aal1 Auth session (best effort; aal1 can never edit or open a session).
-  function sweep(){for(const [k,v] of pending)if(v.expires<=now()){pending.delete(k);try{const token=unseal(v.sealed,config().encryptionKey).accessToken;void api('/auth/v1/logout?scope=local',{token}).catch(()=>{});}catch{}}}
+  // A record is kept (unusable: expired) until its logout succeeds, retried by the timer; after ~1h the aal1 token has
+  // expired anyway. Records lost on restart are aal1 only and end at the next successful login (logout scope=others).
+  let sweeping=false;
+  async function sweep(){
+    if(sweeping)return;sweeping=true;
+    try{for(const [k,v] of pending)if(v.expires<=now()){
+      let token=null;try{token=unseal(v.sealed,config().encryptionKey).accessToken;}catch{pending.delete(k);continue;}
+      try{await api('/auth/v1/logout?scope=local',{token});pending.delete(k);}catch{v.logoutTries=(v.logoutTries??0)+1;if(v.logoutTries>=60)pending.delete(k);}
+    }}finally{sweeping=false;}
+  }
+  const timer=setInterval(()=>{void sweep().catch(()=>{});},60000);timer.unref?.();
   async function login(email,password,client){
     if(typeof client!=='string'||!/^[0-9a-f:.]{2,45}$/i.test(client))deny('CLIENT_ADDRESS_REQUIRED',400);
     limit(client);
@@ -91,14 +101,14 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     if(typeof t?.access_token!=='string'||typeof t.refresh_token!=='string')deny('AUTH_RESPONSE_INVALID',502);
     const u=await api('/auth/v1/user',{method:'GET',token:t.access_token}),claim=claimsOf(t.access_token);
     if(u?.id!==c.ownerUserId||claim.sub!==u.id||!uuid.test(claim.session_id??''))deny('LOGIN_INVALID',400);
-    sweep();if(pending.size>=4)deny('LOGIN_RATE_LIMITED',429);
+    await sweep();if([...pending.values()].filter(v=>v.expires>now()).length>=4)deny('LOGIN_RATE_LIMITED',429);
     const id=randomBytes(32).toString('base64url'),verified=(u.factors??[]).find(f=>f.factor_type==='totp'&&f.status==='verified');
     pending.set(id,{sealed:seal({accessToken:t.access_token},c.encryptionKey),factorId:verified?.id??null,attempts:0,expires:now()+300000});
     return {pendingId:id,step:verified?'challenge':'enroll'};
   }
   function takePending(id){
-    sweep();if(typeof id!=='string'||!capabilityPattern.test(id))deny('MFA_PENDING_REQUIRED',401);
-    const p=pending.get(id);if(!p)deny('MFA_PENDING_REQUIRED',401);return {p,token:unseal(p.sealed,config().encryptionKey).accessToken};
+    void sweep().catch(()=>{});if(typeof id!=='string'||!capabilityPattern.test(id))deny('MFA_PENDING_REQUIRED',401);
+    const p=pending.get(id);if(!p||p.expires<=now())deny('MFA_PENDING_REQUIRED',401);return {p,token:unseal(p.sealed,config().encryptionKey).accessToken};
   }
   async function drop(id,token){pending.delete(id);try{await api('/auth/v1/logout?scope=local',{token});}catch{}}
   async function mfaEnroll(id){
@@ -124,12 +134,13 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     const capability=randomBytes(32).toString('base64url'),csrf=randomBytes(24).toString('base64url');
     const expires=Math.min(now()+8*3600000,claim.exp*1000-5000);if(expires<=now()+5000)deny('ADMIN_SESSION_EXPIRING',401);
     const payload={accessToken:t.access_token,csrf,userId:claim.sub,sessionId:claim.session_id};
+    // Every other Auth session of the owner ends first (prior admin sessions, aal1 leftovers from abandoned or pre-restart
+    // logins). If that cannot be confirmed the new login is ended too and nothing is opened.
+    try{await api('/auth/v1/logout?scope=others',{token:t.access_token});}catch(e){try{await api('/auth/v1/logout?scope=local',{token:t.access_token});}catch{}throw e instanceof AdminError?new AdminError('PRIOR_SESSIONS_NOT_ENDED',503):e;}
     try{
       await broker('open',{accessToken:t.access_token,hash:hash(capability),ciphertext:seal(payload,c.encryptionKey),expires:new Date(expires).toISOString()});
       await api('/rest/v1/rpc/m1_check_editor',{body:{},token:t.access_token,capability});
     }catch(e){try{await broker('close',{hash:hash(capability)});}catch{}try{await api('/auth/v1/logout?scope=local',{token:t.access_token});}catch{}throw e;}
-    // Every other Auth session of the owner ends here, including aal1 leftovers from abandoned or pre-restart logins.
-    try{await api('/auth/v1/logout?scope=others',{token:t.access_token});}catch{}
     return {capability,csrf,expires};
   }
   async function session(capability){
