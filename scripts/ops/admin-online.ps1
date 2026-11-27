@@ -104,7 +104,7 @@ foreach ($f in $secretFile, $publishableFile) { if (-not (Test-Path $f)) { throw
 # Encryption and IPC keys are generated once and kept locally (git-ignored); never printed.
 $keysFile = Join-Path $local 'keys.json'
 if (-not (Test-Path $keysFile)) {
-  $rand = { $b = New-Object byte[] 32; [System.Security.Cryptography.RandomNumberGenerator]::Fill($b); ($b | ForEach-Object { $_.ToString('x2') }) -join '' }
+  $rand = { $b = New-Object byte[] 32; $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create(); $rng.GetBytes($b); $rng.Dispose(); ($b | ForEach-Object { $_.ToString('x2') }) -join '' }
   @{ encryptionKey = (& $rand); ipcKey = (& $rand) } | ConvertTo-Json | Set-Content $keysFile -Encoding ascii
 }
 $k = Get-Content $keysFile -Raw | ConvertFrom-Json
