@@ -29,14 +29,14 @@
 
 | 항목 | 상태 |
 |---|---|
-| 적용된 마이그레이션 | CLOUD02~CLOUD10C 8개(구조·카탈로그·검색·예약·공개 읽기 권한). 로컬 마이그레이션 51~55는 아직 없음 |
-| 공개 읽기(CLOUD10B) | **실측 확인 완료(PASS)**: 읽기 함수 9개 성공, 거부 대상 6개 차단. 증명 `.local-data/cloud-preview/access-proof.json`(git 제외) |
+| 적용된 마이그레이션 | CLOUD02~CLOUD10C 8개 + CLOUD11 활성화(SQL, 기록 없음) + **CLOUD12A `20261127000107` cloud12a_company_scope**(2026-11-27): 로컬 51~55(종목 범위·종목 상세·종목 기사 섹터 블록 숨김·영향별 기업 배지·조건부 섹터 비노출)를 가드·사후 확인 포함 한 트랜잭션으로 적용. 적용 전 클라우드 함수 4개가 로컬 51 이전 정의와 같음을 해시로 확인. 새 함수 ACL은 대체 대상 함수에서 복사(클라우드엔 로컬 기본 권한 없음). `scripts/cloud12-render.mjs` → `supabase/cloud/company-scope-dev/apply.sql`, Codex READY |
+| 공개 읽기(CLOUD10B→12A) | **실측 확인 완료(PASS, 2026-11-27 재발급)**: 읽기 함수 10개(종목 상세 `catalog_public_company` 추가) 성공, 거부 대상 6개 차단(편집 함수 42501·비공개 404). 인벤토리 v3 `docs/cloud/cloud10b-acl-inventory.json`(API 호출 가능 32개). 증명 `.local-data/cloud-preview/access-proof.json`(git 제외) |
 | 키 | publishable 키만 `.local-data/cloud-preview/`(git 제외). 서비스·secret 키는 쓰지 않음 |
 | 직접 호출 위험 | 개발 프로젝트 한정 사용자 수용(2026-11-27). 운영 전 재검토 |
 | 온라인 조회 서버 | **운영 중**(2026-11-27): AWS 같은 서버에 도커 `judoju-news-read`(조회 서버 + Caddy). 주소 `https://52-79-247-25.sslip.io`(무료 sslip.io, Let's Encrypt 자동 인증서). Lightsail 방화벽 80·443 개방(CloudShell `open-instance-public-ports`, 기존 22 유지). 배포·상태 `scripts/ops/read-gateway.ps1 deploy|status` |
 | 앱 연결 | 미리보기 환경에서 `EXPO_PUBLIC_APP_ENV=preview`, `EXPO_PUBLIC_READ_MODE=PREVIEW_SYNTHETIC`, `EXPO_PUBLIC_READ_API_URL=https://52-79-247-25.sslip.io`로 클라우드 조회 확인(홈·섹터). 클라우드에는 아직 게시 기사가 없음. 설치·알림 서비스(127.0.0.1:3100)는 아직 로컬 |
 | 온라인 어드민(CLOUD11-online) | **운영 중, 소유자 로그인·TOTP 등록 완료**(2026-11-27). 실측(H8): 실제 세션 값으로 capability 없음·틀림 → 42501 EDITOR_ONLY(트랜잭션 롤백), 쿠키 없음·위조 쿠키·CSRF 없는 쓰기 → 401, 다른 출처·형식 로그인 → 403, 컨테이너 재시작 뒤 세션·로그인 제한 파일 유지. 배포 중 고친 것: QR은 서버가 otpauth URI로 PNG 생성(Supabase SVG가 브라우저에서 안 보임), Windows PowerShell의 브라우저식 User-Agent를 Supabase가 secret 키에 거부 → 운영 스크립트 UA 지정, 비밀번호 재설정 `admin-online.ps1 set-password`(9자 이상, 사용자 선택). 활성화 SQL 적용(편집 권한 21·세션 권한 3·관리자 1, 익명 직접 호출 42501), 회원가입 꺼짐 확인, `https://admin.52-79-247-25.sslip.io` 배포(이미지는 PC에서 빌드해 전송, 서버 1GB라 서버 빌드 불가). Codex 구현 검수 READY. 공개 인터넷 + 보강안: 주소 `https://admin.52-79-247-25.sslip.io`(예정), 소유자 1명, 비밀번호+TOTP(aal2), 세션 capability를 DB가 확인, secret 키는 broker 컨테이너에만. 계획 `docs/cloud/cloud11-online-admin-plan.md`, 활성화 SQL `supabase/cloud/admin-online-dev/activation.sql`(가드·사후 확인 포함, 재활성화 가능), 운영 `scripts/ops/admin-online.ps1 store-secret|deploy|status|revoke`(revoke는 이 PC에서 secret 키로 DB 확인 4단계 + 영수증) |
-| 남은 것 | CLOUD11 남은 실측(로그아웃 뒤 쿠키 재사용 거부, 합성 초안 저장·미리보기), 마이그레이션 51~55·AI 초안함 반영(CLOUD12), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
+| 남은 것 | CLOUD11 남은 실측(로그아웃 뒤 쿠키 재사용 거부, 합성 초안 저장·미리보기), AI 초안함(게시 경로 1단계 로컬 → 2단계 클라우드), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
 ## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
 
