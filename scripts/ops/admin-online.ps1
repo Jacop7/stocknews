@@ -1,12 +1,13 @@
 # CLOUD11-online admin on the AWS worker: store-secret | deploy | status | revoke.
 # store-secret: hidden prompt for the Supabase secret key (sb_secret_...) -> .local-data\admin-online\secret.key (never printed).
+# set-password: the owner types a new admin password twice (hidden); sent only to Supabase Auth with the local secret key.
 # deploy: builds the admin (Next standalone) and the session broker on the server from the committed sources, writes the two
 #         private configs (owner-only, uid 1000; the secret key only in the broker's), starts "judoju-news-admin" and adds
 #         the admin site to Caddy (https://admin.52-79-247-25.sslip.io). Does NOT activate DB permissions (activation.sql).
 # revoke: the single ordered emergency procedure (docs/cloud/cloud11-online-admin-plan.md H6):
 #         runs from this PC with the local secret key: 1 DB block (DB-confirmed) -> 2 end admin Auth sessions -> 3 stop and
 #         delete on the server (each part checked) -> 4 final DB check; receipt per run; any unconfirmed step exits 1.
-param([Parameter(Mandatory = $true)][ValidateSet('store-secret', 'deploy', 'status', 'revoke')][string]$Command)
+param([Parameter(Mandatory = $true)][ValidateSet('store-secret', 'set-password', 'deploy', 'status', 'revoke')][string]$Command)
 $ErrorActionPreference = 'Stop'
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $local = Join-Path $repo '.local-data\admin-online'
@@ -34,6 +35,20 @@ if ($Command -eq 'store-secret') {
   $key = ($raw -replace '[\u200B-\u200D\uFEFF\s]', '').Trim('"', "'")
   if ($key -notmatch '^sb_secret_[A-Za-z0-9_-]{16,256}$') { throw "Not a secret key (expected sb_secret_..., length $($key.Length)). Nothing was saved." }
   [System.IO.File]::WriteAllText((Join-Path $local 'secret.key'), $key); Write-Host 'Saved .local-data\admin-online\secret.key (not printed).'; return
+}
+
+if ($Command -eq 'set-password') {
+  # The owner chooses a new password (typed twice, hidden); it goes only to Supabase Auth (admin API, local secret key).
+  $secret = (Get-Content (Join-Path $local 'secret.key') -Raw).Trim()
+  $plain = { param($s) [System.Net.NetworkCredential]::new('', $s).Password }
+  $p1 = & $plain (Read-Host 'New admin password (12+ characters, hidden)' -AsSecureString)
+  $p2 = & $plain (Read-Host 'Type it again (hidden)' -AsSecureString)
+  if ($p1 -ne $p2) { throw 'The two entries differ. Nothing was changed.' }
+  if ($p1.Length -lt 12 -or $p1.Length -gt 72) { throw 'Use 12 to 72 characters. Nothing was changed.' }
+  $body = @{ password = $p1 } | ConvertTo-Json -Compress; $p1 = $null; $p2 = $null
+  try { Invoke-RestMethod -Method Put -Uri "$api/auth/v1/admin/users/$owner" -Headers @{ apikey = $secret; Authorization = "Bearer $secret" } -ContentType 'application/json' -Body $body -TimeoutSec 20 | Out-Null }
+  catch { $body = $null; throw "Password change failed (HTTP $($_.Exception.Response.StatusCode.value__)). Nothing was printed." }
+  $body = $null; Write-Host 'Admin password changed (not printed).'; return
 }
 
 $statusScript = @'
