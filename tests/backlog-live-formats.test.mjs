@@ -208,3 +208,27 @@ test('a draft number written with its unit passes only when a verified fact has 
   const wrongUnit = structuredClone(raw); wrongUnit.risks[0].text = '환산에는 1,343.90달러가 적용됐다.';
   assert.throws(() => validateDraft(wrongUnit, withRate), /DRAFT_NUMBER_MISMATCH/);
 });
+
+test('a unit typed after a calculation placeholder is not shown twice', async () => {
+  const { checkCalculations, renderCalculations } = await import('../workers/ai-processing/runtime/writer.mjs');
+  const facts = [{ id: 'a', value: '538', unit: '억원' }, { id: 'b', value: '2,159', unit: '억원' }];
+  const calcs = checkCalculations([{ id: 'share', expression: '538 ÷ 2,159 × 100', result: '24.92', unit: '%', factIds: ['a', 'b'] }], facts);
+  assert.equal(renderCalculations('비중은 약 {{calc:share}}%이다.', calcs), '비중은 약 24.92%(538 ÷ 2,159 × 100로 계산)이다.');
+  assert.equal(renderCalculations('비중은 약 {{calc:share}}이다.', calcs), '비중은 약 24.92%(538 ÷ 2,159 × 100로 계산)이다.');
+});
+
+test('a currency symbol inside the value and a series-number fact are read as written in the filing', () => {
+  const c = config(); c.sources[0].kind = 'OFFICIAL';
+  const body = '사채의 종류\n회차\n14\n보증 금액은 $24,000,000입니다.\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = fact => () => {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f5', predicate: 'X', period: '', ...fact, refs: fact.refs.map(quote => ({ docId: 'd', quote })) });
+    return validateTriage(input, [doc], c.catalog).value.facts.at(-1);
+  };
+  const usd = run({ value: '$24,000,000', unit: 'USD', statement: '보증 금액은 $24,000,000이다.', refs: ['보증 금액은 $24,000,000입니다.'] })();
+  assert.deepEqual([usd.value, usd.unit.toLowerCase()], ['24,000,000', 'usd']);
+  assert.throws(run({ value: '$25,000,000', unit: 'USD', statement: '보증 금액은 $24,000,000이다.', refs: ['보증 금액은 $24,000,000입니다.'] }), /FACT_UNIT_MISMATCH/);
+  assert.equal(run({ value: '14', unit: '회차', statement: '14회차 전환사채를 취득한다.', refs: ['사채의 종류\n회차\n14'] })().unit, '');
+  assert.throws(run({ value: '15', unit: '회차', statement: '14회차 전환사채를 취득한다.', refs: ['사채의 종류\n회차\n14'] }), /FACT_UNIT_UNSUPPORTED/);
+});

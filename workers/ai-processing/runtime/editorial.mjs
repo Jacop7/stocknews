@@ -180,6 +180,9 @@ export function validateTriage(raw, documents, catalog) {
     // "130%" with unit % is the number 130 in percent; the sign belongs to the unit, not the value.
     if (/^[+-]?\d+(?:[,.]\d+)*%$/.test(candidate.value) && ['%', ''].includes(candidate.unit.trim())) { candidate.value = candidate.value.slice(0, -1); candidate.unit = '%'; }
     candidate.unit = canonicalUnits[candidate.unit.trim().toLowerCase()] ?? candidate.unit.trim();
+    // "$24,000,000" with unit USD (or ₩ with KRW): the symbol repeats the unit; the quote check still needs $/USD.
+    if (candidate.unit.toLowerCase() === 'usd' && /^(?:US)?\$\d/.test(candidate.value)) candidate.value = candidate.value.replace(/^(?:US)?\$/, '');
+    if (candidate.unit.toLowerCase() === 'krw' && /^₩\d/.test(candidate.value)) candidate.value = candidate.value.slice(1);
     // "백만 원" and "백만원" are the same table unit.
     if (quantitativeUnits.has(candidate.unit.replace(/\s+/g, '').toLowerCase())) candidate.unit = candidate.unit.replace(/\s+/g, '');
     text(candidate.statement, 1000);
@@ -213,7 +216,8 @@ export function validateTriage(raw, documents, catalog) {
       (match, a, b, c, d) => seriesStated(a ?? b ?? c ?? d) ? ' ' : match);
     const statementNumbers = numericTokens(withoutSeries.replace(/[A-Za-z]+[A-Za-z0-9_.-]*\d[A-Za-z0-9_.-]*/g, ' '));
     assert(statementNumbers.every(token => quotedTokens.includes(token) || quotedNumber(token) && unitStated(token)), 'FACT_NUMBER_MISMATCH');
-    if (dateValue(candidate, refs)) candidate.unit = '';
+    // A series number (14 with unit 회차) names the security, like a date; the cited filing must state that series.
+    if (dateValue(candidate, refs) || ['회', '회차'].includes(candidate.unit) && /^\d{1,3}$/.test(candidate.value) && seriesStated(candidate.value)) candidate.unit = '';
     else if (numericTokens(candidate.value).length) {
       const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const unit = candidate.unit.toLowerCase();

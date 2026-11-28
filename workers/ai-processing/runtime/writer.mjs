@@ -156,10 +156,12 @@ export function checkCalculations(calculations, facts) {
   });
 }
 export function renderCalculations(value, calculations) {
-  return value.replace(/\{\{calc:([a-z0-9_-]+)\}\}/g, (_match, id) => {
+  // The rendered result already carries its unit; a unit the writer typed right after the placeholder
+  // ("{{calc:x}}%") would show twice, so it is dropped.
+  return value.replace(/\{\{calc:([a-z0-9_-]+)\}\}(%p|%|조원|억원|원|달러)?/g, (_match, id, typed) => {
     const found = calculations.find(item => item.id === id);
     assert(found, 'UNKNOWN_CALCULATION');
-    return found.rendered;
+    return found.rendered + (typed && typed !== found.unit.trim() ? typed : '');
   });
 }
 export const stripCalculations = value => value.replace(/\{\{calc:[a-z0-9_-]+\}\}/g, '');
