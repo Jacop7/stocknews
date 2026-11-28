@@ -11,6 +11,14 @@ const decode = row => row ? { ...row, payload: JSON.parse(row.payload) } : null;
 // 30 days and no longer disappear with their originals. Revocation still removes everything immediately.
 export const EVIDENCE_DAYS = 30, DRAFT_DAYS = 30;
 const activeStates = "('FETCH','TRIAGE','DRAFT','VERIFY')";
+// An outlet is its exact host without a leading "www." or mobile "m." label, so www.yna.co.kr, m.yna.co.kr and
+// yna.co.kr are one outlet. No suffix guessing: shared hosting (blogspot.com, blog.naver.com vs n.news.naver.com)
+// and other subdomains stay separate, so an uncovered site is excluded rather than passed.
+export function outletDomain(host) {
+  const value = String(host ?? '').toLowerCase().replace(/\.$/, '').replace(/^(www|m)\./, '');
+  return value.split('.').filter(Boolean).length >= 2 ? value : null;
+}
+export const OUTLET_DAYS = 30;
 export class BacklogStore {
   constructor(filename) {
     this.db = new DatabaseSync(filename, { timeout: 5000 });
@@ -41,6 +49,15 @@ export class BacklogStore {
       last_seen INTEGER NOT NULL,sources TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT`);
     // GNews signals keep their headline (2026-11-28); every insert names its columns.
     if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
+    // Outlets GNews returned (registrable domain → last time), kept 30 days apart from the 7-day signals.
+    this.db.exec('CREATE TABLE IF NOT EXISTS news_outlets(domain TEXT PRIMARY KEY,gnews_seen INTEGER NOT NULL) STRICT');
+    if (!this.db.prepare('SELECT 1 FROM news_outlets LIMIT 1').get()) {
+      // First open after the upgrade: GNews signals already held (at most 7 days) seed the ledger.
+      const put = this.db.prepare('INSERT INTO news_outlets VALUES (?,?) ON CONFLICT(domain) DO UPDATE SET gnews_seen=max(gnews_seen,excluded.gnews_seen)');
+      for (const row of this.db.prepare(`SELECT host,last_seen FROM news_signals WHERE sources LIKE '%"gnews:%'`).all()) {
+        const outlet = outletDomain(row.host); if (outlet) put.run(outlet, row.last_seen);
+      }
+    }
     // Finlight signals carry the tickers it resolves (EXCHANGE:SYMBOL JSON array).
     if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'tickers')) this.db.exec('ALTER TABLE news_signals ADD COLUMN tickers TEXT');
     // Publish stage 1A: an export snapshot per DRAFT_READY issue version, written in the same transaction. It holds the
@@ -175,10 +192,20 @@ export class BacklogStore {
           expires_at=max(expires_at,excluded.expires_at),title=coalesce(excluded.title,title),tickers=coalesce(excluded.tickers,tickers)`)
           .run(url, host, entry.lastSeen, now, sources, expires, typeof entry.title === 'string' && entry.title ? entry.title.slice(0, 300) : null,
             Array.isArray(entry.tickers) && entry.tickers.length ? JSON.stringify(entry.tickers.filter(t => /^[A-Z0-9]{2,8}:[A-Za-z0-9.]{1,12}$/.test(t)).slice(0, 10)) : null);
+        const outlet = outletDomain(host);
+        if (outlet && entry.sourceId.startsWith('gnews:')) this.db.prepare('INSERT INTO news_outlets VALUES (?,?) ON CONFLICT(domain) DO UPDATE SET gnews_seen=max(gnews_seen,excluded.gnews_seen)').run(outlet, now);
         prior ? updated++ : added++;
       }
     });
     return { added, updated, rejected };
+  }
+  // Outlets the licensed news APIs cover (owner decision 2026-11-28): Finlight's configured Korean outlets, and any
+  // outlet GNews returned in the last 30 days, both compared by registrable domain (one primary-key lookup).
+  newsOutletCovered(url, finlightSources, now) {
+    let outlet; try { outlet = outletDomain(new URL(url).hostname); } catch { return false; }
+    if (!outlet) return false;
+    if (finlightSources.some(h => outletDomain(h) === outlet)) return true;
+    return Boolean(this.db.prepare('SELECT 1 FROM news_outlets WHERE domain=? AND gnews_seen>?').get(outlet, now - OUTLET_DAYS * day));
   }
   // Records a news link as a signal (no fetch, no body) and closes the job. Several short links to the same
   // story merge into one row; the channels that carried it are kept for counting distinct sources.
@@ -381,6 +408,7 @@ export class BacklogStore {
       const expired = new Set(this.db.prepare('SELECT doc_id FROM document_sources WHERE expires_at<=?').all(now).map(row => row.doc_id));
       const removed = new Set();
       for (const table of ['jobs', 'sightings', 'document_sources', 'proposals', 'robots_rules', 'news_signals']) this.db.prepare('DELETE FROM ' + table + ' WHERE expires_at<=?').run(now);
+      this.db.prepare('DELETE FROM news_outlets WHERE gnews_seen<=?').run(now - OUTLET_DAYS * day);
       // INTENT/UNKNOWN tombstones remain text-free: they must still prevent an uncertain redispatch.
       this.db.prepare('UPDATE runs SET response=NULL WHERE expires_at<=?').run(now);
       // Unpublished drafts expire on their own 30-day clock, not with their originals.

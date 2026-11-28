@@ -52,11 +52,11 @@ async function main(argv) {
   if (['status', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
   // News-source evaluation (2026-11-28): counts only, read only.
   if (command === 'news-report') {
-    const { newsReport } = await import('./news-report.mjs');
+    const { newsReport, sourceStatus } = await import('./news-report.mjs');
     const { DatabaseSync } = await import('node:sqlite');
     // Opened read-only (no schema changes, no back-fill, no writer lock).
     const db = new DatabaseSync(filename, { readOnly: true });
-    try { console.log(JSON.stringify(newsReport(db))); } finally { db.close(); }
+    try { console.log(JSON.stringify({ ...newsReport(db), sources: sourceStatus(db) })); } finally { db.close(); }
     return;
   }
   // Publish stage 2A: one manual cloud delivery pass (same gate as the service: the push setting file), or --check,

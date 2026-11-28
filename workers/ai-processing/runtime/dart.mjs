@@ -103,7 +103,7 @@ export function createDartClient({ apiKey, transport = createOriginalTransport()
         assert(body.status === '000', 'DART_LIST_STATUS_' + body.status);
         for (const item of body.list ?? []) if (corpCodes.has(item.corp_code) && /^\d{14}$/.test(item.rcept_no) && !routineFiling(item.report_nm ?? '')) {
           found.push({ sourceId: 'dart:list', url: filingUrl(item.rcept_no), title: `${item.corp_name} ${item.report_nm}`.slice(0, 300),
-            lastSeen: at, expiresAt: at + 7 * day });
+            lastSeen: at, expiresAt: at + 7 * day, corpCode: item.corp_code, corpName: String(item.corp_name ?? ''), stockCode: String(item.stock_code ?? '').trim() });
         }
         if (page >= Number(body.total_page ?? 1)) break;
       }

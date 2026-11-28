@@ -16,6 +16,8 @@ import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
 import { readSavedLinks } from './cli.mjs';
 import { createDartClient, createDartReader, readCorpCodes } from './dart.mjs';
+import { buildCompanyIndex, learnStockCodes, matchIssues, matchStatus } from './evidence-match.mjs';
+import { sourceStatus } from './news-report.mjs';
 import { deliveryCycle } from './intake-client.mjs';
 import { deliveryStatus } from './delivery.mjs';
 
@@ -59,7 +61,7 @@ async function main() {
   // Finlight Pro Light (2026-11-28): Korean news signals with tickers, every 10 minutes, its own background loop.
   const finlight = existsSync(paths.finlightKey) ? createFinlightClient({ apiKey: readFileSync(paths.finlightKey, 'utf8').trim(), db: store.db, signal: stop.signal }) : null;
   const finlightLoop = finlight ? startFinlightLoop({ client: finlight, record: entries => store.recordNewsSignals(entries, Date.now()), log, signal: stop.signal, sleep: pause }) : Promise.resolve();
-  let nextImport = 0, nextDart = 0;
+  let nextImport = 0, nextDart = 0, nextMatch = 0, sources = null, matches = null, nextSources = 0;
   try {
     while (!stop.signal.aborted) {
       const now = Date.now();
@@ -72,9 +74,15 @@ async function main() {
         nextImport = now + importEvery;
       }
       if (dart && loadConfig().readOriginals && now >= nextDart) {
-        try { const filings = await dart.newFilings(corpCodes, now); log({ event: 'AI_DART_LIST', filings: filings.length, ...store.importLinks(filings, now) }); }
+        try { const filings = await dart.newFilings(corpCodes, now); log({ event: 'AI_DART_LIST', filings: filings.length, stockCodes: learnStockCodes(store.db, filings, now), ...store.importLinks(filings, now) }); }
         catch (error) { log({ event: 'AI_DART_LIST_FAILED', reason: /^DART_[A-Z_0-9]+$/.test(error.message) ? error.message : 'DART_LIST_FAILED' }); }
         nextDart = now + dartEvery;
+      }
+      // Issue → evidence matching: news-API company issues move that company's queued DART and company-site documents forward.
+      if (now >= nextMatch) {
+        try { log({ event: 'AI_ISSUE_MATCH', ...matchIssues(store.db, buildCompanyIndex(loadConfig(), [...corpCodes.values()]), now) }); }
+        catch { log({ event: 'AI_ISSUE_MATCH_FAILED' }); }
+        nextMatch = now + importEvery;
       }
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }
@@ -85,7 +93,13 @@ async function main() {
         if (!['OFF', 'IDLE'].includes(delivery.state)) log({ event: 'AI_DELIVERY', ...delivery });
       } catch { log({ event: 'AI_DELIVERY_FAILED' }); }
       writeFileSync(paths.heartbeat, String(Date.now()));
-      writeFileSync(paths.status + '.pending', JSON.stringify({ at: Date.now(), execute, ...store.status(), delivery: deliveryStatus(store.db, Date.now()) }));
+      // Per-source status (24 hours), refreshed once a minute.
+      if (Date.now() >= nextSources) {
+        try { sources = sourceStatus(store.db, Date.now()); } catch { sources = null; }
+        try { matches = matchStatus(store.db, Date.now()); } catch { matches = null; }
+        nextSources = Date.now() + 60_000;
+      }
+      writeFileSync(paths.status + '.pending', JSON.stringify({ at: Date.now(), execute, ...store.status(), issueMatches: matches, sources, delivery: deliveryStatus(store.db, Date.now()) }));
       renameSync(paths.status + '.pending', paths.status);
       const idle = result.state === 'IDLE' || result.state === 'PAUSED';
       await sleep(idle ? 30_000 : 1000, undefined, { signal: stop.signal }).catch(error => { if (!stop.signal.aborted) throw error; });

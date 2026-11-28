@@ -50,3 +50,27 @@ export function newsReport(db, now = Date.now()) {
     apiUsage: { gnews: ledger('gnews_ledger', 'day'), finlight: ledger('finlight_ledger', 'day') },
   };
 }
+
+// Per-source status for the last 24 hours (collector completion, 2026-11-28), counts only and read only. Saved links
+// (the collector's Telegram and web stores keep raw endpoint ids, so they are counted together; web news is off) are
+// told apart from DART and company-site sightings by source id.
+export function sourceStatus(db, now = Date.now()) {
+  const since = now - 86400_000, today = new Date(now).toISOString().slice(0, 10);
+  const one = (sql, ...args) => { try { return db.prepare(sql).get(...args) ?? {}; } catch { return {}; } };
+  const all = (sql, ...args) => { try { return db.prepare(sql).all(...args).map(r => ({ ...r })); } catch { return []; } };
+  const signals = prefix => one(`SELECT count(*) n FROM news_signals WHERE first_seen>? AND sources LIKE ?`, since, `%"${prefix}:%`).n ?? 0;
+  const sighted = where => one(`SELECT count(DISTINCT job_id) n FROM sightings WHERE last_seen>? AND ${where}`, since).n ?? 0;
+  return {
+    at: new Date(now).toISOString(),
+    gnews: { signals24h: signals('gnews'), requestsToday: one('SELECT used FROM gnews_ledger WHERE day=?', today).used ?? 0, outlets30d: one('SELECT count(*) n FROM news_outlets').n ?? 0 },
+    finlight: { signals24h: signals('finlight'), requestsToday: one('SELECT used FROM finlight_ledger WHERE day=?', today).used ?? 0,
+      withTickers24h: one(`SELECT count(*) n FROM news_signals WHERE first_seen>? AND sources LIKE '%"finlight:%' AND tickers IS NOT NULL`, since).n ?? 0 },
+    dart: { filings24h: sighted("source_id='dart:list'"), stockCodes: one('SELECT count(*) n FROM dart_stocks').n ?? 0 },
+    companySites: { links24h: sighted("source_id LIKE 'company:%'"), hostsVisited: one('SELECT count(*) n FROM company_feeds').n ?? 0,
+      states: Object.fromEntries(all('SELECT state,count(*) n FROM company_feeds GROUP BY state ORDER BY state').map(r => [r.state, r.n])) },
+    savedLinks: { links24h: sighted("source_id<>'dart:list' AND source_id NOT LIKE 'company:%'"),
+      notCoveredExcluded24h: one(`SELECT count(*) n FROM events WHERE reason='NEWS_OUTLET_NOT_COVERED' AND observed_at>?`, since).n ?? 0 },
+    issueMatches: one('SELECT count(*) matches,count(DISTINCT company) companies,count(DISTINCT job_id) jobs FROM issue_matches WHERE matched_at>?', since),
+    webNews: 'OFF',
+  };
+}

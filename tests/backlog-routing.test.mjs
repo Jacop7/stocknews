@@ -75,15 +75,19 @@ test('with the signal-only policy, news is recorded without reading and only off
   const add = (url, sourceId) => store.importLinks([{ url, sourceId, lastSeen: stamp, expiresAt: stamp + 7 * day }], stamp);
   add('https://buly.kr/news', 'channel-a'); add('https://han.gl/ir', 'channel-a'); add('https://www.amazon.de/dp/1', 'channel-b');
   add('https://www.reuters.com/markets/x', 'channel-b'); add('https://news.publisher.co.kr/article/one', 'channel-c');
+  // 2026-11-28: Telegram news links are kept only for outlets the news APIs cover (here: GNews has returned Reuters).
+  store.recordNewsSignals([{ sourceId: 'gnews:search', url: 'https://www.reuters.com/other', title: 'covered', lastSeen: stamp, expiresAt: stamp + 7 * day }], stamp);
   const states = []; for (let index = 0; index < 9; index++) { const result = await processor.step(); if (result.state === 'IDLE') break; states.push(result.state); }
   assert.deepEqual(reads, [`https://${officialHost}/news/1`]);
   const signals = store.db.prepare('SELECT url, host, sources FROM news_signals ORDER BY url').all().map(row => ({ ...row, sources: JSON.parse(row.sources) }));
   assert.deepEqual(signals, [
-    { url: 'https://news.publisher.co.kr/article/one', host: 'news.publisher.co.kr', sources: ['channel-c'] },
-    { url: 'https://www.reuters.com/markets/x', host: 'www.reuters.com', sources: ['channel-a', 'channel-b'] }]);
-  assert.equal(store.db.prepare("SELECT count(*) n FROM jobs WHERE state='EXCLUDED'").get().n, 1);
+    { url: 'https://www.reuters.com/markets/x', host: 'www.reuters.com', sources: ['channel-a', 'channel-b'] },
+    { url: 'https://www.reuters.com/other', host: 'www.reuters.com', sources: ['gnews:search'] }]);
+  // The uncovered outlet is excluded (not kept as a signal), beside the irrelevant shopping link.
+  assert.equal(store.db.prepare("SELECT count(*) n FROM jobs WHERE state='EXCLUDED'").get().n, 2);
+  assert.equal(store.db.prepare("SELECT count(*) n FROM events WHERE reason='NEWS_OUTLET_NOT_COVERED'").get().n, 1);
   assert.equal(store.db.prepare('SELECT count(*) n FROM documents').get().n, 1);
-  assert.deepEqual(store.status().newsSignals, { links: 2, topHosts: [{ host: 'news.publisher.co.kr', links: 1 }, { host: 'www.reuters.com', links: 1 }] });
+  assert.deepEqual(store.status().newsSignals, { links: 2, topHosts: [{ host: 'www.reuters.com', links: 2 }] });
   assert(states.includes('SIGNAL') && states.includes('TRIAGE'));
   // Signals expire with their links (7 days at most).
   store.maintain(settings, stamp + 8 * day);

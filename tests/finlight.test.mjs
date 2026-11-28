@@ -75,6 +75,31 @@ test('a second page that fails keeps the first page (partial)', () => withStore(
   assert.equal(r2.entries.length, 100); assert.equal(r2.partial, 'FINLIGHT_HTTP_503');
 }));
 
+test('Telegram news links: covered only for Finlight sources or outlets GNews returned in the last 30 days', () => withStore(store => {
+  assert.equal(store.newsOutletCovered('https://yna.co.kr/view/1', SOURCES, NOW), true, 'www-less Finlight source');
+  assert.equal(store.newsOutletCovered('https://www.hankyung.com/x', SOURCES, NOW), true);
+  assert.equal(store.newsOutletCovered('https://news.other.co.kr/x', SOURCES, NOW), false);
+  assert.equal(store.newsOutletCovered('https://m.yna.co.kr/view/1', SOURCES, NOW), true, 'mobile host of a Finlight outlet');
+  assert.equal(store.newsOutletCovered('https://news.chosun.com/x', SOURCES, NOW), false, 'a sibling subdomain of a Finlight outlet is not assumed');
+  store.recordNewsSignals([{ sourceId: 'gnews:kr', url: 'https://www.reuters.com/a', title: 't', lastSeen: NOW, expiresAt: NOW + 7 * 86400000 }], NOW);
+  assert.equal(store.newsOutletCovered('https://m.reuters.com/b', SOURCES, NOW), true, 'mobile host of the same outlet');
+  assert.equal(store.newsOutletCovered('https://markets.reuters.com/b', SOURCES, NOW), false, 'other subdomains are not assumed');
+  store.recordNewsSignals([{ sourceId: 'gnews:kr', url: 'https://paper-a.blogspot.com/a', title: 't', lastSeen: NOW, expiresAt: NOW + 7 * 86400000 }], NOW);
+  assert.equal(store.newsOutletCovered('https://paper-b.blogspot.com/a', SOURCES, NOW), false, 'shared hosting tenants stay apart');
+  // A Finlight-only signal is not GNews coverage.
+  store.recordNewsSignals([{ sourceId: 'finlight:kr', url: 'https://www.fl-only.com/a', title: 't', lastSeen: NOW, expiresAt: NOW + 7 * 86400000 }], NOW);
+  assert.equal(store.newsOutletCovered('https://www.fl-only.com/b', SOURCES, NOW), false);
+  // The 7-day signal is gone after day 8, but GNews coverage lasts 30 days.
+  store.maintain({ sources: [] }, NOW + 10 * 86400000);
+  assert.equal(store.db.prepare("SELECT count(*) n FROM news_signals WHERE host='www.reuters.com'").get().n, 0);
+  assert.equal(store.newsOutletCovered('https://www.reuters.com/b', SOURCES, NOW + 10 * 86400000), true, 'day 10');
+  store.maintain({ sources: [] }, NOW + 31 * 86400000);
+  assert.equal(store.newsOutletCovered('https://www.reuters.com/b', SOURCES, NOW + 31 * 86400000), false, 'stale GNews coverage expires');
+  assert.equal(store.db.prepare('SELECT count(*) n FROM news_outlets').get().n, 0, 'maintenance deletes stale outlets');
+  assert.equal(store.newsOutletCovered('not a url', SOURCES, NOW), false);
+  assert.match(store.db.prepare('EXPLAIN QUERY PLAN SELECT 1 FROM news_outlets WHERE domain=? AND gnews_seen>?').all('a.com', 0).map(r => r.detail).join(' '), /USING (PRIMARY KEY|INDEX)/);
+}));
+
 test('news-report opens the database read-only', async () => {
   const { spawnSync } = await import('node:child_process');
   const dir = mkdtempSync(join(tmpdir(), 'nr-')), file = join(dir, 'p.sqlite');

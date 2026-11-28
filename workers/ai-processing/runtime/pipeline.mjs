@@ -4,6 +4,7 @@ import { validateTriage, mergeFacts, evidenceSufficient, validateDraft, validate
 import { writingBrief } from './writer.mjs';
 import { DRAFT_DAYS } from './store.mjs';
 import { routeLink } from './routing.mjs';
+import { SOURCES as FINLIGHT_SOURCES } from './finlight.mjs';
 
 const hold = reason => ({ state: 'HOLD', reason });
 export function createBacklogProcessor({ store, readOriginal, resolveLink, model, loadConfig, now = Date.now }) {
@@ -70,7 +71,10 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
           }
           if (route === 'IRRELEVANT') return settle('EXCLUDED', job.payload, 'IRRELEVANT_LINK');
           if (route === 'EXCLUDED') return settle('EXCLUDED', job.payload, 'EXCLUDED_SOURCE');
-          if (route === 'SIGNAL') return store.recordSignal(job, job.payload.fetchUrl, now());
+          // Owner decision 2026-11-28: a news link from Telegram is kept only when its outlet is one the licensed news
+          // APIs cover (Finlight's Korean outlets, or an outlet GNews has returned in the last 30 days).
+          if (route === 'SIGNAL') return store.newsOutletCovered(job.payload.fetchUrl, FINLIGHT_SOURCES, now())
+            ? store.recordSignal(job, job.payload.fetchUrl, now()) : settle('EXCLUDED', job.payload, 'NEWS_OUTLET_NOT_COVERED');
           const original = await readOriginal({ url: job.payload.fetchUrl, redirects: job.payload.redirects,
             loadConfig: () => validateConfig(loadConfig()), expectedConfig, authorize: () => authority(),
             reserveHost: (...args) => store.reserveHost(...args) });
