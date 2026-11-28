@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BacklogStore } from '../workers/ai-processing/runtime/store.mjs';
-import { createFinlightClient, MAX_PER_DAY, MAX_PER_MONTH, SOURCES } from '../workers/ai-processing/runtime/finlight.mjs';
+import { createFinlightClient, MAX_PER_DAY, MAX_PER_31_DAYS, SOURCES } from '../workers/ai-processing/runtime/finlight.mjs';
 
 const KEY = 'sk_' + 'a'.repeat(40), NOW = Date.parse('2026-11-28T05:00:00Z');
 const art = (n, companies = []) => ({ link: `https://www.yna.co.kr/view/${n}`, title: '기사 ' + n, summary: 's', content: 'full', publishDate: '2026-11-28T04:30:00Z', source: 'www.yna.co.kr', companies });
@@ -44,11 +44,12 @@ test('a full first page fetches a second page; day and month budgets hold across
     try {
       store.db.prepare('UPDATE finlight_ledger SET used=? WHERE day=?').run(MAX_PER_DAY, '2026-11-28');
       await assert.rejects(createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => NOW }).pass(), /FINLIGHT_BUDGET/);
-      store.db.prepare('INSERT INTO finlight_ledger VALUES (?,?)').run('2026-11-27', MAX_PER_MONTH);
-      await assert.rejects(createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => NOW + 86400000 }).pass(), /FINLIGHT_BUDGET/, 'monthly cap');
+      store.db.prepare('INSERT INTO finlight_ledger VALUES (?,?)').run('2026-11-27', MAX_PER_31_DAYS);
+      await assert.rejects(createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => NOW + 86400000 }).pass(), /FINLIGHT_BUDGET/, 'rolling 31-day cap, also across a calendar month boundary');
+      await assert.rejects(createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => Date.parse('2026-12-01T01:00:00Z') }).pass(), /FINLIGHT_BUDGET/, 'no reset on the 1st');
       pages = [];
-      await createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => Date.parse('2026-12-01T01:00:00Z') }).pass();
-      assert.deepEqual(pages, [1, 2], 'a new month starts a new count');
+      await createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => Date.parse('2026-12-28T01:00:00Z') }).pass();
+      assert.deepEqual(pages, [1, 2], 'usage older than 30 days leaves the window');
     } finally { store.close(); }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -62,3 +63,27 @@ test('errors carry no key; key format checked; an in-flight request stops with t
   setTimeout(() => stop.abort(), 20);
   await assert.rejects(pending);
 }));
+
+test('a second page that fails keeps the first page (partial)', () => withStore(async store => {
+  store.db.exec('CREATE TABLE IF NOT EXISTS finlight_ledger(day TEXT PRIMARY KEY,used INTEGER NOT NULL) STRICT');
+  store.db.prepare('INSERT INTO finlight_ledger VALUES (?,?)').run('2026-11-28', MAX_PER_DAY - 1);
+  const full = async (url, init) => ({ ok: true, json: async () => ({ articles: Array.from({ length: 100 }, (_, i) => art(i)) }) });
+  const r = await createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: full, now: () => NOW }).pass();
+  assert.equal(r.entries.length, 100); assert.equal(r.partial, 'FINLIGHT_BUDGET');
+  const flaky = async (url, init) => { const b = JSON.parse(init.body); return b.page === 1 ? { ok: true, json: async () => ({ articles: Array.from({ length: 100 }, (_, i) => art(i)) }) } : { ok: false, status: 503 }; };
+  const r2 = await createFinlightClient({ apiKey: KEY, db: store.db, fetchImpl: flaky, now: () => NOW + 86400000 }).pass();
+  assert.equal(r2.entries.length, 100); assert.equal(r2.partial, 'FINLIGHT_HTTP_503');
+}));
+
+test('news-report opens the database read-only', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = mkdtempSync(join(tmpdir(), 'nr-')), file = join(dir, 'p.sqlite');
+  try {
+    const store = new BacklogStore(file); store.close();
+    const before = (await import('node:fs')).statSync(file).mtimeMs;
+    const r = spawnSync(process.execPath, ['--experimental-strip-types', 'workers/ai-processing/runtime/cli.mjs', 'news-report', '--db', file], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.ok(JSON.parse(r.stdout.trim().split(/\r?\n/).at(-1)).families);
+    assert.equal((await import('node:fs')).statSync(file).mtimeMs, before, 'file unchanged');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
