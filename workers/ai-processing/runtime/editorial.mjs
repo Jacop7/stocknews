@@ -408,9 +408,26 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     { facts: provenance.map(item => ({ ...item, statement: facts.find(fact => fact.id === item.id).statement })) }, otherParts);
   // Originals deleted under the retention rule have no text left to compare; the remaining ones are screened.
   // Stored evidence quotes are screened too, so the check still runs when every body has been deleted.
-  const sourceParts = [...documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }]),
-    ...facts.flatMap(fact => fact.refs.map((ref, index) => ({ id: fact.id + '-quote-' + index, text: ref.quote })))]
-    .filter(part => part.text.trim());
+  // The screen compares letters and digits only (whitespace and punctuation removed), so a quote whose document body
+  // is still present is already covered by that body. Only quotes of deleted bodies are added, and they are grouped
+  // per document (then into one part) when the screen's 24-part input limit would otherwise be exceeded.
+  const comparable = value => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\p{M}]/gu, '');
+  const documentParts = documents.flatMap(doc => [{ id: doc.id + '-title', text: doc.title }, { id: doc.id + '-body', text: doc.text }])
+    .filter(part => part.text.trim() && comparable(part.text));
+  const seenQuotes = new Set();
+  const quoteParts = facts.flatMap(fact => fact.refs.map((ref, index) => ({ id: fact.id + '-quote-' + index, docId: ref.docId, text: ref.quote })))
+    .filter(part => {
+      const key = comparable(part.text), body = documents.find(doc => doc.id === part.docId)?.text ?? '';
+      if (!key || seenQuotes.has(key) || body.trim() && comparable(body).includes(key)) return false;
+      seenQuotes.add(key); return true;
+    });
+  let quoteGroups = quoteParts.map(({ id, text }) => ({ id, text }));
+  if (documentParts.length + quoteGroups.length > 24) {
+    const byDoc = new Map(); for (const part of quoteParts) byDoc.set(part.docId, [...(byDoc.get(part.docId) ?? []), part.text]);
+    quoteGroups = [...byDoc].map(([docId, texts]) => ({ id: docId + '-quotes', text: texts.join('\n') }));
+  }
+  if (documentParts.length + quoteGroups.length > 24 && quoteGroups.length) quoteGroups = [{ id: 'evidence-quotes', text: quoteGroups.map(part => part.text).join('\n') }];
+  const sourceParts = [...documentParts, ...quoteGroups];
   if (sourceParts.length) {
     const originality = screenArticleOriginality({ policy: { version: 'BACKLOG_WORDING_V1', headlineCharacters: 18, passageCharacters: 36 }, sourceParts,
       draft: { headline: stripCalculations(draft.title), parts: allText.slice(1).map((value, index) => ({ id: 'part-' + index, text: stripCalculations(value) })) } });

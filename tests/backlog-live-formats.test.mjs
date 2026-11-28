@@ -232,3 +232,15 @@ test('a currency symbol inside the value and a series-number fact are read as wr
   assert.equal(run({ value: '14', unit: '회차', statement: '14회차 전환사채를 취득한다.', refs: ['사채의 종류\n회차\n14'] })().unit, '');
   assert.throws(run({ value: '15', unit: '회차', statement: '14회차 전환사채를 취득한다.', refs: ['사채의 종류\n회차\n14'] }), /FACT_UNIT_UNSUPPORTED/);
 });
+
+test('many evidence quotes stay within the wording screen limit; copying a quote of a deleted body still fails', () => {
+  const { raw, check } = context();
+  const purged = check.documents.map(doc => ({ ...doc, text: '', purged: true }));
+  const words = ['가람', '나래', '다솜', '라온', '마루', '바다', '사랑', '아라', '자리', '하늘'];
+  const quoteOf = n => `해당 공시의 ${words[n % 10]} 항목은 ${words[(n + 3) % 10]} 조건과 ${words[(n + 7) % 10]} 기준을 함께 적용하는 별도 약정으로 이사회 결의를 거쳐 확정된 사항 ${String.fromCharCode(0xac00 + n)}이다`;
+  const extra = Array.from({ length: 30 }, (_, n) => ({ ...check.facts[0], id: 'f-extra-' + n, refs: [{ docId: 'd', quote: quoteOf(n) }] }));
+  const many = { ...check, documents: purged, facts: [...check.facts, ...extra] };
+  assert.ok(validateDraft(raw, many));
+  const copied = structuredClone(raw); copied.risks[0].text = quoteOf(5) + '.';
+  assert.throws(() => validateDraft(copied, many), /SHARED_SOURCE_WORDING/);
+});
