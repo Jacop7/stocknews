@@ -64,7 +64,8 @@ if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
 $pgDir = Join-Path $stage 'pgdeps'; New-Item -ItemType Directory $pgDir | Out-Null
 npm install --prefix $pgDir --omit=dev --no-audit --no-fund --ignore-scripts --no-package-lock pg@8.13.1 | Out-Null
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $pgDir 'node_modules\pg\package.json'))) { throw 'pg install failed' }
-tar -C $pgDir -cf (Join-Path $stage 'pg.tar') node_modules
+# Windows' own bsdtar: a GNU tar earlier on PATH (Git) reads "C:\..." as a remote host.
+& (Join-Path $env:SystemRoot 'System32\tar.exe') -C $pgDir -cf (Join-Path $stage 'pg.tar') node_modules
 if ($LASTEXITCODE -ne 0) { throw 'pg archive failed' }
 $baseImage = (Invoke-Remote "sudo -n docker inspect --format '{{.Config.Image}}' $collector").Trim()
 if ($baseImage -notmatch '^judoju-news-html-collector:[A-Za-z0-9._-]+$') { throw "Unexpected collector image: $baseImage" }
