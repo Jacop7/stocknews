@@ -15,7 +15,7 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
     // An operator re-queue (publish 1A) asks for a fresh writing and verification: its own run identity, so an earlier,
     // already purged run with the same input is not taken as its answer.
     const requeue = stage !== 'triage' && job.payload.exportRequeueAt ? { requeue: job.payload.exportRequeueAt } : {};
-    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V12', ...requeue });
+    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V13', ...requeue });
     const scope = job.payload.docId + ':' + stage;
     const reserved = store.beginRun(key, scope, stage, modelId, config.maxDailyCalls, now(), retentionUntil, documentIds);
     if (reserved.state === 'CACHED') return { state: 'RESULT', value: reserved.value };

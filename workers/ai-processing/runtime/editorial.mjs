@@ -203,7 +203,15 @@ export function validateTriage(raw, documents, catalog) {
       const number = bare(token).replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return Boolean(unitWord[word]) && headerUnitInDocument(documents, refs, unitWord[word], number);
     };
-    const statementNumbers = numericTokens(candidate.statement.replace(/[A-Za-z]+[A-Za-z0-9_.-]*\d[A-Za-z0-9_.-]*/g, ' '));
+    // A filing's series number (제10회, 14회 사채, 회차 5) names the security; it is accepted when a cited filing
+    // itself states that series ("회차\n10" or "제10회"). Any other number still has to be quoted.
+    const seriesStated = number => refs.some(ref => {
+      const doc = documents.find(item => item.id === ref.docId);
+      return new RegExp('회차\\s*' + number + '(?!\\d)|제\\s*' + number + '\\s*회').test(doc?.text ?? '');
+    });
+    const withoutSeries = candidate.statement.replace(/제\s*(\d+)\s*회차?|(\d+)\s*회차|회차\s*(\d+)|(\d+)\s*회(?=\s*(?:사채|전환|신주|채무|교환|무보증))/g,
+      (match, a, b, c, d) => seriesStated(a ?? b ?? c ?? d) ? ' ' : match);
+    const statementNumbers = numericTokens(withoutSeries.replace(/[A-Za-z]+[A-Za-z0-9_.-]*\d[A-Za-z0-9_.-]*/g, ' '));
     assert(statementNumbers.every(token => quotedTokens.includes(token) || quotedNumber(token) && unitStated(token)), 'FACT_NUMBER_MISMATCH');
     if (dateValue(candidate, refs)) candidate.unit = '';
     else if (numericTokens(candidate.value).length) {
@@ -259,7 +267,10 @@ export function validateTriage(raw, documents, catalog) {
     item.factIds = item.factIds.map(id => { assert(localIds.has(id), 'UNKNOWN_FACT'); return localIds.get(id); });
     assert(item.factIds.length && (item.direction === 'RELATED' || item.conditionalDirection === 'NONE'), 'INVALID_IMPACT');
     text(item.path, 1000);
-    assert(!documents.some(doc => sharesRun(item.path, doc.text) || item.conditions.some(condition => sharesRun(condition, doc.text))), 'IMPACT_PATH_COPIES_SOURCE');
+    // Same rule as fact statements: numbers are masked and official filings need a longer shared run, so a
+    // contract or product name repeated from a filing is not copied prose.
+    const officialDoc = doc => doc.sources?.length > 0 && doc.sources.every(source => source.kind === 'OFFICIAL');
+    assert(!documents.some(doc => [item.path, ...item.conditions].some(part => copiesSource(part, '', doc.text, officialDoc(doc)))), 'IMPACT_PATH_COPIES_SOURCE');
     if (item.direction === 'RELATED') assert(item.conditions.length > 0 && ['POSITIVE', 'NEGATIVE'].includes(item.conditionalDirection), 'RELATED_CONDITION_REQUIRED');
     // A company issue names another company only when the source itself does (counterparty, acquisition target,
     // partner): a fact of this impact must be about that company or name it. Sector peers are never added.
@@ -375,7 +386,15 @@ export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
     ...draft.risks.map(item => item.text), ...draft.schedule.map(item => item.title)];
   const allowedNumbers = numericTokens(facts.map(fact => fact.statement).join(' '));
   // Calculated values only enter through {{calc:ID}}, which the system renders with its formula.
-  assert(allText.every(part => numericTokens(stripCalculations(part)).every(number => allowedNumbers.includes(number))), 'DRAFT_NUMBER_MISMATCH');
+  // A number written with its unit (1,343.90원) is allowed when a verified fact has exactly that value in that unit,
+  // even if the statement wrote the unit differently (₩1,343.90). Other numbers must appear in a statement.
+  const unitOf = { '원': ['krw', 'krw/usd', '원'], '달러': ['usd'], '%': ['%'], '%p': ['%p'], '억원': ['억원'], '조원': ['조원'] };
+  const plainNumber = value => value.normalize('NFKC').replace(/(?<=\d),(?=\d{3}(?:\D|$))/g, '').replace(/^\+/, '');
+  const factHasValue = token => {
+    const match = /^(.*?)(%p|%|조원|억원|달러|원)$/i.exec(token);
+    return Boolean(match) && facts.some(fact => plainNumber(fact.value) === plainNumber(match[1]) && unitOf[match[2]].includes(fact.unit.trim().toLowerCase()));
+  };
+  assert(allText.every(part => numericTokens(stripCalculations(part)).every(number => allowedNumbers.includes(number) || factHasValue(number))), 'DRAFT_NUMBER_MISMATCH');
   assertHedged(allText);
   const provenance = facts.map(fact => ({ id: fact.id, ...factProvenance(fact, documents) }));
   const otherParts = [draft.title, draft.summary, ...impacts.flatMap(item => [item.description, ...item.conditions, ...item.companyRoles.map(role => role.role)]),

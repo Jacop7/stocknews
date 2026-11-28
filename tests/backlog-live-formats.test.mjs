@@ -168,3 +168,43 @@ test('percent values written with the sign, won-per-dollar written with a backsl
   // A spaced name must still be quoted exactly.
   assert.throws(() => run({ value: 'GEN7 SSD TESTER', unit: '', statement: '계약 품목은 GEN7 SSD TESTER다.', refs: ['반도체 검사장비 (GEN6 SSD TESTER)'] }), /FACT_VALUE_MISMATCH|FACT_NUMBER_MISMATCH/);
 });
+
+test('a filing series number in a statement is accepted only when the filing states that series', () => {
+  const c = config(); c.sources[0].kind = 'OFFICIAL';
+  const body = '전환사채권 발행결정\n1. 사채의 종류\n회차\n10\n2. 사채의 권면(전자등록)총액 (원)\n30,300,000,000\n' + originalText;
+  const doc = { id: 'd', title: 't', text: body, sources: [{ ...c.sources[0], url }] };
+  const run = statement => () => {
+    const input = triage('d');
+    input.facts.push({ ...input.facts[0], id: 'local-f5', predicate: 'X', value: '30,300,000,000', unit: '원', period: '', statement,
+      refs: [{ docId: 'd', quote: '2. 사채의 권면(전자등록)총액 (원)\n30,300,000,000' }] });
+    return validateTriage(input, [doc], c.catalog).state;
+  };
+  for (const statement of ['제10회 전환사채 발행금액은 30,300,000,000원이다.', '10회차 사채 발행금액은 30,300,000,000원이다.',
+    '회차 10 사채의 발행금액은 30,300,000,000원이다.', '10회 사채 발행금액은 30,300,000,000원이다.']) assert.equal(run(statement)(), 'RELEVANT', statement);
+  assert.throws(run('제11회 전환사채 발행금액은 30,300,000,000원이다.'), /FACT_NUMBER_MISMATCH/);
+  assert.throws(run('제10회 전환사채 발행금액은 30,300,000,001원이다.'), /FACT_NUMBER_MISMATCH/);
+  assert.throws(run('제10회 사채는 10개 기관이 30,300,000,000원을 인수한다.'), /FACT_NUMBER_MISMATCH/);
+});
+
+test('impact paths may repeat a filing contract name; longer copied filing prose and copied news prose still fail', () => {
+  const c = config();
+  const name = '재사용 기술 시연체 유공압 엄빌리컬 위탁개발 계약';
+  const prose = '당사는 본 계약을 통하여 발사체 지상 지원 설비의 핵심 기술을 확보하고 향후 상업 발사 서비스 경쟁력을 강화할 계획입니다';
+  const doc = kind => ({ id: 'd', title: 't', text: name + '\n' + prose + '\n' + originalText, sources: [{ ...c.sources[0], kind, url }] });
+  const run = (path, kind = 'OFFICIAL') => () => { const input = triage('d'); input.impacts[0].path = path; return validateTriage(input, [doc(kind)], c.catalog).state; };
+  assert.equal(run(name + '의 총액 상향이 수주 규모를 늘린다.')(), 'RELEVANT');
+  assert.throws(run('회사는 ' + prose.slice(4, 60) + '라고 밝혔다.'), /IMPACT_PATH_COPIES_SOURCE/);
+  assert.throws(run(name + '의 총액 상향이 수주 규모를 늘린다.', 'NEWS'), /IMPACT_PATH_COPIES_SOURCE/);
+});
+
+test('a draft number written with its unit passes only when a verified fact has that value in that unit', () => {
+  const { raw, check } = context();
+  const facts = [...check.facts, { ...check.facts[0], id: 'f-rate', value: '1,343.90', unit: 'krw/usd', statement: '환산에는 고시환율 \\1,343.90/USD가 적용됐다.' }];
+  const withRate = { ...check, facts };
+  const rate = structuredClone(raw); rate.risks[0].text = '환산에는 1,343.90원/USD가 적용됐다.';
+  assert.ok(validateDraft(rate, withRate));
+  const other = structuredClone(raw); other.risks[0].text = '환산에는 1,343.91원/USD가 적용됐다.';
+  assert.throws(() => validateDraft(other, withRate), /DRAFT_NUMBER_MISMATCH/);
+  const wrongUnit = structuredClone(raw); wrongUnit.risks[0].text = '환산에는 1,343.90달러가 적용됐다.';
+  assert.throws(() => validateDraft(wrongUnit, withRate), /DRAFT_NUMBER_MISMATCH/);
+});
