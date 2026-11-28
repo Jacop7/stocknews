@@ -12,6 +12,12 @@
 - 출처별 24시간 상태: status.json `sources`(배포 직후 GNews 255, Finlight 20(종목코드 11), DART 39, 기업 사이트 방문 101/367(FOUND 1·NO_RECENT 60·FAILED 21·NOT_REACHED 14·ROBOTS 5), 저장 링크 298).
 - 기업 피드 첫 순회는 진행 중. 점검 예약 작업 `judoju-company-feed-coverage`(2026-11-29 09:00 KST). GNews·Finlight 유지 판단 예약 `judoju-news-api-evaluation`(2026-12-02 10:00 KST).
 
+## 홈 순위 v2 R1 (2026-11-28, 처리기 `1afe4b4` 배포)
+
+- 새 초안부터 파급력 등급·근거 기관·실질 변화 시각이 `issues.ranking`에 저장되고 내보내기 최상위 `ranking`에 실린다(클라우드 매퍼는 제외).
+- 서버 미리보기: 후보 1건(나머지 11건은 종목 이슈), 기존 초안이라 I 없음. 뉴스 링크 0(후보 회사와 일치하는 뉴스 없음).
+- 확인할 것(3일): V14 작성 출력 토큰·HOLD 비율·하루 호출 수, 등급 분포, LINKED/ZERO/UNLINKABLE 비율.
+
 ## 저장소
 
 - 원격: https://github.com/Jacop7/stocknews.git
