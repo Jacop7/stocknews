@@ -2602,19 +2602,27 @@
   }
  },
  "beforeDigest": {
+  "roles": "99914b932bd37a50b983c5e7c90ae93b",
+  "owners": "7cefac0e9491720729a4b0eca0822bef",
   "columns": "8fee5e74e1e6ff5d4655e41fc103afa2",
+  "schemas": "0886d917a73e43e14d961c40283c9029",
   "policies": "c849fe3c171e83d209c775fbebbff15e",
   "triggers": "b32a88ff354b0ee1cf127897faac5aac",
   "functions": "ee3ac163a56972dcd307af0102658e0c",
   "relations": "00fef566b59350e40c440d27d80e5bf3",
-  "constraints": "15aad376fbddd73dddeb4c22fd71e0f4"
+  "constraints": "15aad376fbddd73dddeb4c22fd71e0f4",
+  "default_acl": "f3dab89e200ab2648ec0dfc0c43e0ee1"
  },
  "afterDigest": {
+  "roles": "99914b932bd37a50b983c5e7c90ae93b",
+  "owners": "688cccba8994442dc90e03f638b59696",
   "columns": "bf98e68ef100ba513cec692bc61b28ed",
+  "schemas": "0886d917a73e43e14d961c40283c9029",
   "policies": "c849fe3c171e83d209c775fbebbff15e",
   "triggers": "79a1679a4d99fccd10fc1be83e722c73",
   "functions": "5de5e2371046b54782bfea3f851f459c",
   "relations": "8fbc64b2f7fcba2c54c5d427e6371128",
-  "constraints": "87737eb13a562bac0b9eb0a1fe35787b"
+  "constraints": "87737eb13a562bac0b9eb0a1fe35787b",
+  "default_acl": "f3dab89e200ab2648ec0dfc0c43e0ee1"
  }
 }

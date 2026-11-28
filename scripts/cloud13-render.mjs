@@ -71,8 +71,25 @@ export function renderBodies(cloud) {
   });
 }
 
+// Security-relevant state beyond definitions (Codex CLOUD13 review): owners and security attributes of functions,
+// relations, schemas and types; every judoju* role with its attributes and memberships (the intake role must not exist
+// yet); product and intake schemas with owner and ACL; default privileges that apply to objects postgres creates in the
+// product schemas (or globally).
+export const SECURITY_SECTIONS = `'owners',(select jsonb_object_agg(k,v) from (
+     select 'f:'||n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' k,pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||p.proleakproof::text v
+       from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private','judoju_control')
+     union all select 'r:'||c.relnamespace::regnamespace::text||'.'||c.relname,pg_get_userbyid(c.relowner)||'|'||c.relforcerowsecurity::text
+       from pg_class c where c.relnamespace::regnamespace::text in ('public','private','judoju_control') and c.relkind in ('r','p','v','m','S','f')
+     union all select 't:'||t.typnamespace::regnamespace::text||'.'||t.typname,pg_get_userbyid(t.typowner)||'|'||t.typtype::text
+       from pg_type t where t.typnamespace::regnamespace::text in ('public','private','judoju_control') and t.typtype in ('e','d','c') and (t.typrelid=0 or t.typtype<>'c')) o),
+  'roles',(select coalesce(jsonb_object_agg(r.rolname,jsonb_build_array(r.rolcanlogin,r.rolinherit,r.rolsuper,r.rolcreaterole,r.rolcreatedb,r.rolreplication,r.rolbypassrls,r.rolconnlimit,
+     (select coalesce(jsonb_agg(pg_get_userbyid(m.roleid) order by 1),'[]') from pg_auth_members m where m.member=r.oid))),'{}') from pg_roles r where r.rolname like 'judoju%'),
+  'schemas',(select jsonb_object_agg(nspname,pg_get_userbyid(nspowner)||'|'||coalesce(nspacl::text,'')) from pg_namespace where nspname in ('public','private','judoju_control','ai_intake')),
+  'default_acl',(select coalesce(jsonb_object_agg(coalesce(defaclnamespace::regnamespace::text,'*')||'|'||defaclobjtype::text,defaclacl::text),'{}') from pg_default_acl
+     where defaclrole='postgres'::regrole and (defaclnamespace=0 or defaclnamespace::regnamespace::text in ('public','private','judoju_control','ai_intake')))`;
+
 // The inventory compared before and after: definition hash and ACL of every product function, column, constraint and
-// trigger hashes of every product table.
+// trigger hashes of every product table, and the security sections above.
 export const INVENTORY = `jsonb_build_object(
   'functions',(select jsonb_object_agg(n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')',
      jsonb_build_array(encode(sha256(convert_to(pg_get_functiondef(p.oid),'UTF8')),'hex'),coalesce(p.proacl::text,'DEFAULT')))
@@ -84,7 +101,8 @@ export const INVENTORY = `jsonb_build_object(
   'constraints',(select jsonb_object_agg(conrelid::regclass::text||'.'||conname,md5(pg_get_constraintdef(oid))) from pg_constraint where connamespace::regnamespace::text in ('public','private','judoju_control')),
   'triggers',(select coalesce(jsonb_object_agg(c.relnamespace::regnamespace::text||'.'||c.relname||'.'||tg.tgname,md5(pg_get_triggerdef(tg.oid))),'{}')
      from pg_trigger tg join pg_class c on c.oid=tg.tgrelid where not tg.tgisinternal and c.relnamespace::regnamespace::text in ('public','private','judoju_control')),
-  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control'))
+  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control')),
+  ${SECURITY_SECTIONS}
 )`;
 
 export function render(state = loadState()) {
@@ -116,6 +134,15 @@ ${check(state.beforeDigest, 'CLOUD13_DRIFT')}
 end$guard$;
 
 ${bodies.map(({ path, sql }) => `-- ${path}\n${sql}`).join('\n\n')}
+
+-- Cloud convention: every product table forces row level security (the tables created above included).
+do $force$
+declare t regclass;
+begin
+  for t in select c.oid::regclass from pg_class c where c.relnamespace::regnamespace::text in ('public','private','judoju_control') and c.relkind in ('r','p') and not c.relforcerowsecurity loop
+    execute format('alter table %s force row level security', t);
+  end loop;
+end$force$;
 
 insert into supabase_migrations.schema_migrations(version,name,statements) values (${q(state.record.version)},${q(state.record.name)},array[${recorded.map(q).join(',')}]);
 

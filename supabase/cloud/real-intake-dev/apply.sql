@@ -24,14 +24,30 @@ begin
   'constraints',(select jsonb_object_agg(conrelid::regclass::text||'.'||conname,md5(pg_get_constraintdef(oid))) from pg_constraint where connamespace::regnamespace::text in ('public','private','judoju_control')),
   'triggers',(select coalesce(jsonb_object_agg(c.relnamespace::regnamespace::text||'.'||c.relname||'.'||tg.tgname,md5(pg_get_triggerdef(tg.oid))),'{}')
      from pg_trigger tg join pg_class c on c.oid=tg.tgrelid where not tg.tgisinternal and c.relnamespace::regnamespace::text in ('public','private','judoju_control')),
-  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control'))
+  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control')),
+  'owners',(select jsonb_object_agg(k,v) from (
+     select 'f:'||n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' k,pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||p.proleakproof::text v
+       from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private','judoju_control')
+     union all select 'r:'||c.relnamespace::regnamespace::text||'.'||c.relname,pg_get_userbyid(c.relowner)||'|'||c.relforcerowsecurity::text
+       from pg_class c where c.relnamespace::regnamespace::text in ('public','private','judoju_control') and c.relkind in ('r','p','v','m','S','f')
+     union all select 't:'||t.typnamespace::regnamespace::text||'.'||t.typname,pg_get_userbyid(t.typowner)||'|'||t.typtype::text
+       from pg_type t where t.typnamespace::regnamespace::text in ('public','private','judoju_control') and t.typtype in ('e','d','c') and (t.typrelid=0 or t.typtype<>'c')) o),
+  'roles',(select coalesce(jsonb_object_agg(r.rolname,jsonb_build_array(r.rolcanlogin,r.rolinherit,r.rolsuper,r.rolcreaterole,r.rolcreatedb,r.rolreplication,r.rolbypassrls,r.rolconnlimit,
+     (select coalesce(jsonb_agg(pg_get_userbyid(m.roleid) order by 1),'[]') from pg_auth_members m where m.member=r.oid))),'{}') from pg_roles r where r.rolname like 'judoju%'),
+  'schemas',(select jsonb_object_agg(nspname,pg_get_userbyid(nspowner)||'|'||coalesce(nspacl::text,'')) from pg_namespace where nspname in ('public','private','judoju_control','ai_intake')),
+  'default_acl',(select coalesce(jsonb_object_agg(coalesce(defaclnamespace::regnamespace::text,'*')||'|'||defaclobjtype::text,defaclacl::text),'{}') from pg_default_acl
+     where defaclrole='postgres'::regrole and (defaclnamespace=0 or defaclnamespace::regnamespace::text in ('public','private','judoju_control','ai_intake')))
 );
+  if md5((got->'roles')::text) is distinct from '99914b932bd37a50b983c5e7c90ae93b' then raise exception 'CLOUD13_DRIFT %','roles';end if;
+  if md5((got->'owners')::text) is distinct from '7cefac0e9491720729a4b0eca0822bef' then raise exception 'CLOUD13_DRIFT %','owners';end if;
   if md5((got->'columns')::text) is distinct from '8fee5e74e1e6ff5d4655e41fc103afa2' then raise exception 'CLOUD13_DRIFT %','columns';end if;
+  if md5((got->'schemas')::text) is distinct from '0886d917a73e43e14d961c40283c9029' then raise exception 'CLOUD13_DRIFT %','schemas';end if;
   if md5((got->'policies')::text) is distinct from 'c849fe3c171e83d209c775fbebbff15e' then raise exception 'CLOUD13_DRIFT %','policies';end if;
   if md5((got->'triggers')::text) is distinct from 'b32a88ff354b0ee1cf127897faac5aac' then raise exception 'CLOUD13_DRIFT %','triggers';end if;
   if md5((got->'functions')::text) is distinct from 'ee3ac163a56972dcd307af0102658e0c' then raise exception 'CLOUD13_DRIFT %','functions';end if;
   if md5((got->'relations')::text) is distinct from '00fef566b59350e40c440d27d80e5bf3' then raise exception 'CLOUD13_DRIFT %','relations';end if;
   if md5((got->'constraints')::text) is distinct from '15aad376fbddd73dddeb4c22fd71e0f4' then raise exception 'CLOUD13_DRIFT %','constraints';end if;
+  if md5((got->'default_acl')::text) is distinct from 'f3dab89e200ab2648ec0dfc0c43e0ee1' then raise exception 'CLOUD13_DRIFT %','default_acl';end if;
 end$guard$;
 
 -- supabase/migrations/20261127000056_real_mode_review.sql
@@ -1791,6 +1807,15 @@ begin
    and exists(select 1 from private.ai_issue_links l where l.issue_id=p_issue and l.state='ACTIVE'));
 end$function$;
 
+-- Cloud convention: every product table forces row level security (the tables created above included).
+do $force$
+declare t regclass;
+begin
+  for t in select c.oid::regclass from pg_class c where c.relnamespace::regnamespace::text in ('public','private','judoju_control') and c.relkind in ('r','p') and not c.relforcerowsecurity loop
+    execute format('alter table %s force row level security', t);
+  end loop;
+end$force$;
+
 insert into supabase_migrations.schema_migrations(version,name,statements) values ('20261128000108','cloud13_real_intake',array['supabase/migrations/20261127000056_real_mode_review.sql rendered-sha256=7a1267c0619621369bc404c3698f22034fee038ab681eb169e320673795e3b74','supabase/migrations/20261127000057_ai_draft_inbox.sql rendered-sha256=f3916ceead8e9f8aa63f1021588b1c738efee9273f2d6ebc90c981537d23d1a4','supabase/migrations/20261127000058_draft_company_labels.sql rendered-sha256=49fbaf5d4329ab90209977e46e9deddba807fb056ce9f5fa24ad58c19c2235cf','supabase/migrations/20261127000059_real_public_read.sql rendered-sha256=8ebc095dd6440acf3c8e365a0be4cf26117457deb0bf0e27c2f4b7d76d31b409','supabase/migrations/20261127000060_real_withdraw_evidence_version.sql rendered-sha256=7c9b281b4d7513e8357a3dd565c441b80751bc0aa3cfb3e54470c0e44d04aa60','supabase/migrations/20261127000061_real_removal_cause.sql rendered-sha256=f78df42960c2db0b1f10cf93798d09f4cca1b9edf66d0c6591bd310a0fa4e492','supabase/migrations/20261127000062_ai_version_adoption.sql rendered-sha256=8375c30620f91bc350d6e42b1d05cc40d6e662827ee9d5157a59c6babe2bc050']);
 
 do $post$
@@ -1807,14 +1832,30 @@ begin
   'constraints',(select jsonb_object_agg(conrelid::regclass::text||'.'||conname,md5(pg_get_constraintdef(oid))) from pg_constraint where connamespace::regnamespace::text in ('public','private','judoju_control')),
   'triggers',(select coalesce(jsonb_object_agg(c.relnamespace::regnamespace::text||'.'||c.relname||'.'||tg.tgname,md5(pg_get_triggerdef(tg.oid))),'{}')
      from pg_trigger tg join pg_class c on c.oid=tg.tgrelid where not tg.tgisinternal and c.relnamespace::regnamespace::text in ('public','private','judoju_control')),
-  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control'))
+  'policies',(select coalesce(jsonb_object_agg(schemaname||'.'||tablename||'.'||policyname,md5(row(permissive,roles,cmd,qual,with_check)::text)),'{}') from pg_policies where schemaname in ('public','private','judoju_control')),
+  'owners',(select jsonb_object_agg(k,v) from (
+     select 'f:'||n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' k,pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||p.proleakproof::text v
+       from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private','judoju_control')
+     union all select 'r:'||c.relnamespace::regnamespace::text||'.'||c.relname,pg_get_userbyid(c.relowner)||'|'||c.relforcerowsecurity::text
+       from pg_class c where c.relnamespace::regnamespace::text in ('public','private','judoju_control') and c.relkind in ('r','p','v','m','S','f')
+     union all select 't:'||t.typnamespace::regnamespace::text||'.'||t.typname,pg_get_userbyid(t.typowner)||'|'||t.typtype::text
+       from pg_type t where t.typnamespace::regnamespace::text in ('public','private','judoju_control') and t.typtype in ('e','d','c') and (t.typrelid=0 or t.typtype<>'c')) o),
+  'roles',(select coalesce(jsonb_object_agg(r.rolname,jsonb_build_array(r.rolcanlogin,r.rolinherit,r.rolsuper,r.rolcreaterole,r.rolcreatedb,r.rolreplication,r.rolbypassrls,r.rolconnlimit,
+     (select coalesce(jsonb_agg(pg_get_userbyid(m.roleid) order by 1),'[]') from pg_auth_members m where m.member=r.oid))),'{}') from pg_roles r where r.rolname like 'judoju%'),
+  'schemas',(select jsonb_object_agg(nspname,pg_get_userbyid(nspowner)||'|'||coalesce(nspacl::text,'')) from pg_namespace where nspname in ('public','private','judoju_control','ai_intake')),
+  'default_acl',(select coalesce(jsonb_object_agg(coalesce(defaclnamespace::regnamespace::text,'*')||'|'||defaclobjtype::text,defaclacl::text),'{}') from pg_default_acl
+     where defaclrole='postgres'::regrole and (defaclnamespace=0 or defaclnamespace::regnamespace::text in ('public','private','judoju_control','ai_intake')))
 );
+  if md5((got->'roles')::text) is distinct from '99914b932bd37a50b983c5e7c90ae93b' then raise exception 'CLOUD13_POST_INVENTORY %','roles';end if;
+  if md5((got->'owners')::text) is distinct from '688cccba8994442dc90e03f638b59696' then raise exception 'CLOUD13_POST_INVENTORY %','owners';end if;
   if md5((got->'columns')::text) is distinct from 'bf98e68ef100ba513cec692bc61b28ed' then raise exception 'CLOUD13_POST_INVENTORY %','columns';end if;
+  if md5((got->'schemas')::text) is distinct from '0886d917a73e43e14d961c40283c9029' then raise exception 'CLOUD13_POST_INVENTORY %','schemas';end if;
   if md5((got->'policies')::text) is distinct from 'c849fe3c171e83d209c775fbebbff15e' then raise exception 'CLOUD13_POST_INVENTORY %','policies';end if;
   if md5((got->'triggers')::text) is distinct from '79a1679a4d99fccd10fc1be83e722c73' then raise exception 'CLOUD13_POST_INVENTORY %','triggers';end if;
   if md5((got->'functions')::text) is distinct from '5de5e2371046b54782bfea3f851f459c' then raise exception 'CLOUD13_POST_INVENTORY %','functions';end if;
   if md5((got->'relations')::text) is distinct from '8fbc64b2f7fcba2c54c5d427e6371128' then raise exception 'CLOUD13_POST_INVENTORY %','relations';end if;
   if md5((got->'constraints')::text) is distinct from '87737eb13a562bac0b9eb0a1fe35787b' then raise exception 'CLOUD13_POST_INVENTORY %','constraints';end if;
+  if md5((got->'default_acl')::text) is distinct from 'f3dab89e200ab2648ec0dfc0c43e0ee1' then raise exception 'CLOUD13_POST_INVENTORY %','default_acl';end if;
   if public.m1_public_identity() is distinct from '{"productId":"judoju-news","environment":"preview","sampleKind":"SYNTHETIC","bootstrapId":null,"contract":"M1"}'::jsonb then raise exception 'CLOUD13_POST_IDENTITY';end if;
   if (select to_jsonb(r)-'changed_at' from private.real_mode r) is distinct from '{"id":1,"note":"stage 1A: official filings only","enabled":false,"public_read_enabled":false,"allowed_source_hosts":["dart.fss.or.kr","kind.krx.co.kr"],"official_source_hosts":["dart.fss.or.kr","kind.krx.co.kr"]}'::jsonb then raise exception 'CLOUD13_POST_REAL_MODE';end if;
 

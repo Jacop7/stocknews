@@ -21,6 +21,8 @@ const DB = 'cloud13_rehearsal';
 const capture = process.argv.includes('--capture');
 const observed = read('cloud-observed.json'), defs = read('cloud-defs.json');
 const KEYS = ['functions', 'columns', 'relations', 'constraints', 'triggers', 'policies'];
+// Security sections are observed in the cloud as digests only (cloud-observation-rest.json securityDigests).
+const SECURITY = ['owners', 'roles', 'schemas', 'default_acl'];
 
 export function diff(a, b) {
   const out = {};
@@ -32,7 +34,7 @@ export function diff(a, b) {
 }
 const inventory = () => JSON.parse(ok(psql('postgres', DB, QUERY)).trim());
 // The same digests the bundle computes: MD5 of each inventory section's jsonb text.
-const digests = () => JSON.parse(ok(psql('postgres', DB, `select (select jsonb_object_agg(k, md5((v->k)::text)) from (select ${INVENTORY} v) x, unnest(array[${KEYS.map(q).join(',')}]) k)::text;`)).trim());
+const digests = () => JSON.parse(ok(psql('postgres', DB, `select (select jsonb_object_agg(k, md5((v->k)::text)) from (select ${INVENTORY} v) x, unnest(array[${[...KEYS, ...SECURITY].map(q).join(',')}]) k)::text;`)).trim());
 
 function mimic() {
   // Cloud-only schemas, tables and their rows come first (definitions may refer to them), then functions.
@@ -61,7 +63,9 @@ function build() {
   if (Object.keys(d).length) { console.log(JSON.stringify(d, null, 1).slice(0, 4000)); throw new Error('REHEARSAL_NOT_EQUAL_TO_CLOUD'); }
   assert.deepEqual(got.runtime_identity, observed.runtime_identity, 'runtime identity');
   assert.deepEqual(got.control_identity, observed.control_identity, 'control identity');
-  console.log('PASS rehearsal equals the observed cloud inventory');
+  const sec = digests(), want = JSON.parse(readFileSync(new URL(dir + 'cloud-observation-rest.json', root), 'utf8')).securityDigests;
+  for (const k of SECURITY) if (sec[k] !== want?.[k]) throw new Error('REHEARSAL_SECURITY_NOT_EQUAL ' + k + ' ' + sec[k] + ' cloud ' + want?.[k]);
+  console.log('PASS rehearsal equals the observed cloud inventory (definitions, ACLs, owners, roles, schemas, default privileges)');
 }
 
 try {
@@ -89,13 +93,16 @@ try {
     // scratch database none, so one bare synthetic draft issue is added here.
     ok(psql('postgres', DB, `with s as (insert into private.stories(event_key) values ('cloud13-rehearsal-probe') returning id)
       insert into private.issues(story_id,angle_key,sample_kind) select id,'probe','SYNTHETIC' from s;`));
-    for (const name of ['real-mode-on.sql', 'intake.sql']) {
-      if (!existsSync(new URL(dir + name, root))) { console.log('SKIP ' + name); continue; }
-      ok(psql('postgres', DB, readFileSync(new URL(dir + name, root), 'utf8')));
-      console.log('PASS ' + name);
+    // The order used in the cloud: real mode is switched on last, after the intake role and the admin grant succeeded.
+    for (const file of [dir + 'intake.sql', 'supabase/cloud/admin-online-dev/adopt-grant.sql', dir + 'real-mode-on.sql']) {
+      ok(psql('postgres', DB, readFileSync(new URL(file, root), 'utf8')));
+      console.log('PASS ' + file.split('/').pop());
     }
-    const adopt = new URL('supabase/cloud/admin-online-dev/adopt-grant.sql', root);
-    if (existsSync(adopt)) { ok(psql('postgres', DB, readFileSync(adopt, 'utf8'))); console.log('PASS adopt-grant.sql'); }
+    // The intake role's complete privilege set, as the processor's status check computes it.
+    const { PRIVILEGE_SET } = await import('../workers/ai-processing/runtime/intake-client.mjs');
+    const set = JSON.parse(ok(psql('supabase_admin', DB, `set role judoju_ai_intake;\n${PRIVILEGE_SET.replace(/ r$/, '::text r')};`)).trim().split('\n').at(-1));
+    assert.deepEqual(set, { functions: ['ai_intake.submit', 'ai_intake.withdraw'], relations: 0, schemas: [] });
+    console.log('PASS intake privilege set exactly the two functions');
   }
 } finally {
   if (!process.argv.includes('--keep')) { dropScratch(DB); psql('supabase_admin', 'postgres', 'drop role if exists judoju_ai_intake;'); }

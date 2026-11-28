@@ -40,6 +40,7 @@ create table private.ai_withdraw_receipts(
   created_at timestamptz not null default now()
 );
 alter table private.ai_withdraw_receipts enable row level security;
+alter table private.ai_withdraw_receipts force row level security;
 revoke all on table private.ai_withdraw_receipts from public, anon, authenticated, service_role;
 
 create function ai_intake.submit(p_effect_key text, p_payload jsonb) returns jsonb language plpgsql security definer set search_path='' as $$

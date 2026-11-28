@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 
 const [,, observedFile, rehearsalFile, restFile] = process.argv;
 const obs = JSON.parse(readFileSync(observedFile, 'utf8')), r55 = JSON.parse(readFileSync(rehearsalFile, 'utf8')), rest = JSON.parse(readFileSync(restFile, 'utf8'));
+const security = JSON.parse(readFileSync(new URL('../../supabase/cloud/real-intake-dev/cloud-observation-security.json', import.meta.url), 'utf8'));
 const md5 = s => createHash('md5').update(s, 'utf8').digest('hex');
 const q = v => "'" + String(v).replaceAll("'", "''") + "'";
 const dir = new URL('../../supabase/cloud/real-intake-dev/', import.meta.url);
@@ -32,7 +33,8 @@ for (const [k, v] of Object.entries(obs.cloud)) {
   functions[key] = obs.defs[key];
 }
 const table = (name, t) => `create table judoju_control.${name}(${t.columns.map(([c, type, nn, def]) => `${c} ${type}${nn ? ' not null' : ''}${def ? ' default ' + def : ''}`).join(', ')}${t.constraints.map(([n, d]) => `, constraint ${n} ${d}`).join('')});
-alter table judoju_control.${name} ${t.rls ? 'enable' : 'disable'} row level security;`;
+alter table judoju_control.${name} ${t.rls ? 'enable' : 'disable'} row level security;
+alter table judoju_control.${name} owner to postgres;`;
 const row = (name, x) => `insert into judoju_control.${name}(${Object.keys(x).join(',')}) values (${Object.values(x).map(v => v === null ? 'null' : q(v)).join(',')});`;
 const preamble = [
   'create schema judoju_control authorization postgres;',
@@ -45,9 +47,11 @@ const preamble = [
   // Default privileges as observed for functions, tables and sequences created by postgres (the cloud has no global
   // entry, so PUBLIC keeps its built-in EXECUTE on new functions).
   'alter default privileges for role postgres grant execute on functions to public;',
-  'alter default privileges for role postgres in schema public grant execute on functions to service_role;',
-  'alter default privileges for role postgres in schema public grant all on tables to service_role;',
-  'alter default privileges for role postgres in schema public grant all on sequences to service_role;',
+  'alter default privileges for role postgres in schema public grant execute on functions to postgres, service_role;',
+  'alter default privileges for role postgres in schema public grant all on tables to postgres, service_role;',
+  'alter default privileges for role postgres in schema public grant all on sequences to postgres, service_role;',
+  // The cloud forces row level security on every product table (cloud-observation-security.json owners "|true").
+  ...Object.entries(security.full.owners).filter(([k, v]) => k.startsWith('r:') && v.endsWith('|true')).map(([k]) => `alter table ${k.slice(2)} force row level security;`),
 ].join('\n');
 writeFileSync(new URL('cloud-observed.json', dir), JSON.stringify(observed, null, 1) + '\n');
 writeFileSync(new URL('cloud-defs.json', dir), JSON.stringify({ preamble, drop: rest.localOnlyFunctions.map(k => k.replace(/\((.*)\)$/, (m, a) => '(' + a.split(', ').filter(Boolean).map(x => x.replace(/^p_[a-z_]+ /, '')).join(',') + ')')), functions }, null, 1) + '\n');
