@@ -41,14 +41,14 @@
 | 게시 경로 1C(로컬) | **구현**(2026-11-27): 마이그레이션 62 로컬 적용, 편집자가 새 AI 버전을 채택해 다시 게시, 닫힌 실데이터 이슈 정리. 계획 `docs/publish-stage1c-plan.md` |
 | 남은 것 | CLOUD11 남은 실측(로그아웃 뒤 쿠키 재사용 거부, 합성 초안 저장·미리보기), 게시 경로 2단계(클라우드), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
-## AI 처리기 (같은 서버, 2026-11-26 23:50 KST)
+## AI 처리기 (같은 서버, 2026-11-28 10:40 KST)
 
 | 항목 | 상태 |
 |---|---|
-| 컨테이너 | `judoju-news-ai-processor-1` (compose 프로젝트 `judoju-news-ai`), 이미지 `judoju-news-ai-processor:198d6ea` (2026-11-27 KST), 프롬프트 `BACKLOG_PROMPTS_V12`(글 범위 COMPANY, 종목 기사는 섹터 블록 없음, 핵심 이슈는 사실만, 조건부 섹터는 저장만 하고 화면 비노출) |
+| 컨테이너 | `judoju-news-ai-processor-1` (compose 프로젝트 `judoju-news-ai`), 이미지 `judoju-news-ai-processor:d591f92` (2026-11-28 KST) = 실행 중이던 `4da659e` + 실데이터 조정 커밋(`f01ea19`·`8950eee`·`0d9de38`)만 cherry-pick. **2A S5 클라우드 전달 대기열(`26e8061`)은 승인 전이라 서버에 넣지 않았다**(로컬 브랜치 `deploy/ai-4da659e-plus-tuning`, 임시 worktree에서 배포). 프롬프트 `BACKLOG_PROMPTS_V13` |
 | 실행 | `JUDOJU_AI_EXECUTE=1`, 원문 읽기·AI 호출 ON, **하루 호출 상한 150**(선별 gpt-6-luna, 작성 gpt-6.1-sol, 검증 gpt-6.2-sol) |
 | 근거 | DART 공시는 OpenDART API로만(관심 기업 339곳). 증권사 사이트 허가는 OFF(텔레그램 링크는 신호). 뉴스는 신호로만 |
-| 결과 | **검증 통과 초안 3건**(`DRAFT_READY`, 게시 권한 없음): 심텍 전환사채·신주인수권부사채, 하나금융지주 사채 한도 정정. 모델 호출 누적 100건 |
+| 결과 | 검증 통과 초안 누적 저장 15건(`issues`, 버전 포함, 게시 권한 없음). 2026-11-28 조정으로 동성화인텍(v2)·심텍 신주인수권부사채·엘앤에프 제10회 전환사채·알테오젠 마일스톤·제이앤티씨 채무보증·빛과전자 전환사채 취득 추가. 모델 호출 누적 약 250건, 하루 상한 150 |
 | 입력 | 수집기 볼륨을 읽기 전용 연결로 10분마다 import |
 | 설정·키 | 서버 `/home/ubuntu/.local/share/judoju-ai/config/config.json`, `secrets/openai.key`·`opendart.key`(600). 로컬 원본은 worktree `.local-data/ai/`, `.local-data/dart/` |
 | 운영 | `scripts/ops/ai-processor.ps1 status|deploy [-Execute]|stop` |
