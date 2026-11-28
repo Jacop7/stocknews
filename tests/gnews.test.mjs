@@ -70,3 +70,45 @@ test('errors never carry the key; the key format is strict; the loop stops on ab
   await new Promise(r => setTimeout(r, 10)); stop.abort(); await loop;
   assert.equal(logs[0].event, 'AI_GNEWS');
 }));
+
+// Codex re-review (2026-11-28).
+test('mixed paths: after a GNews signal adds the title column, the Telegram/web signal path still records', () => withStore(async store => {
+  store.recordNewsSignals([{ sourceId: 'gnews:search', url: 'https://news.example.com/g', title: 'G', lastSeen: NOW, expiresAt: NOW + 86400000 }], NOW);
+  store.importLinks([{ sourceId: 'telegram:channel', url: 'https://news.example.com/t', title: 'T', lastSeen: NOW, expiresAt: NOW + 86400000 }], NOW);
+  const job = store.claim(NOW);
+  assert.equal(store.recordSignal(job, 'https://news.example.com/t', NOW).state, 'SIGNAL');
+  assert.equal(store.db.prepare('SELECT count(*) n FROM news_signals').get().n, 2);
+}));
+
+test('restarts: the ledger and rotation persist when the database is closed and reopened; no query skipped at the cap', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'gn-')), file = join(dir, 'p.sqlite');
+  const ok = async () => ({ ok: true, json: async () => ({ articles: [] }) });
+  try {
+    const seen = [];
+    for (let life = 0; life < 3; life++) {
+      const store = new BacklogStore(file);
+      try { await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: async (url, init) => { if (String(url).includes('/search')) seen.push(new URL(String(url)).searchParams.get('q')); return ok(url, init); }, now: () => NOW }).pass(); }
+      finally { store.close(); }
+    }
+    assert.deepEqual(seen, QUERIES.slice(0, 3));
+    // At used=298 the two headline requests reach the cap; the search is refused and its query is not consumed.
+    const store = new BacklogStore(file);
+    try {
+      store.db.prepare('UPDATE gnews_ledger SET used=298 WHERE day=?').run(new Date(NOW).toISOString().slice(0, 10));
+      await assert.rejects(createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: ok, now: () => NOW }).pass(), /GNEWS_DAILY_BUDGET/);
+      const next = [];
+      await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: async (url) => { if (String(url).includes('/search')) next.push(new URL(String(url)).searchParams.get('q')); return ok(); }, now: () => NOW + 86400000 }).pass();
+      assert.deepEqual(next, [QUERIES[3]], 'the refused query is not skipped');
+    } finally { store.close(); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('an in-flight request stops when the service stops', () => withStore(async store => {
+  const stop = new AbortController();
+  const hang = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+  const pending = createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: hang, now: () => NOW, signal: stop.signal }).pass();
+  setTimeout(() => stop.abort(), 20);
+  const t = Date.now();
+  await assert.rejects(pending);
+  assert.ok(Date.now() - t < 2000, 'stopped promptly');
+}));

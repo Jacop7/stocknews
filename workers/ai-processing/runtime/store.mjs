@@ -39,6 +39,8 @@ export class BacklogStore {
     // News is never read (decision B): only where and when a story link was seen, for discovery and ranking.
     this.db.exec(`CREATE TABLE IF NOT EXISTS news_signals(url TEXT PRIMARY KEY,host TEXT NOT NULL,first_seen INTEGER NOT NULL,
       last_seen INTEGER NOT NULL,sources TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT`);
+    // GNews signals keep their headline (2026-11-28); every insert names its columns.
+    if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
     // Publish stage 1A: an export snapshot per DRAFT_READY issue version, written in the same transaction. It holds the
     // draft and its independently verified facts (statements and source links only, never quotes or bodies). A source
     // revocation marks it REVOKED and wipes its content; it expires with the 30-day draft clock.
@@ -157,7 +159,6 @@ export class BacklogStore {
   // sources and expiry. Returns counts only.
   recordNewsSignals(entries, now) {
     assert(Array.isArray(entries) && entries.length <= 1000, 'SIGNAL_LIMIT');
-    if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
     let added = 0, updated = 0, rejected = 0;
     this.transaction(() => {
       for (const entry of entries) {
@@ -185,7 +186,7 @@ export class BacklogStore {
       const sources = this.db.prepare('SELECT source_id FROM sightings WHERE job_id=?').all(job.id).map(row => row.source_id);
       const prior = this.db.prepare('SELECT sources FROM news_signals WHERE url=?').get(url);
       const merged = [...new Set([...(prior ? JSON.parse(prior.sources) : []), ...sources])].sort();
-      this.db.prepare(`INSERT INTO news_signals VALUES (?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
+      this.db.prepare(`INSERT INTO news_signals(url,host,first_seen,last_seen,sources,expires_at) VALUES (?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
         last_seen=max(last_seen,excluded.last_seen),sources=excluded.sources,expires_at=max(expires_at,excluded.expires_at)`)
         .run(url, host, now, now, JSON.stringify(merged), job.expires_at);
       this.db.prepare("UPDATE jobs SET state='SIGNAL',payload=?,lease=NULL,lease_until=0 WHERE id=? AND lease=?")

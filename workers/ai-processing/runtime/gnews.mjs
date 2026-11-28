@@ -22,23 +22,21 @@ export function createGnewsClient({ apiKey, db, fetchImpl = fetch, now = Date.no
   if (typeof apiKey !== 'string' || !/^[a-f0-9]{32}$/.test(apiKey)) throw new Error('GNEWS_KEY_INVALID');
   db.exec('CREATE TABLE IF NOT EXISTS gnews_ledger(day TEXT PRIMARY KEY,used INTEGER NOT NULL,turn INTEGER NOT NULL) STRICT');
   const today = () => new Date(now()).toISOString().slice(0, 10);
-  // Reserves one request in today's ledger before it is sent (a crash never under-counts).
-  function reserve() {
+  // Reserves one request in today's ledger before it is sent (a crash never under-counts). For the rotating search
+  // the query is taken and the cursor advanced in the same transaction, so a refused request never skips a query.
+  function reserve(advance) {
     db.exec('BEGIN IMMEDIATE');
     try {
       const row = db.prepare('SELECT used,turn FROM gnews_ledger WHERE day=?').get(today()) ?? { used: 0, turn: db.prepare('SELECT turn FROM gnews_ledger ORDER BY day DESC LIMIT 1').get()?.turn ?? 0 };
-      if (row.used >= MAX_PER_DAY) { db.exec('COMMIT'); throw new Error('GNEWS_DAILY_BUDGET'); }
-      db.prepare('INSERT INTO gnews_ledger VALUES (?,?,?) ON CONFLICT(day) DO UPDATE SET used=used+1').run(today(), row.used + 1, row.turn);
+      if (row.used >= MAX_PER_DAY) throw new Error('GNEWS_DAILY_BUDGET');
+      db.prepare('INSERT INTO gnews_ledger VALUES (?,?,?) ON CONFLICT(day) DO UPDATE SET used=excluded.used,turn=excluded.turn').run(today(), row.used + 1, row.turn + (advance ? 1 : 0));
       db.exec('COMMIT');
+      return QUERIES[row.turn % QUERIES.length];
     } catch (error) { if (db.isTransaction) db.exec('ROLLBACK'); throw error; }
   }
-  function nextQuery() {
-    const turn = db.prepare('SELECT turn FROM gnews_ledger WHERE day=?').get(today())?.turn ?? 0;
-    db.prepare('UPDATE gnews_ledger SET turn=? WHERE day=?').run(turn + 1, today());
-    return QUERIES[turn % QUERIES.length];
-  }
-  async function call(path, params) {
-    reserve();
+  async function call(path, params, advance = false) {
+    const query = reserve(advance);
+    if (advance) params = { q: query, ...params };
     const url = new URL(path, API);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
     const response = await fetchImpl(url, { redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
@@ -64,9 +62,8 @@ export function createGnewsClient({ apiKey, db, fetchImpl = fetch, now = Date.no
       const keep = { nullable: 'description,content,image' };
       const headlines = await call('top-headlines', { category: 'business', lang: 'en', country: 'us', max: 25, from, ...keep });
       const korea = await call('top-headlines', { category: 'business', lang: 'ko', country: 'kr', max: 25, from, ...keep });
-      const query = nextQuery();
-      const found = await call('search', { q: query, lang: 'en', max: 25, from, sortby: 'publishedAt', ...keep });
-      return { query, requestsToday: db.prepare('SELECT used FROM gnews_ledger WHERE day=?').get(today())?.used ?? 0,
+      const found = await call('search', { lang: 'en', max: 25, from, sortby: 'publishedAt', ...keep }, true);
+      return { requestsToday: db.prepare('SELECT used FROM gnews_ledger WHERE day=?').get(today())?.used ?? 0,
         entries: [...toEntries(headlines, 'gnews:headlines-us-business', at), ...toEntries(korea, 'gnews:headlines-kr-business', at), ...toEntries(found, 'gnews:search', at)] };
     },
   };
