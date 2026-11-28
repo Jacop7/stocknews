@@ -18,7 +18,7 @@
 |---|---|
 | 컨테이너 | `judoju-news-html-collector-collector-1`, 실행 중, 자동 재시작 |
 | 이미지 | `judoju-news-html-collector:release-23874ac` (소스 `23874ac`, 2026-11-26 17:56 KST 배포) |
-| 웹 수집 | 켜짐 (`JUDOJU_PUBLIC_WATCH=1`), 활성 37곳 |
+| 웹 수집 | **꺼짐**(2026-11-28 사용자 결정, `JUDOJU_WEB_NEWS=0`, 웹 요청 0). 이전에는 등록 39곳 중 약 10곳만 실제 링크 수집 |
 | 텔레그램 링크 수집 | 켜짐 (`JUDOJU_TELEGRAM_LINKS=1`), 공개 채널 47개, 2026-11-26부터 신규 게시물만 |
 | 방문 간격 | 같은 호스트 5~8초, 다른 호스트 사이 1~3초 |
 | 상태 확인 | `scripts/ops/collector.ps1 status` |
