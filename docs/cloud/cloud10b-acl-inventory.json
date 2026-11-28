@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "productId": "judoju-news",
-  "stage": "CLOUD12A",
+  "stage": "CLOUD13",
   "projectRef": "nxfpfvsdwbziowkxsxnh",
-  "observedAt": "2026-11-27",
-  "method": "Read-only queries in the Supabase SQL Editor after CLOUD11 (online admin) and CLOUD12A (company scope); no writes, no keys read",
+  "observedAt": "2026-11-28",
+  "method": "Read-only queries in the Supabase SQL Editor after CLOUD13 (real-data intake: apply.sql, intake.sql, adopt-grant.sql, real-mode-on.sql, cron.sql); no writes, no keys read",
   "dataApiEnabledObserved": true,
   "migrations": [
     "20261114000000",
@@ -15,10 +15,11 @@
     "20261116000104",
     "20261116000105",
     "20261116000106",
-    "20261127000107"
+    "20261127000107",
+    "20261128000108"
   ],
-  "functionsTotal": 186,
-  "relationsTotal": 72,
+  "functionsTotal": 223,
+  "relationsTotal": 79,
   "relationsWithApiPrivileges": [],
   "callableByApiRoles": [
     {
@@ -213,7 +214,7 @@
       "searchPath": "\"\"",
       "volatility": "stable",
       "overloads": 1,
-      "definitionSha256": "c76621d227f276a97a220ca5943850247a4fc4d82fa11a3f5fea53b2330a261b",
+      "definitionSha256": "09947e101104e7327f920a0ecad223d3f11c36c080db1c0eb8073d2471abee69",
       "returns": "jsonb"
     },
     {
@@ -239,7 +240,7 @@
       "searchPath": "\"\"",
       "volatility": "stable",
       "overloads": 1,
-      "definitionSha256": "f1eaa30ad5b4662afc581f0bb2b173d849101ce53b04b3cecf5f166852e303fa",
+      "definitionSha256": "62d245efddc70fe7a6852344df0db6f64e23713d6ec5f84a542ce03df10fc3d8",
       "returns": "jsonb"
     },
     {
@@ -282,6 +283,19 @@
       "returns": "jsonb"
     },
     {
+      "fn": "public.m1_adopt_ai_version",
+      "by": [
+        "authenticated"
+      ],
+      "securityDefiner": true,
+      "owner": "postgres",
+      "searchPath": "\"\"",
+      "volatility": "volatile",
+      "overloads": 1,
+      "definitionSha256": "730ecc95d14f9f7109500238fb2706945b76c577ff5e3c41eb582b88e5fcc56d",
+      "returns": "jsonb"
+    },
+    {
       "fn": "public.m1_check_editor",
       "by": [
         "authenticated"
@@ -317,7 +331,7 @@
       "searchPath": "\"\"",
       "volatility": "volatile",
       "overloads": 1,
-      "definitionSha256": "f4887e9031a427b8c5927c29ea441917dcb1e30f85bf77647b9eeaaf5a7e865c",
+      "definitionSha256": "58a12a58d8dc2478693dbfccec174f040cb78160e0bd7ff618b82f182ffad52b",
       "returns": "jsonb"
     },
     {
@@ -330,7 +344,7 @@
       "searchPath": "\"\"",
       "volatility": "volatile",
       "overloads": 1,
-      "definitionSha256": "ec1e6949d950555ae7ebd80be78a94887bc29ba2292c8ef0ce5f15c8ab8550aa",
+      "definitionSha256": "431116196c6a0880aa939594a91b04ccc030fa852b900cc797815d7d1f186896",
       "returns": "jsonb"
     },
     {
@@ -356,7 +370,7 @@
       "searchPath": "\"\"",
       "volatility": "volatile",
       "overloads": 1,
-      "definitionSha256": "d44ba6c2b0d70fb660eff69f3798c805f4dd1d9c7633929bd0c27333514fca67",
+      "definitionSha256": "f28f239f08e452d5cb8baf93a1934af05a67d2d8c998d555bdaf5b40dbf27dc4",
       "returns": "jsonb"
     },
     {
@@ -421,7 +435,7 @@
       "searchPath": "\"\"",
       "volatility": "volatile",
       "overloads": 1,
-      "definitionSha256": "38959e5a69a4adfd9a7648fcddc1363e7f2af3e4571b41386aaf8e74465b8837",
+      "definitionSha256": "b1d6e1983e50da2aa9057237085d479f3df62a2d5a0b0b92b509b73944ea655c",
       "returns": "jsonb"
     },
     {
@@ -453,10 +467,10 @@
     "environment": "dev",
     "projectRef": "nxfpfvsdwbziowkxsxnh"
   },
-  "inventoryVersion": 3,
+  "inventoryVersion": 4,
   "sequencesWithApiPrivileges": [],
   "tablesWithApiPrivileges": [],
-  "cronPresent": false,
+  "cronPresent": true,
   "defaultAclNote": "Objects created by postgres in public get no anon/authenticated default privileges (postgres default ACL grants postgres and service_role only). Supabase-managed default ACLs for supabase_admin-created objects (public, graphql, graphql_public, storage) grant API roles, as on every Supabase project; product migrations run as postgres.",
   "schemaUsage": {
     "auth": {
@@ -493,7 +507,16 @@
       "anon": false,
       "authenticated": false,
       "anonCreate": false
+    },
+    "ai_intake": {
+      "anon": false,
+      "authenticated": false,
+      "anonCreate": false
     }
   },
-  "authenticatedDenial": "authenticated executes exactly the 21 editor functions (CLOUD11-online; each also requires an aal2 session and the admin capability in private.is_admin) and no public read function"
+  "authenticatedDenial": "authenticated executes exactly the 22 editor functions (CLOUD11-online plus m1_adopt_ai_version from CLOUD13 S7; each also requires an aal2 session and the admin capability in private.is_admin) and no public read function",
+  "cronJobs": [
+    "judoju-ai-inbox-cleanup"
+  ],
+  "intakeRole": "judoju_ai_intake (CLOUD13 S3): login through the session pooler, executes only ai_intake.submit and ai_intake.withdraw; not an API role"
 }
