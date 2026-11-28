@@ -32,7 +32,7 @@ begin
     exception when others then
       if sqlerrm<>'REAL_MODE_PROBE_UNDO' then msg:=sqlerrm;end if;
     end;
-    if msg is distinct from case when sched is null then 'REAL_PUBLIC_READ_OFF' else 'REAL_PUBLICATION_NOT_ENABLED_1A' end then
+    if msg is distinct from (case when sched is null then 'REAL_PUBLIC_READ_OFF' else 'REAL_PUBLICATION_NOT_ENABLED_1A' end) then
       raise exception 'REAL_MODE_POST_PUBLISH_PROBE % %',coalesce(sched::text,'immediate'),msg;end if;
   end loop;
   if not private.real_mode_on() then raise exception 'REAL_MODE_POST_OFF';end if;

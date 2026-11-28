@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createScratch, dropScratch, psql, ok } from './lib/scratch-db.mjs';
-import { render, loadState } from './cloud13-render.mjs';
+import { render, loadState, INVENTORY } from './cloud13-render.mjs';
 import { QUERY } from './tools/cloud13-inventory-query.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -31,6 +31,8 @@ export function diff(a, b) {
   return out;
 }
 const inventory = () => JSON.parse(ok(psql('postgres', DB, QUERY)).trim());
+// The same digests the bundle computes: MD5 of each inventory section's jsonb text.
+const digests = () => JSON.parse(ok(psql('postgres', DB, `select (select jsonb_object_agg(k, md5((v->k)::text)) from (select ${INVENTORY} v) x, unnest(array[${KEYS.map(q).join(',')}]) k)::text;`)).trim());
 
 function mimic() {
   // Cloud-only schemas, tables and their rows come first (definitions may refer to them), then functions.
@@ -42,7 +44,8 @@ function mimic() {
   }
   // ACLs exactly as observed (superuser catalog update on the scratch database only).
   const acl = [];
-  for (const [sig, [, a]] of Object.entries(observed.functions)) acl.push(`update pg_proc set proacl=${a === 'DEFAULT' ? 'null' : q(a) + '::aclitem[]'} where oid=${q(sig)}::regprocedure;`);
+  for (const [sig, [, a]] of Object.entries(observed.functions)) acl.push(`update pg_proc set proacl=${a === 'DEFAULT' ? 'null' : q(a) + '::aclitem[]'} where oid=(select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')'=${q(sig)});`);
   for (const [rel, v] of Object.entries(observed.relations)) { const a = v.split('|').slice(2).join('|'); acl.push(`update pg_class set relacl=${a === 'DEFAULT' ? 'null' : q(a) + '::aclitem[]'} where oid=${q(rel)}::regclass;`); }
   for (const s of observed.schemas) { const [name, a] = [s.slice(0, s.indexOf('|')), s.slice(s.indexOf('|') + 1)]; if (name !== 'cron') acl.push(`update pg_namespace set nspacl=${a === '' ? 'null' : q(a) + '::aclitem[]'} where nspname=${q(name)};`); }
   acl.push('delete from supabase_migrations.schema_migrations;');
@@ -64,11 +67,15 @@ function build() {
 try {
   build();
   if (capture) {
-    const state = { ...loadState(), after: {} };
+    const beforeDigest = digests();
+    const state = { ...loadState(), beforeDigest, afterDigest: {}, realModeAfter: null };
     ok(psql('postgres', DB, render(state)));
     const got = inventory();
     const next = loadState();
     next.after = Object.fromEntries(KEYS.map(k => [k, got[k]]));
+    next.beforeDigest = beforeDigest;
+    next.afterDigest = digests();
+    next.realModeAfter = JSON.parse(ok(psql('postgres', DB, "select (to_jsonb(r)-'changed_at')::text from private.real_mode r;")).trim());
     writeFileSync(new URL(dir + 'prestate.json', root), JSON.stringify(next, null, 1) + '\n');
     console.log('CAPTURED after-inventory: ' + KEYS.map(k => k + '=' + Object.keys(got[k]).length).join(' '));
   } else {

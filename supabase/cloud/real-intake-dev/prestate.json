@@ -1,0 +1,2620 @@
+{
+ "schemaVersion": 1,
+ "stage": "CLOUD13",
+ "productId": "judoju-news",
+ "projectRef": "nxfpfvsdwbziowkxsxnh",
+ "observedAt": "2026-11-28",
+ "method": "Read-only SQL Editor observation (cloud-observation.json) -> cloud-observed.json; after = rehearsal result (scripts/cloud13-rehearse.mjs --capture)",
+ "migrations": [
+  "20261114000000",
+  "20261114000001",
+  "20261115000101",
+  "20261115000102",
+  "20261116000103",
+  "20261116000104",
+  "20261116000105",
+  "20261116000106",
+  "20261127000107"
+ ],
+ "record": {
+  "version": "20261128000108",
+  "name": "cloud13_real_intake"
+ },
+ "cloud": {
+  "localSectorSelectable": " and exists(select 1 from private.runtime_identity where product_id='judoju-news' and environment='local' and bootstrap_id is not null)\n and exists(select 1 from private.catalog_head h",
+  "cloudSectorSelectable": " and exists(select 1 from private.runtime_identity where singleton and product_id='judoju-news' and environment='preview' and bootstrap_id is null and schema_version=1 and (select count(*) from private.runtime_identity)=1 and (select count(*) from judoju_control.environment_identity)=1 and exists(select 1 from judoju_control.environment_identity where singleton and product_id='judoju-news' and environment='dev' and organization_ref='qfzgicohgpuogehdyzfx' and project_ref='nxfpfvsdwbziowkxsxnh') and exists(select 1 from judoju_control.schema_artifacts where version='20261114000001' and project_ref='nxfpfvsdwbziowkxsxnh' and runtime_environment='preview' and source_sha256='5b3c2d38206dc3c43c51db287d14584b3aa72b1f54d5b2e368e252a5fcf90caa' and state='STAGED_DISABLED'))\n and exists(select 1 from private.catalog_head h"
+ },
+ "before": {
+  "functions": {
+   "private.is_admin()": [
+    "091ba513c3eac023a109bf23d2f7fe9c8084ee8803a0c9d032c402ab527f95f7",
+    "{postgres=X/postgres}"
+   ],
+   "private.caller_role()": [
+    "990dc3c85189d49379613761a2897631608244ab990fa6eef2f736c653196c51",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_editor()": [
+    "665df337b253f85b38455e99abaddda0cdaeb791eee032d003d6f4bfc09faa2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_server()": [
+    "813f3d2ad73bc536d43afc7dc910bf8f3504c8e18c23f6a9b0a062b5f17de068",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_enqueue_due()": [
+    "f13562127944a48eed23784dc2438f7e49c12d47fa53d20f78b9811c853e040d",
+    "{postgres=X/postgres}"
+   ],
+   "private.retention_tick()": [
+    "c5b4e97458b04cece312ca35a61b5ca7ff5874dd7bacba97cd9ba0e24ab0f81b",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_check_editor()": [
+    "7c62250dedaa92c0798cdf751d96196f5c15046b0001458ac93d4526e513cf58",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.catalog_document()": [
+    "0c2a6e4f98a77e42e853d5a33f64807add2465e1e94de7877ea3e449d9627e93",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_assert_editor()": [
+    "0335319bc349f5eec5b747e9e17e5fb249d5a34ab9aa176ac227192a3f18212c",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_tick()": [
+    "33326dbcbbcfb47c1cf5b4e99b2fdab114921a56a81b379bc07c9bd93df8a7d5",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_editor_catalog()": [
+    "1bdb440f3519c7dd5a22d798477509bab062fdade6d20508e3b07938b492b479",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_public_catalog()": [
+    "56642ff76eb26cd78b15d4aead653cfdaf9609adfbf246b56d752721e69f3029",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_immutable()": [
+    "78cffa636e362ad025a7695487923496d42dcf46a24e20fdd16374c0e3c84fd8",
+    "{postgres=X/postgres}"
+   ],
+   "private.sync_public_issue()": [
+    "94e5b2482623e45d05416bd64139bae2ce47271380b08ecef137126c87afd406",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_editor_articles()": [
+    "f4887e9031a427b8c5927c29ea441917dcb1e30f85bf77647b9eeaaf5a7e865c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m1_public_identity()": [
+    "24dd0628d52086c821e0b6d8c06b8dfa72b0d16a1dc179754086a79aba67fe1e",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.assert_initialized()": [
+    "1678222a98b7fdfa34c8041ec7905adfa9c3e1ba85129c4912219c48abd9b231",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_runtime_identity()": [
+    "79128c6e6225ee4a503bf76812e979122218572df08984a750a7e8f7159ccc7a",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_qa_purge()": [
+    "6ec41de62a96a11f7c6f86fa06554973f20e77cef4bdc17f82ef8674ec570689",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_sectors()": [
+    "0eb70e05f64e9450e9fc11f7b958f625f65139651996291304756b8d50a5dc37",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_create_installation()": [
+    "7da2a30c2f2a2c52dab8ccb339eb0c38d262ff215de388890af0d1840264b99f",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_job_status(p_job uuid)": [
+    "930fd77496518e22729473aed116eda174a0e59be6d7dfa7ec8ec15311263d39",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_pending_confirmation()": [
+    "d32d96b294e29d823e655b1eb234003461a028c6109ba098324b14c93ff62fb7",
+    "{postgres=X/postgres}"
+   ],
+   "private.correction_timeout_tick()": [
+    "b073685bc50b232c831cfa4ff56e929b009f3cf3b9a62d8ab1485e074e016955",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_hash(p text)": [
+    "5903e91f6a63dda9973656e30f06a6a1253b5a65951e45cc74b134c057247861",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_get_draft(p_issue uuid)": [
+    "ec1e6949d950555ae7ebd80be78a94887bc29ba2292c8ef0ce5f15c8ab8550aa",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.maintenance_admin_status()": [
+    "ae7369ab61013c3bac059b97310cfb13092e0c8e3b448788fed38dbd753c6f5d",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_membership_guard()": [
+    "3960e4aef18b00b62ba7c74e4768e85e13b152fce68d211d3016ab1567a82d96",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_projected_bounds()": [
+    "38f5fc076ba837f6eef1f3f320349d3648e8f66ab6f30c4a582e0b603c46e4a7",
+    "{postgres=X/postgres}"
+   ],
+   "private.correction_pending_clock()": [
+    "0b50dea5ac6a2515cf7c8e518d2f26fae49e558684d9e0cc2fccab84b9a102eb",
+    "{postgres=X/postgres}"
+   ],
+   "public.resolve_issue(p_issue uuid)": [
+    "4d63693f8c31c316d9770409951a3659cae185a31162bd35c54a3f47b71dad6f",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_tree(p_head bigint)": [
+    "df227ae0a812bad9bac504ca212553e1796287f5af32d96e08c9f8559308e340",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_seal_minimal()": [
+    "a227954e65d6adb58d95790499a5670dc1f42753f92cc0a5d04dfd4192af8853",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_body_issue(p_body jsonb)": [
+    "e1fcffb388e143e2a4d323060811440e53cf3327f18887abb0208f1f8fca1c48",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_draft_changed()": [
+    "ae94bbc2e63b40c171c79d1873a619299b887a4de044c018da6f70742c2ccfd7",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_tokens(p_query text)": [
+    "ce5064ab0da37f0aa6dde195036e13c8ec9fb3e8325435458489710f29f70323",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_terms(p_terms jsonb)": [
+    "a5e47407140e0d49a1a8d09a6548f87c74f0ae41354dbd5f38288898578481ac",
+    "{postgres=X/postgres}"
+   ],
+   "public.is_news_visible(p_issue uuid)": [
+    "8513447a8da0a956253f9cd2720c8e788be8a85054a17761cbd417b21ddd5324",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_impact(p_sector uuid)": [
+    "8dbbb8e000ab953a4296b3b12bdbc6204d9c52d3ed05ab8f89d5b672a8c4c7e2",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_normalize(p_text text)": [
+    "26f1ead1d87fe543be051fb765395834e11a57b61eebfd3f3fbd870eb5a8e9c8",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_list(p_issue uuid)": [
+    "ce3e0480eaf51003abfb82ba06ff0eb70b14ef657207ff0435d888e03a56c89c",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_create_draft(p_request uuid)": [
+    "806dcee0168bccb506b60cf47b60018b33749536d02d9e6bba8092d37c8d864f",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m1_public_article(p_issue uuid)": [
+    "6dda21f8f1bc0b9372025b24cf854f3ae197f768f959665e3bf0e8544d0682ad",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.catalog_snapshot_insert_guard()": [
+    "73619da6f302de622522d1b01dda38979ade4b8e6b45bcdb9ba78c67d84e701f",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_draft_shape(p_content jsonb)": [
+    "276b8bebe28a17b93e28421701a1ff3a87be5b524e01d5af90dfdecf9891527e",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_hash(p_value jsonb)": [
+    "dfc2bb41c41572f871bcb394574b05948352cff97b06684c4059601dc35969ae",
+    "{postgres=X/postgres}"
+   ],
+   "public.get_public_article(p_issue uuid)": [
+    "6627fe79793fd45007b0306d0a51bad02df306217023c8c803270863b6070afd",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_impact_v1(p_sector uuid)": [
+    "7725de970db6e7dc687c7bcb778ce360cfa15b0cb4aa02d802e2ab6d1b9cb3f9",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_reorder(p_payload jsonb)": [
+    "0f52facd4830e8ba7937a9112f7195b5349b589df99ddac69e73dd8824a69b5d",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_revision()": [
+    "3cd2eb9022ddb9079a9c920af477003d0a3dd89b9b0fd7cb96cc7b08643e748a",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_command(p_kind text)": [
+    "06968131d5f5885c23bef277d1a8639a7bf0457c6d07cb070fea07dedc1bcc17",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_admin_view_count(p_issue uuid)": [
+    "2f7e8292e3eddd27d91c3b22a90d7cead8378396fca815fee94d7fc5a31ce3d9",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence(p_issue uuid)": [
+    "dd1d303e7a579a0db00c654e008269b0e9a1abc3dec2a7433fb2334c55dd1747",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_get_draft_legacy(p_issue uuid)": [
+    "dd1e2e650f9436b9d218ad94c2ccdf7e1f2f0ab3e8f907923f48a974a939a5f2",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_read_admin_session(p_hash text)": [
+    "4b2adbd7b91ba048b97127bc7247b3fea6683a19debdf22dca4bed371f419f15",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "private.catalog_active_leaf(p_sector uuid)": [
+    "fee88a30396b880004ad1eb3b8d27c48561febc21cfadad5a6adaafeee45123f",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_independent_three(p_claim uuid)": [
+    "cc3c7d8667a39b8d6bd5555fa3ecaeef5b34ff1753cd7601990e42a62f3fc825",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_close_admin_session(p_hash text)": [
+    "63d5d0f76dda9010adbb58a8f8e9a2e9942bd001092bf6d79e4d110d9fa84ef8",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.m1_dispatch_outbox(p_limit integer)": [
+    "ca922b1d3df3f0b824041a242b39e7d2976b62508e76045352ed95ea261fd476",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_keyword_kind(p_entry jsonb)": [
+    "2a2c960a1a4ba1b6ec66156c594d1cb45f4e2d04a6204cdd1e0b408ad531f221",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_evidence_commit_guard()": [
+    "264cedd5daa19d28d5418a81883e8900fa12b787398f9a0690515405e6da111d",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_active_parent(p_parent uuid)": [
+    "5fa10ded450c7350e69e142bed101501372da1b022d2090e4403fc4bc9aa410f",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_compact_terms(p_terms jsonb)": [
+    "e946ee52dad0ee0d9c615969d7df5f5af9d838c01267992a9b1f26cfa1ad1ede",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_canonical(p_issue uuid)": [
+    "5aa3029b2d23e448dbeb5c620d28e9dabcdf1b6ed1a57a43b9b2caf92150fa16",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence_v1(p_issue uuid)": [
+    "170712bdc0699005a2701ec1e5db73c485e218bb87b596f5beb8d9065f6217b7",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence_v2(p_issue uuid)": [
+    "9aa286dea1206af980f76af525a054d18114216af500c99824f7d51919dcc42f",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_tree(p_expected bigint)": [
+    "e376cb6c0996bb5dbc69975fef9782ca98809a3b753c569ab092f20eac4fd42c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_tree(p_expected bigint)": [
+    "339383f18cb77b5d2299cb4b54a1067e17e1ff9e9862b0271abe2d4f2ee34d63",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.reservation_actor_active(p_actor uuid)": [
+    "0628b0de81125aead8cf38d6d8fb53d0ce72593f0e1a7f343342ba30288d3de4",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_save_snapshot(p_version bigint)": [
+    "27880a1015abe13cdc9c88bb740586dcafcbba5492253951d19c6ebdad79b198",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_evidence_hash(p_issue uuid)": [
+    "1dfcbfbcd1ae5083bdbcb591dba105fe5e8e1cf595a5cbf5e755fbcdfdfc7c31",
+    "{postgres=X/postgres}"
+   ],
+   "public.maintenance_configure(p_enabled boolean)": [
+    "49b561bb0e66d02407389dd301a0dd701ab04b71408872c6f67c57062a4083da",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_requeue_dlq(p_job uuid, p_reason text)": [
+    "462fbc4cd11806a55feee9d7df129fc3450078e1db192bd48ca158d7d5b876cc",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_finish_version(p_previous bigint)": [
+    "fddfcf84f7a97cc1facbbcd42239fe46142d80f6ee1f4256823e5079ac4c11bf",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_label(p_text text, p_max integer)": [
+    "afca5cbec1a3539dc444dbf3f42e6d6ec79bea4cdfd70d42e04413fe2932ebb2",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_request_status(p_request uuid)": [
+    "ea79b9d1ae7788aca26a9f35871b0cf81a5a8d1006b1ae21d9fcfad9bb7c20d6",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_json(p_install uuid)": [
+    "5d45e04e68ea27e6c393aab283eeb9c428e79ebb2874d6fdfaa09049356747fb",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_get_public_article_legacy(p_issue uuid)": [
+    "7e038695b3db9db5e4dac09b38a12f2260bcde5c84a926671c1dc70870ccd48a",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_diff(p_before jsonb, p_after jsonb)": [
+    "efb0eed300cf5c2d8f1482cf45dc9b4897c58fec722a00446c741df44dc65dbd",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_core_evidence(p_issue uuid, p_kind text)": [
+    "1120b53493bef544c3de3dc5c6e4d8c380693ee472d9c9de51487b479b7172a6",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_configure_v1(p_enabled boolean)": [
+    "8c6144a02db87ca8cee588e8adfc8a75c60694d461b4015ab684451067922576",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_affected_issues(p_sector_ids uuid[])": [
+    "21f889e1fa1c0eb2bde68cf241649c64c4f77a63678485f549f0a58a798fa7d8",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_finish_version_v1(p_previous bigint)": [
+    "dc703b9732307d9d2391e2f8f5fe133ae605d60b88e97143024cf4c1d5c1b2c8",
+    "{postgres=X/postgres}"
+   ],
+   "private.active_admin_user(p_user uuid, p_session uuid)": [
+    "86ee931af6f7fa948cecc015793266d458766640e80a4df5dc34ce70998a3530",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_claim(p_owner text, p_lease_seconds integer)": [
+    "e3bd2e8f2d8a928a1a09b7f03d16bf6c46f7b42f6202a8cf69e56a5c3afff061",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_mark_effect_intent(p_job uuid, p_token uuid)": [
+    "57b14f4a46dc2a53a5908f4b78781542847a445e998e7ff3037ab08e6b403624",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_order(p_value jsonb, p_default integer)": [
+    "7c299b58be9b8c078d1d91d0c8fb1f3822494706e9f29187964e686886143b9b",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_ack(p_job uuid, p_token uuid, p_receipt text)": [
+    "8f2461b447c2943b168598efd0cc5c283b3bf116e6de01e768c1dbe082dc1bff",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_require_reference_head(p_expected bigint)": [
+    "2027d4acee486237ae9c9a83ef0d28ea9054db2bec019688f20d902d8894596f",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_contains_all(p_text text, p_tokens text[])": [
+    "d72b6e14afa4f7312f6bdc4c29a6d3777cf95f4ae8b5238cd138f3f02b7079c0",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_public_members(p_sector uuid, p_group uuid)": [
+    "0af9db7af695792ababe74b681c8548669d5bde169996e8ca39942a0b9f08da9",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_assert_wallclock_evidence(p_issue uuid)": [
+    "e88a6ebce3738c24877711c6cf46bba9eeaaa4407a814b07dcd49ae3bdebcf34",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_operation_status(p_issue uuid, p_effect_key text)": [
+    "cb2695ee22d43c15df00a45e1a8ba9c7c266da915eb391d7b55515bbfc425b8d",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_group(p_group uuid, p_expected bigint)": [
+    "d2e63c0485b1f8cce4f5bdb26427c7c171e706f1f9449727724ed313163831aa",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.catalog_edit_keywords(p_entity uuid, p_payload jsonb)": [
+    "70fc49de7bfdb3c2a09a5f866f85df3f7e6919285f6a17ab29c3c85e275608b1",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_reconcile(p_job uuid, p_outcome text, p_proof text)": [
+    "c7477b0d4e69509ccf6b95071b87a21b45abd7934f69a5efe4a78530a2919dad",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_impact(p_sector uuid, p_expected bigint)": [
+    "1be794b4593f7e58f1ca167c541ded9983be177ec2498d418d9b58901512918a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_index(p_offset integer, p_limit integer)": [
+    "5220bfe3a781304ca5f386c49646776135b1fb9903d7bd6e087dddd54eae106e",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_sector(p_sector uuid, p_expected bigint)": [
+    "d99bd70f9e29a5e53071f6af97012b9fb136920b15bdf2be10e1c000d5b63191",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_saved(p_expected bigint, p_issues uuid[])": [
+    "c76621d227f276a97a220ca5943850247a4fc4d82fa11a3f5fea53b2330a261b",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.reservation_expected_error(p_state text, p_message text)": [
+    "6c198a63d565127c9d56b4ba38b1453d24c28ae8134dc7b2da593dd707c45722",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_company(p_company uuid, p_expected bigint)": [
+    "054816c0d5bc22839d16a0478129dd3891ba14546350c23be7dc74ac732859b7",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_qa_mark_gap(p_since timestamp with time zone)": [
+    "d97f57511034b10ef810f87c632fd869ab112266a2c6c03d0b2a8d6da9269c2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_schedule(p_items jsonb, p_now timestamp with time zone)": [
+    "bac33907136476ac716bd58d5c18e40a520f344bfb15045fd9f5e93b013c6d52",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_membership_visible(p_membership uuid, p_head bigint)": [
+    "34a3ccca506300b15f51a6398cc2ea38303041f436304577e26c4b8c8c2f064c",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_string(p_payload jsonb, p_field text, p_default text)": [
+    "b405378cfb6d5a42a0734bf6db28a141e6b26dd822ec0be616b69a79577f94eb",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_text_array(p_value jsonb, p_max integer, p_length integer)": [
+    "30ce0b807c0a6b6289c8136d90427e32222d51593954dbbd2c58a7b9913aecb0",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_live_schedule(p_body jsonb, p_now timestamp with time zone)": [
+    "10cdf67644e0c6c6174fcbc6a3a1a3fb273047f293d3692a8d8d6526dc9e8722",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_membership(p_membership uuid, p_expected bigint)": [
+    "465265880133a3196f61538708057d45d28ad0375c6f0b07b1e23d9def8c3ec4",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_heartbeat(p_job uuid, p_token uuid, p_lease_seconds integer)": [
+    "f9bc9c8f103c3ef5ed523ccd9faa73ae964a3d899b6c364a4150573c3833eedf",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_group(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "53c3c3190ef21fb4986e9ddc443a6c1669b626e90b34b76d2ecee21276d7b1fc",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_version_sector_allowed(p_catalog bigint, p_sector uuid)": [
+    "38770017dd43ddfd11c1426369faf28221c7a06edc47331e2acfc70cdebf5625",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_get_settings(p_install uuid, p_secret text, p_version integer)": [
+    "5935d1be508f1fc1806328c1cc1fb6ab4566b4df84265fc6192d960c94a71d00",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_company(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "fcf551bbd3d6efecbe072009c30a2a85ccf9d7ca629243276c334fd16585c5e3",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_membership(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "5e921e7d9abf864d9f449a091888b966d6d0df28b92a7c4b1baf3c220ca9f9d0",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_installation(p_install uuid, p_secret text, p_version integer)": [
+    "692079a447cbaae8100835751ae8b8215a468b7e1ce6403908cb2284dbe5e3a4",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_membership_context(p_leaf uuid, p_group uuid, p_company uuid)": [
+    "d6d82f1e4ebbbdcf04493348f3c64efa22ef599ab7c214cac0dbe7a14c38bcf7",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_active(p_install uuid, p_secret text, p_version integer)": [
+    "8200cf9970c494a7dd5607751783d87d7d63c07e1e99b6a6664da47c684da6c0",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_cancel(p_schedule uuid, p_revision bigint, p_request uuid)": [
+    "781215a795db4bbe4ed6a949c9fe0095fc5cc91a30e97105edc5368bff97ac0a",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_rotate_installation(p_install uuid, p_secret text, p_version integer)": [
+    "d91fe60493040ffc68a05bba4921112a73618425cc48dca22a56534c1bd93afd",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_save_draft(p_issue uuid, p_expected_revision bigint, p_content jsonb)": [
+    "c57f529338b65ea1c126031682108f446c01612cbfcdab7a10e798a84503bc0c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_companies(p_offset integer, p_limit integer, p_query text)": [
+    "c0d4675b51b9dd398f3419c90f8711e0f098805e6cddc3a622575f62e5fc0c67",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_operation(p_action text, p_generation uuid, p_request jsonb)": [
+    "abe157037e57e2b8515e9198d747c71e80cfd2d9dc1d1e5976b4c41fc76f201e",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_fail(p_job uuid, p_token uuid, p_uncertain boolean, p_error_code text)": [
+    "4f17e9114a99c695367369e585051984d8d71e6de663359f35e6360955d321da",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_description(p_text text, p_max_chars integer, p_max_bytes integer)": [
+    "394a7ed6768abd7630db9261be37effb48df0180b473f948d8ec6ce7618a382b",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "983e1582e211d459c2f6b521d16e26360d72692b74a79a1a01a1010c0a557b9e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_save_draft_v1(p_issue uuid, p_expected_revision bigint, p_content jsonb)": [
+    "fad16f2d4453cf08bbc0f44354d490830c2ec4a9deca06ee9cd9d46c34dd5776",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_settings_read(p_install uuid, p_secret text, p_version integer)": [
+    "643a8bdd086644d1fa80b5b8f36204f8907611e6e280a395963d4fbd838ea40a",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_assert_payload(p_payload jsonb, p_allowed text[], p_required text[])": [
+    "69559fd58321e942e6a09f6f89a6fb5fa716b3b46e6b488a5e5542d146e81879",
+    "{postgres=X/postgres}"
+   ],
+   "private.public_body(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "d5f9eec09caefba82bc2e393642892e94bc716e1aee362895881d65c7c1aa021",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v1(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "f1c952c9644783e800038984b2a4e7164831e0d3896c788a04f5018f69aaa030",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v2(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "1546ee2bd084ff95d1824ef5ed3459fa4ad6cc8bd9f99ac5bcd527c6e2326f8a",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v3(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "a21e5e5d624af68c3c2a37f93c9425917a13fe127eb8dd30c6fb6df5602c5e7b",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v4(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "ffe73c8f6c0a94299efac99b8e9532af2da496283bc8a3707539007967165955",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v5(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "6202afb2f85ecd52e75b3cb8d52b137f1e35e245e2266b78313caadfbec09252",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v7(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "8abfe5e4cfc045b03ac43ddefc04e79fd6946bff342ee867bbfe139533a5ec63",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_sector(p_kind text, p_entity uuid, p_payload jsonb, p_head bigint)": [
+    "a605cff3350d2247bc9b36a9e5e0c8aba3a64d2c6e927a917ff6205cefc23329",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_sector_selectable(p_sector uuid, p_catalog bigint, p_article_mode text)": [
+    "ff6d94e718b9baed80c61e742b5cdaa0c16a5ab3ce14998a05c1bf04f39d41ca",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_public_body(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "e6e865c8c61a2acf3b25241d88be5824f5a2b127ea7524a8ca093f573441238e",
+    "{postgres=X/postgres}"
+   ],
+   "private.public_body_v3(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "bcf9a4b314f02bba6b7a87034fac54dcfdc6260065bd0f4c9e697f0d30044935",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_set_publication_state(p_issue uuid, p_expected_revision bigint, p_state text)": [
+    "625af240ac2dedc82dde7594f5486056fe98f4b36175aa62ed2b5d3c997096f7",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_claim_allowed(p_claim uuid, p_issue uuid, p_macro boolean, p_official boolean)": [
+    "399d3102065ed0022c4c94db91cc92f752d74f30f00370e31bdc55bbf10a7646",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_sector_v1(p_kind text, p_entity uuid, p_payload jsonb, p_head bigint)": [
+    "feedaf5b917cb894506871a941140abf5eaaf524b25c52599d701fa886ab20fe",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_request_hash(p_expected bigint, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "4017f2f90b2605c8fb1c23ad6c7483f02aad70da4394dba3eb422b1ae03536a6",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_public_articles(p_sector uuid, p_limit integer, p_cursor timestamp with time zone)": [
+    "a616bb1d39f0d1f0a9c591a059d246ce9915f024572d736a7892c40c54cf82e5",
+    "{postgres=X/postgres}"
+   ],
+   "public.maintenance_configure_for_admin(p_enabled boolean, p_actor uuid, p_auth_session uuid)": [
+    "40f9b8caad572179d518cac178990e6090e3988d7852fbdf711530e3ed116879",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_seed_reference(p_source_text text, p_registry_text text, p_preview_text text)": [
+    "8f9b0209ce18295b5a3a406e0febdab015a96adcc5ecb97a3065bd8be15e6dbf",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_set_state(p_issue uuid, p_expected_revision bigint, p_state text, p_effect_key text)": [
+    "38959e5a69a4adfd9a7648fcddc1363e7f2af3e4571b41386aaf8e74465b8837",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.search_company_sectors(p_company uuid, p_head bigint, p_offset integer, p_limit integer)": [
+    "d58a53465e10a0918e1663c5162d6be09e34864f1f4641f2e5414c5c396e83bd",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_sector(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "807f715c3c54a921a5a0285172732e28adb7811c63e925107f98c2edac43b6c7",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_sector_v1(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "9135c414296832343d480a2077cbb2fffd8aa38135592fc205a10b41117c95af",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_preview_draft(p_issue uuid, p_expected_revision bigint, p_policy bigint, p_catalog bigint)": [
+    "d44ba6c2b0d70fb660eff69f3798c805f4dd1d9c7633929bd0c27333514fca67",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_sector_page(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "d3913a88a21d8014e9c387a99a92f9de0dfba7cf88753daa435928f3b59a61de",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.catalog_save_draft(p_issue uuid, p_expected_revision bigint, p_content jsonb, p_catalog bigint)": [
+    "5faa2bbac80fb40c04ebb41ab703a7b7f10a2222e805315abe1cec76281a1a0a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_record_view(p_install uuid, p_secret text, p_version integer, p_issue uuid, p_event_key text)": [
+    "ee7f49ae3f225e3aa61c06ee0d9ad7cb5fa3449b90129744e7149114ad380106",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_apply(p_expected bigint, p_operation_key text, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "941c0ec0cf2e731d605d2de5095668159dcbb34be4489d912f4e2ae0ccc14f36",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_view(p_action text, p_install uuid, p_secret text, p_version integer, p_request jsonb)": [
+    "c731cd3e4d97d5b36a081ac7c3e9d54f95f97f2ab46fb33c144b4d9f3ba42e24",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_company_sectors(p_expected bigint, p_company uuid, p_offset integer, p_limit integer)": [
+    "47ff3832090482e052fa3eb3094cd77259b7b2d90b48c584cd9eceb23f107713",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m0_enqueue(p_effect_key text, p_payload jsonb, p_environment text, p_schema_version integer, p_kind text)": [
+    "55912b706ac7880f754131ea71b78c39dda2236edb3cb032c8861052e96235ae",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_operation_status(p_expected bigint, p_operation_key text, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "74599c1f054acb2402646f03c0e84adb4d7f2ef47a56556deea68eac03bc4a67",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_source_technical_result(p_endpoint text, p_permission_version text, p_adapter_version text, p_checks jsonb)": [
+    "ed032091fb626d375f26e9ac4329daf9df98ea3650ee5679724dca4fe3062d2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.visible_sections(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "f311e6bbc8401255ef4d2ab8817d0693e70ff2dbfe8d7e5db10761b1c87d035e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_visible_sections(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "ce4755c9c7261d65cf2d2f87cb911915460cedfdeb46b2d69856599c697167a3",
+    "{postgres=X/postgres}"
+   ],
+   "private.visible_sections_v2(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "e27521edb9662f23d03cb2a72450f59fccfa2bc3374e7aefdd4746e4eb1a5366",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_admin_stats(p_start timestamp with time zone, p_end timestamp with time zone, p_issue uuid, p_sector uuid)": [
+    "ec212aaec49de97a41124d7d7a1011b5c5a450714556f5896c3a01b42822cc59",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_open_admin_session(p_user uuid, p_auth_session uuid, p_hash text, p_ciphertext text, p_expires timestamp with time zone)": [
+    "0d12f5f64189aa404c94909c6c7156118fdd25a0bd4c03ce1dd0ebecf1ce9a6d",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.catalog_public_search_companies(p_expected bigint, p_query text, p_limit integer, p_last_rank integer, p_last_name text, p_last_id uuid)": [
+    "f1733c69193921798360e88088670e839de24b245b3f03202177057f206ae6bd",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m1_publish_draft(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "251b0a780b3da4b10db03ba858e9f4cadbe2918cea1ed5db1014db2f79c7da1a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.m1_publish_draft_v1(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "e6b0b87d76e76e7dc93f4a72e772226f0a8fe8fe87c458dc0c05c42a30ea0b6c",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_update_settings(p_install uuid, p_secret text, p_version integer, p_morning boolean, p_closing boolean, p_favorite boolean, p_sector_ids uuid[])": [
+    "b25e46e4c87092c7dcf2cbf6a92608cf5030aeaecdadaba038c4e5faa9cfa7bb",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_create(p_issue uuid, p_draft_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_due_at text, p_request uuid)": [
+    "902a1456d963d0cf6025eaba686eebf5d3afc73d93ebaff71ac7b533824922b6",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_company(p_expected bigint, p_company uuid, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "4413ef470169347b7f257bd24bf408d9f4e1863514e9d3d971fdeba52ac43c14",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.catalog_public_search_news(p_expected bigint, p_query text, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "f1eaa30ad5b4662afc581f0bb2b173d849101ce53b04b3cecf5f166852e303fa",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m0_publish(p_issue uuid, p_expected_revision bigint, p_title text, p_summary text, p_body jsonb, p_profile text, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "18f89c80a98e5f2db1fdb478a685ba886d5299f491d20b994e761089cdfa1ea4",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_publish_legacy(p_issue uuid, p_expected_revision bigint, p_title text, p_summary text, p_body jsonb, p_profile text, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "f7a1b9b890f9ca38b353ea64cda6140adba4a720f1b1004b629bd20a93e76212",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_publish_core(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text, p_actor uuid, p_schedule uuid)": [
+    "70efb8b19099b92c272bcaa6660b51b59457890a44beb9add67fc08c8e15a6a3",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_articles(p_expected bigint, p_sectors uuid[], p_period text, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "58a265a0c9391ee15a8d9412566167778a88407debb79f6070bdbb6a6219ce70",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.installation_settings_save(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "6e519a2dec3587fd25c2b6d1b621d94aa16b1fd492eb5878061ca58ca77daefe",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_save_v1(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "023751bbcd9a4b3e4f56f9333c62792e4a0f0182b88bddef1e317b7d4213aa8d",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_save_v2(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "d7d347f1c98249ee360d39a89c2cd9ef89602ec11fa4b34322c020951ebe4691",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_job_state(p_registered boolean, p_active boolean, p_has_run boolean, p_status text, p_start timestamp with time zone, p_created timestamp with time zone, p_kind text, p_now timestamp with time zone)": [
+    "97e81e7be2946cde9b166b5a5946bbca048d13cd6d3fed31206aaa8a53e6d395",
+    "{postgres=X/postgres}"
+   ],
+   "public.rls_auto_enable()": [
+    "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4",
+    "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+   ],
+   "public.admin_online_revoke()": [
+    "c9ae19423674ca5092cd47942b263d39203c46da3b305d11591a529e4eca0931",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.admin_online_status()": [
+    "5eb432bdc01855d95913e5f3b102713ad0611f53a500c48a26efc7ef1d9b192c",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.admin_online_signout()": [
+    "c47099b0f96d074e18557d259b4fb89a8f535d3f0230d117525bd820e9572111",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "private.installation_qa_purge_v1()": [
+    "e312d9edd75b5bb865dd74e05b064029482d7eec7fa6d708c022a8d67364c2a8",
+    "{postgres=X/postgres}"
+   ]
+  },
+  "columns": {
+   "private.jobs": "7eeb6400a25ec001f97a0c1cb2e2002b",
+   "private.holds": "dd68b41a8e5567d5f7445e20b9138286",
+   "private.audits": "3c0c92ae5c589d3eca92fa79347a54da",
+   "private.claims": "bf1a8a6c2d96cb67b792366b4adac3c8",
+   "private.issues": "4f35ae315494896dc656f78b87095d51",
+   "private.outbox": "2d78eb192636158e299ef6583e41d949",
+   "private.impacts": "ca1e1a869825f644bf59a3942550e2ce",
+   "private.sectors": "22cdcef03cc815e8fbc224dcd1c6150e",
+   "private.sources": "158c56dc3af002ec92dc7d5fb128ce20",
+   "private.stories": "716809eb8afad435328490a23f76a952",
+   "private.adapters": "3a025fde975052d9756e215549763206",
+   "private.policies": "481842d0e1c6667fb3abfd01110c9695",
+   "public.news_list": "b4351b8b9aa298c4d395631caf6cb57f",
+   "private.companies": "9dd1849f1fbf4ba34b9b8270a263ca37",
+   "private.decisions": "56de3d025f753d661c9ba89f6c5a3654",
+   "private.endpoints": "7d3519fa6e0a540cc89aa70496aee92f",
+   "private.schedules": "49ef165d50abe56a950935c42476ff49",
+   "private.subgroups": "8a496c76277985afd0c061ab519a84d9",
+   "public.news_public": "bb5e7a2eec6c1ef55e542c88bba1f44d",
+   "private.checkpoints": "b9b94176b4f1e4290089b9d8e1ac10de",
+   "private.purge_tasks": "41858b5faeb664c24238f1aa09f1137f",
+   "private.view_events": "374d8e8b9c7c95115cecdc7651b762d7",
+   "private.catalog_head": "3038b00a11ce765cd43f44ad376249e1",
+   "private.job_attempts": "60b1c8635b97092729a3886eaf2d03f2",
+   "private.catalog_holds": "07090dbc2ad9668ca8a2f0f9d2f3b6ba",
+   "private.editor_drafts": "5b0d181d7a7afe7a598435def722ad06",
+   "private.installations": "f374c8bac5e53d020f95c980aa8adf1b",
+   "private.issue_aliases": "5711addc814e01687f0cdd880945a98c",
+   "private.admin_sessions": "e66d8a9b8c7ed4ed78f4ae9f75a17884",
+   "private.evidence_edges": "49f20a382d3d17610aee0594f96ad0cf",
+   "private.deletion_ledger": "3e5cccdf85ae0b126f2a2e1a39ebccf2",
+   "private.effect_receipts": "b7360a6f41376d5952053bc41af901ed",
+   "private.keyword_changes": "edf1b48242fc292ec73ed69831c83adc",
+   "private.ranking_entries": "3231a634b2b84d7562da899c55c0ff7d",
+   "private.view_aggregates": "187cdc073b5b81a0910eac1470b537ea",
+   "private.article_versions": "f608b894be545daa10b00c9d37949d5b",
+   "private.catalog_versions": "5c5506835e209dc37edeacbf3caa8607",
+   "private.maintenance_runs": "ec3d3675ff400fe1174729c3498c9d32",
+   "private.runtime_identity": "55296eef13359dffc7d2a9ffa74130e1",
+   "private.sector_companies": "b1c3d909ce3b0e631259242ca1f42988",
+   "private.source_documents": "019828cbab51d7f3b2881f70a9fde477",
+   "private.source_revisions": "efb87e1054f741987186b1869fd06f75",
+   "private.admin_memberships": "60a0936bf7776dadd57e430ab7a8bab6",
+   "private.catalog_approvals": "a162a7c42761e1f4e74236ada6fb4281",
+   "private.catalog_snapshots": "e9d9b6538f166c42334a0dac364e951d",
+   "private.ranking_snapshots": "df604cb6f8f615d680f30edf61091725",
+   "private.catalog_operations": "129f1f6f5f30debb1522085f1b7077d1",
+   "private.catalog_memberships": "2fd5c1ec389a164cae9db5bd8858d11c",
+   "private.catalog_raw_imports": "64402a9ce1d0d9e9065b3c55580c7df6",
+   "private.catalog_sector_data": "f215b83192e7d806e3c055d371068280",
+   "private.keyword_definitions": "00756ead2e90edd269ad709d64015077",
+   "private.permission_profiles": "f055d1ce6837e78c4f896d4e27ca16ff",
+   "private.reservation_requests": "16ec81b79e01a0d48344c5b0e1aaed54",
+   "private.installation_qa_daily": "5574c20bc964b4b938a8e9d29dda36de",
+   "private.installation_qa_views": "d75e34a407130bc20c3ec94a59549e9b",
+   "private.installation_settings": "14f3f8c3ad03d12dcfae0d5ccec91a8e",
+   "private.maintenance_cron_jobs": "2ec30b1134462e6c2e28234b7d29f1a1",
+   "private.source_endpoint_links": "65ce7f019485c8df53ef5b92772501c5",
+   "private.catalog_version_sectors": "196e2e2a268356b28317753b0a6875ed",
+   "private.installation_operations": "87242d2087b2e877ad9fc9a79af0fcf8",
+   "private.notification_deliveries": "2cdc8f1d958f047210572bd46de2e1cf",
+   "private.catalog_source_companies": "04c1618956c6a0afab515599d946b1b5",
+   "private.installation_qa_coverage": "5776c059a66a83bdd134f28dc6cfa219",
+   "private.maintenance_safety_proof": "138c02f413643e18e25b77d6991e429c",
+   "private.installation_view_tickets": "0a71dc709df4e3e46ac59d221ebc759f",
+   "private.installation_view_outcomes": "8debeb85aa16b0cf1a12e95d9c246259",
+   "private.installation_setting_changes": "ae4a4392f7a115adc8e6a733080a1e81",
+   "private.manual_publication_schedules": "c3f1a546b1d6b0fb6120fcc26be85a6a",
+   "private.installation_lifecycle_ledger": "3643aac9c609e00f47344007dd875c83",
+   "private.installation_retention_ledger": "b9ad624ec93b69181a193979af6c6d21",
+   "judoju_control.schema_artifacts": "0b225553236bb9ecaf57e09b23d611f3",
+   "judoju_control.environment_identity": "b17c618ccd1d7c50e0b194cb0f9420a4"
+  },
+  "relations": {
+   "private.jobs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.holds": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.audits": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.claims": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.issues": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.outbox": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.impacts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sectors": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sources": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.stories": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.adapters": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.policies": "r|true|{postgres=arwdDxtm/postgres}",
+   "public.news_list": "v|false|{postgres=arwdDxtm/postgres}",
+   "private.companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.decisions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.endpoints": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.schedules": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.subgroups": "r|true|{postgres=arwdDxtm/postgres}",
+   "public.news_public": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.checkpoints": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.purge_tasks": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.view_events": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_head": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.job_attempts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_holds": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.editor_drafts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.issue_aliases": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.admin_sessions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.evidence_edges": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.deletion_ledger": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.effect_receipts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.keyword_changes": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ranking_entries": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.view_aggregates": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.article_versions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_versions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_runs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.runtime_identity": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sector_companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_documents": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_revisions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.admin_memberships": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_approvals": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_snapshots": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ranking_snapshots": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_operations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_memberships": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_raw_imports": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_sector_data": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.keyword_definitions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.permission_profiles": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.reservation_requests": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_daily": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_views": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_settings": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_cron_jobs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_endpoint_links": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_version_sectors": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_operations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.notification_deliveries": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_source_companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_coverage": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_safety_proof": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_view_tickets": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_view_outcomes": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_setting_changes": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.manual_publication_schedules": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_lifecycle_ledger": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_retention_ledger": "r|true|{postgres=arwdDxtm/postgres}",
+   "judoju_control.schema_artifacts": "r|true|{postgres=arwdDxtm/postgres}",
+   "judoju_control.environment_identity": "r|true|{postgres=arwdDxtm/postgres}"
+  },
+  "constraints": {
+   "private.jobs.jobs_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_check": "4a19774d722325ef003efeb3c08425f4",
+   "private.holds.holds_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.audits.audits_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.claims.claims_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.issues.issues_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.outbox.outbox_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "news_public.news_public_pkey": "50812cfd7f2cf6e1d5f7ff30eda14893",
+   "private.impacts.impacts_pkey": "8198a5da809fdebe190d4237d60cf01d",
+   "private.jobs.jobs_kind_check": "9de1daa3261204e704ff5c31523b7a7e",
+   "private.sectors.sectors_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.sources.sources_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.stories.stories_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.adapters.adapters_pkey": "f7c199cfd0d6656e5900d1d070911743",
+   "private.policies.policies_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.companies.companies_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.decisions.decisions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.endpoints.endpoints_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_attempts_check": "57637e3c603a1daa1df1cf72d8847a65",
+   "private.jobs.jobs_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.schedules.schedules_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.subgroups.subgroups_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.endpoints.endpoints_check": "e232ad2d0f1391c6f9051c5a3a34b104",
+   "private.holds.holds_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.holds.holds_attempts_check": "57637e3c603a1daa1df1cf72d8847a65",
+   "private.claims.claims_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.issues.issues_story_id_fkey": "1e40f52b538a83ad8b333678fa5719c4",
+   "private.jobs.jobs_environment_check": "476e440482dd1635d37ce51105c28eea",
+   "private.outbox.outbox_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.checkpoints.checkpoints_pkey": "2de5178404ce0618c3e1c17d0a921548",
+   "private.jobs.jobs_max_attempts_check": "3833b4b69d265ad9e6c8f9163cf4c479",
+   "private.outbox.outbox_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.purge_tasks.purge_tasks_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.view_events.view_events_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "news_public.news_public_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.outbox.outbox_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.sectors.sector_metadata_grade": "f9b904d2e633ba2083932d97a5bf077a",
+   "private.stories.stories_event_key_key": "204e10b3276f275638b8ca52ea47e511",
+   "private.catalog_head.catalog_head_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.claims.claims_claim_type_check": "0752d59e3b16cccb6a8bb13564d9fca4",
+   "private.impacts.impacts_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.job_attempts.job_attempts_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.sectors.sectors_parent_id_fkey": "60073da50b1ba1b1e9ea966a4c2e672b",
+   "news_public.news_public_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.impacts.impacts_direction_check": "e0e78cc932c67b3c65f633891d582577",
+   "private.impacts.impacts_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.policies.policies_version_check": "b7af13e592ebcc181814632003fac9ef",
+   "private.catalog_holds.catalog_holds_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.companies.companies_market_check": "462ae87b3f8cc3c676cdc3b8d4950abd",
+   "private.editor_drafts.editor_drafts_pkey": "50812cfd7f2cf6e1d5f7ff30eda14893",
+   "private.endpoints.endpoints_status_check": "17c576ad0be0633a476c5ed5c77f3e80",
+   "private.installations.installations_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.issue_aliases.issue_aliases_pkey": "2183136d352f1161f9d55d2299cfbd42",
+   "private.decisions.decisions_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.issue_aliases.issue_aliases_check": "42dc0f3e80515405129ca4683ac1b537",
+   "private.issues.current_version_same_issue": "6e1a98e6473c34395b32194376c9eb3b",
+   "private.admin_sessions.admin_sessions_pkey": "e3c03df32ecf263ef1ec9bc75a689063",
+   "private.companies.companies_stock_code_key": "dbaa958ad04162485d05aca5740485e7",
+   "private.endpoints.endpoints_source_id_fkey": "646e79fd7ab86aacf171a71d90544044",
+   "private.evidence_edges.evidence_edges_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_job_schema_version_check": "eb11df461fc655751dbbdd478b5f7555",
+   "private.schedules.schedules_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.sectors.sectors_catalog_kind_check": "5dd9449affa83f2f46ec9fd61f8b172d",
+   "private.subgroups.subgroups_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.jobs.jobs_confirmation_checks_check": "0e6c51d3ec640ae3a41465d10310cfe5",
+   "private.decisions.decisions_document_id_fkey": "a562e86ff8c77df766a1eb04a35e2f4f",
+   "private.deletion_ledger.deletion_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.effect_receipts.effect_receipts_pkey": "2df170e2c4fcd00bb15c7cff4ef2e0d0",
+   "private.issues.issues_primary_sector_id_fkey": "3a7129a42e55f9bfe7a2c863335edbe7",
+   "private.issues.issues_story_id_angle_key_key": "7e880d110ae285a8d745c4a5cc6d72b1",
+   "private.keyword_changes.keyword_changes_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.outbox.outbox_dispatched_job_id_fkey": "41b0eb386385f0d3ca10756b7971a3b6",
+   "private.ranking_entries.ranking_entries_pkey": "da8ce6b017a19407a35363cb7c4d4f00",
+   "private.schedules.schedules_schedule_key_key": "470bc0d0aca5fc0ae355b7b79162a3d1",
+   "private.sectors.sectors_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.view_aggregates.view_aggregates_pkey": "ffb90c07e2f51950341a37863e130c19",
+   "private.job_attempts.job_attempts_job_id_fkey": "d2f61ee3293e882f18143844625dfdab",
+   "private.view_events.view_events_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.article_versions.article_versions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.catalog_head.catalog_head_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.catalog_versions.catalog_versions_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.maintenance_runs.maintenance_runs_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.purge_tasks.purge_tasks_ledger_id_fkey": "c1abe43753e69cccb8e7ccb60b56970a",
+   "private.runtime_identity.runtime_identity_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.sector_companies.sector_companies_pkey": "09700c96bc819032f5746f4c73ecaf0d",
+   "private.source_documents.source_documents_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.source_revisions.source_revisions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.catalog_holds.catalog_holds_state_check": "cbe1178752b33a826474b3f689b1216a",
+   "private.decisions.decisions_policy_version_fkey": "60f594ea926a942af4741ee9f12d0df2",
+   "private.endpoints.endpoints_reprobe_count_check": "246077a3b6db7ce17e0dad82f4174dbd",
+   "private.subgroups.subgroups_metadata_kind_check": "ba4d6ea8d1a1fcea698485bf68d926c3",
+   "private.admin_memberships.admin_memberships_pkey": "0a0db78b5fb70bf8475b3bd434e6842b",
+   "private.catalog_approvals.catalog_approvals_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.catalog_snapshots.catalog_snapshots_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.checkpoints.checkpoints_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.ranking_snapshots.ranking_snapshots_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.schedules.schedules_enqueued_job_id_fkey": "5daa0b1fe6be4ecc2c150820bf9b9be7",
+   "private.subgroups.catalog_subgroup_parent_unique": "45a6f9b116293654487ddcb9510a1404",
+   "private.catalog_head.catalog_head_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.editor_drafts.editor_drafts_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.admin_sessions.admin_sessions_user_id_fkey": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "private.catalog_operations.catalog_operations_pkey": "fab21bca8133a4dc733a3cf14e860a67",
+   "private.endpoints.endpoints_fast_retry_count_check": "99a25aeebb3154a8e45cfc2dca5a9b9f",
+   "private.editor_drafts.editor_drafts_updated_by_fkey": "813e89165d4f52cd798f126fbc683169",
+   "private.evidence_edges.evidence_edges_claim_id_fkey": "7a672081dc7893369317e55b3f4d221d",
+   "private.view_aggregates.view_aggregates_count_check": "a09c734f4fdf6c0b6c5b5fd6ebe54b83",
+   "private.catalog_memberships.catalog_memberships_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.catalog_raw_imports.catalog_raw_imports_pkey": "128d9aaefb02f48e73d25108d5eda7ab",
+   "private.catalog_sector_data.catalog_sector_data_pkey": "8f622063d965c76508841f72413cc51f",
+   "private.job_attempts.job_attempts_effect_state_check": "417c99f28d5f6c6ede0e2e4dba0b629c",
+   "private.job_attempts.job_attempts_job_id_attempt_key": "1d3254c9bc69fb6b75908a70baa6bda4",
+   "private.keyword_definitions.keyword_definitions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.maintenance_runs.maintenance_runs_kind_check": "b8e48453a25ae9803e97dcf6614dd551",
+   "private.permission_profiles.permission_profiles_pkey": "f7c199cfd0d6656e5900d1d070911743",
+   "private.view_events.view_events_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "judoju_control.schema_artifacts.schema_artifacts_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.article_versions.article_versions_title_check": "1cfeb20eb086af8e2fa0f9c35de01f1f",
+   "private.ranking_entries.ranking_entries_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.ranking_entries.ranking_entries_story_id_fkey": "1e40f52b538a83ad8b333678fa5719c4",
+   "private.view_aggregates.view_aggregates_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.admin_sessions.admin_sessions_ciphertext_check": "18c1f723d759bd153a61bc06fc7401c5",
+   "private.catalog_holds.catalog_holds_source_sha256_fkey": "8c4bc6cccca2329da720315100fd3faa",
+   "private.ranking_entries.ranking_entries_position_check": "a62602e36e8a58f69fe34fdf3b0f19ae",
+   "private.reservation_requests.reservation_requests_pkey": "e2e6eb31842df0ce1c54263615319178",
+   "private.article_versions.article_versions_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.catalog_approvals.catalog_approvals_state_check": "c30baf4eafd70852c6b62961f71dd747",
+   "private.catalog_versions.catalog_versions_version_check": "b7af13e592ebcc181814632003fac9ef",
+   "private.effect_receipts.effect_receipts_effect_key_fkey": "0e17a6ac5b1c631b359cd2fb8080d993",
+   "private.keyword_changes.keyword_changes_keyword_id_fkey": "9925b2cfe8e6a1d3003a1f8a87268740",
+   "private.admin_memberships.admin_memberships_user_id_fkey": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "private.catalog_approvals.catalog_approvals_version_fkey": "46536d259f06ec6ac0f4c5ddd8c68463",
+   "private.catalog_snapshots.catalog_snapshots_sha256_check": "c294edbecbbf522ce8f57ec2f6dfa160",
+   "private.catalog_snapshots.catalog_snapshots_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.installation_qa_daily.installation_qa_daily_pkey": "ffb90c07e2f51950341a37863e130c19",
+   "private.installation_qa_views.installation_qa_views_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_settings.installation_settings_pkey": "a062edf0efc9dda78f3176c6d82d7405",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_pkey": "842e946604f2715e8a4d75ebad2f75c7",
+   "private.ranking_entries.ranking_entries_snapshot_id_fkey": "9aa2049390543d4239b57fd54b090d6d",
+   "private.sector_companies.sector_companies_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.source_endpoint_links.source_endpoint_links_pkey": "827abe27945c5b8933fcd149138b4fa3",
+   "private.article_versions.article_versions_id_issue_id_key": "e887addb0fac4ed716c99fe65bb4443e",
+   "private.purge_tasks.purge_tasks_ledger_id_target_kind_key": "61c2657a92fc5f378b3a5c7312807ac1",
+   "private.runtime_identity.runtime_identity_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.sector_companies.sector_companies_company_id_fkey": "70f7a7a0171985e343f9f85b070f4095",
+   "private.admin_sessions.admin_sessions_auth_session_id_fkey": "d3edc4b49443766791f4a3e8f6ea6617",
+   "private.catalog_memberships.catalog_memberships_role_check": "613b71e077e02d756cbe4bcc8d654d3d",
+   "private.catalog_operations.catalog_operations_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.keyword_definitions.keyword_definitions_kind_check": "3b32a3433b5eed051ac94b244a0a2491",
+   "private.keyword_definitions.keyword_definitions_term_check": "d17ff2dba942b4138510a45ff20a95cb",
+   "private.runtime_identity.runtime_identity_product_id_check": "8525a83a7a381d4ebed4e2bf23fbdfd5",
+   "private.sector_companies.sector_companies_subgroup_id_fkey": "bdc109f1eaffc0f9ddcab1103bcce862",
+   "private.source_documents.source_documents_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.source_revisions.source_revisions_document_id_fkey": "a562e86ff8c77df766a1eb04a35e2f4f",
+   "private.admin_sessions.admin_sessions_capability_hash_check": "e67a5efd513c963d6df686eaa5886622",
+   "private.endpoints.endpoints_adapter_id_adapter_version_fkey": "1204bef328870d0aa05eec40c4f1be65",
+   "private.issue_aliases.issue_aliases_canonical_issue_id_fkey": "da6d6ece1ef890c03036a3bfc43b52b5",
+   "private.runtime_identity.runtime_identity_environment_check": "416b5fc2078bfb577f3d04f3ebad1f37",
+   "private.source_documents.source_documents_canonical_url_key": "750545b1beb879b5ff08bc6a330c1573",
+   "judoju_control.schema_artifacts.schema_artifacts_state_check": "0fa8f8c501c221a5fc1805741eecc43e",
+   "private.catalog_version_sectors.catalog_version_sectors_pkey": "47e31df3e670aa7a04f217fa591ba729",
+   "private.effect_receipts.effect_receipts_external_receipt_key": "406f3851b41868fad0ce9d33c4dea941",
+   "private.installation_operations.installation_operations_pkey": "26e5c6176ca19d3e7149e47407a47096",
+   "private.installation_qa_daily.installation_qa_daily_pv_check": "940d7ac4b424f02f3112cd75c02a0c4d",
+   "private.installation_qa_daily.installation_qa_daily_uv_check": "5bc3ad9725f4c1b68113e46b558bec93",
+   "private.notification_deliveries.notification_deliveries_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.permission_profiles.permission_profiles_status_check": "d46d8b72219344d851bef16242e4e697",
+   "judoju_control.environment_identity.environment_identity_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.catalog_snapshots.catalog_snapshots_usage_scope_check": "c081a70a4ae16a067a54f6afb0d126f0",
+   "private.evidence_edges.evidence_edges_source_revision_id_fkey": "eceb8e0f3838f3c04a5b694c1ddc05ab",
+   "private.installation_operations.installation_operations_check": "94941356384940ad28c3e09fcc34675c",
+   "private.view_events.view_events_installation_id_event_key_key": "c53ce8ee6e183e033be9c08ee2f638d0",
+   "judoju_control.schema_artifacts.schema_artifacts_version_check": "b76889582dd2a6980f90f2fc2fe2131b",
+   "private.article_versions.article_versions_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.article_versions.article_versions_impact_profile_check": "cf4fac7b43bef9acf88263113e377fc9",
+   "private.catalog_memberships.catalog_memberships_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.catalog_sector_data.catalog_sector_data_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.catalog_source_companies.catalog_source_companies_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_qa_coverage.installation_qa_coverage_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.installation_qa_daily.installation_qa_daily_mode_check": "21c07858a512ad7c2deaf541d8ca2495",
+   "private.keyword_definitions.keyword_definitions_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_job_id_key": "cc403a6ee4d5e262a3f3ac2486d3840f",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_kind_check": "b8e48453a25ae9803e97dcf6614dd551",
+   "private.maintenance_safety_proof.maintenance_safety_proof_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.keyword_definitions.keyword_definitions_company_id_fkey": "70f7a7a0171985e343f9f85b070f4095",
+   "private.ranking_snapshots.ranking_snapshots_policy_version_fkey": "60f594ea926a942af4741ee9f12d0df2",
+   "private.catalog_memberships.catalog_memberships_subgroup_id_fkey": "bdc109f1eaffc0f9ddcab1103bcce862",
+   "private.installation_view_tickets.installation_view_tickets_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_job_name_key": "199a799aeb54c08ff389a9b4207cc851",
+   "private.ranking_entries.ranking_entries_snapshot_id_position_key": "cf40578c5ba9213f5dad0b23da3d2514",
+   "private.ranking_entries.ranking_entries_snapshot_id_story_id_key": "1c3207ae84f73346129f1bbeeaf9fd1d",
+   "private.ranking_snapshots.ranking_snapshots_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.catalog_operations.catalog_operations_operation_key_check": "6917c3e62a9473feb611f6832b2250ff",
+   "private.deletion_ledger.deletion_ledger_entity_type_entity_id_key": "fc82290a0335bb3cd003219f68e6df20",
+   "private.installation_qa_daily.installation_qa_daily_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.installation_qa_views.installation_qa_views_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.installation_qa_views.installation_qa_views_ticket_id_key": "7e0073ba5228e8eae6aa8d142bd12aee",
+   "private.reservation_requests.reservation_requests_operation_check": "1124f986671f545dfe043af2a4c60334",
+   "judoju_control.schema_artifacts.schema_artifacts_project_ref_check": "e0ec7d33a06f3655edc52ed31abfb01c",
+   "judoju_control.schema_artifacts.schema_artifacts_source_path_check": "d52ebf80c85f0245a029ec15c55acce9",
+   "private.installation_operations.installation_operations_kind_check": "a83cced2781ed12d16b4457a4d187493",
+   "private.installation_qa_views.installation_qa_views_ticket_id_fkey": "53dfbf0bb89fb70b09fa9f24ebe31e57",
+   "private.installation_view_outcomes.installation_view_outcomes_pkey": "783fbab8dd2ba5d694832489779dc074",
+   "private.source_endpoint_links.source_endpoint_links_source_id_fkey": "646e79fd7ab86aacf171a71d90544044",
+   "judoju_control.schema_artifacts.schema_artifacts_source_bytes_check": "1d26429ddf449a326afda1e38dfe529b",
+   "private.installation_operations.installation_operations_state_check": "a99280438be9af11b704d8589b798802",
+   "private.installation_qa_views.installation_qa_views_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.manual_publication_schedules.reservation_evidence_at_commit": "aac6dc9e89c94dfced18fa2e02f5e5bc",
+   "private.ranking_snapshots.ranking_snapshots_snapshot_context_id_key": "72f5738170ebd3bd9643d04788ce3e7a",
+   "judoju_control.environment_identity.environment_identity_stage_check": "6ef5cb455886a56394e6f38ea904cea8",
+   "judoju_control.schema_artifacts.schema_artifacts_source_sha256_check": "953a50d0b825118e251a31e9e1e542e9",
+   "private.article_versions.article_versions_analysis_perspective_check": "9938190f2ea81fe398797c7171ed52d3",
+   "private.catalog_raw_imports.catalog_raw_imports_initial_version_fkey": "fd5bc8b35139b0a7f2d5fa8e00423c7c",
+   "private.catalog_source_companies.catalog_source_companies_name_check": "1d6a139c984f042a78b07aca078f8b8e",
+   "private.catalog_version_sectors.catalog_version_sectors_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.installation_qa_coverage.installation_qa_coverage_mode_check": "21c07858a512ad7c2deaf541d8ca2495",
+   "private.permission_profiles.permission_profiles_retention_days_check": "8ddfcc34930c74654ae35b6276c487b1",
+   "private.source_endpoint_links.source_endpoint_links_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.evidence_edges.evidence_edges_claim_id_source_revision_id_key": "29a328c59ab012a1452985906b31ee2c",
+   "private.notification_deliveries.notification_deliveries_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.source_documents.source_documents_endpoint_id_external_id_key": "ba18b04618d6a52de733cab611866933",
+   "private.article_versions.article_versions_selection_market_basis_check": "fa3dd467566573accbfac2b6d2cf9dc8",
+   "private.catalog_source_companies.catalog_source_companies_market_check": "dac877494dd1ac21c408fc79dbc0307a",
+   "private.catalog_version_sectors.catalog_version_sectors_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.installation_setting_changes.installation_setting_changes_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.manual_publication_schedules.manual_publication_schedules_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.source_revisions.source_revisions_document_id_content_hash_key": "b7098c5901c89a2900959b3d074be76c",
+   "private.catalog_memberships.catalog_memberships_source_company_ref_fkey": "ef1c86fe6d71e012990f2f224716a3b7",
+   "private.installation_operations.installation_operations_transport_check": "dfeec28b343845d3607f03cde85d9165",
+   "private.manual_publication_schedules.manual_publication_schedules_check": "b0259327d2ceea01af67cb454694c983",
+   "judoju_control.environment_identity.environment_identity_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.article_versions.article_versions_visibility_policy_version_fkey": "5878f3337fa6647c19ce993844596460",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_qa_views.installation_qa_views_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_retention_ledger.installation_retention_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_settings.installation_settings_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.notification_deliveries.notification_deliveries_delivery_key_key": "e8c74653412782dbd850b98c719a63d3",
+   "judoju_control.environment_identity.environment_identity_product_id_check": "8525a83a7a381d4ebed4e2bf23fbdfd5",
+   "private.endpoints.endpoints_permission_profile_id_permission_version_fkey": "196f916c66e1e7bc5527372307d0115f",
+   "private.installation_qa_coverage.installation_qa_coverage_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.installation_view_tickets.installation_view_tickets_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.maintenance_safety_proof.maintenance_safety_proof_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "judoju_control.environment_identity.environment_identity_environment_check": "20156ffd111c4996481f3c0ca2c8c3a6",
+   "judoju_control.environment_identity.environment_identity_project_ref_check": "e0ec7d33a06f3655edc52ed31abfb01c",
+   "judoju_control.schema_artifacts.schema_artifacts_runtime_environment_check": "661d36883728d49526f462456e936028",
+   "private.catalog_memberships.catalog_memberships_subgroup_id_sector_id_fkey": "2b378464d0af4674db4e2c0f00cb3d66",
+   "private.catalog_source_companies.catalog_source_companies_stock_code_check": "703eb0c9228d9807bf6c30bec0e9f04c",
+   "private.installation_settings.installation_settings_settings_revision_check": "4b980407df23f6497b5b29c34f7e2c3b",
+   "private.installation_view_tickets.installation_view_tickets_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.installation_operations.installation_operations_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_view_outcomes.installation_view_outcomes_ticket_id_fkey": "53dfbf0bb89fb70b09fa9f24ebe31e57",
+   "private.notification_deliveries.notification_deliveries_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.catalog_source_companies.catalog_source_companies_metadata_kind_check": "776dbcb81e617c122f7a4b7eb9eaae79",
+   "judoju_control.environment_identity.environment_identity_baseline_commit_check": "c7762045ba84b1ea9badafb92854da1e",
+   "private.installation_setting_changes.installation_setting_changes_reason_check": "9785a004116ff629c292ecc9f1d46198",
+   "private.manual_publication_schedules.manual_publication_schedules_status_check": "5c2f68b600a61de80741567fd71a8a23",
+   "judoju_control.environment_identity.environment_identity_organization_ref_check": "e4e97bd8000bd73a7cf5345c35194711",
+   "private.catalog_source_companies.catalog_source_companies_direct_keywords_check": "3fb79ded7c17cff582551e9f917c026a",
+   "private.manual_publication_schedules.manual_publication_schedules_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.notification_deliveries.notification_deliveries_notification_type_check": "ae4f00592301b84358dad9fda437b8f9",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_action_check": "a2de11c2e8d95823789766a53b2c1667",
+   "private.installation_retention_ledger.installation_retention_ledger_action_check": "2f8a910516dda23c8e082ab680f6be28",
+   "private.installation_view_tickets.installation_view_tickets_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.manual_publication_schedules.manual_publication_schedules_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.catalog_source_companies.catalog_source_companies_industry_keywords_check": "de964ba76f1037ecfae8ce5cdbec620e",
+   "private.installation_qa_views.installation_qa_views_installation_id_event_key_key": "c53ce8ee6e183e033be9c08ee2f638d0",
+   "private.catalog_source_companies.catalog_source_companies_search_description_check": "0fafd6b0e0d5098538d44f04a7d51a03",
+   "private.installation_view_outcomes.installation_view_outcomes_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_generation_fkey": "71404a2ce4b7526f4d303f9a41ece2b3",
+   "private.catalog_source_companies.catalog_source_companies_stock_identity_state_check": "d85cf3f8a1ed625dcbc1ea4fa1ac86f1",
+   "private.installation_setting_changes.installation_setting_changes_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_view_tickets.installation_view_tickets_installation_id_visit_id_key": "21760482ea30b5ea9fca4046246754c7",
+   "private.source_revisions.source_revisions_permission_profile_id_permission_profile__fkey": "045231908cdcd405eacd610597c60235",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_generation_action_key": "360a8306aaf119e5b28a130a3f5ff615",
+   "private.manual_publication_schedules.manual_publication_schedules_actor_id_request_id_key": "39576358edbf4c1c02a741a3e82514ef",
+   "private.catalog_memberships.catalog_memberships_sector_id_subgroup_id_source_company_re_key": "d56d0c8caa8f8986a23c6becdab8f523"
+  },
+  "triggers": {
+   "private.issues.issue_projection_sync": "e1d171350139a94b704ab6c32716795f",
+   "private.issues.correction_pending_clock": "23e435b8a470df9ed346a45d65b0cfc9",
+   "private.editor_drafts.reservation_draft_changed": "01041bdafccf87aaeff45b3832e1d837",
+   "private.catalog_raw_imports.catalog_raw_immutable": "96a1e60a6bdda8417716fb1f655b3268",
+   "private.catalog_memberships.catalog_membership_guard": "31c9827b0da29f91580cf51eb132d836",
+   "private.catalog_snapshots.catalog_snapshot_immutable": "f6595fdb5e18a698c3f31395311f081b",
+   "private.catalog_operations.catalog_operation_immutable": "bed7d0a7f1e3c4c3b48df709003b34ec",
+   "private.installation_operations.installation_seal_minimal": "10f1d01697720cd40d0208bab1d707fe",
+   "private.installation_settings.installation_settings_revision": "818ec6ff45448a9af43df83903cd1761",
+   "private.catalog_version_sectors.catalog_membership_snapshot_insert": "80a1395178e8f93075836bb08768c211",
+   "private.manual_publication_schedules.reservation_evidence_at_commit": "0cebda33fdf95ae9b9e63fc6472e0e43",
+   "private.catalog_version_sectors.catalog_membership_snapshot_immutable": "97b14215e1ea194604a9b51498d439a0"
+  },
+  "policies": {
+   "public.news_public.published_news_read": "a870ddc493480708061ca1e06213dcd9"
+  }
+ },
+ "realModeAfter": {
+  "id": 1,
+  "note": "stage 1A: official filings only",
+  "enabled": false,
+  "public_read_enabled": false,
+  "allowed_source_hosts": [
+   "dart.fss.or.kr",
+   "kind.krx.co.kr"
+  ],
+  "official_source_hosts": [
+   "dart.fss.or.kr",
+   "kind.krx.co.kr"
+  ]
+ },
+ "after": {
+  "functions": {
+   "private.is_admin()": [
+    "091ba513c3eac023a109bf23d2f7fe9c8084ee8803a0c9d032c402ab527f95f7",
+    "{postgres=X/postgres}"
+   ],
+   "private.caller_role()": [
+    "990dc3c85189d49379613761a2897631608244ab990fa6eef2f736c653196c51",
+    "{postgres=X/postgres}"
+   ],
+   "private.real_mode_on()": [
+    "f24f28bce561098834d0c91d95da6873862509fa23f4d675aec7173f6ff55514",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_editor()": [
+    "665df337b253f85b38455e99abaddda0cdaeb791eee032d003d6f4bfc09faa2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_server()": [
+    "813f3d2ad73bc536d43afc7dc910bf8f3504c8e18c23f6a9b0a062b5f17de068",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_enqueue_due()": [
+    "f13562127944a48eed23784dc2438f7e49c12d47fa53d20f78b9811c853e040d",
+    "{postgres=X/postgres}"
+   ],
+   "private.retention_tick()": [
+    "8886d3db27f47fb8562e0e09fb37f283daacade7307130b3ade47a415d2de826",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_check_editor()": [
+    "7c62250dedaa92c0798cdf751d96196f5c15046b0001458ac93d4526e513cf58",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.rls_auto_enable()": [
+    "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4",
+    "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+   ],
+   "private.real_mode_guard()": [
+    "9e27cf81c4c2e71530a5c0d7e102a3cc039f08a54864134b13285d203eb13637",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_inbox_cleanup()": [
+    "08bb1893c8a9245d06a6cbdf2b843461d5bbcf8769822b535caf0fbd41bfc8c5",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_document()": [
+    "0c2a6e4f98a77e42e853d5a33f64807add2465e1e94de7877ea3e449d9627e93",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_assert_editor()": [
+    "0335319bc349f5eec5b747e9e17e5fb249d5a34ab9aa176ac227192a3f18212c",
+    "{postgres=X/postgres}"
+   ],
+   "private.public_read_kind()": [
+    "449e139aeeedf691aadd7a4676567973353714d366a817fad1bc5bf38a762fcf",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_tick()": [
+    "33326dbcbbcfb47c1cf5b4e99b2fdab114921a56a81b379bc07c9bd93df8a7d5",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_editor_catalog()": [
+    "1bdb440f3519c7dd5a22d798477509bab062fdade6d20508e3b07938b492b479",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_public_catalog()": [
+    "56642ff76eb26cd78b15d4aead653cfdaf9609adfbf246b56d752721e69f3029",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_immutable()": [
+    "78cffa636e362ad025a7695487923496d42dcf46a24e20fdd16374c0e3c84fd8",
+    "{postgres=X/postgres}"
+   ],
+   "private.retention_tick_v1()": [
+    "c0cb622954eec448ff42334910e3f49f73c0432967af8d44270c6bbe9c479c58",
+    "{postgres=X/postgres}"
+   ],
+   "private.sync_public_issue()": [
+    "94e5b2482623e45d05416bd64139bae2ce47271380b08ecef137126c87afd406",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_editor_articles()": [
+    "58a12a58d8dc2478693dbfccec174f040cb78160e0bd7ff618b82f182ffad52b",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m1_public_identity()": [
+    "24dd0628d52086c821e0b6d8c06b8dfa72b0d16a1dc179754086a79aba67fe1e",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.assert_initialized()": [
+    "1678222a98b7fdfa34c8041ec7905adfa9c3e1ba85129c4912219c48abd9b231",
+    "{postgres=X/postgres}"
+   ],
+   "public.admin_online_revoke()": [
+    "c9ae19423674ca5092cd47942b263d39203c46da3b305d11591a529e4eca0931",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.admin_online_status()": [
+    "5eb432bdc01855d95913e5f3b102713ad0611f53a500c48a26efc7ef1d9b192c",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.m0_runtime_identity()": [
+    "79128c6e6225ee4a503bf76812e979122218572df08984a750a7e8f7159ccc7a",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_inbox_cleanup_v1()": [
+    "5d4ca0710c8af369d56467e250ef7c2f63861da5c1ecff1a945c2e2983154a86",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_inbox_cleanup_v2()": [
+    "0996f9da87451ed0dc2528260ea65be3526c68bd459ea382b60242f49eb1561a",
+    "{postgres=X/postgres}"
+   ],
+   "public.admin_online_signout()": [
+    "c47099b0f96d074e18557d259b4fb89a8f535d3f0230d117525bd820e9572111",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.installation_qa_purge()": [
+    "6ec41de62a96a11f7c6f86fa06554973f20e77cef4bdc17f82ef8674ec570689",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_sectors()": [
+    "0eb70e05f64e9450e9fc11f7b958f625f65139651996291304756b8d50a5dc37",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_create_installation()": [
+    "7da2a30c2f2a2c52dab8ccb339eb0c38d262ff215de388890af0d1840264b99f",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_job_status(p_job uuid)": [
+    "930fd77496518e22729473aed116eda174a0e59be6d7dfa7ec8ec15311263d39",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_pending_confirmation()": [
+    "d32d96b294e29d823e655b1eb234003461a028c6109ba098324b14c93ff62fb7",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_payload_check(p jsonb)": [
+    "6b14b14eba1bdb45230b62aeff853bc219a8cd672c2c0719b902ff8e9ddcf203",
+    "{postgres=X/postgres}"
+   ],
+   "private.correction_timeout_tick()": [
+    "8e13619d205836f8707b58c78da4dd8e28a267f0edfc5a9e5d23b5f7e811449f",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_hash(p text)": [
+    "5903e91f6a63dda9973656e30f06a6a1253b5a65951e45cc74b134c057247861",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_get_draft(p_issue uuid)": [
+    "431116196c6a0880aa939594a91b04ccc030fa852b900cc797815d7d1f186896",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.maintenance_admin_status()": [
+    "ae7369ab61013c3bac059b97310cfb13092e0c8e3b448788fed38dbd753c6f5d",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_adoptable(p_issue uuid)": [
+    "453207b0d75fc6d9342249e7a0c0028470dc97f4fa9490748f2956d06f5facb0",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_membership_guard()": [
+    "3960e4aef18b00b62ba7c74e4768e85e13b152fce68d211d3016ab1567a82d96",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_projected_bounds()": [
+    "38f5fc076ba837f6eef1f3f320349d3648e8f66ab6f30c4a582e0b603c46e4a7",
+    "{postgres=X/postgres}"
+   ],
+   "private.correction_pending_clock()": [
+    "0b50dea5ac6a2515cf7c8e518d2f26fae49e558684d9e0cc2fccab84b9a102eb",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_qa_purge_v1()": [
+    "e312d9edd75b5bb865dd74e05b064029482d7eec7fa6d708c022a8d67364c2a8",
+    "{postgres=X/postgres}"
+   ],
+   "public.resolve_issue(p_issue uuid)": [
+    "5286cdbdd1383e41724fd510f70c6a3e539065a332f107e764f93b8e9702176d",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_tree(p_head bigint)": [
+    "df227ae0a812bad9bac504ca212553e1796287f5af32d96e08c9f8559308e340",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_seal_minimal()": [
+    "a227954e65d6adb58d95790499a5670dc1f42753f92cc0a5d04dfd4192af8853",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_body_issue(p_body jsonb)": [
+    "e1fcffb388e143e2a4d323060811440e53cf3327f18887abb0208f1f8fca1c48",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_draft_changed()": [
+    "ae94bbc2e63b40c171c79d1873a619299b887a4de044c018da6f70742c2ccfd7",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_tokens(p_query text)": [
+    "ce5064ab0da37f0aa6dde195036e13c8ec9fb3e8325435458489710f29f70323",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_clear_issue(p_issue uuid)": [
+    "6d0d10c32c315d6f15a3e7c207d287450371d5263cc2beae972326e2da189f81",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_terms(p_terms jsonb)": [
+    "a5e47407140e0d49a1a8d09a6548f87c74f0ae41354dbd5f38288898578481ac",
+    "{postgres=X/postgres}"
+   ],
+   "private.real_source_host(p_url text)": [
+    "693e49972b94f006a6d90eb360ac22735f00da1f1536753cff1221541fe4179f",
+    "{postgres=X/postgres}"
+   ],
+   "public.is_news_visible(p_issue uuid)": [
+    "6fef37aab51836ceab371bd84f7031b298b91840bf16f1b9b1aacefd1467b37e",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_impact(p_sector uuid)": [
+    "8dbbb8e000ab953a4296b3b12bdbc6204d9c52d3ed05ab8f89d5b672a8c4c7e2",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_normalize(p_text text)": [
+    "26f1ead1d87fe543be051fb765395834e11a57b61eebfd3f3fbd870eb5a8e9c8",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_list(p_issue uuid)": [
+    "ce3e0480eaf51003abfb82ba06ff0eb70b14ef657207ff0435d888e03a56c89c",
+    "{postgres=X/postgres}"
+   ],
+   "private.real_source_url_ok(p_url text)": [
+    "228849507b88b1ee498caa4de7d6f4f13a40f09afdd6573426730b232278a4d3",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_create_draft(p_request uuid)": [
+    "806dcee0168bccb506b60cf47b60018b33749536d02d9e6bba8092d37c8d864f",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m1_public_article(p_issue uuid)": [
+    "6dda21f8f1bc0b9372025b24cf854f3ae197f768f959665e3bf0e8544d0682ad",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.catalog_snapshot_insert_guard()": [
+    "73619da6f302de622522d1b01dda38979ade4b8e6b45bcdb9ba78c67d84e701f",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_draft_shape(p_content jsonb)": [
+    "276b8bebe28a17b93e28421701a1ff3a87be5b524e01d5af90dfdecf9891527e",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_hash(p_value jsonb)": [
+    "dfc2bb41c41572f871bcb394574b05948352cff97b06684c4059601dc35969ae",
+    "{postgres=X/postgres}"
+   ],
+   "public.get_public_article(p_issue uuid)": [
+    "6627fe79793fd45007b0306d0a51bad02df306217023c8c803270863b6070afd",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_impact_v1(p_sector uuid)": [
+    "7725de970db6e7dc687c7bcb778ce360cfa15b0cb4aa02d802e2ab6d1b9cb3f9",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_reorder(p_payload jsonb)": [
+    "0f52facd4830e8ba7937a9112f7195b5349b589df99ddac69e73dd8824a69b5d",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_revision()": [
+    "3cd2eb9022ddb9079a9c920af477003d0a3dd89b9b0fd7cb96cc7b08643e748a",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_command(p_kind text)": [
+    "06968131d5f5885c23bef277d1a8639a7bf0457c6d07cb070fea07dedc1bcc17",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_admin_view_count(p_issue uuid)": [
+    "2f7e8292e3eddd27d91c3b22a90d7cead8378396fca815fee94d7fc5a31ce3d9",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence(p_issue uuid)": [
+    "3ca4ae0628691cb1396757e199352184495c81982638e6a414bffbb8880e115c",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_get_draft_legacy(p_issue uuid)": [
+    "dd1e2e650f9436b9d218ad94c2ccdf7e1f2f0ab3e8f907923f48a974a939a5f2",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_read_admin_session(p_hash text)": [
+    "4b2adbd7b91ba048b97127bc7247b3fea6683a19debdf22dca4bed371f419f15",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "private.catalog_active_leaf(p_sector uuid)": [
+    "fee88a30396b880004ad1eb3b8d27c48561febc21cfadad5a6adaafeee45123f",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_independent_three(p_claim uuid)": [
+    "cc3c7d8667a39b8d6bd5555fa3ecaeef5b34ff1753cd7601990e42a62f3fc825",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_close_admin_session(p_hash text)": [
+    "63d5d0f76dda9010adbb58a8f8e9a2e9942bd001092bf6d79e4d110d9fa84ef8",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.m1_dispatch_outbox(p_limit integer)": [
+    "ca922b1d3df3f0b824041a242b39e7d2976b62508e76045352ed95ea261fd476",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_keyword_kind(p_entry jsonb)": [
+    "2a2c960a1a4ba1b6ec66156c594d1cb45f4e2d04a6204cdd1e0b408ad531f221",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_evidence_commit_guard()": [
+    "264cedd5daa19d28d5418a81883e8900fa12b787398f9a0690515405e6da111d",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_active_parent(p_parent uuid)": [
+    "5fa10ded450c7350e69e142bed101501372da1b022d2090e4403fc4bc9aa410f",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_compact_terms(p_terms jsonb)": [
+    "e946ee52dad0ee0d9c615969d7df5f5af9d838c01267992a9b1f26cfa1ad1ede",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_canonical(p_issue uuid)": [
+    "5aa3029b2d23e448dbeb5c620d28e9dabcdf1b6ed1a57a43b9b2caf92150fa16",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence_v1(p_issue uuid)": [
+    "170712bdc0699005a2701ec1e5db73c485e218bb87b596f5beb8d9065f6217b7",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence_v2(p_issue uuid)": [
+    "9aa286dea1206af980f76af525a054d18114216af500c99824f7d51919dcc42f",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_current_evidence_v3(p_issue uuid)": [
+    "0cb48e329f4927b6b7d32c7fd3ae09c59b820ded3d7577b62f8d7f9a10a4031f",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_tree(p_expected bigint)": [
+    "e376cb6c0996bb5dbc69975fef9782ca98809a3b753c569ab092f20eac4fd42c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_tree(p_expected bigint)": [
+    "339383f18cb77b5d2299cb4b54a1067e17e1ff9e9862b0271abe2d4f2ee34d63",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.reservation_actor_active(p_actor uuid)": [
+    "0628b0de81125aead8cf38d6d8fb53d0ce72593f0e1a7f343342ba30288d3de4",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_save_snapshot(p_version bigint)": [
+    "27880a1015abe13cdc9c88bb740586dcafcbba5492253951d19c6ebdad79b198",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_evidence_hash(p_issue uuid)": [
+    "1dfcbfbcd1ae5083bdbcb591dba105fe5e8e1cf595a5cbf5e755fbcdfdfc7c31",
+    "{postgres=X/postgres}"
+   ],
+   "public.maintenance_configure(p_enabled boolean)": [
+    "49b561bb0e66d02407389dd301a0dd701ab04b71408872c6f67c57062a4083da",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_catalog_drift(d jsonb, p_head bigint)": [
+    "a0e13c0520cb568b364e3a591d4fde5d3b1330d2e580633fbaaab5b39f978915",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_requeue_dlq(p_job uuid, p_reason text)": [
+    "462fbc4cd11806a55feee9d7df129fc3450078e1db192bd48ca158d7d5b876cc",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_finish_version(p_previous bigint)": [
+    "fddfcf84f7a97cc1facbbcd42239fe46142d80f6ee1f4256823e5079ac4c11bf",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_label(p_text text, p_max integer)": [
+    "afca5cbec1a3539dc444dbf3f42e6d6ec79bea4cdfd70d42e04413fe2932ebb2",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_request_status(p_request uuid)": [
+    "ea79b9d1ae7788aca26a9f35871b0cf81a5a8d1006b1ae21d9fcfad9bb7c20d6",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_last_adoption_unpublished(p_issue uuid)": [
+    "64243fa43ceceb834693720e98792d0c7765d799fd1242e330385db271626165",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_json(p_install uuid)": [
+    "5d45e04e68ea27e6c393aab283eeb9c428e79ebb2874d6fdfaa09049356747fb",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_get_public_article_legacy(p_issue uuid)": [
+    "35cac9747f893b2c16e98886a4cc67a5f4e9215fcc3a597eecf834fd401e9930",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_diff(p_before jsonb, p_after jsonb)": [
+    "efb0eed300cf5c2d8f1482cf45dc9b4897c58fec722a00446c741df44dc65dbd",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_core_evidence(p_issue uuid, p_kind text)": [
+    "1120b53493bef544c3de3dc5c6e4d8c380693ee472d9c9de51487b479b7172a6",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_configure_v1(p_enabled boolean)": [
+    "8c6144a02db87ca8cee588e8adfc8a75c60694d461b4015ab684451067922576",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_affected_issues(p_sector_ids uuid[])": [
+    "21f889e1fa1c0eb2bde68cf241649c64c4f77a63678485f549f0a58a798fa7d8",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_finish_version_v1(p_previous bigint)": [
+    "dc703b9732307d9d2391e2f8f5fe133ae605d60b88e97143024cf4c1d5c1b2c8",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_get_public_article_legacy_v1(p_issue uuid)": [
+    "1666fff0524e3c575d69af1c5e23a7e48bba70e84ac806686eb8436e1f443e06",
+    "{postgres=X/postgres}"
+   ],
+   "private.active_admin_user(p_user uuid, p_session uuid)": [
+    "86ee931af6f7fa948cecc015793266d458766640e80a4df5dc34ce70998a3530",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_claim(p_owner text, p_lease_seconds integer)": [
+    "e3bd2e8f2d8a928a1a09b7f03d16bf6c46f7b42f6202a8cf69e56a5c3afff061",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_mark_effect_intent(p_job uuid, p_token uuid)": [
+    "57b14f4a46dc2a53a5908f4b78781542847a445e998e7ff3037ab08e6b403624",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_order(p_value jsonb, p_default integer)": [
+    "7c299b58be9b8c078d1d91d0c8fb1f3822494706e9f29187964e686886143b9b",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_ack(p_job uuid, p_token uuid, p_receipt text)": [
+    "8f2461b447c2943b168598efd0cc5c283b3bf116e6de01e768c1dbe082dc1bff",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_close_real_issue(p_issue uuid, p_reason text)": [
+    "006c72f7ac7679f82cbea1e6718c22951b7dbdd52bbcb4064e87768930e07c53",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_require_reference_head(p_expected bigint)": [
+    "2027d4acee486237ae9c9a83ef0d28ea9054db2bec019688f20d902d8894596f",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_contains_all(p_text text, p_tokens text[])": [
+    "d72b6e14afa4f7312f6bdc4c29a6d3777cf95f4ae8b5238cd138f3f02b7079c0",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_ingest_draft(p_effect_key text, p_payload jsonb)": [
+    "5009b66ae4058429e35e71f4acd28099dc332f8cbe028112f77c1dbc486ceea5",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_public_members(p_sector uuid, p_group uuid)": [
+    "0af9db7af695792ababe74b681c8548669d5bde169996e8ca39942a0b9f08da9",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_assert_wallclock_evidence(p_issue uuid)": [
+    "e88a6ebce3738c24877711c6cf46bba9eeaaa4407a814b07dcd49ae3bdebcf34",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_operation_status(p_issue uuid, p_effect_key text)": [
+    "cb2695ee22d43c15df00a45e1a8ba9c7c266da915eb391d7b55515bbfc425b8d",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_group(p_group uuid, p_expected bigint)": [
+    "d2e63c0485b1f8cce4f5bdb26427c7c171e706f1f9449727724ed313163831aa",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.catalog_edit_keywords(p_entity uuid, p_payload jsonb)": [
+    "70fc49de7bfdb3c2a09a5f866f85df3f7e6919285f6a17ab29c3c85e275608b1",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_reconcile(p_job uuid, p_outcome text, p_proof text)": [
+    "c7477b0d4e69509ccf6b95071b87a21b45abd7934f69a5efe4a78530a2919dad",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_string_array(p jsonb, p_max integer, p_len integer)": [
+    "e6d4bd8c937188027ee8e1116f60067f7c8a54dd2961962cc119bcb3ff8dc67f",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_impact(p_sector uuid, p_expected bigint)": [
+    "1be794b4593f7e58f1ca167c541ded9983be177ec2498d418d9b58901512918a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_index(p_offset integer, p_limit integer)": [
+    "5220bfe3a781304ca5f386c49646776135b1fb9903d7bd6e087dddd54eae106e",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_sector(p_sector uuid, p_expected bigint)": [
+    "d99bd70f9e29a5e53071f6af97012b9fb136920b15bdf2be10e1c000d5b63191",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_saved(p_expected bigint, p_issues uuid[])": [
+    "09947e101104e7327f920a0ecad223d3f11c36c080db1c0eb8073d2471abee69",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.ai_keys_ok(p jsonb, p_allowed text[], p_required text[])": [
+    "e70e01feed416d23976d42848898785243c1fb2bd9066f616230141753a19b17",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_expected_error(p_state text, p_message text)": [
+    "6c198a63d565127c9d56b4ba38b1453d24c28ae8134dc7b2da593dd707c45722",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_company(p_company uuid, p_expected bigint)": [
+    "054816c0d5bc22839d16a0478129dd3891ba14546350c23be7dc74ac732859b7",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_qa_mark_gap(p_since timestamp with time zone)": [
+    "d97f57511034b10ef810f87c632fd869ab112266a2c6c03d0b2a8d6da9269c2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_schedule(p_items jsonb, p_now timestamp with time zone)": [
+    "bac33907136476ac716bd58d5c18e40a520f344bfb15045fd9f5e93b013c6d52",
+    "{postgres=X/postgres}"
+   ],
+   "private.search_membership_visible(p_membership uuid, p_head bigint)": [
+    "34a3ccca506300b15f51a6398cc2ea38303041f436304577e26c4b8c8c2f064c",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_string(p_payload jsonb, p_field text, p_default text)": [
+    "b405378cfb6d5a42a0734bf6db28a141e6b26dd822ec0be616b69a79577f94eb",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_text_array(p_value jsonb, p_max integer, p_length integer)": [
+    "30ce0b807c0a6b6289c8136d90427e32222d51593954dbbd2c58a7b9913aecb0",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_live_schedule(p_body jsonb, p_now timestamp with time zone)": [
+    "10cdf67644e0c6c6174fcbc6a3a1a3fb273047f293d3692a8d8d6526dc9e8722",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_membership(p_membership uuid, p_expected bigint)": [
+    "465265880133a3196f61538708057d45d28ad0375c6f0b07b1e23d9def8c3ec4",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_heartbeat(p_job uuid, p_token uuid, p_lease_seconds integer)": [
+    "f9bc9c8f103c3ef5ed523ccd9faa73ae964a3d899b6c364a4150573c3833eedf",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_group(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "53c3c3190ef21fb4986e9ddc443a6c1669b626e90b34b76d2ecee21276d7b1fc",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_version_sector_allowed(p_catalog bigint, p_sector uuid)": [
+    "38770017dd43ddfd11c1426369faf28221c7a06edc47331e2acfc70cdebf5625",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_get_settings(p_install uuid, p_secret text, p_version integer)": [
+    "5935d1be508f1fc1806328c1cc1fb6ab4566b4df84265fc6192d960c94a71d00",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_company(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "fcf551bbd3d6efecbe072009c30a2a85ccf9d7ca629243276c334fd16585c5e3",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_withdraw_draft(p_ai_issue text, p_version integer, p_reason text)": [
+    "467470b699c4997670dbb49844ebff4bce6a18886edbc1274c4c8459928250f4",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_membership(p_kind text, p_entity uuid, p_payload jsonb)": [
+    "5e921e7d9abf864d9f449a091888b966d6d0df28b92a7c4b1baf3c220ca9f9d0",
+    "{postgres=X/postgres}"
+   ],
+   "private.assert_installation(p_install uuid, p_secret text, p_version integer)": [
+    "692079a447cbaae8100835751ae8b8215a468b7e1ce6403908cb2284dbe5e3a4",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_membership_context(p_leaf uuid, p_group uuid, p_company uuid)": [
+    "d6d82f1e4ebbbdcf04493348f3c64efa22ef599ab7c214cac0dbe7a14c38bcf7",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_active(p_install uuid, p_secret text, p_version integer)": [
+    "8200cf9970c494a7dd5607751783d87d7d63c07e1e99b6a6664da47c684da6c0",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_cancel(p_schedule uuid, p_revision bigint, p_request uuid)": [
+    "781215a795db4bbe4ed6a949c9fe0095fc5cc91a30e97105edc5368bff97ac0a",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_rotate_installation(p_install uuid, p_secret text, p_version integer)": [
+    "d91fe60493040ffc68a05bba4921112a73618425cc48dca22a56534c1bd93afd",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_save_draft(p_issue uuid, p_expected_revision bigint, p_content jsonb)": [
+    "c57f529338b65ea1c126031682108f446c01612cbfcdab7a10e798a84503bc0c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_companies(p_offset integer, p_limit integer, p_query text)": [
+    "c0d4675b51b9dd398f3419c90f8711e0f098805e6cddc3a622575f62e5fc0c67",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_operation(p_action text, p_generation uuid, p_request jsonb)": [
+    "abe157037e57e2b8515e9198d747c71e80cfd2d9dc1d1e5976b4c41fc76f201e",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_fail(p_job uuid, p_token uuid, p_uncertain boolean, p_error_code text)": [
+    "4f17e9114a99c695367369e585051984d8d71e6de663359f35e6360955d321da",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_description(p_text text, p_max_chars integer, p_max_bytes integer)": [
+    "394a7ed6768abd7630db9261be37effb48df0180b473f948d8ec6ce7618a382b",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "92965372a03e3adba03969b4813e61703938d2a05ec4e848723a47567376c502",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_save_draft_v1(p_issue uuid, p_expected_revision bigint, p_content jsonb)": [
+    "fad16f2d4453cf08bbc0f44354d490830c2ec4a9deca06ee9cd9d46c34dd5776",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_settings_read(p_install uuid, p_secret text, p_version integer)": [
+    "643a8bdd086644d1fa80b5b8f36204f8907611e6e280a395963d4fbd838ea40a",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_assert_payload(p_payload jsonb, p_allowed text[], p_required text[])": [
+    "69559fd58321e942e6a09f6f89a6fb5fa716b3b46e6b488a5e5542d146e81879",
+    "{postgres=X/postgres}"
+   ],
+   "private.public_body(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "d5f9eec09caefba82bc2e393642892e94bc716e1aee362895881d65c7c1aa021",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v1(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "f1c952c9644783e800038984b2a4e7164831e0d3896c788a04f5018f69aaa030",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v2(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "1546ee2bd084ff95d1824ef5ed3459fa4ad6cc8bd9f99ac5bcd527c6e2326f8a",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v3(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "a21e5e5d624af68c3c2a37f93c9425917a13fe127eb8dd30c6fb6df5602c5e7b",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v4(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "ffe73c8f6c0a94299efac99b8e9532af2da496283bc8a3707539007967165955",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v5(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "6202afb2f85ecd52e75b3cb8d52b137f1e35e245e2266b78313caadfbec09252",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v7(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "8abfe5e4cfc045b03ac43ddefc04e79fd6946bff342ee867bbfe139533a5ec63",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_v8(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "3bfa9bef887905bf6464172cb5e8fa5ab417fb33cc566e385af8807af2627fb3",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_sector(p_kind text, p_entity uuid, p_payload jsonb, p_head bigint)": [
+    "a605cff3350d2247bc9b36a9e5e0c8aba3a64d2c6e927a917ff6205cefc23329",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_sector_selectable(p_sector uuid, p_catalog bigint, p_article_mode text)": [
+    "bbd62b94afdc908fa013e1b92ff31b764383a5fa0026b09fb497b5e048743a7e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_public_body(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "e6e865c8c61a2acf3b25241d88be5824f5a2b127ea7524a8ca093f573441238e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "1b42eef79cf916e02d9d990b533651fc1f1825af6a28f8138bbe5e1b9e619baf",
+    "{postgres=X/postgres}"
+   ],
+   "private.public_body_v3(p_body jsonb, p_sections text[], p_now timestamp with time zone)": [
+    "bcf9a4b314f02bba6b7a87034fac54dcfdc6260065bd0f4c9e697f0d30044935",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_set_publication_state(p_issue uuid, p_expected_revision bigint, p_state text)": [
+    "625af240ac2dedc82dde7594f5486056fe98f4b36175aa62ed2b5d3c997096f7",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_claim_allowed(p_claim uuid, p_issue uuid, p_macro boolean, p_official boolean)": [
+    "399d3102065ed0022c4c94db91cc92f752d74f30f00370e31bdc55bbf10a7646",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_retract_published(p_issue uuid, p_state text, p_reason text, p_effect_key text)": [
+    "4bb2d371aa7388a5262613d3a619a71a21c1ae4d5cbdeb83bb1c73994b750585",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_edit_sector_v1(p_kind text, p_entity uuid, p_payload jsonb, p_head bigint)": [
+    "feedaf5b917cb894506871a941140abf5eaaf524b25c52599d701fa886ab20fe",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v1(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "88c4479dcd91092b4b21e77e5931bc4ed07eedf69c14bfa54c6fc109def1ca67",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v2(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "c04d36f6a3f1dd7392cd049c4d7471184991623bdaa54c176f8a79ddcc764868",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v3(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "987b9b6c62906022b0e48f794992893e827b866d20efa82af627362a584819d8",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v4(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "aa1b99c68c932420209e005e8c9597c857710030f6b5ae6b0379358630b92ab8",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v5(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "0a0eeef0eab1fe2f1634aa5e5e33b1716c2393ba3c2003c3779aa855d736e018",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_prepare_real_v7(p_issue uuid, p_input jsonb, p_policy bigint, p_catalog bigint)": [
+    "e167da39d52994d3c1da02144922501abe6fa49143874695d8820df9523112f3",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_request_hash(p_expected bigint, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "4017f2f90b2605c8fb1c23ad6c7483f02aad70da4394dba3eb422b1ae03536a6",
+    "{postgres=X/postgres}"
+   ],
+   "private.m1_transition_internal(p_issue uuid, p_state text, p_reason text, p_effect_key text)": [
+    "752f403f5067eaa5dbd8d8bd919a5ab38c0cff06e38666b325cdd20362e31bd4",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_public_articles(p_sector uuid, p_limit integer, p_cursor timestamp with time zone)": [
+    "6e0f085f5136341d3b9341b0c99359124530e002e7fb9a0a078c8d54f61f5ed8",
+    "{postgres=X/postgres}"
+   ],
+   "public.maintenance_configure_for_admin(p_enabled boolean, p_actor uuid, p_auth_session uuid)": [
+    "40f9b8caad572179d518cac178990e6090e3988d7852fbdf711530e3ed116879",
+    "{postgres=X/postgres}"
+   ],
+   "private.catalog_seed_reference(p_source_text text, p_registry_text text, p_preview_text text)": [
+    "8f9b0209ce18295b5a3a406e0febdab015a96adcc5ecb97a3065bd8be15e6dbf",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_set_state(p_issue uuid, p_expected_revision bigint, p_state text, p_effect_key text)": [
+    "b1d6e1983e50da2aa9057237085d479f3df62a2d5a0b0b92b509b73944ea655c",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.search_company_sectors(p_company uuid, p_head bigint, p_offset integer, p_limit integer)": [
+    "d58a53465e10a0918e1663c5162d6be09e34864f1f4641f2e5414c5c396e83bd",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_editor_sector(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "807f715c3c54a921a5a0285172732e28adb7811c63e925107f98c2edac43b6c7",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_editor_sector_v1(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "9135c414296832343d480a2077cbb2fffd8aa38135592fc205a10b41117c95af",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_preview_draft(p_issue uuid, p_expected_revision bigint, p_policy bigint, p_catalog bigint)": [
+    "f28f239f08e452d5cb8baf93a1934af05a67d2d8c998d555bdaf5b40dbf27dc4",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.catalog_public_sector_page(p_sector uuid, p_expected bigint, p_offset integer, p_limit integer)": [
+    "d3913a88a21d8014e9c387a99a92f9de0dfba7cf88753daa435928f3b59a61de",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.catalog_save_draft(p_issue uuid, p_expected_revision bigint, p_content jsonb, p_catalog bigint)": [
+    "5faa2bbac80fb40c04ebb41ab703a7b7f10a2222e805315abe1cec76281a1a0a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_record_view(p_install uuid, p_secret text, p_version integer, p_issue uuid, p_event_key text)": [
+    "ee7f49ae3f225e3aa61c06ee0d9ad7cb5fa3449b90129744e7149114ad380106",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_apply(p_expected bigint, p_operation_key text, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "941c0ec0cf2e731d605d2de5095668159dcbb34be4489d912f4e2ae0ccc14f36",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.installation_view(p_action text, p_install uuid, p_secret text, p_version integer, p_request jsonb)": [
+    "c731cd3e4d97d5b36a081ac7c3e9d54f95f97f2ab46fb33c144b4d9f3ba42e24",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_company_sectors(p_expected bigint, p_company uuid, p_offset integer, p_limit integer)": [
+    "47ff3832090482e052fa3eb3094cd77259b7b2d90b48c584cd9eceb23f107713",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m1_adopt_ai_version(p_issue uuid, p_ai_version integer, p_expected_revision bigint, p_effect_key text)": [
+    "730ecc95d14f9f7109500238fb2706945b76c577ff5e3c41eb582b88e5fcc56d",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_enqueue(p_effect_key text, p_payload jsonb, p_environment text, p_schema_version integer, p_kind text)": [
+    "55912b706ac7880f754131ea71b78c39dda2236edb3cb032c8861052e96235ae",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_operation_status(p_expected bigint, p_operation_key text, p_kind text, p_entity uuid, p_payload jsonb)": [
+    "74599c1f054acb2402646f03c0e84adb4d7f2ef47a56556deea68eac03bc4a67",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "public.m0_source_technical_result(p_endpoint text, p_permission_version text, p_adapter_version text, p_checks jsonb)": [
+    "ed032091fb626d375f26e9ac4329daf9df98ea3650ee5679724dca4fe3062d2e",
+    "{postgres=X/postgres}"
+   ],
+   "private.visible_sections(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "f311e6bbc8401255ef4d2ab8817d0693e70ff2dbfe8d7e5db10761b1c87d035e",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_visible_sections(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "ce4755c9c7261d65cf2d2f87cb911915460cedfdeb46b2d69856599c697167a3",
+    "{postgres=X/postgres}"
+   ],
+   "private.visible_sections_v2(p_profile text, p_body jsonb, p_as_of timestamp with time zone, p_now timestamp with time zone)": [
+    "e27521edb9662f23d03cb2a72450f59fccfa2bc3374e7aefdd4746e4eb1a5366",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_admin_stats(p_start timestamp with time zone, p_end timestamp with time zone, p_issue uuid, p_sector uuid)": [
+    "ec212aaec49de97a41124d7d7a1011b5c5a450714556f5896c3a01b42822cc59",
+    "{postgres=X/postgres}"
+   ],
+   "public.m1_open_admin_session(p_user uuid, p_auth_session uuid, p_hash text, p_ciphertext text, p_expires timestamp with time zone)": [
+    "0d12f5f64189aa404c94909c6c7156118fdd25a0bd4c03ce1dd0ebecf1ce9a6d",
+    "{postgres=X/postgres,service_role=X/postgres}"
+   ],
+   "public.catalog_public_search_companies(p_expected bigint, p_query text, p_limit integer, p_last_rank integer, p_last_name text, p_last_id uuid)": [
+    "f1733c69193921798360e88088670e839de24b245b3f03202177057f206ae6bd",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m1_publish_draft(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "251b0a780b3da4b10db03ba858e9f4cadbe2918cea1ed5db1014db2f79c7da1a",
+    "{postgres=X/postgres,authenticated=X/postgres}"
+   ],
+   "private.m1_publish_draft_v1(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "e6b0b87d76e76e7dc93f4a72e772226f0a8fe8fe87c458dc0c05c42a30ea0b6c",
+    "{postgres=X/postgres}"
+   ],
+   "public.m0_update_settings(p_install uuid, p_secret text, p_version integer, p_morning boolean, p_closing boolean, p_favorite boolean, p_sector_ids uuid[])": [
+    "b25e46e4c87092c7dcf2cbf6a92608cf5030aeaecdadaba038c4e5faa9cfa7bb",
+    "{postgres=X/postgres}"
+   ],
+   "public.reservation_create(p_issue uuid, p_draft_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_due_at text, p_request uuid)": [
+    "9bbc7ccfdd57f83c2606418355927ac0d0a99659fcb1e39ec148037f6d4cff65",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_company(p_expected bigint, p_company uuid, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "4413ef470169347b7f257bd24bf408d9f4e1863514e9d3d971fdeba52ac43c14",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.catalog_public_search_news(p_expected bigint, p_query text, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "62d245efddc70fe7a6852344df0db6f64e23713d6ec5f84a542ce03df10fc3d8",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "public.m0_publish(p_issue uuid, p_expected_revision bigint, p_title text, p_summary text, p_body jsonb, p_profile text, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "18f89c80a98e5f2db1fdb478a685ba886d5299f491d20b994e761089cdfa1ea4",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_publish_real(p_issue uuid, p_expected_revision bigint, p_title text, p_summary text, p_body jsonb, p_profile text, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "d6da49b247948df8b4a2880d89f8cea00aa302bd47aa1a9ee81eb1aebbb519a2",
+    "{postgres=X/postgres}"
+   ],
+   "private.m0_publish_legacy(p_issue uuid, p_expected_revision bigint, p_title text, p_summary text, p_body jsonb, p_profile text, p_policy bigint, p_catalog bigint, p_effect_key text)": [
+    "f7a1b9b890f9ca38b353ea64cda6140adba4a720f1b1004b629bd20a93e76212",
+    "{postgres=X/postgres}"
+   ],
+   "private.ai_apply_version(p_issue uuid, p_ai text, p_version integer, p_payload jsonb, p_catalog bigint, p_received_at timestamp with time zone, p_expires_at timestamp with time zone)": [
+    "a193ce44c2870979e0da2070ba15cb0d709e28e94d50fa0ce479d8a4ad3c01ac",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_publish_core(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text, p_actor uuid, p_schedule uuid)": [
+    "39dacbeb9d0c6c61c3739e3d6708758bf61c012e4914c15288f77243a672ea0b",
+    "{postgres=X/postgres}"
+   ],
+   "private.reservation_publish_core_v1(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text, p_actor uuid, p_schedule uuid)": [
+    "a6d2108f2a901825e0677efd45c032fce5523e49ce6f6c87f0458090efff7b32",
+    "{postgres=X/postgres}"
+   ],
+   "public.catalog_public_articles(p_expected bigint, p_sectors uuid[], p_period text, p_limit integer, p_as_of timestamp with time zone, p_last_time timestamp with time zone, p_last_id uuid)": [
+    "58a265a0c9391ee15a8d9412566167778a88407debb79f6070bdbb6a6219ce70",
+    "{postgres=X/postgres,anon=X/postgres}"
+   ],
+   "private.reservation_publish_core_real(p_issue uuid, p_expected_revision bigint, p_issue_revision bigint, p_policy bigint, p_catalog bigint, p_effect_key text, p_actor uuid, p_schedule uuid)": [
+    "603be9501e8c2d26fe18f9964862aa037f34e190a1078670c7887230b827cfbe",
+    "{postgres=X/postgres}"
+   ],
+   "public.installation_settings_save(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "6e519a2dec3587fd25c2b6d1b621d94aa16b1fd492eb5878061ca58ca77daefe",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_save_v1(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "023751bbcd9a4b3e4f56f9333c62792e4a0f0182b88bddef1e317b7d4213aa8d",
+    "{postgres=X/postgres}"
+   ],
+   "private.installation_settings_save_v2(p_install uuid, p_secret text, p_version integer, p_catalog bigint, p_revision bigint, p_morning boolean, p_closing boolean, p_favorite boolean, p_sectors uuid[])": [
+    "d7d347f1c98249ee360d39a89c2cd9ef89602ec11fa4b34322c020951ebe4691",
+    "{postgres=X/postgres}"
+   ],
+   "private.maintenance_job_state(p_registered boolean, p_active boolean, p_has_run boolean, p_status text, p_start timestamp with time zone, p_created timestamp with time zone, p_kind text, p_now timestamp with time zone)": [
+    "97e81e7be2946cde9b166b5a5946bbca048d13cd6d3fed31206aaa8a53e6d395",
+    "{postgres=X/postgres}"
+   ]
+  },
+  "columns": {
+   "private.jobs": "7eeb6400a25ec001f97a0c1cb2e2002b",
+   "private.holds": "dd68b41a8e5567d5f7445e20b9138286",
+   "private.audits": "3c0c92ae5c589d3eca92fa79347a54da",
+   "private.claims": "bf1a8a6c2d96cb67b792366b4adac3c8",
+   "private.issues": "bf65f2545e9d24f81846740e5ccfaa30",
+   "private.outbox": "2d78eb192636158e299ef6583e41d949",
+   "private.impacts": "ca1e1a869825f644bf59a3942550e2ce",
+   "private.sectors": "22cdcef03cc815e8fbc224dcd1c6150e",
+   "private.sources": "158c56dc3af002ec92dc7d5fb128ce20",
+   "private.stories": "716809eb8afad435328490a23f76a952",
+   "private.adapters": "3a025fde975052d9756e215549763206",
+   "private.policies": "481842d0e1c6667fb3abfd01110c9695",
+   "public.news_list": "b4351b8b9aa298c4d395631caf6cb57f",
+   "private.companies": "9dd1849f1fbf4ba34b9b8270a263ca37",
+   "private.decisions": "56de3d025f753d661c9ba89f6c5a3654",
+   "private.endpoints": "7d3519fa6e0a540cc89aa70496aee92f",
+   "private.real_mode": "149c4f497a9eb485022980fa44ae2ce5",
+   "private.schedules": "49ef165d50abe56a950935c42476ff49",
+   "private.subgroups": "8a496c76277985afd0c061ab519a84d9",
+   "public.news_public": "bb5e7a2eec6c1ef55e542c88bba1f44d",
+   "private.checkpoints": "b9b94176b4f1e4290089b9d8e1ac10de",
+   "private.purge_tasks": "41858b5faeb664c24238f1aa09f1137f",
+   "private.view_events": "374d8e8b9c7c95115cecdc7651b762d7",
+   "private.ai_adoptions": "98c1452ec44b97ef89b24362668f8f1b",
+   "private.catalog_head": "3038b00a11ce765cd43f44ad376249e1",
+   "private.job_attempts": "60b1c8635b97092729a3886eaf2d03f2",
+   "private.catalog_holds": "07090dbc2ad9668ca8a2f0f9d2f3b6ba",
+   "private.editor_drafts": "5b0d181d7a7afe7a598435def722ad06",
+   "private.installations": "f374c8bac5e53d020f95c980aa8adf1b",
+   "private.issue_aliases": "5711addc814e01687f0cdd880945a98c",
+   "private.admin_sessions": "e66d8a9b8c7ed4ed78f4ae9f75a17884",
+   "private.ai_claim_links": "ec88b79542af210bd39bdd74c7bf3ea6",
+   "private.ai_issue_links": "09c08c35a6f681e04270ee7c5433b7bd",
+   "private.evidence_edges": "49f20a382d3d17610aee0594f96ad0cf",
+   "private.ai_draft_origin": "00ef1dcd8fee8712da6634fe3b20cbba",
+   "private.deletion_ledger": "3e5cccdf85ae0b126f2a2e1a39ebccf2",
+   "private.effect_receipts": "b7360a6f41376d5952053bc41af901ed",
+   "private.keyword_changes": "edf1b48242fc292ec73ed69831c83adc",
+   "private.ranking_entries": "3231a634b2b84d7562da899c55c0ff7d",
+   "private.view_aggregates": "187cdc073b5b81a0910eac1470b537ea",
+   "private.article_versions": "f608b894be545daa10b00c9d37949d5b",
+   "private.catalog_versions": "5c5506835e209dc37edeacbf3caa8607",
+   "private.maintenance_runs": "ec3d3675ff400fe1174729c3498c9d32",
+   "private.runtime_identity": "55296eef13359dffc7d2a9ffa74130e1",
+   "private.sector_companies": "b1c3d909ce3b0e631259242ca1f42988",
+   "private.source_documents": "019828cbab51d7f3b2881f70a9fde477",
+   "private.source_revisions": "efb87e1054f741987186b1869fd06f75",
+   "private.admin_memberships": "60a0936bf7776dadd57e430ab7a8bab6",
+   "private.ai_draft_receipts": "4d58b40e65b6ea3521d2c82058a529db",
+   "private.catalog_approvals": "a162a7c42761e1f4e74236ada6fb4281",
+   "private.catalog_snapshots": "e9d9b6538f166c42334a0dac364e951d",
+   "private.ranking_snapshots": "df604cb6f8f615d680f30edf61091725",
+   "private.catalog_operations": "129f1f6f5f30debb1522085f1b7077d1",
+   "private.catalog_memberships": "2fd5c1ec389a164cae9db5bd8858d11c",
+   "private.catalog_raw_imports": "64402a9ce1d0d9e9065b3c55580c7df6",
+   "private.catalog_sector_data": "f215b83192e7d806e3c055d371068280",
+   "private.keyword_definitions": "00756ead2e90edd269ad709d64015077",
+   "private.permission_profiles": "f055d1ce6837e78c4f896d4e27ca16ff",
+   "private.reservation_requests": "16ec81b79e01a0d48344c5b0e1aaed54",
+   "private.installation_qa_daily": "5574c20bc964b4b938a8e9d29dda36de",
+   "private.installation_qa_views": "d75e34a407130bc20c3ec94a59549e9b",
+   "private.installation_settings": "14f3f8c3ad03d12dcfae0d5ccec91a8e",
+   "private.maintenance_cron_jobs": "2ec30b1134462e6c2e28234b7d29f1a1",
+   "private.source_endpoint_links": "65ce7f019485c8df53ef5b92772501c5",
+   "judoju_control.schema_artifacts": "0b225553236bb9ecaf57e09b23d611f3",
+   "private.catalog_version_sectors": "196e2e2a268356b28317753b0a6875ed",
+   "private.installation_operations": "87242d2087b2e877ad9fc9a79af0fcf8",
+   "private.notification_deliveries": "2cdc8f1d958f047210572bd46de2e1cf",
+   "private.catalog_source_companies": "04c1618956c6a0afab515599d946b1b5",
+   "private.installation_qa_coverage": "5776c059a66a83bdd134f28dc6cfa219",
+   "private.maintenance_safety_proof": "138c02f413643e18e25b77d6991e429c",
+   "private.installation_view_tickets": "0a71dc709df4e3e46ac59d221ebc759f",
+   "private.installation_view_outcomes": "8debeb85aa16b0cf1a12e95d9c246259",
+   "judoju_control.environment_identity": "b17c618ccd1d7c50e0b194cb0f9420a4",
+   "private.installation_setting_changes": "ae4a4392f7a115adc8e6a733080a1e81",
+   "private.manual_publication_schedules": "c3f1a546b1d6b0fb6120fcc26be85a6a",
+   "private.installation_lifecycle_ledger": "3643aac9c609e00f47344007dd875c83",
+   "private.installation_retention_ledger": "b9ad624ec93b69181a193979af6c6d21"
+  },
+  "relations": {
+   "private.jobs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.holds": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.audits": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.claims": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.issues": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.outbox": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.impacts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sectors": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sources": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.stories": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.adapters": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.policies": "r|true|{postgres=arwdDxtm/postgres}",
+   "public.news_list": "v|false|{postgres=arwdDxtm/postgres}",
+   "private.companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.decisions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.endpoints": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.real_mode": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.schedules": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.subgroups": "r|true|{postgres=arwdDxtm/postgres}",
+   "public.news_public": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.checkpoints": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.purge_tasks": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.view_events": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ai_adoptions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_head": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.job_attempts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_holds": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.editor_drafts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.issue_aliases": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.admin_sessions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ai_claim_links": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ai_issue_links": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.evidence_edges": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ai_draft_origin": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.deletion_ledger": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.effect_receipts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.keyword_changes": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ranking_entries": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.view_aggregates": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.article_versions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_versions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_runs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.runtime_identity": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.sector_companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_documents": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_revisions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.admin_memberships": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ai_draft_receipts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_approvals": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_snapshots": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.ranking_snapshots": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_operations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_memberships": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_raw_imports": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_sector_data": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.keyword_definitions": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.permission_profiles": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.reservation_requests": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_daily": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_views": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_settings": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_cron_jobs": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.source_endpoint_links": "r|true|{postgres=arwdDxtm/postgres}",
+   "judoju_control.schema_artifacts": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_version_sectors": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_operations": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.notification_deliveries": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.catalog_source_companies": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_qa_coverage": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.maintenance_safety_proof": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_view_tickets": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_view_outcomes": "r|true|{postgres=arwdDxtm/postgres}",
+   "judoju_control.environment_identity": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_setting_changes": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.manual_publication_schedules": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_lifecycle_ledger": "r|true|{postgres=arwdDxtm/postgres}",
+   "private.installation_retention_ledger": "r|true|{postgres=arwdDxtm/postgres}"
+  },
+  "constraints": {
+   "private.jobs.jobs_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_check": "4a19774d722325ef003efeb3c08425f4",
+   "private.holds.holds_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.audits.audits_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.claims.claims_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.issues.issues_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.outbox.outbox_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "news_public.news_public_pkey": "50812cfd7f2cf6e1d5f7ff30eda14893",
+   "private.impacts.impacts_pkey": "8198a5da809fdebe190d4237d60cf01d",
+   "private.jobs.jobs_kind_check": "9de1daa3261204e704ff5c31523b7a7e",
+   "private.sectors.sectors_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.sources.sources_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.stories.stories_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.adapters.adapters_pkey": "f7c199cfd0d6656e5900d1d070911743",
+   "private.policies.policies_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.companies.companies_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.decisions.decisions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.endpoints.endpoints_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_attempts_check": "57637e3c603a1daa1df1cf72d8847a65",
+   "private.jobs.jobs_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.real_mode.real_mode_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.schedules.schedules_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.subgroups.subgroups_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.endpoints.endpoints_check": "e232ad2d0f1391c6f9051c5a3a34b104",
+   "private.holds.holds_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.holds.holds_attempts_check": "57637e3c603a1daa1df1cf72d8847a65",
+   "private.claims.claims_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.issues.issues_story_id_fkey": "1e40f52b538a83ad8b333678fa5719c4",
+   "private.jobs.jobs_environment_check": "476e440482dd1635d37ce51105c28eea",
+   "private.outbox.outbox_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.checkpoints.checkpoints_pkey": "2de5178404ce0618c3e1c17d0a921548",
+   "private.jobs.jobs_max_attempts_check": "3833b4b69d265ad9e6c8f9163cf4c479",
+   "private.outbox.outbox_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.purge_tasks.purge_tasks_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.real_mode.real_mode_id_check": "d1e072e924883ecb3b6d452869a3d76a",
+   "private.view_events.view_events_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "news_public.news_public_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.outbox.outbox_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.sectors.sector_metadata_grade": "f9b904d2e633ba2083932d97a5bf077a",
+   "private.stories.stories_event_key_key": "204e10b3276f275638b8ca52ea47e511",
+   "private.ai_adoptions.ai_adoptions_pkey": "2df170e2c4fcd00bb15c7cff4ef2e0d0",
+   "private.catalog_head.catalog_head_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.claims.claims_claim_type_check": "0752d59e3b16cccb6a8bb13564d9fca4",
+   "private.impacts.impacts_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.job_attempts.job_attempts_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.sectors.sectors_parent_id_fkey": "60073da50b1ba1b1e9ea966a4c2e672b",
+   "news_public.news_public_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.impacts.impacts_direction_check": "e0e78cc932c67b3c65f633891d582577",
+   "private.impacts.impacts_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.policies.policies_version_check": "b7af13e592ebcc181814632003fac9ef",
+   "private.catalog_holds.catalog_holds_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.companies.companies_market_check": "462ae87b3f8cc3c676cdc3b8d4950abd",
+   "private.editor_drafts.editor_drafts_pkey": "50812cfd7f2cf6e1d5f7ff30eda14893",
+   "private.endpoints.endpoints_status_check": "17c576ad0be0633a476c5ed5c77f3e80",
+   "private.installations.installations_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.issue_aliases.issue_aliases_pkey": "2183136d352f1161f9d55d2299cfbd42",
+   "private.decisions.decisions_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.issue_aliases.issue_aliases_check": "42dc0f3e80515405129ca4683ac1b537",
+   "private.issues.current_version_same_issue": "6e1a98e6473c34395b32194376c9eb3b",
+   "private.issues.issues_removal_cause_check": "1168a4197069cb40780faca0b14bc934",
+   "private.admin_sessions.admin_sessions_pkey": "e3c03df32ecf263ef1ec9bc75a689063",
+   "private.ai_claim_links.ai_claim_links_pkey": "d2e94fc6986a9d644dcf124472d38cdb",
+   "private.ai_issue_links.ai_issue_links_pkey": "530bc06d80c8a1da90d95d0c581d9124",
+   "private.companies.companies_stock_code_key": "dbaa958ad04162485d05aca5740485e7",
+   "private.endpoints.endpoints_source_id_fkey": "646e79fd7ab86aacf171a71d90544044",
+   "private.evidence_edges.evidence_edges_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.jobs.jobs_job_schema_version_check": "eb11df461fc655751dbbdd478b5f7555",
+   "private.schedules.schedules_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.sectors.sectors_catalog_kind_check": "5dd9449affa83f2f46ec9fd61f8b172d",
+   "private.subgroups.subgroups_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.jobs.jobs_confirmation_checks_check": "0e6c51d3ec640ae3a41465d10310cfe5",
+   "private.real_mode.real_mode_official_subset": "e5d85e55b9b3327df9bc930fab36c53e",
+   "private.ai_draft_origin.ai_draft_origin_pkey": "8032228a51f91b937d5912ccfaa64717",
+   "private.decisions.decisions_document_id_fkey": "a562e86ff8c77df766a1eb04a35e2f4f",
+   "private.deletion_ledger.deletion_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.effect_receipts.effect_receipts_pkey": "2df170e2c4fcd00bb15c7cff4ef2e0d0",
+   "private.issues.issues_primary_sector_id_fkey": "3a7129a42e55f9bfe7a2c863335edbe7",
+   "private.issues.issues_story_id_angle_key_key": "7e880d110ae285a8d745c4a5cc6d72b1",
+   "private.keyword_changes.keyword_changes_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.outbox.outbox_dispatched_job_id_fkey": "41b0eb386385f0d3ca10756b7971a3b6",
+   "private.ranking_entries.ranking_entries_pkey": "da8ce6b017a19407a35363cb7c4d4f00",
+   "private.schedules.schedules_schedule_key_key": "470bc0d0aca5fc0ae355b7b79162a3d1",
+   "private.sectors.sectors_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.view_aggregates.view_aggregates_pkey": "ffb90c07e2f51950341a37863e130c19",
+   "private.job_attempts.job_attempts_job_id_fkey": "d2f61ee3293e882f18143844625dfdab",
+   "private.view_events.view_events_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.article_versions.article_versions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.catalog_head.catalog_head_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.catalog_versions.catalog_versions_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.maintenance_runs.maintenance_runs_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.purge_tasks.purge_tasks_ledger_id_fkey": "c1abe43753e69cccb8e7ccb60b56970a",
+   "private.runtime_identity.runtime_identity_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.sector_companies.sector_companies_pkey": "09700c96bc819032f5746f4c73ecaf0d",
+   "private.source_documents.source_documents_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.source_revisions.source_revisions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.ai_adoptions.ai_adoptions_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.catalog_holds.catalog_holds_state_check": "cbe1178752b33a826474b3f689b1216a",
+   "private.decisions.decisions_policy_version_fkey": "60f594ea926a942af4741ee9f12d0df2",
+   "private.endpoints.endpoints_reprobe_count_check": "246077a3b6db7ce17e0dad82f4174dbd",
+   "private.subgroups.subgroups_metadata_kind_check": "ba4d6ea8d1a1fcea698485bf68d926c3",
+   "private.admin_memberships.admin_memberships_pkey": "0a0db78b5fb70bf8475b3bd434e6842b",
+   "private.ai_draft_receipts.ai_draft_receipts_pkey": "2df170e2c4fcd00bb15c7cff4ef2e0d0",
+   "private.catalog_approvals.catalog_approvals_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.catalog_snapshots.catalog_snapshots_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.checkpoints.checkpoints_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.ranking_snapshots.ranking_snapshots_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.schedules.schedules_enqueued_job_id_fkey": "5daa0b1fe6be4ecc2c150820bf9b9be7",
+   "private.subgroups.catalog_subgroup_parent_unique": "45a6f9b116293654487ddcb9510a1404",
+   "private.ai_issue_links.ai_issue_links_state_check": "098cfd87c6bcfaecdf0cd08ef8c29f34",
+   "private.catalog_head.catalog_head_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.editor_drafts.editor_drafts_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.admin_sessions.admin_sessions_user_id_fkey": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "private.ai_adoptions.ai_adoptions_ai_version_check": "991b26c0d79156ed93cf0ac11e9e0607",
+   "private.ai_adoptions.ai_adoptions_effect_key_check": "641ea4dbebf209c26a67da122ab5d54d",
+   "private.ai_claim_links.ai_claim_links_claim_id_key": "5c15d688de02edc36bec9ada1e9ad3fb",
+   "private.ai_issue_links.ai_issue_links_issue_id_key": "2254f9999a2e4a32b8efac4385304781",
+   "private.catalog_operations.catalog_operations_pkey": "fab21bca8133a4dc733a3cf14e860a67",
+   "private.endpoints.endpoints_fast_retry_count_check": "99a25aeebb3154a8e45cfc2dca5a9b9f",
+   "private.ai_claim_links.ai_claim_links_claim_id_fkey": "b6873fb6a20679010f12fbafdf891bd3",
+   "private.ai_claim_links.ai_claim_links_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.ai_issue_links.ai_issue_links_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.editor_drafts.editor_drafts_updated_by_fkey": "813e89165d4f52cd798f126fbc683169",
+   "private.evidence_edges.evidence_edges_claim_id_fkey": "7a672081dc7893369317e55b3f4d221d",
+   "private.view_aggregates.view_aggregates_count_check": "a09c734f4fdf6c0b6c5b5fd6ebe54b83",
+   "private.catalog_memberships.catalog_memberships_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.catalog_raw_imports.catalog_raw_imports_pkey": "128d9aaefb02f48e73d25108d5eda7ab",
+   "private.catalog_sector_data.catalog_sector_data_pkey": "8f622063d965c76508841f72413cc51f",
+   "private.job_attempts.job_attempts_effect_state_check": "417c99f28d5f6c6ede0e2e4dba0b629c",
+   "private.job_attempts.job_attempts_job_id_attempt_key": "1d3254c9bc69fb6b75908a70baa6bda4",
+   "private.keyword_definitions.keyword_definitions_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.maintenance_runs.maintenance_runs_kind_check": "b8e48453a25ae9803e97dcf6614dd551",
+   "private.permission_profiles.permission_profiles_pkey": "f7c199cfd0d6656e5900d1d070911743",
+   "private.view_events.view_events_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "judoju_control.schema_artifacts.schema_artifacts_pkey": "c820ea89255a83223217f1d7da6de5eb",
+   "private.ai_draft_origin.ai_draft_origin_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.article_versions.article_versions_title_check": "1cfeb20eb086af8e2fa0f9c35de01f1f",
+   "private.ranking_entries.ranking_entries_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.ranking_entries.ranking_entries_story_id_fkey": "1e40f52b538a83ad8b333678fa5719c4",
+   "private.view_aggregates.view_aggregates_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.admin_sessions.admin_sessions_ciphertext_check": "18c1f723d759bd153a61bc06fc7401c5",
+   "private.ai_adoptions.ai_adoptions_request_sha256_check": "eff6e2f4f45ba4b3a68bc0bdb9927a6a",
+   "private.catalog_holds.catalog_holds_source_sha256_fkey": "8c4bc6cccca2329da720315100fd3faa",
+   "private.ranking_entries.ranking_entries_position_check": "a62602e36e8a58f69fe34fdf3b0f19ae",
+   "private.reservation_requests.reservation_requests_pkey": "e2e6eb31842df0ce1c54263615319178",
+   "private.ai_issue_links.ai_issue_links_ai_issue_id_check": "7d0194c2a3f144b8746fa54021e560a8",
+   "private.article_versions.article_versions_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.catalog_approvals.catalog_approvals_state_check": "c30baf4eafd70852c6b62961f71dd747",
+   "private.catalog_versions.catalog_versions_version_check": "b7af13e592ebcc181814632003fac9ef",
+   "private.effect_receipts.effect_receipts_effect_key_fkey": "0e17a6ac5b1c631b359cd2fb8080d993",
+   "private.keyword_changes.keyword_changes_keyword_id_fkey": "9925b2cfe8e6a1d3003a1f8a87268740",
+   "private.admin_memberships.admin_memberships_user_id_fkey": "85d8b2f5f0c0f6b4dcb854efb61a8cb1",
+   "private.catalog_approvals.catalog_approvals_version_fkey": "46536d259f06ec6ac0f4c5ddd8c68463",
+   "private.catalog_snapshots.catalog_snapshots_sha256_check": "c294edbecbbf522ce8f57ec2f6dfa160",
+   "private.catalog_snapshots.catalog_snapshots_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.installation_qa_daily.installation_qa_daily_pkey": "ffb90c07e2f51950341a37863e130c19",
+   "private.installation_qa_views.installation_qa_views_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_settings.installation_settings_pkey": "a062edf0efc9dda78f3176c6d82d7405",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_pkey": "842e946604f2715e8a4d75ebad2f75c7",
+   "private.ranking_entries.ranking_entries_snapshot_id_fkey": "9aa2049390543d4239b57fd54b090d6d",
+   "private.sector_companies.sector_companies_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.source_endpoint_links.source_endpoint_links_pkey": "827abe27945c5b8933fcd149138b4fa3",
+   "private.article_versions.article_versions_id_issue_id_key": "e887addb0fac4ed716c99fe65bb4443e",
+   "private.purge_tasks.purge_tasks_ledger_id_target_kind_key": "61c2657a92fc5f378b3a5c7312807ac1",
+   "private.runtime_identity.runtime_identity_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.sector_companies.sector_companies_company_id_fkey": "70f7a7a0171985e343f9f85b070f4095",
+   "private.admin_sessions.admin_sessions_auth_session_id_fkey": "d3edc4b49443766791f4a3e8f6ea6617",
+   "private.catalog_memberships.catalog_memberships_role_check": "613b71e077e02d756cbe4bcc8d654d3d",
+   "private.catalog_operations.catalog_operations_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.keyword_definitions.keyword_definitions_kind_check": "3b32a3433b5eed051ac94b244a0a2491",
+   "private.keyword_definitions.keyword_definitions_term_check": "d17ff2dba942b4138510a45ff20a95cb",
+   "private.runtime_identity.runtime_identity_product_id_check": "8525a83a7a381d4ebed4e2bf23fbdfd5",
+   "private.sector_companies.sector_companies_subgroup_id_fkey": "bdc109f1eaffc0f9ddcab1103bcce862",
+   "private.source_documents.source_documents_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.source_revisions.source_revisions_document_id_fkey": "a562e86ff8c77df766a1eb04a35e2f4f",
+   "private.admin_sessions.admin_sessions_capability_hash_check": "e67a5efd513c963d6df686eaa5886622",
+   "private.ai_issue_links.ai_issue_links_current_version_check": "820df5b34471a04d5643f79a86578d9e",
+   "private.endpoints.endpoints_adapter_id_adapter_version_fkey": "1204bef328870d0aa05eec40c4f1be65",
+   "private.issue_aliases.issue_aliases_canonical_issue_id_fkey": "da6d6ece1ef890c03036a3bfc43b52b5",
+   "private.runtime_identity.runtime_identity_environment_check": "416b5fc2078bfb577f3d04f3ebad1f37",
+   "private.source_documents.source_documents_canonical_url_key": "750545b1beb879b5ff08bc6a330c1573",
+   "judoju_control.schema_artifacts.schema_artifacts_state_check": "0fa8f8c501c221a5fc1805741eecc43e",
+   "private.ai_draft_receipts.ai_draft_receipts_effect_key_check": "61096e479c4141b98f6b28f3ebd4b9e1",
+   "private.catalog_version_sectors.catalog_version_sectors_pkey": "47e31df3e670aa7a04f217fa591ba729",
+   "private.effect_receipts.effect_receipts_external_receipt_key": "406f3851b41868fad0ce9d33c4dea941",
+   "private.installation_operations.installation_operations_pkey": "26e5c6176ca19d3e7149e47407a47096",
+   "private.installation_qa_daily.installation_qa_daily_pv_check": "940d7ac4b424f02f3112cd75c02a0c4d",
+   "private.installation_qa_daily.installation_qa_daily_uv_check": "5bc3ad9725f4c1b68113e46b558bec93",
+   "private.notification_deliveries.notification_deliveries_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.permission_profiles.permission_profiles_status_check": "d46d8b72219344d851bef16242e4e697",
+   "judoju_control.environment_identity.environment_identity_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.catalog_snapshots.catalog_snapshots_usage_scope_check": "c081a70a4ae16a067a54f6afb0d126f0",
+   "private.evidence_edges.evidence_edges_source_revision_id_fkey": "eceb8e0f3838f3c04a5b694c1ddc05ab",
+   "private.installation_operations.installation_operations_check": "94941356384940ad28c3e09fcc34675c",
+   "private.view_events.view_events_installation_id_event_key_key": "c53ce8ee6e183e033be9c08ee2f638d0",
+   "judoju_control.schema_artifacts.schema_artifacts_version_check": "b76889582dd2a6980f90f2fc2fe2131b",
+   "private.article_versions.article_versions_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.article_versions.article_versions_impact_profile_check": "cf4fac7b43bef9acf88263113e377fc9",
+   "private.catalog_memberships.catalog_memberships_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.catalog_sector_data.catalog_sector_data_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.catalog_source_companies.catalog_source_companies_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_qa_coverage.installation_qa_coverage_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.installation_qa_daily.installation_qa_daily_mode_check": "21c07858a512ad7c2deaf541d8ca2495",
+   "private.keyword_definitions.keyword_definitions_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_job_id_key": "cc403a6ee4d5e262a3f3ac2486d3840f",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_kind_check": "b8e48453a25ae9803e97dcf6614dd551",
+   "private.maintenance_safety_proof.maintenance_safety_proof_pkey": "7511e9a8e50c073e1d6eff73afcc0f24",
+   "private.keyword_definitions.keyword_definitions_company_id_fkey": "70f7a7a0171985e343f9f85b070f4095",
+   "private.ranking_snapshots.ranking_snapshots_policy_version_fkey": "60f594ea926a942af4741ee9f12d0df2",
+   "private.ai_draft_receipts.ai_draft_receipts_payload_sha256_check": "ee442b6036cf4b22aa82401d6ddd61ba",
+   "private.catalog_memberships.catalog_memberships_subgroup_id_fkey": "bdc109f1eaffc0f9ddcab1103bcce862",
+   "private.installation_view_tickets.installation_view_tickets_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.maintenance_cron_jobs.maintenance_cron_jobs_job_name_key": "199a799aeb54c08ff389a9b4207cc851",
+   "private.ranking_entries.ranking_entries_snapshot_id_position_key": "cf40578c5ba9213f5dad0b23da3d2514",
+   "private.ranking_entries.ranking_entries_snapshot_id_story_id_key": "1c3207ae84f73346129f1bbeeaf9fd1d",
+   "private.ranking_snapshots.ranking_snapshots_catalog_version_fkey": "0ca6228a1b92ae4417ea8f5ed79ef20b",
+   "private.catalog_operations.catalog_operations_operation_key_check": "6917c3e62a9473feb611f6832b2250ff",
+   "private.deletion_ledger.deletion_ledger_entity_type_entity_id_key": "fc82290a0335bb3cd003219f68e6df20",
+   "private.installation_qa_daily.installation_qa_daily_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.installation_qa_views.installation_qa_views_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.installation_qa_views.installation_qa_views_ticket_id_key": "7e0073ba5228e8eae6aa8d142bd12aee",
+   "private.reservation_requests.reservation_requests_operation_check": "1124f986671f545dfe043af2a4c60334",
+   "judoju_control.schema_artifacts.schema_artifacts_project_ref_check": "e0ec7d33a06f3655edc52ed31abfb01c",
+   "judoju_control.schema_artifacts.schema_artifacts_source_path_check": "d52ebf80c85f0245a029ec15c55acce9",
+   "private.installation_operations.installation_operations_kind_check": "a83cced2781ed12d16b4457a4d187493",
+   "private.installation_qa_views.installation_qa_views_ticket_id_fkey": "53dfbf0bb89fb70b09fa9f24ebe31e57",
+   "private.installation_view_outcomes.installation_view_outcomes_pkey": "783fbab8dd2ba5d694832489779dc074",
+   "private.source_endpoint_links.source_endpoint_links_source_id_fkey": "646e79fd7ab86aacf171a71d90544044",
+   "judoju_control.schema_artifacts.schema_artifacts_source_bytes_check": "1d26429ddf449a326afda1e38dfe529b",
+   "private.installation_operations.installation_operations_state_check": "a99280438be9af11b704d8589b798802",
+   "private.installation_qa_views.installation_qa_views_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.manual_publication_schedules.reservation_evidence_at_commit": "aac6dc9e89c94dfced18fa2e02f5e5bc",
+   "private.ranking_snapshots.ranking_snapshots_snapshot_context_id_key": "72f5738170ebd3bd9643d04788ce3e7a",
+   "judoju_control.environment_identity.environment_identity_stage_check": "6ef5cb455886a56394e6f38ea904cea8",
+   "judoju_control.schema_artifacts.schema_artifacts_source_sha256_check": "953a50d0b825118e251a31e9e1e542e9",
+   "private.article_versions.article_versions_analysis_perspective_check": "9938190f2ea81fe398797c7171ed52d3",
+   "private.catalog_raw_imports.catalog_raw_imports_initial_version_fkey": "fd5bc8b35139b0a7f2d5fa8e00423c7c",
+   "private.catalog_source_companies.catalog_source_companies_name_check": "1d6a139c984f042a78b07aca078f8b8e",
+   "private.catalog_version_sectors.catalog_version_sectors_version_fkey": "60cb0051173a09a9a47f244676d15563",
+   "private.installation_qa_coverage.installation_qa_coverage_mode_check": "21c07858a512ad7c2deaf541d8ca2495",
+   "private.permission_profiles.permission_profiles_retention_days_check": "8ddfcc34930c74654ae35b6276c487b1",
+   "private.source_endpoint_links.source_endpoint_links_endpoint_id_fkey": "41651c6cf3bf71b74b36e435b5f612c4",
+   "private.evidence_edges.evidence_edges_claim_id_source_revision_id_key": "29a328c59ab012a1452985906b31ee2c",
+   "private.notification_deliveries.notification_deliveries_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.source_documents.source_documents_endpoint_id_external_id_key": "ba18b04618d6a52de733cab611866933",
+   "private.article_versions.article_versions_selection_market_basis_check": "fa3dd467566573accbfac2b6d2cf9dc8",
+   "private.catalog_source_companies.catalog_source_companies_market_check": "dac877494dd1ac21c408fc79dbc0307a",
+   "private.catalog_version_sectors.catalog_version_sectors_sector_id_fkey": "72137fd59a8dbed8bf95ddfec8cb7d39",
+   "private.installation_setting_changes.installation_setting_changes_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.manual_publication_schedules.manual_publication_schedules_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.source_revisions.source_revisions_document_id_content_hash_key": "b7098c5901c89a2900959b3d074be76c",
+   "private.catalog_memberships.catalog_memberships_source_company_ref_fkey": "ef1c86fe6d71e012990f2f224716a3b7",
+   "private.installation_operations.installation_operations_transport_check": "dfeec28b343845d3607f03cde85d9165",
+   "private.manual_publication_schedules.manual_publication_schedules_check": "b0259327d2ceea01af67cb454694c983",
+   "judoju_control.environment_identity.environment_identity_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.article_versions.article_versions_visibility_policy_version_fkey": "5878f3337fa6647c19ce993844596460",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_qa_views.installation_qa_views_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_retention_ledger.installation_retention_ledger_pkey": "4c6419b3704337bbfe50f018842a9ad3",
+   "private.installation_settings.installation_settings_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.notification_deliveries.notification_deliveries_delivery_key_key": "e8c74653412782dbd850b98c719a63d3",
+   "judoju_control.environment_identity.environment_identity_product_id_check": "8525a83a7a381d4ebed4e2bf23fbdfd5",
+   "private.endpoints.endpoints_permission_profile_id_permission_version_fkey": "196f916c66e1e7bc5527372307d0115f",
+   "private.installation_qa_coverage.installation_qa_coverage_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "private.installation_view_tickets.installation_view_tickets_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.maintenance_safety_proof.maintenance_safety_proof_singleton_check": "ae6f6dfbe38290d5bfa8f3e96d1aff91",
+   "judoju_control.environment_identity.environment_identity_environment_check": "20156ffd111c4996481f3c0ca2c8c3a6",
+   "judoju_control.environment_identity.environment_identity_project_ref_check": "e0ec7d33a06f3655edc52ed31abfb01c",
+   "judoju_control.schema_artifacts.schema_artifacts_runtime_environment_check": "661d36883728d49526f462456e936028",
+   "private.catalog_memberships.catalog_memberships_subgroup_id_sector_id_fkey": "2b378464d0af4674db4e2c0f00cb3d66",
+   "private.catalog_source_companies.catalog_source_companies_stock_code_check": "703eb0c9228d9807bf6c30bec0e9f04c",
+   "private.installation_settings.installation_settings_settings_revision_check": "4b980407df23f6497b5b29c34f7e2c3b",
+   "private.installation_view_tickets.installation_view_tickets_version_id_fkey": "1f71887ede7b50dfd3573ffc59d395cf",
+   "private.installation_operations.installation_operations_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_view_outcomes.installation_view_outcomes_ticket_id_fkey": "53dfbf0bb89fb70b09fa9f24ebe31e57",
+   "private.notification_deliveries.notification_deliveries_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.catalog_source_companies.catalog_source_companies_metadata_kind_check": "776dbcb81e617c122f7a4b7eb9eaae79",
+   "judoju_control.environment_identity.environment_identity_baseline_commit_check": "c7762045ba84b1ea9badafb92854da1e",
+   "private.installation_setting_changes.installation_setting_changes_reason_check": "9785a004116ff629c292ecc9f1d46198",
+   "private.manual_publication_schedules.manual_publication_schedules_status_check": "5c2f68b600a61de80741567fd71a8a23",
+   "judoju_control.environment_identity.environment_identity_organization_ref_check": "e4e97bd8000bd73a7cf5345c35194711",
+   "private.catalog_source_companies.catalog_source_companies_direct_keywords_check": "3fb79ded7c17cff582551e9f917c026a",
+   "private.manual_publication_schedules.manual_publication_schedules_issue_id_fkey": "bb8aa55b89a3405845f9d290e12cd7b6",
+   "private.notification_deliveries.notification_deliveries_notification_type_check": "ae4f00592301b84358dad9fda437b8f9",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_action_check": "a2de11c2e8d95823789766a53b2c1667",
+   "private.installation_retention_ledger.installation_retention_ledger_action_check": "2f8a910516dda23c8e082ab680f6be28",
+   "private.installation_view_tickets.installation_view_tickets_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.manual_publication_schedules.manual_publication_schedules_effect_key_key": "13d2109f268541dc4c1e62f5deee29ba",
+   "private.catalog_source_companies.catalog_source_companies_industry_keywords_check": "de964ba76f1037ecfae8ce5cdbec620e",
+   "private.installation_qa_views.installation_qa_views_installation_id_event_key_key": "c53ce8ee6e183e033be9c08ee2f638d0",
+   "private.catalog_source_companies.catalog_source_companies_search_description_check": "0fafd6b0e0d5098538d44f04a7d51a03",
+   "private.installation_view_outcomes.installation_view_outcomes_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_generation_fkey": "71404a2ce4b7526f4d303f9a41ece2b3",
+   "private.catalog_source_companies.catalog_source_companies_stock_identity_state_check": "d85cf3f8a1ed625dcbc1ea4fa1ac86f1",
+   "private.installation_setting_changes.installation_setting_changes_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_installation_id_fkey": "80c64636d8beaf944e400f8eeae23c3c",
+   "private.installation_view_tickets.installation_view_tickets_installation_id_visit_id_key": "21760482ea30b5ea9fca4046246754c7",
+   "private.source_revisions.source_revisions_permission_profile_id_permission_profile__fkey": "045231908cdcd405eacd610597c60235",
+   "private.installation_lifecycle_ledger.installation_lifecycle_ledger_generation_action_key": "360a8306aaf119e5b28a130a3f5ff615",
+   "private.manual_publication_schedules.manual_publication_schedules_actor_id_request_id_key": "39576358edbf4c1c02a741a3e82514ef",
+   "private.catalog_memberships.catalog_memberships_sector_id_subgroup_id_source_company_re_key": "d56d0c8caa8f8986a23c6becdab8f523"
+  },
+  "triggers": {
+   "private.real_mode.real_mode_guard": "cbdf7af3b5b8dc0912c3c96746bd4609",
+   "private.issues.issue_projection_sync": "e1d171350139a94b704ab6c32716795f",
+   "private.issues.correction_pending_clock": "23e435b8a470df9ed346a45d65b0cfc9",
+   "private.editor_drafts.reservation_draft_changed": "01041bdafccf87aaeff45b3832e1d837",
+   "private.catalog_raw_imports.catalog_raw_immutable": "96a1e60a6bdda8417716fb1f655b3268",
+   "private.catalog_memberships.catalog_membership_guard": "31c9827b0da29f91580cf51eb132d836",
+   "private.catalog_snapshots.catalog_snapshot_immutable": "f6595fdb5e18a698c3f31395311f081b",
+   "private.catalog_operations.catalog_operation_immutable": "bed7d0a7f1e3c4c3b48df709003b34ec",
+   "private.installation_operations.installation_seal_minimal": "10f1d01697720cd40d0208bab1d707fe",
+   "private.installation_settings.installation_settings_revision": "818ec6ff45448a9af43df83903cd1761",
+   "private.catalog_version_sectors.catalog_membership_snapshot_insert": "80a1395178e8f93075836bb08768c211",
+   "private.manual_publication_schedules.reservation_evidence_at_commit": "0cebda33fdf95ae9b9e63fc6472e0e43",
+   "private.catalog_version_sectors.catalog_membership_snapshot_immutable": "97b14215e1ea194604a9b51498d439a0"
+  },
+  "policies": {
+   "public.news_public.published_news_read": "a870ddc493480708061ca1e06213dcd9"
+  }
+ },
+ "beforeDigest": {
+  "columns": "8fee5e74e1e6ff5d4655e41fc103afa2",
+  "policies": "c849fe3c171e83d209c775fbebbff15e",
+  "triggers": "b32a88ff354b0ee1cf127897faac5aac",
+  "functions": "ee3ac163a56972dcd307af0102658e0c",
+  "relations": "00fef566b59350e40c440d27d80e5bf3",
+  "constraints": "15aad376fbddd73dddeb4c22fd71e0f4"
+ },
+ "afterDigest": {
+  "columns": "bf98e68ef100ba513cec692bc61b28ed",
+  "policies": "c849fe3c171e83d209c775fbebbff15e",
+  "triggers": "79a1679a4d99fccd10fc1be83e722c73",
+  "functions": "5de5e2371046b54782bfea3f851f459c",
+  "relations": "8fbc64b2f7fcba2c54c5d427e6371128",
+  "constraints": "87737eb13a562bac0b9eb0a1fe35787b"
+ }
+}

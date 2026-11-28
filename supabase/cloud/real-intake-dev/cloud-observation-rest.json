@@ -1,0 +1,12 @@
+{
+ "observedAt": "2026-11-28",
+ "method": "Read-only queries in the Supabase SQL Editor (project nxfpfvsdwbziowkxsxnh); compared against local migrations up to 20261127000055 on a scratch database",
+ "migrations": ["20261114000000","20261114000001","20261115000101","20261115000102","20261116000103","20261116000104","20261116000105","20261116000106","20261127000107"],
+ "runtime_identity": [{"bootstrap_id":null,"environment":"preview","product_id":"judoju-news","schema_version":1,"singleton":true}],
+ "control_identity": [["true","judoju-news","dev","qfzgicohgpuogehdyzfx","nxfpfvsdwbziowkxsxnh","94ac7e0c63d51cb646c9406992c26aafccaca0ef","CLOUD02_CONTROL_ONLY","2026-11-15T07:50:31.482574+00:00"]],
+ "roles": [],
+ "extensions": ["pg_stat_statements|extensions","pgcrypto|extensions","plpgsql|pg_catalog","supabase_vault|vault","uuid-ossp|extensions"],
+ "schemas": ["judoju_control|{postgres=UC/postgres}","private|{postgres=UC/postgres}","public|{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,postgres=U/pg_database_owner,anon=U/pg_database_owner,authenticated=U/pg_database_owner,service_role=U/pg_database_owner}"],
+ "default_acl": ["postgres|public|r|{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}","postgres|public|S|{postgres=rwU/postgres,service_role=rwU/postgres}","postgres|public|f|{postgres=X/postgres,service_role=X/postgres}"],
+ "localOnlyFunctions": ["public.m0_lock_probe()","public.m0_pre_request()","public.m0_bootstrap(p_bootstrap uuid)","public.m0_stop_fixture_schedule(p_run uuid)","public.m0_hold_for_timeout(p_seconds numeric)","public.m0_schedule_fixture(p_run uuid, p_effect_key text)"]
+}
