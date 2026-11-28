@@ -8,6 +8,9 @@ const enumeration = values => ({ type: 'string', enum: values });
 const array = items => ({ type: 'array', items });
 const object = properties => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
 const ref = object({ docId: str, quote: str });
+// Home ranking v2 R1: one impact grade per dimension (0–5) with the canonical fact IDs that support it.
+const grade = object({ grade: { type: 'integer' }, factIds: array(str) });
+const support = enumeration(['SUPPORTED', 'UNSUPPORTED']);
 const fact = object({ id: str, subjectId: nullable, predicate: str, value: str, unit: str, period: str,
   statement: str, verificationClass: enumeration(['ORDINARY_FACT', 'SYSTEMIC_MACRO', 'SENSITIVE_UNCONFIRMED']), refs: array(ref) });
 const impact = object({ sectorId: str, companyIds: array(str), direction: enumeration(['BENEFIT', 'DAMAGE', 'RELATED']),
@@ -28,17 +31,19 @@ export const schemas = {
     scenarios: array(object({ direction: enumeration(['POSITIVE', 'NEGATIVE']), title: str, expected_result: str, checks: array(str), factIds: array(str) })),
     risks: array(object({ text: str, factIds: array(str) })),
     schedule: array(object({ title: str, eventAt: str, timezone: str, factIds: array(str) })),
-    calculations: array(object({ id: str, expression: str, result: str, unit: str, factIds: array(str) })) }),
+    calculations: array(object({ id: str, expression: str, result: str, unit: str, factIds: array(str) })),
+    impact_grades: object({ transmission: grade, scope: grade, magnitude: grade, durability: grade }) }),
   verify: object({ approved: bool, supportedFactIds: array(str), unsupportedFactIds: array(str),
     numericConsistency: bool, koreaPathSupported: bool, eventIdentitySupported: bool,
     sameEventAsExisting: bool, proseSupported: bool, companyRolesSupported: bool, attributionSupported: bool,
-    conflicts: array(str), reason: str }),
+    conflicts: array(str), reason: str,
+    gradeSupport: object({ transmission: support, scope: support, magnitude: support, durability: support }) }),
 };
 
 export function validateShape(value, schema, depth = 0) {
   assert(depth < 24, 'MODEL_OUTPUT_DEPTH');
   const types = [schema.type].flat();
-  assert(types.some(type => type === 'null' ? value === null : type === 'array' ? Array.isArray(value) :
+  assert(types.some(type => type === 'null' ? value === null : type === 'array' ? Array.isArray(value) : type === 'integer' ? Number.isInteger(value) :
     type === 'object' ? value && typeof value === 'object' && !Array.isArray(value) : typeof value === type), 'MODEL_OUTPUT_TYPE');
   if (value === null) return;
   if (schema.enum) assert(schema.enum.includes(value), 'MODEL_OUTPUT_ENUM');
@@ -323,7 +328,9 @@ export const stripSectionLabels = value => value.replace(sectionLabel, '').repla
 
 export function validateDraft(raw, { facts, documents, triage, catalog, now }) {
   validateShape(raw, schemas.draft);
-  const draft = structuredClone(raw), factIds = facts.map(fact => fact.id), entityIds = catalog.entities.map(item => item.id);
+  // Impact grades are not article content: the pipeline keeps them apart for the ranking assessment.
+  const { impact_grades: _grades, ...body } = raw;
+  const draft = structuredClone(body), factIds = facts.map(fact => fact.id), entityIds = catalog.entities.map(item => item.id);
   const clean = value => stripFactIds(value, factIds);
   draft.title = clean(draft.title); draft.summary = clean(draft.summary);
   for (const item of [...draft.key_issues, draft.issue_analysis, ...draft.risks]) item.text = clean(item.text);

@@ -18,6 +18,7 @@ import { readSavedLinks } from './cli.mjs';
 import { createDartClient, createDartReader, readCorpCodes } from './dart.mjs';
 import { buildCompanyIndex, learnStockCodes, matchIssues, matchStatus } from './evidence-match.mjs';
 import { sourceStatus } from './news-report.mjs';
+import { linkSignals } from './ranking.mjs';
 import { deliveryCycle } from './intake-client.mjs';
 import { deliveryStatus } from './delivery.mjs';
 
@@ -82,6 +83,8 @@ async function main() {
       if (now >= nextMatch) {
         try { log({ event: 'AI_ISSUE_MATCH', ...matchIssues(store.db, buildCompanyIndex(loadConfig(), [...corpCodes.values()]), now) }); }
         catch { log({ event: 'AI_ISSUE_MATCH_FAILED' }); }
+        // Home ranking v2 R1: news signal → issue links for the diagnostic preview.
+        try { log({ event: 'AI_SIGNAL_LINKS', ...linkSignals(store.db, loadConfig(), now) }); } catch { log({ event: 'AI_SIGNAL_LINKS_FAILED' }); }
         nextMatch = now + importEvery;
       }
       let result;

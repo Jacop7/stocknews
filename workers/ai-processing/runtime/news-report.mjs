@@ -15,7 +15,7 @@ export const WEB_BASELINE = { links48h: 491, linksPerDay: 245, hostsWithLinks: 1
 
 const family = source => /^gnews:/.test(source) ? 'gnews' : /^finlight:/.test(source) ? 'finlight' : /^telegram/.test(source) ? 'telegram' : /^web/.test(source) ? 'web' : 'other';
 const kstDay = ms => new Date(ms + 9 * 3600_000).toISOString().slice(0, 10);
-const korean = host => /\.kr$/.test(host) || ['www.newspim.com', 'www.sedaily.com', 'www.mk.co.kr', 'www.hankyung.com', 'biz.chosun.com', 'www.edaily.co.kr', 'www.etoday.co.kr', 'www.fnnews.com', 'www.asiae.co.kr', 'www.g-enews.com', 'www.mediapen.com'].includes(host);
+export const korean = host => /\.kr$/.test(host) || ['www.newspim.com', 'www.sedaily.com', 'www.mk.co.kr', 'www.hankyung.com', 'biz.chosun.com', 'www.edaily.co.kr', 'www.etoday.co.kr', 'www.fnnews.com', 'www.asiae.co.kr', 'www.g-enews.com', 'www.mediapen.com'].includes(host);
 
 export function newsReport(db, now = Date.now()) {
   const cols = new Set(db.prepare('PRAGMA table_info(news_signals)').all().map(c => c.name));

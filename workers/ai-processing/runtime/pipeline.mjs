@@ -5,8 +5,26 @@ import { writingBrief } from './writer.mjs';
 import { DRAFT_DAYS } from './store.mjs';
 import { routeLink } from './routing.mjs';
 import { SOURCES as FINLIGHT_SOURCES } from './finlight.mjs';
+import { assessImpact, institutionOf, GOV_HOSTS, RANKING_POLICY } from './ranking.mjs';
 
 const hold = reason => ({ state: 'HOLD', reason });
+// Home ranking v2 R1 (docs/home-ranking-v2-plan.md §3.1, §3.3): the issue-level impact assessment from the writer's
+// grades and the verifier's support, and the institution of every source the graded facts cite, fixed now while
+// the document titles still exist. A grading failure leaves the issue without I; it never blocks the draft.
+export function rankingRecord({ grades, support, facts, documents, triage, draft, config, configHash, now }) {
+  const factDocs = new Map(facts.map(fact => [fact.id, [...new Set(fact.refs.map(ref => ref.docId))]]));
+  const host = url => { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } };
+  const govDocIds = new Set(documents.filter(doc => doc.sources.some(source => GOV_HOSTS.has(host(source.url)))).map(doc => doc.id));
+  let assessment = null, assessmentError = null;
+  try {
+    const graded = assessImpact({ grades, support, facts, factDocs, documents, articleKind: triage.articleKind, impacts: draft.impacts, govDocIds });
+    // Audit fields (plan §3.1): prompt, configuration, the documents and facts the assessment saw, and when.
+    assessment = { ...graded, promptVersion: 'V14', configHash, docIds: documents.map(doc => doc.id).sort(), factIds: facts.map(fact => fact.id).sort(), assessedAt: now };
+  } catch (error) { assessmentError = /^[A-Z][A-Z_]{2,60}$/.test(error?.message ?? '') ? error.message : 'IMPACT_ASSESSMENT_FAILED'; }
+  const cited = new Set(assessment ? Object.values(assessment.grades).flatMap(item => item.factIds.flatMap(id => factDocs.get(id) ?? [])) : []);
+  const evidence = documents.filter(doc => cited.has(doc.id)).flatMap(doc => doc.sources.map(source => ({ docId: doc.id, url: source.url, institution: institutionOf(source, doc, config) })));
+  return { policy: RANKING_POLICY, assessment, assessmentError, evidence, institutionBasis: { catalogVersion: config.catalog.version, configHash } };
+}
 export function createBacklogProcessor({ store, readOriginal, resolveLink, model, loadConfig, now = Date.now }) {
   async function executeModel(job, stage, input, config, authorize, retentionUntil = job.expires_at, documentIds = [job.payload.docId]) {
     if (!config.callModels) return hold('MODEL_EXECUTION_DISABLED');
@@ -16,7 +34,7 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
     // An operator re-queue (publish 1A) asks for a fresh writing and verification: its own run identity, so an earlier,
     // already purged run with the same input is not taken as its answer.
     const requeue = stage !== 'triage' && job.payload.exportRequeueAt ? { requeue: job.payload.exportRequeueAt } : {};
-    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V13', ...requeue });
+    const key = digest({ stage, model: modelId, input, config: digest(config), prompt: 'BACKLOG_PROMPTS_V14', ...requeue });
     const scope = job.payload.docId + ':' + stage;
     const reserved = store.beginRun(key, scope, stage, modelId, config.maxDailyCalls, now(), retentionUntil, documentIds);
     if (reserved.state === 'CACHED') return { state: 'RESULT', value: reserved.value };
@@ -146,15 +164,18 @@ export function createBacklogProcessor({ store, readOriginal, resolveLink, model
           const result = await executeModel(job, 'draft', brief, config, () => authority(docIds), retentionUntil, docIds);
           if (result.state !== 'RESULT') return modelHold(result);
           const draft = validateDraft(result.value, { facts, documents: context.documents, triage: job.payload.triage, catalog: config.catalog, now: now() });
-          return settle('VERIFY', { ...job.payload, draft, contextDigest: digest(input), expectedIssues: snapshot });
+          return settle('VERIFY', { ...job.payload, draft, impactGrades: result.value.impact_grades, contextDigest: digest(input), expectedIssues: snapshot });
         }
         assert(job.state === 'VERIFY' && job.payload.contextDigest === digest(input), 'CONTEXT_CHANGED');
-        const result = await executeModel(job, 'verify', { ...input, draft: job.payload.draft }, config, () => authority(docIds), retentionUntil, docIds);
+        // The verifier judges the writer's impact grades too (gradeSupport); jobs drafted before V14 carry none.
+        const result = await executeModel(job, 'verify', { ...input, draft: job.payload.draft, impact_grades: job.payload.impactGrades ?? null }, config, () => authority(docIds), retentionUntil, docIds);
         if (result.state !== 'RESULT') return modelHold(result);
         validateVerification(result.value, facts, input.existingIssues.length > 0);
         assert(authority(docIds), 'AUTHORITY_CHANGED');
+        const ranking = rankingRecord({ grades: job.payload.impactGrades, support: result.value.gradeSupport, facts, documents: context.documents,
+          triage: job.payload.triage, draft: job.payload.draft, config, configHash: expectedConfig, now: now() });
         return store.commitDraft(job, job.payload.draft, facts, job.payload.expectedIssues, now(), now() + DRAFT_DAYS * day,
-          { registry: config.catalog.version, sha256: digest(config.catalog) });
+          { registry: config.catalog.version, sha256: digest(config.catalog) }, ranking);
       } catch (error) {
         const reason = /^[A-Z][A-Z_]{2,80}$/.test(error.message ?? '') ? error.message : 'PROCESSING_VALIDATION_FAILED';
         if (!store.owns(job, now())) return hold('LEASE_STALE');

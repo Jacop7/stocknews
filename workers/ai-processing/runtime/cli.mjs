@@ -37,7 +37,7 @@ export function readSavedLinks(filename, kind, now = Date.now()) {
 async function main(argv) {
   const command = argv[0];
   if (!command || command === '--help') {
-    console.log('Commands: export-drafts --db DB; push-drafts --db DB [--check]; export-requeue --db DB --job ID; import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
+    console.log('Commands: export-drafts --db DB; push-drafts --db DB [--check]; export-requeue --db DB --job ID; import --db OUTPUT [--telegram SAVED_DB] [--web SAVED_DB] [--discovery SAVED_JSON --format tickertick|leads]; status --db DB; news-report --db DB; home-preview --db DB; work --db DB --config FILE [--once] [--execute-originals] [--execute-models]');
     return;
   }
   const flags = new Set(['--once', '--execute-originals', '--execute-models', '--check']), options = {};
@@ -47,9 +47,9 @@ async function main(argv) {
     options[key] = flags.has(key) ? true : argv[++i];
     assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
   }
-  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
+  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report', 'home-preview'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
   const filename = resolve(options['--db']);
-  if (['status', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  if (['status', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report', 'home-preview'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
   // News-source evaluation (2026-11-28): counts only, read only.
   if (command === 'news-report') {
     const { newsReport, sourceStatus } = await import('./news-report.mjs');
@@ -57,6 +57,13 @@ async function main(argv) {
     // Opened read-only (no schema changes, no back-fill, no writer lock).
     const db = new DatabaseSync(filename, { readOnly: true });
     try { console.log(JSON.stringify({ ...newsReport(db), sources: sourceStatus(db) })); } finally { db.close(); }
+    return;
+  }
+  // Home ranking v2 R1: diagnostic preview, read only (links are written by the service).
+  if (command === 'home-preview') {
+    const { homePreview } = await import('./ranking.mjs');
+    const db = new DatabaseSync(filename, { readOnly: true });
+    try { console.log(JSON.stringify(homePreview(db, Date.now()))); } finally { db.close(); }
     return;
   }
   // Publish stage 2A: one manual cloud delivery pass (same gate as the service: the push setting file), or --check,

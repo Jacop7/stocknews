@@ -33,12 +33,15 @@ export function draft(input, damage = false) {
       conditionalDirection: impact.conditionalDirection, category: impact.category, description: '국내 산업에 전달되는 영향을 검토합니다.',
       conditions: ['실제 발주 진행 여부'], factIds, companyRoles: impact.companyIds.map(companyId => ({ companyId, role: '장비 발주 주체' })) })),
     scenarios: damage ? [] : [{ direction: 'POSITIVE', title: '계획이 집행되는 경우', expected_result: '장비 발주 여건이 개선될 가능성이 있습니다.', checks: ['집행 진행 여부'], factIds }],
-    risks: [{ text: '실제 계약과 예산의 차이를 점검해야 합니다.', factIds }], schedule: [], calculations: [] };
+    risks: [{ text: '실제 계약과 예산의 차이를 점검해야 합니다.', factIds }], schedule: [], calculations: [],
+    // Home ranking v2 R1: issue-level impact grades (not article content).
+    impact_grades: { transmission: { grade: 3, factIds }, scope: { grade: 3, factIds }, magnitude: { grade: 3, factIds }, durability: { grade: 2, factIds } } };
 }
 export function verification(input) {
   return { approved: true, supportedFactIds: input.facts.map(fact => fact.id), unsupportedFactIds: [], numericConsistency: true,
     koreaPathSupported: true, eventIdentitySupported: true, sameEventAsExisting: true, proseSupported: true,
-    companyRolesSupported: true, attributionSupported: true, conflicts: [], reason: 'Synthetic validator fixture' };
+    companyRolesSupported: true, attributionSupported: true, conflicts: [], reason: 'Synthetic validator fixture',
+    gradeSupport: { transmission: 'SUPPORTED', scope: 'SUPPORTED', magnitude: 'SUPPORTED', durability: 'SUPPORTED' } };
 }
 export const original = (body = originalText, sourceUrl = url) => ({ state: 'ORIGINAL', url: sourceUrl, title: originalTitle,
   text: body, publishedAt: new Date(stamp).toISOString(), bodyHash: digest(body.normalize('NFKC').replace(/\s+/g, ' ')) });

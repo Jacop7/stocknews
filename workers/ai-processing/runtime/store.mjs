@@ -65,6 +65,10 @@ export class BacklogStore {
     // revocation marks it REVOKED and wipes its content; it expires with the 30-day draft clock.
     this.db.exec(`CREATE TABLE IF NOT EXISTS draft_exports(issue_id TEXT NOT NULL,version INTEGER NOT NULL,state TEXT NOT NULL CHECK(state IN ('READY','REVOKED')),
       payload TEXT NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,PRIMARY KEY(issue_id,version)) STRICT`);
+    // Home ranking v2 R1: the issue-level ranking record (assessment, evidence institutions, material change time).
+    if (!this.db.prepare('PRAGMA table_info(issues)').all().some(column => column.name === 'ranking')) this.db.exec('ALTER TABLE issues ADD COLUMN ranking TEXT');
+    this.db.exec(`CREATE TABLE IF NOT EXISTS signal_issue_links(issue_id TEXT NOT NULL,issue_version INTEGER NOT NULL,signal_url TEXT NOT NULL,
+      company TEXT NOT NULL,reason TEXT NOT NULL,linked_at INTEGER NOT NULL,PRIMARY KEY(issue_id,issue_version,signal_url)) STRICT`);
     if (!this.db.prepare('PRAGMA table_info(documents)').all().some(column => column.name === 'body_expires_at')) {
       this.db.exec('ALTER TABLE documents ADD COLUMN body_expires_at INTEGER');
     }
@@ -319,7 +323,7 @@ export class BacklogStore {
   }
   // Snapshot of one ready issue version for the publish inbox (stage 1A). Facts reach the writer only after independent
   // verification; commitDraft runs only after that verification approved every fact and the Korea path.
-  exportSnapshot(issueId, version, storyKey, draft, facts, catalogRef, now) {
+  exportSnapshot(issueId, version, storyKey, draft, facts, catalogRef, now, ranking = null) {
     // Every source link of every document a fact cites, with its role (PRIMARY original or REPORTED coverage); the
     // database still decides officialness from the host. Values, units and periods stay for the editor's evidence view.
     const sourcesOf = docId => (draft.source_refs ?? []).filter(source => source.docId === docId).map(source => ({ docId, url: source.url, role: source.role }));
@@ -329,7 +333,9 @@ export class BacklogStore {
         return { id: fact.id, subjectId: fact.subjectId, predicate: fact.predicate, value: fact.value, unit: fact.unit, period: fact.period,
           statement: fact.statement, verificationClass: fact.verificationClass, independentlyVerified: true, koreaPathVerified: true, recordedAt: now,
           sources, sourceUrls: sources.map(source => source.url) };
-      }) };
+      }),
+      // Top level only, never inside draft: the cloud mapper builds AI_DRAFT_V1 from known fields and leaves it out.
+      ...(ranking ? { ranking } : {}) };
     const inserted = this.db.prepare("INSERT INTO draft_exports(issue_id,version,state,payload,created_at,expires_at) VALUES (?,?,'READY',?,?,?) ON CONFLICT(issue_id,version) DO NOTHING")
       .run(issueId, version, canonical(snapshot), now, now + 30 * day).changes > 0;
     // Stage 2A: the same transaction queues its cloud delivery (stored exactly as it will be sent).
@@ -368,7 +374,7 @@ export class BacklogStore {
       return { jobId, state: 'FETCH', exportRequeue: true };
     });
   }
-  commitDraft(job, draft, facts, expectedIssues, now, expiresAt = job.expires_at, catalogRef = null) {
+  commitDraft(job, draft, facts, expectedIssues, now, expiresAt = job.expires_at, catalogRef = null, ranking = null) {
     return this.transaction(() => {
       assert(this.owns(job, now), 'LEASE_STALE');
       const current = this.db.prepare('SELECT * FROM issues WHERE story_key=? AND angle_key=?').get(job.payload.storyKey, draft.angleKey);
@@ -391,9 +397,16 @@ export class BacklogStore {
         return { state: 'DUPLICATE', issueId: id, jobId: job.id };
       }
       action = current ? 'UPDATE' : expectedIssues.length ? 'NEW_ANGLE' : 'NEW_STORY';
+      // Material change (plan §3.4): a new issue row starts now; a new version of the same row exists only when facts
+      // were added, so it moves to now; an operator re-export with the same facts keeps the earlier time (null for an
+      // issue from before R1, where the preview falls back to created_at).
+      const prior = current?.ranking ? JSON.parse(current.ranking) : null;
+      const materialChangeAt = !current || !job.payload.exportRequeue ? now : prior?.materialChangeAt ?? null;
+      const record = ranking ? canonical({ ...ranking, materialChangeAt }) : canonical({ assessment: null, assessmentError: 'NOT_ASSESSED', evidence: [], materialChangeAt });
       this.db.prepare('INSERT INTO issues(id,story_key,angle_key,version,payload,fact_ids,created_at,updated_at,expires_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(story_key,angle_key) DO UPDATE SET version=excluded.version,payload=excluded.payload,fact_ids=excluded.fact_ids,updated_at=excluded.updated_at,expires_at=excluded.expires_at')
         .run(id, job.payload.storyKey, draft.angleKey, version, canonical(draft), canonical(newIds), current?.created_at ?? now, now, expiresAt);
-      if (catalogRef) this.exportSnapshot(id, version, job.payload.storyKey, draft, facts, catalogRef, now);
+      this.db.prepare('UPDATE issues SET ranking=? WHERE id=?').run(record, id);
+      if (catalogRef) this.exportSnapshot(id, version, job.payload.storyKey, draft, facts, catalogRef, now, JSON.parse(record));
       const { exportRequeue, exportRequeueAt, ...rest } = job.payload;
       this.db.prepare("UPDATE jobs SET state='DRAFT_READY',payload=?,lease=NULL,lease_until=0,expires_at=max(expires_at,?) WHERE id=?").run(canonical({ ...rest, issueId: id, version, action }), expiresAt, job.id);
       this.db.prepare('INSERT INTO events(job_id,state,reason,observed_at) VALUES (?,?,?,?)').run(job.id, 'DRAFT_READY', action, now);
