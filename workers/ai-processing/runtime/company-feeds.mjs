@@ -144,10 +144,14 @@ export function createCompanyFeedDiscovery({ transport, store, now = Date.now, s
         const r = await get(origin + '/robots.txt', 65536);
         if (!r) { record(host, at, 'NOT_REACHED', 0); return { host, state: 'NOT_REACHED', requests, links: [] }; }
         if (r.status && ![404, 410].includes(r.status)) { record(host, at, 'ROBOTS_UNAVAILABLE', 0); return { host, state: 'ROBOTS_UNAVAILABLE', requests, links: [] }; }
-        const body = r.body && /^text\/plain/i.test(r.contentType) ? r.body.toString('utf8') : '';
+        // A 200 robots.txt that is not plain text cannot be read: treated as unavailable (as the original reader does).
+        if (!r.status && !/^text\/plain(?:;|$)/i.test(r.contentType)) { record(host, at, 'ROBOTS_UNREADABLE', 0); return { host, state: 'ROBOTS_UNREADABLE', requests, links: [] }; }
+        const body = r.body ? r.body.toString('utf8') : '';
         rules = robotsParser(origin + '/robots.txt', body);
         const delay = (rules.getCrawlDelay(AGENT) ?? 0) * 1000;
         gap = Math.max(5000, delay);
+        // The site's crawl delay applies from this request on (the reservation made for robots.txt used 5 s).
+        store.reserveHost(host, now(), gap, true);
         store.saveRobots(origin, { body, delay, until: at + day });
       }
       // Feeds on this host only: sitemaps from robots.txt (else /sitemap.xml), then feeds the home page announces.

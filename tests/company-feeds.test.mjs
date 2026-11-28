@@ -172,3 +172,20 @@ test('the background loop runs beside processing and stops on abort', async () =
   stop.abort(); await loop;
   assert.ok(calls >= 2 && logs.every(l => l.event === 'AI_COMPANY_FEED'));
 });
+
+test('a fresh robots crawl delay applies to the very next request; non-text robots.txt stops the host', () => withStore(async store => {
+  const o = 'https://corp.example.com';
+  let t = NOW; const times = [];
+  const transport = async url => { times.push([url, t]); return url.endsWith('/robots.txt') ? { status: 200, contentType: 'text/plain', body: Buffer.from('User-agent: *\nCrawl-delay: 60\n') } : { status: 404, contentType: 'text/html', body: Buffer.alloc(0) }; };
+  const run = createCompanyFeedDiscovery({ transport, store, now: () => t, sleep: async ms => { t += ms; } });
+  await run({ loadConfig: () => config() });
+  assert.ok(times.length >= 2 && times[1][1] - times[0][1] >= 60000, 'second request waited the crawl delay: ' + (times[1]?.[1] - times[0][1]));
+  const dir2 = mkdtempSync(join(tmpdir(), 'cf-')); const store2 = new BacklogStore(join(dir2, 'p.sqlite'));
+  try {
+    const calls = [];
+    const html = async url => { calls.push(url); return { status: 200, contentType: 'text/html', body: Buffer.from('<html>Disallow: /</html>') }; };
+    const r = await createCompanyFeedDiscovery({ transport: html, store: store2, now: () => NOW, sleep: async () => {} })({ loadConfig: () => config() });
+    assert.equal(r.state, 'ROBOTS_UNREADABLE');
+    assert.deepEqual(calls, [o + '/robots.txt']);
+  } finally { store2.close(); rmSync(dir2, { recursive: true, force: true }); }
+}));
