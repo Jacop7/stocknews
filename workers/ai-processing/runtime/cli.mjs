@@ -58,12 +58,23 @@ async function main(argv) {
     const store = new BacklogStore(filename);
     try {
       if (options['--check']) {
-        const client = await connectIntake(loadIntakeSecret());
+        // Exit 0 only for a working intake login whose every probe is refused; a failed login prints its SQLSTATE
+        // (28P01 wrong password, 28000 login not allowed) so the emergency revoke can tell revocation from an outage.
+        let client;
+        try { client = await connectIntake(loadIntakeSecret()); }
+        catch (error) {
+          const code = /^[0-9A-Z]{5}$/.test(error?.code ?? '') ? error.code : /^[A-Z_]{3,40}$/.test(error?.message ?? '') ? error.message : 'CONNECT_FAILED';
+          console.log(JSON.stringify({ connect: 'FAILED', code }));
+          process.exitCode = 3;
+          return;
+        }
         try {
-          const sessionUser = await client.whoami();
+          const sessionUser = await client.whoami(), probe = await client.probe();
+          const safe = sessionUser === 'judoju_ai_intake' && Object.values(probe).every(v => v === 'DENIED');
           // A working connection ends any earlier connection backoff, so pending withdrawals go on the next cycle.
-          if (sessionUser === 'judoju_ai_intake') store.db.prepare("DELETE FROM delivery_meta WHERE key IN ('connect_failures','connect_retry_at')").run();
-          console.log(JSON.stringify({ push: loadPushConfig(), sessionUser, probe: await client.probe(), queue: deliveryStatus(store.db, Date.now()) }));
+          if (safe) store.db.prepare("DELETE FROM delivery_meta WHERE key IN ('connect_failures','connect_retry_at')").run();
+          console.log(JSON.stringify({ connect: 'OK', safe, push: loadPushConfig(), sessionUser, probe, queue: deliveryStatus(store.db, Date.now()) }));
+          if (!safe) process.exitCode = 4;
         } finally { await client.close(); }
       } else console.log(JSON.stringify(await deliveryCycle({ db: store.db })));
     } finally { store.close(); }

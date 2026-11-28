@@ -78,6 +78,10 @@ try {
     console.log('PASS apply.sql with its post-check');
     assert.match(psql('postgres', DB, sql).stderr, /CLOUD13_MIGRATIONS/);
     console.log('PASS a second run is refused');
+    // The real-mode switch probes the publish dispatcher with one existing issue; the cloud has synthetic issues, the
+    // scratch database none, so one bare synthetic draft issue is added here.
+    ok(psql('postgres', DB, `with s as (insert into private.stories(event_key) values ('cloud13-rehearsal-probe') returning id)
+      insert into private.issues(story_id,angle_key,sample_kind) select id,'probe','SYNTHETIC' from s;`));
     for (const name of ['real-mode-on.sql', 'intake.sql']) {
       if (!existsSync(new URL(dir + name, root))) { console.log('SKIP ' + name); continue; }
       ok(psql('postgres', DB, readFileSync(new URL(dir + name, root), 'utf8')));

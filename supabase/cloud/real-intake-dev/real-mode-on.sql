@@ -15,7 +15,26 @@ update private.real_mode set enabled=true, public_read_enabled=false,
   allowed_source_hosts=array['dart.fss.or.kr','kind.krx.co.kr'], official_source_hosts=array['dart.fss.or.kr','kind.krx.co.kr'],
   note='CLOUD13 S2: real AI drafts for editor review in the preview (public read synthetic)' where id=1;
 do $post$
+declare iss uuid;sched uuid;msg text;
 begin
+  -- Capability probe: every publish path (editor publish and reservations) goes through the dispatcher
+  -- private.reservation_publish_core. With one existing issue made real inside a sub-block (undone by the exception),
+  -- an immediate publish must be refused because real articles are not the public kind, and a scheduled one because
+  -- real publication is never scheduled.
+  select id into iss from private.issues order by id limit 1;
+  if iss is null then raise exception 'REAL_MODE_POST_PROBE_NO_ISSUE';end if;
+  foreach sched in array array[null,gen_random_uuid()]::uuid[] loop
+    begin
+      update private.issues set sample_kind='PERMITTED_REAL' where id=iss;
+      perform private.reservation_publish_core(iss,0,0,0,0,'cloud13-probe-'||gen_random_uuid()::text,null,sched);
+      msg:='OPEN';
+      raise exception 'REAL_MODE_PROBE_UNDO';
+    exception when others then
+      if sqlerrm<>'REAL_MODE_PROBE_UNDO' then msg:=sqlerrm;end if;
+    end;
+    if msg is distinct from case when sched is null then 'REAL_PUBLIC_READ_OFF' else 'REAL_PUBLICATION_NOT_ENABLED_1A' end then
+      raise exception 'REAL_MODE_POST_PUBLISH_PROBE % %',coalesce(sched::text,'immediate'),msg;end if;
+  end loop;
   if not private.real_mode_on() then raise exception 'REAL_MODE_POST_OFF';end if;
   if private.public_read_kind()<>'SYNTHETIC' then raise exception 'REAL_MODE_POST_KIND';end if;
   if public.m1_public_identity() is distinct from '{"productId":"judoju-news","environment":"preview","sampleKind":"SYNTHETIC","bootstrapId":null,"contract":"M1"}'::jsonb then raise exception 'REAL_MODE_POST_IDENTITY';end if;

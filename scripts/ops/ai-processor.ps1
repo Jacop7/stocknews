@@ -37,7 +37,7 @@ if [ "$ON" = 1 ]; then
   f="$B/intake/db.json"
   { [ -f "$f" ] && [ ! -L "$f" ] && [ "$(stat -c %a "$f")" = 600 ] && [ "$(stat -c %U "$f")" = ubuntu ]; } || { echo INTAKE_SECRET_NOT_READY; exit 4; }
   [ -f "$B/intake/ca.pem" ] || { echo INTAKE_CA_MISSING; exit 4; }
-  sudo -n docker exec $c node --experimental-strip-types workers/ai-processing/runtime/cli.mjs push-drafts --db /ai/processing.sqlite --check | grep -q '"sessionUser":"judoju_ai_intake"' || { echo INTAKE_CHECK_FAILED; exit 5; }
+  sudo -n docker exec $c node --experimental-strip-types workers/ai-processing/runtime/cli.mjs push-drafts --db /ai/processing.sqlite --check | grep -q '"connect":"OK","safe":true,' || { echo INTAKE_CHECK_FAILED; exit 5; }
 fi
 v=false; [ "$ON" = 1 ] && v=true
 printf '{"enabled":%s,"target":"cloud"}' "$v" > "$B/push/push.json.tmp"; chmod 600 "$B/push/push.json.tmp"; mv "$B/push/push.json.tmp" "$B/push/push.json"

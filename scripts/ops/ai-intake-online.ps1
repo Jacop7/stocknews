@@ -22,6 +22,18 @@ function Invoke-Remote([string]$script) {
   return $output
 }
 $check = "sudo -n docker exec $container node --experimental-strip-types workers/ai-processing/runtime/cli.mjs push-drafts --db /ai/processing.sqlite --check"
+# The check's one JSON line (it exits non-zero unless the login works and every probe is refused).
+function Get-IntakeCheck {
+  $line = (ssh.exe @ssh $server "$check 2>/dev/null | tail -1") | Select-Object -Last 1
+  try { return ($line | ConvertFrom-Json) } catch { return $null }
+}
+function Assert-IntakeSafe {
+  $r = Get-IntakeCheck
+  if (-not $r -or $r.connect -ne 'OK' -or $r.safe -ne $true -or $r.sessionUser -ne 'judoju_ai_intake' -or @($r.probe.PSObject.Properties | Where-Object { $_.Value -ne 'DENIED' }).Count -gt 0) {
+    throw "INTAKE_CHECK_FAILED: $(if ($r) { $r | ConvertTo-Json -Compress -Depth 4 } else { 'no result' })"
+  }
+  Write-Host ('Intake login OK as judoju_ai_intake; refused: ' + (($r.probe.PSObject.Properties.Name) -join ', ') + '; queue: ' + ($r.queue | ConvertTo-Json -Compress -Depth 4))
+}
 Add-Type -AssemblyName System.Windows.Forms
 
 if ($Command -eq 'set-password') {
@@ -44,7 +56,7 @@ if ($Command -eq 'set-password') {
     $password = $null
   }
   Write-Host 'Intake secret saved on the server (not printed). Checking the connection...'
-  Invoke-Remote $check
+  Assert-IntakeSafe
   return
 }
 
@@ -56,7 +68,7 @@ if ($Command -eq 'install-ca') {
   return
 }
 
-if ($Command -eq 'status') { Invoke-Remote $check; return }
+if ($Command -eq 'status') { Assert-IntakeSafe; return }
 
 if ($Command -eq 'revoke') {
   $sql = @'
@@ -74,10 +86,14 @@ commit;
     Write-Host 'Emergency SQL is on the clipboard. Run it in the Supabase SQL Editor; the last result must show can_login=false, submit_allowed=false, withdraw_allowed=false.'
     Read-Host 'Press Enter here after it ran' | Out-Null
   } finally { try { [System.Windows.Forms.Clipboard]::Clear() } catch {} }
+  # Confirm with the secret still in place: a fresh login with the old password must be refused by the database itself
+  # (28P01 password authentication failed, or 28000 role not permitted to log in). An outage or any other answer is not
+  # a confirmation; push is switched off either way, but the secret is kept for a repeat check.
+  $r = Get-IntakeCheck
+  $confirmed = $r -and $r.connect -eq 'FAILED' -and $r.code -in '28P01', '28000'
   & (Join-Path $PSScriptRoot 'ai-processor.ps1') push-off
+  if (-not $confirmed) { throw "REVOKE_UNCONFIRMED: the old intake login was not refused by the database ($(if ($r) { $r | ConvertTo-Json -Compress -Depth 4 } else { 'no result' })). Push is off; check the SQL ran in project judoju-news-dev and run revoke again." }
   Invoke-Remote "rm -f $base/intake/db.json $base/intake/db.json.tmp; test ! -e $base/intake/db.json && echo SECRET_DELETED"
-  $after = ssh.exe @ssh $server "$check 2>&1 | tail -1"
-  if ($after -match '"sessionUser":"judoju_ai_intake"') { throw 'REVOKE_UNCONFIRMED: the intake connection still works.' }
-  Write-Host 'Revoked: push off, server secret deleted, the intake connection fails.'
+  Write-Host "Revoked: the database refuses the old login ($($r.code)), push off, server secret deleted."
   return
 }
