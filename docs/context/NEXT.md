@@ -4,7 +4,7 @@
 
 ## 섹터 뉴스 다음 단계 (2026-11-28)
 
-- **사용자 승인 필요:** 업로드 전용 SSH 키 생성과 서버 등록(`install.ps1 -NewKey` → 공개키를 서버 authorized_keys에 `command="…/market/receive.sh",no-pty,…`로 등록, `receive.sh` 설치). 그 전에는 시세가 서버로 가지 않고 처리기는 US 모드로만 돈다.
+- ~~업로드 전용 키~~ 완료(2026-11-28, 제한 확인).
 - 사용자 PC 설정: 브라우저에서 네이버증권 MY → 관심 종목을 로그인해 열어 두고(확대 100%), `powershell -File scripts\ops\naver-watch\install.ps1 -Install` → `capture.ps1 -Once -Check`로 목록 대조(338 vs 339 차이 확인) → 작업 스케줄러 가동.
 - 클라우드 묶음: 마이그레이션 64(매크로 필터) 적용.
 - 3일 뒤 확인: 섹터별 24시간 신호(`status.json sources.gnews.sectorTop24h`), GNews 하루 사용량(≤900), KR/US 모드 비율.
