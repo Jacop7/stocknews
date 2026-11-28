@@ -89,15 +89,14 @@ try {
     console.log('PASS apply.sql with its post-check');
     assert.match(psql('postgres', DB, sql).stderr, /CLOUD13_MIGRATIONS/);
     console.log('PASS a second run is refused');
-    // The real-mode switch probes the publish dispatcher with one existing issue; the cloud has synthetic issues, the
-    // scratch database none, so one bare synthetic draft issue is added here.
-    ok(psql('postgres', DB, `with s as (insert into private.stories(event_key) values ('cloud13-rehearsal-probe') returning id)
-      insert into private.issues(story_id,angle_key,sample_kind) select id,'probe','SYNTHETIC' from s;`));
+    // Like the cloud, the scratch database has no issues: the real-mode switch probe creates (and removes) its own.
+    const issuesBefore = ok(psql('postgres', DB, 'select count(*) from private.issues;')).trim();
     // The order used in the cloud: real mode is switched on last, after the intake role and the admin grant succeeded.
     for (const file of [dir + 'intake.sql', 'supabase/cloud/admin-online-dev/adopt-grant.sql', dir + 'real-mode-on.sql']) {
       ok(psql('postgres', DB, readFileSync(new URL(file, root), 'utf8')));
       console.log('PASS ' + file.split('/').pop());
     }
+    assert.equal(ok(psql('postgres', DB, 'select count(*) from private.issues;')).trim(), issuesBefore, 'the probe leaves no issue behind');
     // The intake role's complete privilege set, as the processor's status check computes it.
     const { PRIVILEGE_SET, privilegeSetExact } = await import('../workers/ai-processing/runtime/intake-client.mjs');
     const privileges = (before = '') => JSON.parse(ok(psql('supabase_admin', DB, `begin;\n${before}\nset local role judoju_ai_intake;\n${PRIVILEGE_SET.replace(/ r$/, '::text r')};\nrollback;`))

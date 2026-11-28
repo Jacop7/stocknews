@@ -18,14 +18,13 @@ do $post$
 declare iss uuid;sched uuid;msg text;
 begin
   -- Capability probe: every publish path (editor publish and reservations) goes through the dispatcher
-  -- private.reservation_publish_core. With one existing issue made real inside a sub-block (undone by the exception),
-  -- an immediate publish must be refused because real articles are not the public kind, and a scheduled one because
-  -- real publication is never scheduled.
-  select id into iss from private.issues order by id limit 1;
-  if iss is null then raise exception 'REAL_MODE_POST_PROBE_NO_ISSUE';end if;
+  -- private.reservation_publish_core. A temporary real draft issue is created inside a sub-block (undone by the
+  -- exception, so nothing remains): an immediate publish must be refused because real articles are not the public kind,
+  -- and a scheduled one because real publication is never scheduled.
   foreach sched in array array[null,gen_random_uuid()]::uuid[] loop
     begin
-      update private.issues set sample_kind='PERMITTED_REAL' where id=iss;
+      insert into private.stories(event_key) values ('cloud13-real-mode-probe-'||gen_random_uuid()::text) returning id into iss;
+      insert into private.issues(story_id,angle_key,sample_kind) values (iss,'probe','PERMITTED_REAL') returning id into iss;
       perform private.reservation_publish_core(iss,0,0,0,0,'cloud13-probe-'||gen_random_uuid()::text,null,sched);
       msg:='OPEN';
       raise exception 'REAL_MODE_PROBE_UNDO';
