@@ -19,7 +19,8 @@ export const PRIVILEGE_SET = `select jsonb_build_object(
   'functions',(select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
      where n.nspname in ${PRODUCT} and p.proname<>'rls_auto_enable' and has_function_privilege(p.oid,'EXECUTE')),
   'relations',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ${PRODUCT} and c.relkind in ('r','p','v','m','S','f')
-     and (has_table_privilege(c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') or (c.relkind<>'S' and has_any_column_privilege(c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
+     and (has_table_privilege(c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+       or (case when current_setting('server_version_num')::int>=170000 then has_table_privilege(c.oid,'MAINTAIN') else false end) or (c.relkind<>'S' and has_any_column_privilege(c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
        or (c.relkind='S' and has_sequence_privilege(c.oid,'USAGE,SELECT,UPDATE')))),
   'schemas',(select coalesce(jsonb_object_agg(nspname,case when has_schema_privilege(oid,'USAGE') then 'U' else '' end||case when has_schema_privilege(oid,'CREATE') then 'C' else '' end),'{}')
      from pg_namespace where nspname in ('public','private','judoju_control','ai_intake','supabase_migrations','auth','storage','vault','cron','extensions','graphql','graphql_public','realtime')

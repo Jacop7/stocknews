@@ -107,7 +107,7 @@ try {
     // (The product schemas have no sequences; a sequence grant is covered by the same relation query.)
     for (const grant of ['grant select(angle_key) on private.issues to judoju_ai_intake;', 'grant update(angle_key) on private.issues to judoju_ai_intake;',
       'grant create on schema ai_intake to judoju_ai_intake;', 'grant usage on schema private to judoju_ai_intake;', 'grant select on private.issues to judoju_ai_intake;',
-      'grant execute on function public.m1_public_identity() to judoju_ai_intake;']) {
+      'grant execute on function public.m1_public_identity() to judoju_ai_intake;', 'grant maintain on public.news_public to judoju_ai_intake;']) {
       ok(psql('supabase_admin', DB, `begin;\n${grant}\nrollback;`));
       assert.equal(privilegeSetExact(privileges(grant)), false, 'not caught: ' + grant);
     }
