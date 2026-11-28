@@ -17,4 +17,4 @@ export const EXTRA = `jsonb_build_object(
      from pg_type t join pg_namespace n on n.oid=t.typnamespace where n.nspname in ('public','private','judoju_control') and t.typtype in ('e','d'))
 )`;
 export const QUERY = `-- CLOUD13 read-only inventory (no writes)\nselect (${INVENTORY} || ${EXTRA})::text as inv;\n`;
-if (process.argv[2]) writeFileSync(process.argv[2], QUERY);
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/tools/cloud13-inventory-query.mjs') && process.argv[2]) writeFileSync(process.argv[2], QUERY);
