@@ -4,6 +4,14 @@
 
 기준 시각: 2026-11-26 (KST)
 
+## 수집기 완료 단계 (2026-11-28, 처리기 `9426ff2` 배포)
+
+- 출처: Finlight(국내 뉴스 신호)·GNews(뉴스 신호)·기업 보도자료/IR(367곳 하루 1회)·DART 공시(API)·텔레그램 링크. 웹 뉴스 직접 수집 OFF.
+- 텔레그램 뉴스 링크는 Finlight 7곳 또는 GNews가 30일 안에 돌려준 언론사(현재 135곳)만 신호로 남김.
+- 기업 이슈 ↔ 근거 매칭 가동: 첫 실행 뉴스 신호 275건 중 기업 이슈 8건, 4개 회사, 근거 문서 13건 연결. DART 목록에서 종목코드 21개 학습.
+- 출처별 24시간 상태: status.json `sources`(배포 직후 GNews 255, Finlight 20(종목코드 11), DART 39, 기업 사이트 방문 101/367(FOUND 1·NO_RECENT 60·FAILED 21·NOT_REACHED 14·ROBOTS 5), 저장 링크 298).
+- 기업 피드 첫 순회는 진행 중. 점검 예약 작업 `judoju-company-feed-coverage`(2026-11-29 09:00 KST). GNews·Finlight 유지 판단 예약 `judoju-news-api-evaluation`(2026-12-02 10:00 KST).
+
 ## 저장소
 
 - 원격: https://github.com/Jacop7/stocknews.git
