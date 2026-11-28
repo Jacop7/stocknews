@@ -7,7 +7,8 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { BacklogStore } from './store.mjs';
 import { validateConfig } from './contracts.mjs';
-import { createOriginalReader } from './original.mjs';
+import { createOriginalReader, createOriginalTransport } from './original.mjs';
+import { createCompanyFeedDiscovery } from './company-feeds.mjs';
 import { createLinkResolver } from './resolver.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
@@ -22,7 +23,7 @@ const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUD
   key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key',
   corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url), heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
 const execute = env.JUDOJU_AI_EXECUTE === '1';
-const importEvery = 10 * 60_000, dartEvery = 30 * 60_000;
+const importEvery = 10 * 60_000, dartEvery = 30 * 60_000, companyEvery = 60_000;
 
 const log = event => console.log(JSON.stringify({ at: new Date().toISOString(), ...event }));
 export function effectiveConfig(raw, executeAllowed) {
@@ -44,7 +45,9 @@ async function main() {
   const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal, resolveLink: createLinkResolver(robots) });
   const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
   log({ event: 'AI_SERVICE_START', execute, readOriginals: initial.readOriginals, callModels: initial.callModels, maxDailyCalls: initial.maxDailyCalls, dart: Boolean(dart), watchedCompanies: corpCodes.size });
-  let nextImport = 0, nextDart = 0;
+  // Company press/newsroom/IR feeds (2026-11-28): one host per minute, each host once a day.
+  const discoverCompany = createCompanyFeedDiscovery({ transport: createOriginalTransport(), store });
+  let nextImport = 0, nextDart = 0, nextCompany = 0;
   try {
     while (!stop.signal.aborted) {
       const now = Date.now();
@@ -60,6 +63,13 @@ async function main() {
         try { const filings = await dart.newFilings(corpCodes, now); log({ event: 'AI_DART_LIST', filings: filings.length, ...store.importLinks(filings, now) }); }
         catch (error) { log({ event: 'AI_DART_LIST_FAILED', reason: /^DART_[A-Z_0-9]+$/.test(error.message) ? error.message : 'DART_LIST_FAILED' }); }
         nextDart = now + dartEvery;
+      }
+      if (now >= nextCompany) {
+        try {
+          const found = await discoverCompany({ loadConfig });
+          if (found.host) log({ event: 'AI_COMPANY_FEED', host: found.host, state: found.state, requests: found.requests ?? 0, links: found.links.length, ...(found.links.length ? store.importLinks(found.links, Date.now()) : {}) });
+        } catch { log({ event: 'AI_COMPANY_FEED_FAILED' }); }
+        nextCompany = Date.now() + companyEvery;
       }
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }

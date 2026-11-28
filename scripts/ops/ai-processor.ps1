@@ -51,13 +51,13 @@ sudo -n docker exec $c node -e "let p='off';try{const v=JSON.parse(require('node
   return
 }
 
-$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv
+$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv data/real-source-hosts.json
 if ($dirty) { throw 'AI runtime sources have uncommitted changes; commit first.' }
 $config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'; $dartKey = Join-Path $repo '.local-data\dart\opendart.key'
 foreach ($file in $config, $key, $dartKey) { if (-not (Test-Path $file)) { throw "Missing $file" } }
 $commit = (git -C $repo rev-parse --short HEAD).Trim()
 $stage = Join-Path $env:TEMP "judoju-ai-$commit"; Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue; New-Item -ItemType Directory $stage | Out-Null
-git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv
+git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv data/real-source-hosts.json
 if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
 # Publish stage 2A: the cloud intake client (node-postgres, pure JavaScript, exact version, no install scripts) is installed
 # here and added next to the runtime (workers/ai-processing/node_modules), so the image needs no network or build step.

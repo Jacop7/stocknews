@@ -3,6 +3,7 @@
 // The database decides trust (claim type from the verification class, officialness from the source host); this module
 // only reshapes and holds back drafts it cannot represent faithfully.
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const KEY = /^[A-Za-z0-9_.:-]{1,200}$/;
@@ -28,9 +29,10 @@ function localDayStart(date, timeZone) {
   while (dayOf(found - 1000) === date) found -= 1000;
   return new Date(found).toISOString();
 }
-// Stage 1A hosts: the database accepts only these, all official Korean filing hosts. They decide the market (KR) and
-// the source role (PRIMARY), exactly as the database classifies them; any other host holds the draft.
-const DOMESTIC_HOSTS = new Set(['dart.fss.or.kr', 'kind.krx.co.kr']);
+// Real-data source hosts the database accepts (data/real-source-hosts.json, shared with migration 63 / CLOUD14): DART,
+// KIND and every enabled company website, all official Korean primary sources. They decide the market (KR) and the
+// source role (PRIMARY), exactly as the database classifies them; any other host holds the draft.
+const DOMESTIC_HOSTS = new Set(JSON.parse(readFileSync(new URL('../../../data/real-source-hosts.json', import.meta.url), 'utf8')).hosts);
 const OFFICIAL_HOSTS = DOMESTIC_HOSTS;
 // Limits of the intake check (migration 57); a draft beyond them is held, never trimmed.
 const LIMITS = { key_issues: 12, risks: 20, company_refs: 30, impacts: 30, schedule: 20, evidence: 10, conditions: 10, checks: 10, companies: 20 };
