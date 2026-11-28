@@ -458,8 +458,11 @@ async function main() {
   const directory = process.env.JUDOJU_COLLECTOR_DIRECTORY ?? '.local-data/html-collector';
   mkdirSync(directory, { recursive: true });
   const db = openCollectorStore(join(directory, 'collection.sqlite'));
-  const watch = process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
-  const metadata = createPublicMetadata();
+  // Web news and report list pages (2026-11-28 owner decision: off for now). With JUDOJU_WEB_NEWS=0 the web cycle
+  // still runs (heartbeat, expiry) but no list page is requested; only operator-registered sources would remain.
+  const webNews = process.env.JUDOJU_WEB_NEWS !== '0';
+  const watch = webNews && process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
+  const metadata = webNews ? createPublicMetadata() : undefined;
   const telegramWatch = process.env.JUDOJU_TELEGRAM_LINKS === '1' ? createTelegramPageWatch() : undefined;
   const telegramFile = join(directory, 'telegram-links.sqlite');
   let telegramDb;

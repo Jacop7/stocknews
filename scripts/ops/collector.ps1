@@ -5,7 +5,7 @@
 #              web DB backup, swap, health wait; automatic rollback if it is not healthy within 2 minutes.
 # - rollback : return to the compose files recorded by the latest deploy.
 # The SSH key stays in .local-data (git-ignored). Key contents are never printed.
-param([Parameter(Mandatory = $true)][ValidateSet('status', 'deploy', 'rollback')][string]$Command)
+param([Parameter(Mandatory = $true)][ValidateSet('status', 'deploy', 'rollback')][string]$Command, [switch]$WebNews)
 $ErrorActionPreference = 'Stop'
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $keys = Join-Path $repo '.local-data\collector-cloud\ssh-lightsail'
@@ -28,7 +28,7 @@ $statusScript = @'
 set -euo pipefail
 c=__CONTAINER__
 sudo -n docker inspect --format 'image={{.Config.Image}} running={{.State.Running}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} restarts={{.RestartCount}} started={{.State.StartedAt}}' $c
-sudo -n docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $c | grep -E '^JUDOJU_(PUBLIC_WATCH|TELEGRAM_LINKS)='
+sudo -n docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $c | grep -E '^JUDOJU_(PUBLIC_WATCH|TELEGRAM_LINKS|WEB_NEWS)='
 echo "errors_10m=$(sudo -n docker logs --since 10m $c 2>&1 | grep -ciE 'error|failed' || true)"
 sudo -n docker logs --since 10m $c 2>&1 | grep -oE '"status":"[A-Z_]+"' | sort | uniq -c | tr -s ' ' | sed 's/^ //' | paste -sd ',' - | sed 's/^/statuses_10m=/'
 sudo -n docker exec -i $c node --input-type=module -e "
@@ -122,7 +122,8 @@ if [ "$(sudo -n docker inspect --format '{{.State.Running}}' $C)" = true ]; then
   sudo -n docker exec $C node -e "require('node:fs').rmSync('/data/backup-$ts.sqlite')"
   echo "BACKUP=$R/collection-before-$ts.sqlite"
 fi
-printf 'services:\n  collector:\n    image: %s\n    environment:\n      JUDOJU_TELEGRAM_LINKS: "%s"\n' "$T" "${telegram:-0}" > compose.release.yaml
+# Web news list collection is off unless this deploy is run with -WebNews (owner decision 2026-11-28).
+printf 'services:\n  collector:\n    image: %s\n    environment:\n      JUDOJU_TELEGRAM_LINKS: "%s"\n      JUDOJU_WEB_NEWS: "%s"\n' "$T" "${telegram:-0}" "__WEBNEWS__" > compose.release.yaml
 args=(); while read -r f; do args+=(-f "$f"); done < keep-compose.txt
 back=(); while read -r f; do back+=(-f "$f"); done < previous-compose.txt
 cd __BASE__/release/workers/collectors
@@ -137,7 +138,7 @@ sudo -n docker compose "${back[@]}" up -d --no-build collector
 exit 3
 '@
 $quote = { param($list) ($list | ForEach-Object { "'$_'" }) -join ' ' }
-$deploy = $deploy.Replace('__REMOTE__', $remote).Replace('__CONTAINER__', $container).Replace('__TAG__', $tag).Replace('__BASE__', $base).
+$deploy = $deploy.Replace('__WEBNEWS__', $(if ($WebNews) { '1' } else { '0' })).Replace('__REMOTE__', $remote).Replace('__CONTAINER__', $container).Replace('__TAG__', $tag).Replace('__BASE__', $base).
   Replace('__PREVIOUS__', (& $quote $composeFiles)).Replace('__KEEP__', (& $quote $keep))
 Invoke-Remote $deploy
 Start-Sleep -Seconds 60
