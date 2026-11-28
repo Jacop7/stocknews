@@ -8,6 +8,12 @@ import { deliver, submitDue, maintainDeliveries, getMeta, setMeta } from './deli
 
 // Directory mounts (a missing file never turns into a directory): $base/push -> /run/config/push, $base/intake -> /run/secrets/ai-intake.
 export const PUSH_FILE = '/run/config/push/push.json', SECRET_FILE = '/run/secrets/ai-intake/db.json', CA_FILE = '/run/secrets/ai-intake/ca.pem';
+export const PROBES = [
+  ['privateTable', 'select 1 from private.issues limit 0'],
+  ['publicView', 'select 1 from public.news_public limit 0'],
+  ['inboxFunction', "select private.ai_ingest_draft('ai:probe:1','{}'::jsonb)"],
+  ['editorFunction', 'select public.m1_editor_articles()'],
+];
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
 export function loadPushConfig(file = PUSH_FILE) {
@@ -43,6 +49,14 @@ export async function connectIntake(secret, { ca = readFileSync(CA_FILE, 'utf8')
     submit: (key, payload) => call('select ai_intake.submit($1,$2::jsonb) r', [key, JSON.stringify(payload)]),
     withdraw: (key, aiIssue, version, reason) => call('select ai_intake.withdraw($1,$2,$3,$4) r', [key, aiIssue, version, reason]),
     whoami: () => call('select session_user::text r', []),
+    // Permission probe for status checks: every one of these must be refused with 42501 (insufficient privilege).
+    probe: async () => {
+      const out = {};
+      for (const [name, sql] of PROBES) {
+        try { await client.query(sql); out[name] = 'ALLOWED'; } catch (error) { out[name] = error?.code === '42501' ? 'DENIED' : 'ERROR_' + String(error?.code ?? 'UNKNOWN').slice(0, 10); }
+      }
+      return out;
+    },
     close: () => client.end(),
   };
 }

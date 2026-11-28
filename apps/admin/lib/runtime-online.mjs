@@ -11,7 +11,7 @@ import {AdminError,hash,seal,unseal} from './runtime-local.mjs';
 import {confirmedSqlRejection} from './editor-state.mjs';
 import {onlineHost,onlineOrigin} from './admin-profile.mjs';
 import QRCode from 'qrcode';
-import {previewApi,previewProject,editorFunctions} from './preview-admin-config.mjs';
+import {previewApi,previewProject,onlineEditorFunctions} from './preview-admin-config.mjs';
 
 const deny=(code,status=403)=>{throw new AdminError(code,status);};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,hex64=/^[0-9a-f]{64}$/,capabilityPattern=/^[A-Za-z0-9_-]{43}$/;
@@ -167,7 +167,7 @@ export function createOnlineRuntime({loadConfig=()=>validateOnlineConfig(readPri
     return Object.freeze({...s,capability});
   }
   async function editorRpc(name,data,s){
-    if(!editorFunctions.includes(name))deny('RPC_NOT_ALLOWED');
+    if(!onlineEditorFunctions.includes(name))deny('RPC_NOT_ALLOWED');
     return api('/rest/v1/rpc/'+name,{body:data,token:s?.accessToken,capability:s?.capability});
   }
   async function logout(capability,s){

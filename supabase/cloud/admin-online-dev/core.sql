@@ -45,7 +45,7 @@ declare editors text[]:=array['public.m1_check_editor()','public.m1_editor_artic
   'public.m1_publish_draft(uuid,bigint,bigint,bigint,bigint,text)','public.m1_set_state(uuid,bigint,text,text)','public.catalog_editor_sectors()','public.catalog_editor_index(integer,integer)',
   'public.catalog_editor_tree(bigint)','public.catalog_editor_sector(uuid,bigint,integer,integer)','public.catalog_editor_companies(integer,integer,text)','public.catalog_editor_company(uuid,bigint)',
   'public.catalog_editor_group(uuid,bigint)','public.catalog_editor_membership(uuid,bigint)','public.catalog_editor_impact(uuid,bigint)','public.catalog_apply(bigint,text,text,uuid,jsonb)',
-  'public.catalog_operation_status(bigint,text,text,uuid,jsonb)'];
+  'public.catalog_operation_status(bigint,text,text,uuid,jsonb)','public.m1_adopt_ai_version(uuid,integer,bigint,text)'];
   sessions text[]:=array['public.m1_open_admin_session(uuid,uuid,text,text,timestamptz)','public.m1_read_admin_session(text)','public.m1_close_admin_session(text)'];
 begin
   perform private.assert_server();
@@ -84,7 +84,7 @@ begin
     public.catalog_editor_sectors(),public.catalog_editor_index(integer,integer),public.catalog_editor_tree(bigint),public.catalog_editor_sector(uuid,bigint,integer,integer),
     public.catalog_editor_companies(integer,integer,text),public.catalog_editor_company(uuid,bigint),public.catalog_editor_group(uuid,bigint),
     public.catalog_editor_membership(uuid,bigint),public.catalog_editor_impact(uuid,bigint),public.catalog_apply(bigint,text,text,uuid,jsonb),
-    public.catalog_operation_status(bigint,text,text,uuid,jsonb) from authenticated;
+    public.catalog_operation_status(bigint,text,text,uuid,jsonb),public.m1_adopt_ai_version(uuid,integer,bigint,text) from authenticated;
   revoke execute on function public.m1_open_admin_session(uuid,uuid,text,text,timestamptz),public.m1_read_admin_session(text),public.m1_close_admin_session(text) from service_role;
   update private.admin_memberships set active=false,updated_at=now() where active;
   update private.admin_sessions set revoked_at=now() where revoked_at is null;

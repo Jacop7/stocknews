@@ -63,7 +63,7 @@ async function main(argv) {
           const sessionUser = await client.whoami();
           // A working connection ends any earlier connection backoff, so pending withdrawals go on the next cycle.
           if (sessionUser === 'judoju_ai_intake') store.db.prepare("DELETE FROM delivery_meta WHERE key IN ('connect_failures','connect_retry_at')").run();
-          console.log(JSON.stringify({ push: loadPushConfig(), sessionUser, queue: deliveryStatus(store.db, Date.now()) }));
+          console.log(JSON.stringify({ push: loadPushConfig(), sessionUser, probe: await client.probe(), queue: deliveryStatus(store.db, Date.now()) }));
         } finally { await client.close(); }
       } else console.log(JSON.stringify(await deliveryCycle({ db: store.db })));
     } finally { store.close(); }

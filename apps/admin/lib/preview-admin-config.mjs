@@ -11,6 +11,8 @@ export function previewOwnerIdentity(){return Object.freeze({id:'e85049b7-7306-4
 export const previewProject='nxfpfvsdwbziowkxsxnh';
 export const previewApi='https://'+previewProject+'.supabase.co';
 export const editorFunctions=Object.freeze(['m1_check_editor','m1_editor_articles','m1_get_draft','m1_operation_status','m1_create_draft','m1_save_draft','catalog_save_draft','m1_preview_draft','m1_publish_draft','m1_set_state','catalog_editor_sectors','catalog_editor_index','catalog_editor_tree','catalog_editor_sector','catalog_editor_companies','catalog_editor_company','catalog_editor_group','catalog_editor_membership','catalog_editor_impact','catalog_apply','catalog_operation_status']);
+// The online admin (CLOUD11-online) also adopts newer held AI versions (publish stage 2A S7); the CLOUD11A preview contract keeps 21.
+export const onlineEditorFunctions=Object.freeze([...editorFunctions,'m1_adopt_ai_version']);
 export const serverFunctions=Object.freeze(['m1_open_admin_session','m1_read_admin_session','m1_close_admin_session']);
 export const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const digest=x=>createHash('sha256').update(x).digest('hex'),hex=/^[0-9a-f]{64}$/;
