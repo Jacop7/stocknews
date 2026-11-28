@@ -41,6 +41,8 @@ export class BacklogStore {
       last_seen INTEGER NOT NULL,sources TEXT NOT NULL,expires_at INTEGER NOT NULL) STRICT`);
     // GNews signals keep their headline (2026-11-28); every insert names its columns.
     if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
+    // Finlight signals carry the tickers it resolves (EXCHANGE:SYMBOL JSON array).
+    if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'tickers')) this.db.exec('ALTER TABLE news_signals ADD COLUMN tickers TEXT');
     // Publish stage 1A: an export snapshot per DRAFT_READY issue version, written in the same transaction. It holds the
     // draft and its independently verified facts (statements and source links only, never quotes or bodies). A source
     // revocation marks it REVOKED and wipes its content; it expires with the 30-day draft clock.
@@ -163,15 +165,16 @@ export class BacklogStore {
     this.transaction(() => {
       for (const entry of entries) {
         let url; try { url = urlKey(entry.url); } catch { rejected++; continue; }
-        if (typeof entry.sourceId !== 'string' || !/^gnews:[a-z0-9-]{1,60}$/.test(entry.sourceId) || !Number.isSafeInteger(entry.expiresAt) || entry.expiresAt <= now
+        if (typeof entry.sourceId !== 'string' || !/^(gnews|finlight):[a-z0-9-]{1,60}$/.test(entry.sourceId) || !Number.isSafeInteger(entry.expiresAt) || entry.expiresAt <= now
           || !Number.isSafeInteger(entry.lastSeen) || entry.lastSeen > now + 300000) { rejected++; continue; }
         const expires = Math.min(entry.expiresAt, now + 7 * day), host = new URL(url).hostname.toLowerCase();
         const prior = this.db.prepare('SELECT sources FROM news_signals WHERE url=?').get(url);
         const sources = JSON.stringify([...new Set([...(prior ? JSON.parse(prior.sources) : []), entry.sourceId])].sort());
-        this.db.prepare(`INSERT INTO news_signals(url,host,first_seen,last_seen,sources,expires_at,title) VALUES (?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
+        this.db.prepare(`INSERT INTO news_signals(url,host,first_seen,last_seen,sources,expires_at,title,tickers) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
           first_seen=min(first_seen,excluded.first_seen),last_seen=max(last_seen,excluded.last_seen),sources=excluded.sources,
-          expires_at=max(expires_at,excluded.expires_at),title=coalesce(excluded.title,title)`)
-          .run(url, host, entry.lastSeen, now, sources, expires, typeof entry.title === 'string' && entry.title ? entry.title.slice(0, 300) : null);
+          expires_at=max(expires_at,excluded.expires_at),title=coalesce(excluded.title,title),tickers=coalesce(excluded.tickers,tickers)`)
+          .run(url, host, entry.lastSeen, now, sources, expires, typeof entry.title === 'string' && entry.title ? entry.title.slice(0, 300) : null,
+            Array.isArray(entry.tickers) && entry.tickers.length ? JSON.stringify(entry.tickers.filter(t => /^[A-Z0-9]{2,8}:[A-Za-z0-9.]{1,12}$/.test(t)).slice(0, 10)) : null);
         prior ? updated++ : added++;
       }
     });

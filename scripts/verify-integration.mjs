@@ -50,6 +50,7 @@ const checks = [
     'tests/ai-delivery.test.mjs',
     'tests/company-feeds.test.mjs',
     'tests/gnews.test.mjs',
+    'tests/finlight.test.mjs',
   ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',

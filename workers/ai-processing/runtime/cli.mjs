@@ -47,9 +47,16 @@ async function main(argv) {
     options[key] = flags.has(key) ? true : argv[++i];
     assert(options[key] !== undefined, 'ARGUMENT_VALUE_REQUIRED');
   }
-  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue', 'push-drafts'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
+  assert(['import', 'status', 'work', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report'].includes(command) && typeof options['--db'] === 'string', 'COMMAND_REQUIRED');
   const filename = resolve(options['--db']);
-  if (['status', 'export-drafts', 'export-requeue', 'push-drafts'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  if (['status', 'export-drafts', 'export-requeue', 'push-drafts', 'news-report'].includes(command)) assert(existsSync(filename), 'PROCESSING_DATABASE_NOT_FOUND');
+  // News-source evaluation (2026-11-28): counts only, read only.
+  if (command === 'news-report') {
+    const { newsReport } = await import('./news-report.mjs');
+    const store = new BacklogStore(filename);
+    try { console.log(JSON.stringify(newsReport(store.db))); } finally { store.close(); }
+    return;
+  }
   // Publish stage 2A: one manual cloud delivery pass (same gate as the service: the push setting file), or --check,
   // which only connects with the intake secret and reports the session role and the queue status (nothing is sent).
   if (command === 'push-drafts') {
