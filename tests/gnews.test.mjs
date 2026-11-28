@@ -1,35 +1,72 @@
-// GNews discovery (2026-11-28): signal entries only (URL, title, time), daily request budget, key never in errors.
+// GNews discovery (2026-11-28, Codex review fixes): key only in the X-Api-Key header, strict key format, a daily request
+// ledger and query rotation that survive restarts, signal-only recording (no job, no fetch path), background loop.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGnewsClient, MAX_PER_DAY, QUERIES } from '../workers/ai-processing/runtime/gnews.mjs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BacklogStore } from '../workers/ai-processing/runtime/store.mjs';
+import { createGnewsClient, startGnewsLoop, MAX_PER_DAY, QUERIES } from '../workers/ai-processing/runtime/gnews.mjs';
 
-const KEY = 'a'.repeat(32), NOW = Date.parse('2026-11-28T05:00:00Z');
+const KEY = '0123456789abcdef0123456789abcdef', NOW = Date.parse('2026-11-28T05:00:00Z');
 const article = (n, extra = {}) => ({ title: 'T' + n, description: 'desc', content: 'full body ' + n, url: `https://news.example.com/a/${n}`, publishedAt: '2026-11-28T04:00:00Z', source: { name: 'S' }, ...extra });
+function withStore(fn) {
+  const dir = mkdtempSync(join(tmpdir(), 'gn-'));
+  const store = new BacklogStore(join(dir, 'p.sqlite'));
+  return Promise.resolve(fn(store)).finally(() => { store.close(); rmSync(dir, { recursive: true, force: true }); });
+}
 
-test('one pass: three requests (US, Korea, rotating query), entries carry no description or content', async () => {
-  const urls = [];
-  const fetchImpl = async url => { urls.push(String(url)); return { ok: true, json: async () => ({ articles: [article(urls.length), article(urls.length + 10, { url: 'javascript:alert(1)' })] }) }; };
-  const c = createGnewsClient({ apiKey: KEY, fetchImpl, now: () => NOW });
-  const r = await c.pass();
-  assert.equal(urls.length, 3);
-  assert.ok(urls[0].includes('top-headlines') && urls[0].includes('country=us') && urls[1].includes('country=kr') && urls[1].includes('lang=ko'));
-  assert.ok(urls[2].includes('search') && urls[2].includes(encodeURIComponent(QUERIES[0]).replace(/%20/g, '+').slice(0, 10)) || urls[2].includes('q='));
-  assert.equal(r.entries.length, 3, 'non-http links dropped');
-  for (const e of r.entries) {
-    assert.deepEqual(Object.keys(e).sort(), ['expiresAt', 'lastSeen', 'sourceId', 'title', 'url']);
-    assert.ok(e.sourceId.startsWith('gnews:'));
-    assert.equal(e.expiresAt, NOW + 7 * 86400000);
-  }
-});
+test('one pass: US and Korean headlines plus the rotating query; key only in the header; entries without bodies', () => withStore(async store => {
+  const calls = [];
+  const fetchImpl = async (url, init) => { calls.push({ url: String(url), init }); return { ok: true, json: async () => ({ articles: [article(calls.length), article(calls.length + 10, { url: 'javascript:alert(1)' })] }) }; };
+  const r = await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl, now: () => NOW }).pass();
+  assert.equal(calls.length, 3);
+  assert.ok(calls.every(c => !c.url.includes(KEY) && c.init.headers['X-Api-Key'] === KEY && c.init.redirect === 'error'));
+  assert.ok(calls[0].url.includes('country=us') && calls[1].url.includes('country=kr') && calls[1].url.includes('lang=ko'));
+  assert.equal(new URL(calls[2].url).searchParams.get('q'), QUERIES[0]);
+  assert.equal(r.entries.length, 3);
+  for (const e of r.entries) assert.deepEqual(Object.keys(e).sort(), ['expiresAt', 'lastSeen', 'sourceId', 'title', 'url']);
+}));
 
-test('daily budget and errors that never contain the key', async () => {
+test('the daily budget and the query rotation survive restarts', () => withStore(async store => {
   let n = 0;
-  const ok = async () => { n++; return { ok: true, json: async () => ({ articles: [] }) }; };
-  const c = createGnewsClient({ apiKey: KEY, fetchImpl: ok, now: () => NOW });
-  for (let i = 0; i < MAX_PER_DAY / 3; i++) await c.pass();
-  await assert.rejects(c.pass(), /GNEWS_DAILY_BUDGET/);
-  assert.equal(n, MAX_PER_DAY);
-  const bad = createGnewsClient({ apiKey: KEY, fetchImpl: async () => ({ ok: false, status: 403 }), now: () => NOW });
+  const fetchImpl = async url => { n++; return { ok: true, json: async () => ({ articles: [] }) }; };
+  const seen = [];
+  for (let life = 0; life < 3; life++) {
+    const c = createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: async (url, init) => { if (String(url).includes('/search')) seen.push(new URL(String(url)).searchParams.get('q')); return fetchImpl(url, init); }, now: () => NOW });
+    await c.pass();
+  }
+  assert.deepEqual(seen, QUERIES.slice(0, 3), 'a new process continues the rotation');
+  const c = createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl, now: () => NOW });
+  for (let i = 3; i < MAX_PER_DAY / 3; i++) await c.pass();
+  await assert.rejects(createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl, now: () => NOW }).pass(), /GNEWS_DAILY_BUDGET/);
+  assert.equal(n, MAX_PER_DAY, 'never more than the daily cap across process lifetimes');
+  await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl, now: () => NOW + 86400000 }).pass();
+  assert.equal(n, MAX_PER_DAY + 3, 'a new UTC day starts a new count');
+}));
+
+test('signals only: recorded with title and time, no job created even for an official host; repeats refresh', () => withStore(async store => {
+  const entries = [
+    { sourceId: 'gnews:headlines-us-business', url: 'https://news.example.com/a/1', title: 'First', lastSeen: NOW - 3600_000, expiresAt: NOW + 7 * 86400000 },
+    { sourceId: 'gnews:search', url: 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=1', title: 'Official host', lastSeen: NOW, expiresAt: NOW + 7 * 86400000 },
+    { sourceId: 'telegram:x', url: 'https://news.example.com/a/2', title: 'wrong source', lastSeen: NOW, expiresAt: NOW + 86400000 },
+  ];
+  assert.deepEqual(store.recordNewsSignals(entries, NOW), { added: 2, updated: 0, rejected: 1 });
+  assert.equal(store.db.prepare('SELECT count(*) n FROM jobs').get().n, 0, 'nothing enters the reading queue');
+  const row = store.db.prepare('SELECT * FROM news_signals WHERE url=?').get('https://news.example.com/a/1');
+  assert.equal(row.title, 'First'); assert.equal(row.first_seen, NOW - 3600_000);
+  store.recordNewsSignals([{ ...entries[0], sourceId: 'gnews:search', lastSeen: NOW }], NOW + 60_000);
+  const again = store.db.prepare('SELECT * FROM news_signals WHERE url=?').get('https://news.example.com/a/1');
+  assert.equal(again.last_seen, NOW + 60_000); assert.deepEqual(JSON.parse(again.sources), ['gnews:headlines-us-business', 'gnews:search']);
+}));
+
+test('errors never carry the key; the key format is strict; the loop stops on abort', () => withStore(async store => {
+  const bad = createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: async () => ({ ok: false, status: 403 }), now: () => NOW });
   await assert.rejects(bad.pass(), error => error.message === 'GNEWS_HTTP_403' && !error.message.includes(KEY));
-  assert.throws(() => createGnewsClient({ apiKey: 'short' }), /GNEWS_KEY_INVALID/);
-});
+  assert.throws(() => createGnewsClient({ apiKey: 'A'.repeat(32), db: store.db }), /GNEWS_KEY_INVALID/);
+  const stop = new AbortController(), logs = [];
+  const loop = startGnewsLoop({ client: { pass: async () => ({ entries: [], requestsToday: 1 }) }, record: () => ({ added: 0 }), log: x => logs.push(x), signal: stop.signal,
+    sleep: () => new Promise((resolve, reject) => stop.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })) });
+  await new Promise(r => setTimeout(r, 10)); stop.abort(); await loop;
+  assert.equal(logs[0].event, 'AI_GNEWS');
+}));

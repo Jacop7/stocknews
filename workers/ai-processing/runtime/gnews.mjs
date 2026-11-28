@@ -1,9 +1,10 @@
-// GNews Essential (owner subscribed 2026-11-28): US/global market news discovery. Decision B: news is a signal only —
-// the article URL, title, source and publication time become news-signal links (the pipeline's SIGNAL route), never a
-// read original; the description/content fields GNews returns are discarded here and never stored.
-// Budget: the plan allows 1,000 requests a day; this client makes at most 3 requests every 15 minutes (<=288 a day):
-// business top headlines for the US and for Korea (Korean) and one rotating US market query. The API key goes only to gnews.io, as the apikey query
-// parameter, and is never logged (errors carry only a status code).
+// GNews Essential (owner subscribed 2026-11-28): market news discovery. Decision B: news is a signal only — article
+// URL, title, source query and publication time go straight to news signals (store.recordNewsSignals: no job, no
+// fetch path, no body); the description/content fields GNews returns are dropped here.
+// Budget: the plan allows 1,000 requests a day; at most 3 requests every 15 minutes and at most 300 a UTC day, counted
+// in the processor database (survives restarts), as is the rotating query cursor.
+// The API key travels only in the X-Api-Key header to gnews.io (never in a URL), redirects are refused, errors carry
+// only a status code. Requests stop with the service (abort) or after 15 seconds.
 const API = 'https://gnews.io/api/v4/';
 export const QUERIES = [
   'stock market OR "S&P 500" OR Nasdaq',
@@ -17,23 +18,37 @@ export const QUERIES = [
 ];
 export const EVERY = 15 * 60_000, MAX_PER_DAY = 300;
 
-export function createGnewsClient({ apiKey, fetchImpl = fetch, now = Date.now }) {
-  if (typeof apiKey !== 'string' || !/^[A-Za-z0-9]{20,64}$/.test(apiKey)) throw new Error('GNEWS_KEY_INVALID');
-  let day = null, used = 0, turn = 0;
+export function createGnewsClient({ apiKey, db, fetchImpl = fetch, now = Date.now, signal }) {
+  if (typeof apiKey !== 'string' || !/^[a-f0-9]{32}$/.test(apiKey)) throw new Error('GNEWS_KEY_INVALID');
+  db.exec('CREATE TABLE IF NOT EXISTS gnews_ledger(day TEXT PRIMARY KEY,used INTEGER NOT NULL,turn INTEGER NOT NULL) STRICT');
+  const today = () => new Date(now()).toISOString().slice(0, 10);
+  // Reserves one request in today's ledger before it is sent (a crash never under-counts).
+  function reserve() {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const row = db.prepare('SELECT used,turn FROM gnews_ledger WHERE day=?').get(today()) ?? { used: 0, turn: db.prepare('SELECT turn FROM gnews_ledger ORDER BY day DESC LIMIT 1').get()?.turn ?? 0 };
+      if (row.used >= MAX_PER_DAY) { db.exec('COMMIT'); throw new Error('GNEWS_DAILY_BUDGET'); }
+      db.prepare('INSERT INTO gnews_ledger VALUES (?,?,?) ON CONFLICT(day) DO UPDATE SET used=used+1').run(today(), row.used + 1, row.turn);
+      db.exec('COMMIT');
+    } catch (error) { if (db.isTransaction) db.exec('ROLLBACK'); throw error; }
+  }
+  function nextQuery() {
+    const turn = db.prepare('SELECT turn FROM gnews_ledger WHERE day=?').get(today())?.turn ?? 0;
+    db.prepare('UPDATE gnews_ledger SET turn=? WHERE day=?').run(turn + 1, today());
+    return QUERIES[turn % QUERIES.length];
+  }
   async function call(path, params) {
-    const today = new Date(now()).toISOString().slice(0, 10);
-    if (today !== day) { day = today; used = 0; }
-    if (used >= MAX_PER_DAY) throw new Error('GNEWS_DAILY_BUDGET');
-    used++;
+    reserve();
     const url = new URL(path, API);
-    for (const [k, v] of Object.entries({ ...params, apikey: apiKey })) url.searchParams.set(k, String(v));
-    const response = await fetchImpl(url, { redirect: 'error', signal: AbortSignal.timeout(15_000), headers: { 'User-Agent': 'JudojuNews-Discovery/1.0' } });
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
+    const response = await fetchImpl(url, { redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
+      headers: { 'X-Api-Key': apiKey, 'User-Agent': 'JudojuNews-Discovery/1.0' } });
     if (!response.ok) throw new Error('GNEWS_HTTP_' + response.status);
     const body = await response.json();
     if (!Array.isArray(body?.articles)) throw new Error('GNEWS_RESPONSE_INVALID');
-    return body.articles;
+    return body.articles.slice(0, 100);
   }
-  // Signal entries for store.importLinks: URL, title and publication time only.
+  // Signal entries for store.recordNewsSignals: URL, title and publication time only.
   const toEntries = (articles, sourceId, at) => articles.flatMap(a => {
     try {
       const u = new URL(a.url);
@@ -43,15 +58,27 @@ export function createGnewsClient({ apiKey, fetchImpl = fetch, now = Date.now })
     } catch { return []; }
   });
   return {
-    // One discovery pass: US business headlines and the next market query, articles from the last 24 hours.
+    // One discovery pass: US and Korean business headlines and the next market query, articles from the last 24 hours.
     async pass() {
       const at = now(), from = new Date(at - 86400000).toISOString().replace(/\.\d{3}Z$/, 'Z');
       const keep = { nullable: 'description,content,image' };
       const headlines = await call('top-headlines', { category: 'business', lang: 'en', country: 'us', max: 25, from, ...keep });
       const korea = await call('top-headlines', { category: 'business', lang: 'ko', country: 'kr', max: 25, from, ...keep });
-      const query = QUERIES[turn++ % QUERIES.length];
+      const query = nextQuery();
       const found = await call('search', { q: query, lang: 'en', max: 25, from, sortby: 'publishedAt', ...keep });
-      return { requestsToday: used, entries: [...toEntries(headlines, 'gnews:headlines-us-business', at), ...toEntries(korea, 'gnews:headlines-kr-business', at), ...toEntries(found, 'gnews:search', at)] };
+      return { query, requestsToday: db.prepare('SELECT used FROM gnews_ledger WHERE day=?').get(today())?.used ?? 0,
+        entries: [...toEntries(headlines, 'gnews:headlines-us-business', at), ...toEntries(korea, 'gnews:headlines-kr-business', at), ...toEntries(found, 'gnews:search', at)] };
     },
   };
+}
+
+// Background loop beside the processing loop (never blocks processing, delivery or the heartbeat).
+export function startGnewsLoop({ client, record, log, signal, sleep, every = EVERY }) {
+  return (async () => {
+    while (!signal.aborted) {
+      try { const r = await client.pass(); log({ event: 'AI_GNEWS', entries: r.entries.length, requestsToday: r.requestsToday, ...record(r.entries) }); }
+      catch (error) { if (!signal.aborted) log({ event: 'AI_GNEWS_FAILED', reason: /^GNEWS_[A-Z_0-9]+$/.test(error?.message ?? '') ? error.message : 'GNEWS_FAILED' }); }
+      await sleep(every).catch(() => {});
+    }
+  })();
 }

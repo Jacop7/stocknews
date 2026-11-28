@@ -152,6 +152,30 @@ export class BacklogStore {
         expiresAt: Math.min(doc.expires_at, ...sources.map(source => source.expiresAt)), sources } : null;
     }).filter(Boolean);
   }
+  // News-API discoveries (GNews, 2026-11-28) go straight to news signals: no job, no fetch path, no body, whatever
+  // the destination host or the configuration. Title and publication time are kept; repeats refresh last_seen,
+  // sources and expiry. Returns counts only.
+  recordNewsSignals(entries, now) {
+    assert(Array.isArray(entries) && entries.length <= 1000, 'SIGNAL_LIMIT');
+    if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
+    let added = 0, updated = 0, rejected = 0;
+    this.transaction(() => {
+      for (const entry of entries) {
+        let url; try { url = urlKey(entry.url); } catch { rejected++; continue; }
+        if (typeof entry.sourceId !== 'string' || !/^gnews:[a-z0-9-]{1,60}$/.test(entry.sourceId) || !Number.isSafeInteger(entry.expiresAt) || entry.expiresAt <= now
+          || !Number.isSafeInteger(entry.lastSeen) || entry.lastSeen > now + 300000) { rejected++; continue; }
+        const expires = Math.min(entry.expiresAt, now + 7 * day), host = new URL(url).hostname.toLowerCase();
+        const prior = this.db.prepare('SELECT sources FROM news_signals WHERE url=?').get(url);
+        const sources = JSON.stringify([...new Set([...(prior ? JSON.parse(prior.sources) : []), entry.sourceId])].sort());
+        this.db.prepare(`INSERT INTO news_signals(url,host,first_seen,last_seen,sources,expires_at,title) VALUES (?,?,?,?,?,?,?) ON CONFLICT(url) DO UPDATE SET
+          first_seen=min(first_seen,excluded.first_seen),last_seen=max(last_seen,excluded.last_seen),sources=excluded.sources,
+          expires_at=max(expires_at,excluded.expires_at),title=coalesce(excluded.title,title)`)
+          .run(url, host, entry.lastSeen, now, sources, expires, typeof entry.title === 'string' && entry.title ? entry.title.slice(0, 300) : null);
+        prior ? updated++ : added++;
+      }
+    });
+    return { added, updated, rejected };
+  }
   // Records a news link as a signal (no fetch, no body) and closes the job. Several short links to the same
   // story merge into one row; the channels that carried it are kept for counting distinct sources.
   recordSignal(job, url, now) {
