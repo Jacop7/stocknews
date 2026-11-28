@@ -59,6 +59,9 @@ const checks = [
   ['Real public read database test (migration 59)', ['scripts/test-real-public-read-sql.mjs']],
   ['Real publish intake and withdrawal database test (migrations 60-61)', ['scripts/test-real-publish-ingest-sql.mjs']],
   ['AI version adoption database test (migration 62)', ['scripts/test-ai-adoption-sql.mjs']],
+  // Publish stage 2A: the cloud intake role on a scratch database (real login), the online admin core (22 functions).
+  ['AI intake role test (CLOUD13 S3, scratch database)', ['scripts/test-ai-intake-sql.mjs']],
+  ['Online admin core test (CLOUD11-online, 22 editor functions)', ['scripts/test-cloud11-online-core.mjs']],
   ...['workers/collectors', 'workers/ai-processing', 'workers/home-ranking', 'apps/admin', 'apps/mobile'].map(folder => [
     'TypeScript ' + folder, ['node_modules/typescript/bin/tsc', '-p', folder + '/tsconfig.json', '--noEmit'],
   ]),
