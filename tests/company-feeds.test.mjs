@@ -87,7 +87,7 @@ test('robots.txt that disallows everything and lists no sitemap stops the host f
   const o = 'https://corp.example.com';
   const { transport, calls } = site({ [o + '/robots.txt']: { type: 'text/plain', body: 'User-agent: *\nDisallow: /\n' } });
   const r = await discovery(store, transport)({ loadConfig: () => config() });
-  assert.equal(r.state, 'ROBOTS_DENIED');
+  assert.equal(r.state, 'NO_RECENT', 'nothing beyond robots.txt is requested');
   assert.deepEqual(calls, [o + '/robots.txt']);
 }));
 
@@ -102,3 +102,73 @@ test('redirects only to granted hosts; ungranted hosts are never requested', () 
   assert.equal(r.state, 'NO_RECENT');
   assert.ok(!calls.some(u => u.includes('example.net')));
 }));
+
+// Codex review fixes (2026-11-28).
+test('cross-host: feeds, redirects and links on another enabled host are never requested or queued', () => withStore(async store => {
+  const o = 'https://corp.example.com', other = 'https://other.example.com';
+  const cfg = () => config({ sources: [grant('corp.example.com'), grant('other.example.com')] });
+  const { transport, calls } = site({
+    [o + '/robots.txt']: { type: 'text/plain', body: `Sitemap: ${other}/sitemap.xml\n` },
+    [o + '/']: { status: 301, location: other + '/' },
+    [o + '/sitemap.xml']: { type: 'application/xml', body: `<urlset><url><loc>${other}/news/x</loc><lastmod>${iso(NOW - day)}</lastmod></url><url><loc>${o}/news/y</loc><lastmod>${iso(NOW - day)}</lastmod></url></urlset>` },
+    [other + '/robots.txt']: { type: 'text/plain', body: 'User-agent: *\nDisallow: /\n' },
+  });
+  const r = await discovery(store, transport)({ loadConfig: cfg });
+  assert.equal(r.host, 'corp.example.com');
+  assert.deepEqual(r.links.map(l => l.url), [o + '/news/y']);
+  assert.ok(!calls.some(u => u.startsWith(other)), 'no request to the other host');
+}));
+
+test('RSS/Atom entries need a date inside the window: undated, stale and future items are dropped', () => withStore(async store => {
+  const o = 'https://corp.example.com';
+  const item = (id, date) => `<item><title>t${id}</title><link>${o}/n/${id}</link>${date ? `<pubDate>${new Date(date).toUTCString()}</pubDate>` : ''}</item>`;
+  const { transport } = site({
+    [o + '/robots.txt']: { type: 'text/plain', body: '' },
+    [o + '/']: { type: 'text/html', body: '<link rel="alternate" type="application/rss+xml" href="/rss">' },
+    [o + '/rss']: { type: 'application/rss+xml', body: `<rss><channel>${item(1, NOW - day)}${item(2, null)}${item(3, NOW - 9 * day)}${item(4, NOW + 3 * day)}</channel></rss>` },
+  });
+  const r = await discovery(store, transport)({ loadConfig: () => config() });
+  assert.deepEqual(r.links.map(l => l.url), [o + '/n/1']);
+}));
+
+test('a malformed percent-encoded URL is skipped without failing the host', () => withStore(async store => {
+  const o = 'https://corp.example.com';
+  const { transport } = site({
+    [o + '/robots.txt']: { type: 'text/plain', body: '' },
+    [o + '/sitemap.xml']: { type: 'application/xml', body: `<urlset><url><loc>${o}/news/%ZZ</loc><lastmod>${iso(NOW - day)}</lastmod></url><url><loc>${o}/news/ok</loc><lastmod>${iso(NOW - day)}</lastmod></url></urlset>` },
+  });
+  const r = await discovery(store, transport)({ loadConfig: () => config() });
+  assert.equal(r.state, 'FOUND');
+  assert.deepEqual(r.links.map(l => l.url), [o + '/news/ok']);
+}));
+
+test('the day is reserved before any request: a failed or interrupted host waits for the next day', () => withStore(async store => {
+  const o = 'https://corp.example.com';
+  const transport = async () => { throw new Error('network down'); };
+  const run = discovery(store, transport);
+  assert.equal((await run({ loadConfig: () => config() })).state, 'FAILED');
+  assert.equal((await discovery(store, transport, NOW + 7 * 3600_000)({ loadConfig: () => config() })).state, 'IDLE', 'not retried after 6 hours');
+  assert.equal(store.db.prepare('SELECT next_at FROM company_feeds WHERE host=?').get('corp.example.com').next_at, NOW + day);
+  assert.equal(o, 'https://corp.example.com');
+}));
+
+test('parsing is linear and bounded: 4 MiB of unterminated entries or DTDs is cheap', () => {
+  const evil = '<rss>' + '<item><title>x'.repeat(300000);
+  const t = Date.now(); const r = parseFeed(evil);
+  assert.ok(Date.now() - t < 500, 'took ' + (Date.now() - t) + ' ms');
+  assert.equal(r.items.length, 0);
+  assert.equal(parseFeed('<!DOCTYPE x [<!ENTITY a "b">]><rss><item><link>https://a/n</link></item></rss>').kind, 'UNKNOWN');
+  const many = '<urlset>' + `<url><loc>https://a/news/1</loc><lastmod>2026-11-27</lastmod></url>`.repeat(5000) + '</urlset>';
+  assert.equal(parseFeed(many).items.length, 500);
+});
+
+test('the background loop runs beside processing and stops on abort', async () => {
+  const { startCompanyFeedLoop } = await import('../workers/ai-processing/runtime/company-feeds.mjs');
+  const stop = new AbortController(); let calls = 0; const logs = [];
+  const loop = startCompanyFeedLoop({ discoverOne: async () => { calls++; return { host: 'h', state: 'NO_RECENT', requests: 1, links: [] }; },
+    loadConfig: () => ({}), importLinks: () => ({}), log: x => logs.push(x), signal: stop.signal,
+    sleep: ms => new Promise((resolve, reject) => { const t = setTimeout(resolve, 5); stop.signal.addEventListener('abort', () => { clearTimeout(t); reject(new Error('aborted')); }, { once: true }); }) });
+  await new Promise(r => setTimeout(r, 30));
+  stop.abort(); await loop;
+  assert.ok(calls >= 2 && logs.every(l => l.event === 'AI_COMPANY_FEED'));
+});

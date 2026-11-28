@@ -8,7 +8,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { BacklogStore } from './store.mjs';
 import { validateConfig } from './contracts.mjs';
 import { createOriginalReader, createOriginalTransport } from './original.mjs';
-import { createCompanyFeedDiscovery } from './company-feeds.mjs';
+import { createCompanyFeedDiscovery, startCompanyFeedLoop } from './company-feeds.mjs';
 import { createLinkResolver } from './resolver.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
@@ -23,7 +23,7 @@ const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUD
   key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key',
   corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url), heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
 const execute = env.JUDOJU_AI_EXECUTE === '1';
-const importEvery = 10 * 60_000, dartEvery = 30 * 60_000, companyEvery = 60_000;
+const importEvery = 10 * 60_000, dartEvery = 30 * 60_000;
 
 const log = event => console.log(JSON.stringify({ at: new Date().toISOString(), ...event }));
 export function effectiveConfig(raw, executeAllowed) {
@@ -45,9 +45,12 @@ async function main() {
   const processor = createBacklogProcessor({ store, loadConfig, model, readOriginal, resolveLink: createLinkResolver(robots) });
   const stop = new AbortController(); process.once('SIGTERM', () => stop.abort()); process.once('SIGINT', () => stop.abort());
   log({ event: 'AI_SERVICE_START', execute, readOriginals: initial.readOriginals, callModels: initial.callModels, maxDailyCalls: initial.maxDailyCalls, dart: Boolean(dart), watchedCompanies: corpCodes.size });
-  // Company press/newsroom/IR feeds (2026-11-28): one host per minute, each host once a day.
-  const discoverCompany = createCompanyFeedDiscovery({ transport: createOriginalTransport(), store });
-  let nextImport = 0, nextDart = 0, nextCompany = 0;
+  // Company press/newsroom/IR feeds (2026-11-28): a separate background loop (one host per minute, each host once a
+  // day), so its polite waits never hold up processing, delivery or the heartbeat.
+  const pause = ms => sleep(ms, undefined, { signal: stop.signal });
+  const discoverOne = createCompanyFeedDiscovery({ transport: createOriginalTransport(), store, sleep: pause, signal: stop.signal });
+  const companyLoop = startCompanyFeedLoop({ discoverOne, loadConfig, importLinks: links => store.importLinks(links, Date.now()), log, signal: stop.signal, sleep: pause });
+  let nextImport = 0, nextDart = 0;
   try {
     while (!stop.signal.aborted) {
       const now = Date.now();
@@ -64,13 +67,6 @@ async function main() {
         catch (error) { log({ event: 'AI_DART_LIST_FAILED', reason: /^DART_[A-Z_0-9]+$/.test(error.message) ? error.message : 'DART_LIST_FAILED' }); }
         nextDart = now + dartEvery;
       }
-      if (now >= nextCompany) {
-        try {
-          const found = await discoverCompany({ loadConfig });
-          if (found.host) log({ event: 'AI_COMPANY_FEED', host: found.host, state: found.state, requests: found.requests ?? 0, links: found.links.length, ...(found.links.length ? store.importLinks(found.links, Date.now()) : {}) });
-        } catch { log({ event: 'AI_COMPANY_FEED_FAILED' }); }
-        nextCompany = Date.now() + companyEvery;
-      }
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }
       if (result.state !== 'IDLE' && result.state !== 'PAUSED') log({ event: 'AI_STEP', state: result.state, reason: result.reason ?? null });
@@ -85,7 +81,12 @@ async function main() {
       const idle = result.state === 'IDLE' || result.state === 'PAUSED';
       await sleep(idle ? 30_000 : 1000, undefined, { signal: stop.signal }).catch(error => { if (!stop.signal.aborted) throw error; });
     }
-  } finally { store.close(); }
+  } finally {
+    stop.abort();
+    // Let an in-flight feed request finish (8 s timeout) before the database closes.
+    await Promise.race([companyLoop, sleep(10_000)]).catch(() => {});
+    store.close();
+  }
 }
 
 if (process.argv[1]?.endsWith('service.mjs')) main().catch(() => { console.error('AI_SERVICE_FAILED'); process.exitCode = 1; });
