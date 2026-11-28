@@ -42,7 +42,7 @@
 | 게시 경로 2A(클라우드) | **적용·운영 중**(2026-11-28, 사용자 승인): CLOUD13 `20261128000108` cloud13_real_intake(로컬 56~62를 클라우드용으로 렌더링, 클라우드 관측값과 같게 만든 연습 DB에서 사전 검증, Codex READY) → 접수 전용 역할 `judoju_ai_intake`(풀러 로그인, `ai_intake.submit`·`withdraw`만, 비밀번호는 SCRAM 검증값만 SQL Editor에, 원문은 서버 `$base/intake/db.json`에만) → 어드민 채택 권한(편집 함수 22개) → 실데이터 모드 ON(공개 읽기는 합성 유지, 실데이터 게시·예약 차단 실검사) → pg_cron 켜고 `judoju-ai-inbox-cleanup` 매일 04:00 KST. 처리기 푸시 ON: 첫 전달 12건 모두 RECEIVED(클라우드 실데이터 DRAFT 12, 공개 0). 인벤토리 v4·공개 읽기 증명 재발급·조회 서버 재배포. 비상 회수 `scripts/ops/ai-intake-online.ps1 revoke`, 푸시 끄기 `scripts/ops/ai-processor.ps1 push-off` |
 | 남은 것 | 온라인 어드민에서 실데이터 초안 검토·채택 화면 확인(소유자 로그인 필요), CLOUD11 남은 실측, 2B(클라우드 검토용 공개 읽기), 설치·알림 서비스 온라인화, 운영 도메인(추후) |
 
-## AI 처리기 (같은 서버, 2026-11-28 11:45 KST 갱신: 이미지 `judoju-news-ai-processor:35cfbf2` = 조정 커밋 + 2A S5 전달 대기열, 실행 모드 유지, 클라우드 푸시 ON; 아래 표의 d591f92 내용은 이전 기록)
+## AI 처리기 (같은 서버, 2026-11-28 13:05 KST 갱신: 이미지 `judoju-news-ai-processor:c36dbc7` — 기업 보도자료·뉴스룸·IR 피드 발견(367곳, 사이트당 하루 1회, robots·5초 간격, 첫 방문 3billion.io FOUND 2건)과 GNews Essential 뉴스 신호(15분마다 3요청, 첫 회 75건, 하루 최대 300회) 가동. 클라우드 CLOUD14 `20261128000109`로 실데이터 출처 369곳. 이전 갱신(11:45: 이미지 `judoju-news-ai-processor:35cfbf2` = 조정 커밋 + 2A S5 전달 대기열, 실행 모드 유지, 클라우드 푸시 ON; 아래 표의 d591f92 내용은 이전 기록)
 
 | 항목 | 상태 |
 |---|---|
