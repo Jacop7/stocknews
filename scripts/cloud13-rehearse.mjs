@@ -99,10 +99,19 @@ try {
       console.log('PASS ' + file.split('/').pop());
     }
     // The intake role's complete privilege set, as the processor's status check computes it.
-    const { PRIVILEGE_SET } = await import('../workers/ai-processing/runtime/intake-client.mjs');
-    const set = JSON.parse(ok(psql('supabase_admin', DB, `set role judoju_ai_intake;\n${PRIVILEGE_SET.replace(/ r$/, '::text r')};`)).trim().split('\n').at(-1));
-    assert.deepEqual(set, { functions: ['ai_intake.submit', 'ai_intake.withdraw'], relations: 0, schemas: [] });
-    console.log('PASS intake privilege set exactly the two functions');
+    const { PRIVILEGE_SET, privilegeSetExact } = await import('../workers/ai-processing/runtime/intake-client.mjs');
+    const privileges = (before = '') => JSON.parse(ok(psql('supabase_admin', DB, `begin;\n${before}\nset local role judoju_ai_intake;\n${PRIVILEGE_SET.replace(/ r$/, '::text r')};\nrollback;`))
+      .trim().split('\n').filter(line => line.startsWith('{')).at(-1));
+    assert.ok(privilegeSetExact(privileges()), 'intake privilege set');
+    // Widened authority must be caught (each injected grant is rolled back).
+    // (The product schemas have no sequences; a sequence grant is covered by the same relation query.)
+    for (const grant of ['grant select(angle_key) on private.issues to judoju_ai_intake;', 'grant update(angle_key) on private.issues to judoju_ai_intake;',
+      'grant create on schema ai_intake to judoju_ai_intake;', 'grant usage on schema private to judoju_ai_intake;', 'grant select on private.issues to judoju_ai_intake;',
+      'grant execute on function public.m1_public_identity() to judoju_ai_intake;']) {
+      ok(psql('supabase_admin', DB, `begin;\n${grant}\nrollback;`));
+      assert.equal(privilegeSetExact(privileges(grant)), false, 'not caught: ' + grant);
+    }
+    console.log('PASS intake privilege set exactly the two functions; injected column, schema, table and function grants are caught');
   }
 } finally {
   if (!process.argv.includes('--keep')) { dropScratch(DB); psql('supabase_admin', 'postgres', 'drop role if exists judoju_ai_intake;'); }

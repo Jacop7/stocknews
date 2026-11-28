@@ -19,10 +19,16 @@ export const PRIVILEGE_SET = `select jsonb_build_object(
   'functions',(select coalesce(jsonb_agg(n.nspname||'.'||p.proname order by n.nspname||'.'||p.proname),'[]') from pg_proc p join pg_namespace n on n.oid=p.pronamespace
      where n.nspname in ${PRODUCT} and p.proname<>'rls_auto_enable' and has_function_privilege(p.oid,'EXECUTE')),
   'relations',(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ${PRODUCT} and c.relkind in ('r','p','v','m','S','f')
-     and (has_table_privilege(c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') or (c.relkind='S' and has_sequence_privilege(c.oid,'USAGE,SELECT,UPDATE')))),
-  'schemas',(select coalesce(jsonb_agg(nspname order by nspname),'[]') from pg_namespace where nspname in ('private','judoju_control','supabase_migrations','auth','storage','vault','cron')
-     and has_schema_privilege(oid,'USAGE'))) r`;
-export const EXPECTED_PRIVILEGES = { functions: ['ai_intake.submit', 'ai_intake.withdraw'], relations: 0, schemas: [] };
+     and (has_table_privilege(c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') or (c.relkind<>'S' and has_any_column_privilege(c.oid,'SELECT,INSERT,UPDATE,REFERENCES'))
+       or (c.relkind='S' and has_sequence_privilege(c.oid,'USAGE,SELECT,UPDATE')))),
+  'schemas',(select coalesce(jsonb_object_agg(nspname,case when has_schema_privilege(oid,'USAGE') then 'U' else '' end||case when has_schema_privilege(oid,'CREATE') then 'C' else '' end),'{}')
+     from pg_namespace where nspname in ('public','private','judoju_control','ai_intake','supabase_migrations','auth','storage','vault','cron','extensions','graphql','graphql_public','realtime')
+     and (has_schema_privilege(oid,'USAGE') or has_schema_privilege(oid,'CREATE')))) r`;
+// Usage of public (PUBLIC's default) and of the intake schema only; no CREATE anywhere.
+export const EXPECTED_PRIVILEGES = { functions: ['ai_intake.submit', 'ai_intake.withdraw'], relations: 0, schemas: { ai_intake: 'U', public: 'U' } };
+export const privilegeSetExact = set => !!set && Object.keys(set).length === 3 && JSON.stringify(set.functions) === JSON.stringify(EXPECTED_PRIVILEGES.functions)
+  && Number(set.relations) === 0 && !!set.schemas && typeof set.schemas === 'object'
+  && JSON.stringify(Object.entries(set.schemas).sort()) === JSON.stringify(Object.entries(EXPECTED_PRIVILEGES.schemas).sort());
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 
 export function loadPushConfig(file = PUSH_FILE) {
@@ -64,9 +70,7 @@ export async function connectIntake(secret, { ca = readFileSync(CA_FILE, 'utf8')
       // The complete effective privilege set of the login (Codex CLOUD13 review): exactly the two intake functions,
       // no product table or sequence, no private schema usage.
       const set = (await client.query(PRIVILEGE_SET)).rows[0]?.r ?? null;
-      const exact = set && Object.keys(set).length === 3 && JSON.stringify(set.functions) === JSON.stringify(EXPECTED_PRIVILEGES.functions)
-        && Number(set.relations) === 0 && Array.isArray(set.schemas) && set.schemas.length === 0;
-      out.privilegeSet = exact ? 'DENIED' : 'UNEXPECTED_' + JSON.stringify(set).slice(0, 200);
+      out.privilegeSet = privilegeSetExact(set) ? 'DENIED' : 'UNEXPECTED_' + JSON.stringify(set).slice(0, 200);
       for (const [name, sql] of PROBES) {
         try { await client.query(sql); out[name] = 'ALLOWED'; } catch (error) { out[name] = error?.code === '42501' ? 'DENIED' : 'ERROR_' + String(error?.code ?? 'UNKNOWN').slice(0, 10); }
       }
