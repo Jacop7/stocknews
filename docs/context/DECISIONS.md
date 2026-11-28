@@ -4,6 +4,8 @@
 
 ## 2026-11-28
 
+- **GNews Essential 구독**(사용자 2026-11-28, 월 €49.99, 10일 무료 체험): 뉴스는 신호로만(결정 B). 처리기가 15분마다 미국·한국 비즈니스 헤드라인과 미국 시장 주제 검색 1개(최대 하루 300회, 플랜 한도 1,000) → 링크·제목·시각만 `news_signals`로, 본문·요약은 저장하지 않음(`workers/ai-processing/runtime/gnews.mjs`). 키는 `.local-data/gnews/gnews.key`(git 제외, 대시보드에서 화면·채팅 노출 없이 옮김)와 서버 `secrets/gnews.key`(600).
+
 - **웹 뉴스 수집 중단**("수집하지 말아줘 일단 웹뉴스", 2026-11-28): 수집기의 웹 뉴스·리포트 목록 수집을 끈다(`JUDOJU_WEB_NEWS=0`, 등록된 뉴스 와이어 포함 웹 요청 0). 텔레그램 링크 수집은 유지. 다시 켜려면 `scripts/ops/collector.ps1 deploy -WebNews`. 중단 직전 48시간 실적: 등록 39곳 중 링크가 들어온 곳은 약 10곳(Yahoo Finance·서울경제·DatacenterDynamics·이투데이·머니투데이·한스경제·CNBC·증권경제신문·인포스탁데일리·Focus Taiwan).
 
 - **기업 사이트 출처 전체 허가**("기업 사이트 다 켜줘 기업에서 홍보하라고 하는거니까", 2026-11-28): AI 처리기 출처 후보 중 기업 공식 사이트(보도자료·뉴스룸·IR) 367곳 ENABLED(`scripts/ops/enable-company-sources.mjs`, 버전 `approved-company-20261128`). 제외: 정부(`*.go.kr`), SEC, DART 웹(robots 금지, API만). robots.txt 준수·같은 호스트 방문 간격 유지, 내부 분석 근거용(게시·재배포 권한 아님), 원문 7일. 증권사 사이트는 계속 OFF. 참고: DB 실데이터 출처 허용 목록(`real_mode.allowed_source_hosts`, 최대 20곳)은 아직 DART·KIND만이라, 기업 사이트를 근거로 한 초안은 접수 단계에서 거부된다 → 후속 작업(허용 목록 표로 확장).

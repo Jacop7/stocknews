@@ -9,6 +9,7 @@ import { BacklogStore } from './store.mjs';
 import { validateConfig } from './contracts.mjs';
 import { createOriginalReader, createOriginalTransport } from './original.mjs';
 import { createCompanyFeedDiscovery, startCompanyFeedLoop } from './company-feeds.mjs';
+import { createGnewsClient, EVERY as gnewsEvery } from './gnews.mjs';
 import { createLinkResolver } from './resolver.mjs';
 import { createOpenAiModel } from './model.mjs';
 import { createBacklogProcessor } from './pipeline.mjs';
@@ -20,7 +21,7 @@ import { deliveryStatus } from './delivery.mjs';
 const env = process.env;
 const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUDOJU_AI_CONFIG ?? '/ai/config.json',
   telegram: env.JUDOJU_TELEGRAM_DB ?? '/collector/telegram-links.sqlite', web: env.JUDOJU_WEB_DB ?? '/collector/collection.sqlite',
-  key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key',
+  key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key', gnewsKey: env.JUDOJU_GNEWS_KEY_FILE ?? '/run/secrets/gnews.key',
   corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url), heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
 const execute = env.JUDOJU_AI_EXECUTE === '1';
 const importEvery = 10 * 60_000, dartEvery = 30 * 60_000;
@@ -50,7 +51,9 @@ async function main() {
   const pause = ms => sleep(ms, undefined, { signal: stop.signal });
   const discoverOne = createCompanyFeedDiscovery({ transport: createOriginalTransport(), store, sleep: pause, signal: stop.signal });
   const companyLoop = startCompanyFeedLoop({ discoverOne, loadConfig, importLinks: links => store.importLinks(links, Date.now()), log, signal: stop.signal, sleep: pause });
-  let nextImport = 0, nextDart = 0;
+  // GNews Essential (2026-11-28): news discovery as signals only, every 15 minutes (<=300 requests a day).
+  const gnews = existsSync(paths.gnewsKey) ? createGnewsClient({ apiKey: readFileSync(paths.gnewsKey, 'utf8').trim() }) : null;
+  let nextImport = 0, nextDart = 0, nextGnews = 0;
   try {
     while (!stop.signal.aborted) {
       const now = Date.now();
@@ -66,6 +69,11 @@ async function main() {
         try { const filings = await dart.newFilings(corpCodes, now); log({ event: 'AI_DART_LIST', filings: filings.length, ...store.importLinks(filings, now) }); }
         catch (error) { log({ event: 'AI_DART_LIST_FAILED', reason: /^DART_[A-Z_0-9]+$/.test(error.message) ? error.message : 'DART_LIST_FAILED' }); }
         nextDart = now + dartEvery;
+      }
+      if (gnews && now >= nextGnews) {
+        try { const r = await gnews.pass(); log({ event: 'AI_GNEWS', entries: r.entries.length, requestsToday: r.requestsToday, ...store.importLinks(r.entries, Date.now()) }); }
+        catch (error) { log({ event: 'AI_GNEWS_FAILED', reason: /^GNEWS_[A-Z_0-9]+$/.test(error?.message ?? '') ? error.message : 'GNEWS_FAILED' }); }
+        nextGnews = now + gnewsEvery;
       }
       let result;
       try { result = await processor.step(); } catch { result = { state: 'STEP_FAILED' }; }

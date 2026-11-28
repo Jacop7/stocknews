@@ -53,8 +53,8 @@ sudo -n docker exec $c node -e "let p='off';try{const v=JSON.parse(require('node
 
 $dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv data/real-source-hosts.json
 if ($dirty) { throw 'AI runtime sources have uncommitted changes; commit first.' }
-$config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'; $dartKey = Join-Path $repo '.local-data\dart\opendart.key'
-foreach ($file in $config, $key, $dartKey) { if (-not (Test-Path $file)) { throw "Missing $file" } }
+$config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'; $dartKey = Join-Path $repo '.local-data\dart\opendart.key'; $gnewsKey = Join-Path $repo '.local-data\gnews\gnews.key'
+foreach ($file in $config, $key, $dartKey, $gnewsKey) { if (-not (Test-Path $file)) { throw "Missing $file" } }
 $commit = (git -C $repo rev-parse --short HEAD).Trim()
 $stage = Join-Path $env:TEMP "judoju-ai-$commit"; Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue; New-Item -ItemType Directory $stage | Out-Null
 git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv data/real-source-hosts.json
@@ -99,6 +99,7 @@ services:
       - $base/config/config.json:/ai-config/config.json:ro
       - $base/secrets/openai.key:/run/secrets/openai.key:ro
       - $base/secrets/opendart.key:/run/secrets/opendart.key:ro
+      - $base/secrets/gnews.key:/run/secrets/gnews.key:ro
       - $base/push:/run/config/push:ro
       - $base/intake:/run/secrets/ai-intake:ro
     tmpfs: [/tmp]
@@ -124,10 +125,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }
 scp.exe @ssh $config "${server}:$base/config/config.json"; if ($LASTEXITCODE -ne 0) { throw 'Config upload failed' }
 scp.exe @ssh $key "${server}:$base/secrets/openai.key"; if ($LASTEXITCODE -ne 0) { throw 'Key upload failed' }
 scp.exe @ssh $dartKey "${server}:$base/secrets/opendart.key"; if ($LASTEXITCODE -ne 0) { throw 'DART key upload failed' }
+scp.exe @ssh $gnewsKey "${server}:$base/secrets/gnews.key"; if ($LASTEXITCODE -ne 0) { throw 'GNews key upload failed' }
 $deploy = @'
 set -euo pipefail
 R=__REMOTE__; B=__BASE__; T=judoju-news-ai-processor:__COMMIT__
-chmod 600 "$B/secrets/openai.key" "$B/secrets/opendart.key"; chmod 644 "$B/config/config.json"; chmod 711 "$B" "$B/config"; chmod 711 "$B/secrets"
+chmod 600 "$B/secrets/openai.key" "$B/secrets/opendart.key" "$B/secrets/gnews.key"; chmod 644 "$B/config/config.json"; chmod 711 "$B" "$B/config"; chmod 711 "$B/secrets"
 # Cloud delivery stays off unless push-on switched it on (a missing file is off).
 [ -f "$B/push/push.json" ] || { printf '{"enabled":false,"target":"cloud"}' > "$B/push/push.json"; chmod 600 "$B/push/push.json"; }
 chmod 711 "$B/push" "$B/intake"
