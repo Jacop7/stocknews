@@ -91,10 +91,13 @@ test('restarts: the ledger and rotation persist when the database is closed and 
       finally { store.close(); }
     }
     assert.deepEqual(seen, QUERIES.slice(0, 3));
-    // At used=298 the two headline requests reach the cap; the search is refused and its query is not consumed.
+    // Two below the cap, the two headline requests reach it; the search is refused (the round keeps what it got)
+    // and its query is not consumed.
     const store = new BacklogStore(file);
     try {
-      store.db.prepare('UPDATE gnews_ledger SET used=298 WHERE day=?').run(new Date(NOW).toISOString().slice(0, 10));
+      store.db.prepare('UPDATE gnews_ledger SET used=? WHERE day=?').run(MAX_PER_DAY - 2, new Date(NOW).toISOString().slice(0, 10));
+      const capped = await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: ok, now: () => NOW }).pass();
+      assert.deepEqual(capped.slots.map(s => s.failed ?? 'ok'), ['ok', 'ok', 'GNEWS_DAILY_BUDGET']);
       await assert.rejects(createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: ok, now: () => NOW }).pass(), /GNEWS_DAILY_BUDGET/);
       const next = [];
       await createGnewsClient({ apiKey: KEY, db: store.db, fetchImpl: async (url) => { if (String(url).includes('/search')) next.push(new URL(String(url)).searchParams.get('q')); return ok(); }, now: () => NOW + 86400000 }).pass();

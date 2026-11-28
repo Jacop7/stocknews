@@ -1,0 +1,706 @@
+{
+ "format": "SECTOR_MEMBERS_V1",
+ "sourceSha256": "5c86278ab12d16979a1f5fd7a100e15368db2450f1ebcf47e70aced66d84a5d2",
+ "registrySha256": "160a969756bfd291c81dda390a3490f46ac60bc12eed262e1818e5ba40a03dc6",
+ "masterSha256": "a2a9b5da3028332b635dd7ffe3e181e695f84e2e37f777913be2b6d076319ae4",
+ "sectors": [
+  {
+   "sectorId": "01b46609-a6f7-4e56-991f-661270559631",
+   "name": "전기차",
+   "companyIds": [
+    "4c47105a-8bf3-4773-b9dc-26106c804dc4",
+    "a11b4d8f-898c-4f8f-93ee-30aa862316b5"
+   ]
+  },
+  {
+   "sectorId": "0d83ab39-bae6-43da-ac37-03306c6c9523",
+   "name": "항공",
+   "companyIds": [
+    "0034665c-a473-4302-862d-883a2da72456",
+    "0e1dbba2-7c18-40ed-b20a-caebe1b3c321",
+    "1f8d01f7-f436-407d-8ae7-8a25f2080566",
+    "6503c413-a668-4f1d-8eb4-09af84e3da8f",
+    "8cb50aa5-16f8-4032-945c-65f0770b55d3",
+    "a7e3c48b-073d-4e94-a0bf-551b8bb5f3a9"
+   ]
+  },
+  {
+   "sectorId": "16d21442-b44a-4868-a9b7-96e930945683",
+   "name": "조선",
+   "companyIds": [
+    "030f3832-6791-4569-9da6-0cb2f2877e61",
+    "0d051168-9b94-4a4a-bc7b-0c4a718ec502",
+    "1595bee0-f3c0-46af-a381-b722132581ec",
+    "250cc275-bee5-4919-a2b2-97e0b453f2a1",
+    "6817295c-da04-4fb5-ae1c-3b08651b82ae",
+    "681a5707-9c4e-4015-a5b9-9ba1455967d9",
+    "72d1803a-6b3f-4f94-9846-9356f5ddd77b",
+    "8a0a7060-584b-446d-b6f2-1327ed1feb67",
+    "c5bad818-3671-4bb3-a1ab-6a5d28a5d671",
+    "dcf277a5-9a9d-4324-8beb-ba88849a3085",
+    "ed1a21ff-260b-40df-a8e6-84a8d903afef"
+   ]
+  },
+  {
+   "sectorId": "18571085-b70a-46a7-b92b-23eb207c4bd2",
+   "name": "철강",
+   "companyIds": [
+    "4b660ea6-16d9-4574-94b0-4d23b0c33ffa",
+    "578aa775-69cb-477a-b7c3-a0aa6660f9f1",
+    "7725ff87-068e-41a7-bf63-c712f075da02",
+    "7dc9aa5f-b78c-44de-a3ec-e805704cd169"
+   ]
+  },
+  {
+   "sectorId": "18e0efdb-0523-4328-8293-a665e85ffba8",
+   "name": "건설",
+   "companyIds": [
+    "78435fb4-bf92-40c4-8d2c-971a623f16c0",
+    "8776caf2-3254-4326-a548-3a980a166459",
+    "8fb95780-27fa-4f14-9cc9-0e8f45f93e58",
+    "e9c8906e-7343-46c1-a911-bca9176f6fbb"
+   ]
+  },
+  {
+   "sectorId": "1c83dd0a-d862-461d-a942-eede63b8381b",
+   "name": "반도체 OSAT",
+   "companyIds": [
+    "10fad434-b0ff-49b9-8338-0f03ffed1d7e",
+    "1c6d5802-7784-4b96-b7db-21fd247d8b43",
+    "364d5f49-701a-415a-b73f-f3bb2bf99cae",
+    "7f134843-bd08-4091-a61e-403dd2ca2c01",
+    "affe0188-f570-4ed9-b0b2-b20a642904e3"
+   ]
+  },
+  {
+   "sectorId": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc",
+   "name": "의료 AI",
+   "companyIds": [
+    "4dd7065d-9796-48fa-8467-dd7434048dfe",
+    "b2ab9c43-8734-4835-bbaa-aab423ad750b",
+    "bf00efcf-257e-4641-826d-26914ff8991d"
+   ]
+  },
+  {
+   "sectorId": "281578e0-01d6-4705-9e05-dfcf16f93851",
+   "name": "태양광",
+   "companyIds": [
+    "35fe3e8d-aedd-4855-b7f2-b8d5bf715600",
+    "cde964f3-2966-49be-b2bb-82d22e073766",
+    "fb1580f2-37fa-4281-91c3-9b2651d97d34"
+   ]
+  },
+  {
+   "sectorId": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4",
+   "name": "건설 기계",
+   "companyIds": [
+    "1b74b380-1d8d-4433-a59a-7489288d2628",
+    "645a6351-75b7-4a71-a9cc-9e4689110328",
+    "c0028857-6791-4c8e-852a-01244276eea2",
+    "c132681d-4a2c-4ba9-91df-458fc3cc1357",
+    "fea8f958-7858-4b64-bfef-2be90d373754"
+   ]
+  },
+  {
+   "sectorId": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df",
+   "name": "원자력 SMR",
+   "companyIds": [
+    "1fe83335-e82a-4b7c-9797-c796d3f0e3ba",
+    "4a93f553-8315-4870-aca9-8417e3cc6892",
+    "5101e9d5-f1f4-4883-a749-7ffbc00d219a",
+    "8fb95780-27fa-4f14-9cc9-0e8f45f93e58",
+    "d448ac3e-d726-420d-b8ab-738d6471c140",
+    "d7a2af4b-4d3d-47a1-8d58-80d9906d3162",
+    "e9c8906e-7343-46c1-a911-bca9176f6fbb",
+    "edda2462-5e76-4c4a-bff4-1eac329c4cc2"
+   ]
+  },
+  {
+   "sectorId": "2f0ad66c-1ae4-4a61-9787-3c1837714954",
+   "name": "전고체 배터리",
+   "companyIds": [
+    "3a464732-7876-47e0-ab70-f566b6f2fd48",
+    "fb50e2b2-a0ca-4092-b76c-ce7130d05c11"
+   ]
+  },
+  {
+   "sectorId": "2f2d8094-6441-4728-a658-616e41e8da48",
+   "name": "식품",
+   "companyIds": [
+    "46c29833-88c0-4998-9042-3efff8a2cfc6",
+    "4cca3c4b-97ac-4700-baeb-011030a8c110",
+    "68c11726-6953-47bc-8d30-27375ad58b9f",
+    "77975a75-47b8-4b0b-8624-090404ce376a",
+    "7f248df5-e58f-40ac-9547-00cc70d6ef57",
+    "85647535-24a3-4310-926e-a3921539b3a0",
+    "9d7074c4-1501-4a89-bc96-66c70e3ea7f8",
+    "b5fb1441-5e20-4db4-b831-f755f6cdb5e0",
+    "da8c7e83-50b1-499d-97c0-0fdf6f7a6fd2",
+    "dba7dfa3-e0ce-4c9c-81bd-51b1c5ed4e34"
+   ]
+  },
+  {
+   "sectorId": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0",
+   "name": "타이어",
+   "companyIds": [
+    "3460cd09-fd78-42cd-9750-71370fe88897",
+    "a02354f2-33e5-4fb3-948a-6c6e265a9505",
+    "a7bae5e5-cf9f-47d8-839d-65827623b876"
+   ]
+  },
+  {
+   "sectorId": "320d553d-a47d-4dae-8123-bf9e18a24cfd",
+   "name": "해운",
+   "companyIds": [
+    "2bfa8346-2b77-4eee-8273-dad9360bdad5",
+    "464d4096-6771-4e39-8bce-ed973ef085ba",
+    "4ac6a05e-0be8-4676-a2b8-d125669c4e0a",
+    "9b4c08ab-d7c2-4627-bd19-595b81c906dc"
+   ]
+  },
+  {
+   "sectorId": "34f59cc0-6e5e-4f13-8006-764e8953aa8c",
+   "name": "메모리 양산",
+   "companyIds": [
+    "280e7801-0d97-45cd-a006-7f50e85cd223",
+    "d8c32e94-d5ef-480e-9012-ee4cdac5757d"
+   ]
+  },
+  {
+   "sectorId": "354d75c4-c595-4393-a8d3-9ed02c4fae59",
+   "name": "은행",
+   "companyIds": [
+    "09dcc205-8da9-45eb-9592-32e20850761d",
+    "146b544b-4f16-4266-9930-eeb0d62ed27f",
+    "247e7ad0-1720-46fd-b66f-b8fb5ef614ed",
+    "2758de19-78f4-4c33-b375-43de9c358c82",
+    "3cfb9a95-cdea-4221-80c4-03b6126a2d1c",
+    "3fbab2ab-27bd-49bc-8b7b-f0253e902bf1",
+    "949c92a3-8609-4160-8b6a-9ef779b07bd0",
+    "d3f13da4-4335-46a6-9f9c-f53a5e48ab46",
+    "d4198604-0d76-499f-b3db-537fce546391",
+    "fb21c3e3-7a25-49c1-8966-255c9918e532",
+    "fc619a4d-c965-4ce0-9caf-0360f94743eb"
+   ]
+  },
+  {
+   "sectorId": "4197c534-1948-4117-907b-29312ee6e195",
+   "name": "반도체 유리기판",
+   "companyIds": [
+    "1b43ac35-9d76-4d75-84f4-7e0ff8651631",
+    "2726a412-3c25-4ad3-a7c2-b028b471c0c5",
+    "3efbc7a4-549c-48c5-b12b-0ed8d06af72a",
+    "5df854f5-cb53-4c2e-99ed-055980fd2b91",
+    "5f1da9a9-41ee-4da0-b8fb-2eb6c3d3b81a",
+    "736ac657-2ce2-4bd8-97de-8aac9c5f9142",
+    "8d59f220-a66c-4865-8ee3-b54d0332243a",
+    "a70cfa53-fbea-42ef-8672-582d24c32b91",
+    "fd47e5b6-d6b3-452a-859d-c50fb1f33557"
+   ]
+  },
+  {
+   "sectorId": "42530660-caf8-406c-93fb-ccbba5d8fc3c",
+   "name": "반도체 후공정/패키징",
+   "companyIds": [
+    "0487376d-85c9-474b-a9a5-67460e162319",
+    "0ded824c-b5a5-4b26-8248-cce8f490c855",
+    "2db58f1a-5389-43e2-8810-9f9313374163",
+    "2f49bcd3-4c37-46c5-8c06-8e1d2521510a",
+    "4aa4e87a-d1b6-4ad6-8291-8d79fb7ce37d",
+    "4c639775-34cd-4152-ac60-65e826562c1f",
+    "59ef4b43-7861-424b-a4ec-8b394d6825ec",
+    "5b3d5662-d53c-4779-91b6-9635ed2bf452",
+    "6958f6c4-c9c4-467f-a956-67f4b6ab6cf1",
+    "6a329344-f039-43cb-8714-7e78ae7841c4",
+    "7bebb162-59ec-400e-8201-a8790511653d",
+    "91fe95fe-c444-4b31-9fd1-b7aebea4291b",
+    "a004dcdc-0dad-45b5-9b58-f518de88e38b",
+    "a4a79838-8f12-4a81-ab0d-c85fef72ec50",
+    "a73f9dea-a32e-4119-bcdd-eb5e9dc2ca7e",
+    "b43daad9-656f-4f78-9888-9e199743853b",
+    "c36aeb90-43db-44d8-84a9-bb3dbaf7d76f",
+    "c8d482e5-d792-49e7-b56a-a11c35afe94b",
+    "e2096f2c-4f46-4eaa-a9d2-e1b4db2d7d36",
+    "e5fdb098-4659-4e1e-97b5-de05fdaa9fd3",
+    "efa67291-b445-475b-9ead-3106b8db6f31"
+   ]
+  },
+  {
+   "sectorId": "439bad21-6907-4964-b31b-0baeb3cf7976",
+   "name": "폐배터리",
+   "companyIds": [
+    "987872cd-5a22-438b-93ef-cb6a4dca5c21",
+    "beceb4c5-0334-4b88-ab29-3c2fdfa33c8b"
+   ]
+  },
+  {
+   "sectorId": "49b33ad0-91a7-4e70-8c97-3670714e6440",
+   "name": "통신",
+   "companyIds": [
+    "dfddc28c-e43b-48dd-b5a9-eacf7befa8b3",
+    "f67e8a62-b790-4b8b-85d1-cdbdec8604a8",
+    "f8569512-5302-4da8-b19c-f3f65c294237"
+   ]
+  },
+  {
+   "sectorId": "4b19d710-98fa-4eb7-a92d-b7e977d7c383",
+   "name": "전기차 배터리",
+   "companyIds": [
+    "2577c0e2-c374-41d2-9f51-4bcb4285c21a",
+    "35f0fa8a-7207-4e8a-b132-85e8dcb745bd",
+    "3a464732-7876-47e0-ab70-f566b6f2fd48",
+    "6d7e2e64-bbac-4f7f-9cb3-82ed05f2d96f",
+    "e7f4a9dc-8f6a-4b6a-bfff-83505ab43e8e"
+   ]
+  },
+  {
+   "sectorId": "5600ad2d-66e3-44c2-885b-516ef3f92532",
+   "name": "반도체 전공정",
+   "companyIds": [
+    "0be20414-b7cb-43b8-bcdb-75c9ae75d5d0",
+    "2726a412-3c25-4ad3-a7c2-b028b471c0c5",
+    "2903b3f4-ab0e-4b6f-8595-1f8b166decd7",
+    "29af2529-2e1a-473e-91d7-522ec3a1d2ec",
+    "362b9f1f-0b72-4670-9c01-d08d1217f232",
+    "3de1048f-c4ac-4f66-923f-cc22362a9ec0",
+    "48e5589d-8782-4319-a6a6-093a151f86c5",
+    "5962d9e6-e905-4844-bc8e-1c5f1456a387",
+    "6f06b946-217d-4bcc-9cd8-2205c2e2140b",
+    "71fbf5e1-2225-4bfd-a19a-7e98d338f208",
+    "7c02aeb9-64fd-4a69-a289-82e73f6fcf5d",
+    "837def83-f0fa-403b-9af3-3730afaae4ee",
+    "92beab8c-82db-4fed-a97a-3ee77f53ec4d",
+    "937b13b9-59a9-4434-b033-053cbb434dec",
+    "96d60a49-73b5-4b3a-858f-bcf759555ee1",
+    "9c1cfc81-6597-41da-aedd-d0ff49b17a2d",
+    "a3cccf46-948b-4418-8e2a-bbefda0915cb",
+    "a70cfa53-fbea-42ef-8672-582d24c32b91",
+    "b595114e-2334-4970-b36d-f4ebbe0be96f",
+    "ba38e60a-9e1f-4927-9768-1c47a77fda02",
+    "c2a48ef1-40ce-4a9b-ba2e-d11dc5a0e3a2",
+    "d049c5b4-db60-4f9c-834d-b62090b6a464",
+    "d7d9fa7a-8ce6-4e58-86e6-564569aab008",
+    "dc7eea20-7a18-434d-a294-35647689b630",
+    "e73d2ec3-2e52-4b80-93cd-30346da444ec",
+    "ec71cce7-05ab-498b-a7a5-8c644cbe6f53",
+    "f24f2cf2-7183-4d71-ad64-6cb977c8f9f7"
+   ]
+  },
+  {
+   "sectorId": "59c54553-9e0b-4732-8716-2a7f6d7e512b",
+   "name": "자율주행 sdv",
+   "companyIds": [
+    "6718c143-94de-453d-b841-03ca4fd754a5",
+    "d46ec43d-0dce-49af-a956-3a771bd5e955"
+   ]
+  },
+  {
+   "sectorId": "6a5e5359-2e61-48af-ad6f-7914a39cd236",
+   "name": "반도체 기판",
+   "companyIds": [
+    "07e7255c-e849-4741-97a5-db9eaf845aa2",
+    "29599bce-ee45-4eee-8d52-46b4b3e23f3e",
+    "342f37c0-9760-436c-8d9a-337bfc67d213",
+    "385abd10-9c57-43fd-ba55-bbfd1fa5113d",
+    "3efbc7a4-549c-48c5-b12b-0ed8d06af72a",
+    "6093e9e4-4890-4a1f-a7ac-f20129403b9d",
+    "6a329344-f039-43cb-8714-7e78ae7841c4",
+    "ce43e437-9359-446e-98d0-d6b130da2607",
+    "db1680b9-190a-4348-8ed5-0dd1ca28e845",
+    "de807afb-50f7-495e-8439-6928cb469494",
+    "ff328494-d8db-4d45-8f57-9bda63bfc457"
+   ]
+  },
+  {
+   "sectorId": "71f00562-e557-4c9b-a32a-c80def1eb83b",
+   "name": "반도체 디자인하우스",
+   "companyIds": [
+    "70c45a91-6b7c-4018-ad1e-3ebac21af68c",
+    "b3620902-553e-41fc-bb15-f0ab6cfc54ed",
+    "d2f956bb-889a-43bc-ac6f-2cdb88d55ad4"
+   ]
+  },
+  {
+   "sectorId": "83b2d692-bc69-422f-a5be-6a62c46170fd",
+   "name": "전력",
+   "companyIds": [
+    "189cbe91-e03a-44a6-8339-77818a315ea6",
+    "1e42c958-8af6-4f1b-a322-a73125cc9586",
+    "4271dd18-2575-479e-adc7-4787dcb74463",
+    "7629572f-ab2d-4113-be9e-17f4f278bac8",
+    "8f088d30-ec36-406b-93f1-8f331b0f0df3",
+    "91113f6e-61d5-404a-be43-b2f145fda799",
+    "b4487952-67ba-4e5d-ad0d-80104f6d0b0c",
+    "b5da85b0-78b1-4330-b729-c5052f2a59d1",
+    "ea5146e2-8b4b-42dc-b23e-e00177b67aab",
+    "faabe778-7da1-4f74-9318-7d14cce76934",
+    "fd30d4a9-47a8-4197-a0b8-de6391348bce"
+   ]
+  },
+  {
+   "sectorId": "94344449-46f8-4f72-ab25-90086a1def1f",
+   "name": "패션/의류",
+   "companyIds": [
+    "4bd9473c-55a2-4dcc-bae2-d7fd45a98235",
+    "4df901ef-785e-4141-8fdd-584f7ce1617c",
+    "71eb5ee1-76c4-42a7-bbaf-1200fca9fe95",
+    "f0104318-8136-4e17-a7df-1f45cfd85cb9"
+   ]
+  },
+  {
+   "sectorId": "973e1638-6493-4399-8820-b54c697203bf",
+   "name": "휴머노이드 양산",
+   "companyIds": [
+    "a11b4d8f-898c-4f8f-93ee-30aa862316b5",
+    "ae5dd2fd-c86a-48e6-b94f-1d6d629e7c03",
+    "be223d56-0cc7-4af3-aa6a-75b57ac07668"
+   ]
+  },
+  {
+   "sectorId": "98dfe4f3-0128-4713-b261-e11eb17bf7be",
+   "name": "피부 미용",
+   "companyIds": [
+    "06935514-9dde-4881-9f2f-480546f45cf0",
+    "782c1151-9b54-4aa6-b5a9-b60cfbb69c2d",
+    "909c86f9-1557-4cad-8fa5-d7d8cc6951ba",
+    "a629147b-f117-47fb-9e46-31c2d09594a6",
+    "b5289779-a473-4468-9f0a-824a896a64ef",
+    "d53807aa-3ee9-47d7-8722-8aec39a3322e"
+   ]
+  },
+  {
+   "sectorId": "9e5d766f-c1b6-48a4-a385-84154122499d",
+   "name": "반도체 IP",
+   "companyIds": [
+    "102cd746-f2e5-48f5-87ae-41467b186ee0",
+    "fbc9c7c7-8a38-4fb6-8ecb-6e6312f97e9f"
+   ]
+  },
+  {
+   "sectorId": "9ebef0b9-5586-47cc-8329-600230883f85",
+   "name": "스마트팩토리",
+   "companyIds": [
+    "25371b3a-3578-479e-8c5a-7e2d87519c03",
+    "2945e701-696e-46d1-9d12-769c3dd70dc9",
+    "4f0385f8-5b1a-4ddb-b599-04e8a1bc03bf",
+    "5ab0152d-eac3-4b1d-8962-bb533bb82bcf",
+    "6acaecda-87b5-4ce9-9f97-c9b51f35a532",
+    "7baa8b7e-5432-4514-ac66-4a91bae2934f",
+    "90fc69a8-dd5b-47c5-b048-205b4e7f7e5e",
+    "a8413573-44d1-47fe-aeb9-c5493449138d",
+    "ac0011aa-dfbc-4ffd-a63d-72d0fc454be3",
+    "be223d56-0cc7-4af3-aa6a-75b57ac07668",
+    "c60ad97b-f288-4172-baac-c63d42df2fc0",
+    "e8df985b-f193-4a6b-8a0d-0ab0e5144539",
+    "f985f88d-8595-42ff-8512-74b45d7cd9bc"
+   ]
+  },
+  {
+   "sectorId": "9f654d9c-e904-4374-b007-21ea1dfdab17",
+   "name": "화장품",
+   "companyIds": [
+    "10fc25be-fc84-4339-865a-ba87afbc57a1",
+    "2de31f87-de0b-4368-82d7-55efed5c0bce",
+    "4b2c3ceb-09a4-49e6-afd3-e2adea51d0a5",
+    "54ee7392-edb3-43dd-9794-fb649eeb2365",
+    "5ca472e5-fab4-4c25-8d97-d9abaef06176",
+    "79aac576-99e1-41df-a352-a6765efecbec",
+    "98c9ba5b-a8d0-48dc-9efe-bcd602571cd3",
+    "9d2d86e7-626f-4178-8f9c-5a52310b3a4f",
+    "d1d662b8-9c0d-427e-808f-b5e9f23ae18b",
+    "dbb4aa85-4375-4692-b7d1-b7a4be291af7"
+   ]
+  },
+  {
+   "sectorId": "9f9a69ce-f932-4466-b1f3-5746e6364206",
+   "name": "SOFC",
+   "companyIds": [
+    "1602bb73-136d-4db0-9da5-18da23af819a",
+    "50eaa7b1-a039-4332-aaf0-acdf8ae516e4",
+    "607c91f1-cb1e-4970-8cde-e6f5bd16f3fe",
+    "747711b4-236e-44fd-bb78-dcffa38bd9a7",
+    "89214042-7812-4f62-ab69-9ad3fb5f51f2",
+    "b5a9db74-d97e-4396-aa2b-8f2a186e346e"
+   ]
+  },
+  {
+   "sectorId": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df",
+   "name": "휴머노이드 액추에이터·핸드",
+   "companyIds": [
+    "0c3fa7ef-23eb-4b96-8bd6-87e4dad91e46",
+    "19d78646-559f-42b7-b1f1-f2cea6c7f61b",
+    "299664f5-0e38-4b82-869e-4c8791eca98d",
+    "332367b2-7d34-445a-831d-a1d04c43a4dd",
+    "7baa8b7e-5432-4514-ac66-4a91bae2934f",
+    "8a218161-b650-42c6-84a1-b440d667f357",
+    "ae5dd2fd-c86a-48e6-b94f-1d6d629e7c03",
+    "b099414b-fe98-483d-817b-dd277f88c7aa",
+    "c30143e3-8e9d-4fe7-88fa-30d1d85fdccc",
+    "d46ec43d-0dce-49af-a956-3a771bd5e955",
+    "d85ce125-04d8-4a8c-a52d-b363f686ad2c",
+    "f424d2b1-a224-4cd8-8772-7ff759d27548"
+   ]
+  },
+  {
+   "sectorId": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3",
+   "name": "우주 · 위성",
+   "companyIds": [
+    "0dd74c7e-fb5e-4383-b921-9e9febd67949",
+    "1cc76857-640f-414c-9f75-59e140ac703e",
+    "3118eaa7-a51e-45bc-ae2c-0a61c7d6579f",
+    "5195829f-a42c-4393-b376-868056907c91",
+    "7ec28f74-d42b-4c58-9168-bb1bffba9864",
+    "912bac2c-bfc0-4427-9ffd-fb366a61eb34",
+    "9583a6a6-2cca-4b51-be2a-60c160c5d183",
+    "9f0261a5-4c86-47f2-a524-1f09321ca4c2",
+    "ae22595d-a134-43b0-afe1-d23671d691e7",
+    "b3acb78a-e624-4222-a66e-38e19ce1dca3",
+    "b4c7bf58-1578-45d8-982f-0fc8b716bdcd",
+    "bc618912-9efa-4653-b584-60d4bc36aa4e",
+    "bddc914b-bf2e-4bcf-942c-4fe072cf13aa",
+    "bee8ffac-2c4a-4b69-9a4c-3d95eff028dc",
+    "cf3d803c-5b5e-4e43-9178-4551b60dfdf8",
+    "efa8aa35-f424-496e-a96e-a380c75fa8d2"
+   ]
+  },
+  {
+   "sectorId": "a21f87fb-70d9-4994-bc58-5a17f8bd455e",
+   "name": "해상풍력",
+   "companyIds": [
+    "22435feb-c484-4aa1-b474-e66e144c0e92",
+    "596bee1f-9be5-41a3-965c-6de7d942158d",
+    "bc2e2f38-8c74-481d-b2e8-2347883da36b",
+    "fa252c85-ec76-48f5-aa99-df648d38905f"
+   ]
+  },
+  {
+   "sectorId": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb",
+   "name": "반도체 노광공정(EUV)",
+   "companyIds": [
+    "07fbbd3b-ec61-455a-8a57-5fff6a17bd98",
+    "43e50d0f-ecc8-4a30-bab7-93a030e69589",
+    "736ac657-2ce2-4bd8-97de-8aac9c5f9142",
+    "7febe3f6-9d11-4121-ad29-d6cca6f7702d",
+    "83e93a26-ccae-421c-abe6-9a4fbfe80905"
+   ]
+  },
+  {
+   "sectorId": "ab431a79-1f0f-446c-9f46-bfc7442248c8",
+   "name": "광통신",
+   "companyIds": [
+    "16c92e59-8531-4021-b943-021f3f5902b1",
+    "2116aff6-6b62-43ad-b789-dfb883ee8ebc",
+    "24330750-1d5a-44c7-aa2a-b30197096b07",
+    "60f9caad-8251-4ac8-86cd-ddf5230dec98",
+    "805b6d71-5483-41c5-bdcc-02a36d3cfc17",
+    "90ae845d-e1fb-4307-bdfe-5d8b24021d6b",
+    "e9ad5d81-17d0-44e8-bb21-d5b69a18ca9d",
+    "f9ec5db1-6cf8-4e83-a562-41eb37d91431"
+   ]
+  },
+  {
+   "sectorId": "adf919f7-d603-48e4-a15b-2431caf62bab",
+   "name": "반도체 팹리스",
+   "companyIds": [
+    "b7626f7f-4122-44b1-a618-91b52f2942ef",
+    "e2705a19-5470-4530-8bcf-1900b9464c1d"
+   ]
+  },
+  {
+   "sectorId": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae",
+   "name": "보험",
+   "companyIds": [
+    "0b47c2ad-ae13-482f-8782-c631a98f0281",
+    "1840e172-4d24-4bba-bf08-6c731b67bdfe",
+    "2220e81c-2347-4221-9c1d-ebe44a154ce6",
+    "33ca407f-b97a-49f4-9323-ace03f4e5fb9",
+    "5a361941-b899-4fd9-b054-3d439206596b",
+    "5c61b088-12b7-4175-a149-aa439655fa27",
+    "64513249-7524-4471-b737-a060e0c0a3af",
+    "a253501e-4f07-431b-a7c1-e4239889a7dc",
+    "d6dad3a4-f202-439d-ae5a-f7624b240fd1",
+    "f02ce7d5-dd1b-40b1-9e7c-33b23df69362",
+    "f1fbc5b0-b3b8-47b4-b6e0-0da0db2fbe8b"
+   ]
+  },
+  {
+   "sectorId": "b415b865-80a0-4f2f-9ff3-7532206d3942",
+   "name": "액침냉각",
+   "companyIds": [
+    "5324e03c-6bd5-4881-a9da-682102cad83d",
+    "b7c5eee4-83e9-4c96-8d3e-f853bd668c6e"
+   ]
+  },
+  {
+   "sectorId": "b4ad7add-a37d-4737-936f-40aaede153dd",
+   "name": "백화점",
+   "companyIds": [
+    "25a931be-d84d-4dab-bfab-a16ffc4d1151",
+    "591de1a9-8c7a-49dd-8e6f-4ee3425dae4f"
+   ]
+  },
+  {
+   "sectorId": "b523eeae-3297-4b00-87d7-d09a5dadafcd",
+   "name": "휴머노이드 비젼/카메라",
+   "companyIds": [
+    "549c11a6-706e-4564-b189-60eeb43a2e7f",
+    "ba95d4f7-2691-4e16-a495-7df8cb1a9f1d",
+    "d46ec43d-0dce-49af-a956-3a771bd5e955",
+    "fa4d9547-80fe-4f65-be26-dcbd36f1af17"
+   ]
+  },
+  {
+   "sectorId": "d8ef2560-2219-4b71-a37d-156537833510",
+   "name": "AI글래스",
+   "companyIds": [
+    "15d86b6f-fdbe-4a2c-9dfb-aebd69dd11b3",
+    "654c5ac1-9501-4bb3-8844-81fd30f3c5f8"
+   ]
+  },
+  {
+   "sectorId": "da96c41b-5f44-404d-b74e-5786cbf9678d",
+   "name": "게임",
+   "companyIds": [
+    "0b0491a7-dc75-4e24-b5ba-9bbb4d07e465",
+    "17211c8f-69fa-4ed7-a4cd-3cd75b7b5634",
+    "761e24a6-2526-44e7-9128-dbe56b04e711",
+    "c075d5fd-73bd-422a-9154-b7d03c189973",
+    "c11d8a8e-02db-4f75-9519-7e042cc33a44"
+   ]
+  },
+  {
+   "sectorId": "dac67c42-2e8d-4d7d-9920-74df9868c1ad",
+   "name": "방산",
+   "companyIds": [
+    "1cc76857-640f-414c-9f75-59e140ac703e",
+    "45966da5-16c0-4012-86ad-327a2a668ff8",
+    "4b0a1981-29ae-4ac8-9790-c69f50c8e8ec",
+    "65d56c19-5637-48ee-a88d-4ce893f2dbc2",
+    "6a1eaa57-87df-46da-867d-a3a1e1d6a4fd",
+    "912bac2c-bfc0-4427-9ffd-fb366a61eb34",
+    "9583a6a6-2cca-4b51-be2a-60c160c5d183",
+    "a64de764-2b8b-4256-8956-464eadbf97a0",
+    "ae1ac35b-7a65-4b90-9e9b-5818be843a98",
+    "b507256f-0f2b-4cb2-992c-8ff12eb436b2"
+   ]
+  },
+  {
+   "sectorId": "dadd2525-a51f-4933-9186-020f5fa441c7",
+   "name": "ESS 배터리",
+   "companyIds": [
+    "35f0fa8a-7207-4e8a-b132-85e8dcb745bd",
+    "3a464732-7876-47e0-ab70-f566b6f2fd48",
+    "6d7e2e64-bbac-4f7f-9cb3-82ed05f2d96f",
+    "e7f4a9dc-8f6a-4b6a-bfff-83505ab43e8e"
+   ]
+  },
+  {
+   "sectorId": "e1c79ca5-f361-429f-8929-80afeac52f0f",
+   "name": "레저/숙박",
+   "companyIds": [
+    "180785dd-83b6-4e08-814e-2b45cd78911a",
+    "1c2c483a-b11b-495c-9bff-e6ac0a7853b8",
+    "236e364c-e2ad-4d0a-8436-7b66f3109bde",
+    "5054d7dc-5a80-4794-a1f9-074ea09e131b",
+    "bcc02a18-714f-4634-8fec-c7245fe837be",
+    "f01e4dd3-c750-49cc-868c-175840769e63"
+   ]
+  },
+  {
+   "sectorId": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81",
+   "name": "엔터",
+   "companyIds": [
+    "07cb86dc-aa16-44c8-b9fd-15878740bb6d",
+    "74a2679b-986e-4227-a843-78743f531017",
+    "eb6a1a80-e82b-4504-9785-f90310dfb6fa",
+    "fcd3776b-242c-4d2b-b28c-95653996a74b"
+   ]
+  },
+  {
+   "sectorId": "e44ccfeb-885d-41f5-9def-0713de2aeb6e",
+   "name": "의료기기",
+   "companyIds": [
+    "315a78f1-416d-439a-b8f5-d590fd7db219",
+    "444b659c-fb51-4701-ae40-24160e61009b",
+    "5215a21a-4d6d-4b07-a05b-e0340ebe9cdd",
+    "5546ee61-3fca-4391-8b3e-749c2f0d2a97",
+    "b9401a9e-e400-4978-bf79-23460816750f",
+    "f7793b11-349a-44c2-bb8e-23a526f9a503",
+    "fc7e18ee-c97f-4460-b9ca-d7d46da2c539"
+   ]
+  },
+  {
+   "sectorId": "ea661150-f49f-4dc2-9769-740e60ab63f0",
+   "name": "증권",
+   "companyIds": [
+    "0867a195-1a46-44d2-8c45-e9597be4c23e",
+    "313eaa21-bdf0-427a-9320-e1181600817c",
+    "712152e0-5b0b-4129-b3f0-23cf7cc4a353",
+    "768cdd39-613d-4045-b6c8-36cb5d341d15",
+    "8bed9014-91d3-4598-b8f5-006e0bd9250b",
+    "91b9ff7a-7109-41a0-ad5b-6b4e1e8aa98e",
+    "943d7022-ef68-442a-9c54-d94d6a5fcc60",
+    "ad2e2a2e-ddb4-42e0-b4a6-6cd9d770634b",
+    "d0d91149-e0e4-4743-a9f7-100cdab66e6b",
+    "e81b4d2d-d0fb-4cb9-8e9f-ac7fd3cc9ac9",
+    "fb16b7e2-2fbd-45d0-9cab-31c32623b51a",
+    "fea1d95a-0b95-4aa3-9ea4-291508dc66c8"
+   ]
+  },
+  {
+   "sectorId": "eda3b194-b258-4bc3-be82-e0ae70e27999",
+   "name": "파운드리",
+   "companyIds": [
+    "280e7801-0d97-45cd-a006-7f50e85cd223"
+   ]
+  },
+  {
+   "sectorId": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14",
+   "name": "바이오",
+   "companyIds": [
+    "0bcdb8e5-fd11-49ab-92d4-d85ddc27e3a1",
+    "1288628a-69d2-45c5-aeac-e6e4447b452c",
+    "1332563c-60fe-4a7a-a4e9-46d7e5f0505f",
+    "232389ee-d4ac-4b79-b40a-d241d20fd84c",
+    "398a8e96-585a-42e1-88f4-62d72e360d8a",
+    "46e671ec-951b-4f7d-bd91-704c35691545",
+    "4ed67ad8-85dd-47ec-80cc-94aee7c249e9",
+    "55e324bd-81a7-4b21-ae41-f7ea5772cab8",
+    "7e8966b5-b735-410c-a472-f28e52466e51",
+    "81450277-0d62-4031-8d85-2a3c7e126309",
+    "b0555243-7599-4732-ae06-66885701b974",
+    "c3206ebd-af3d-4f2b-b533-a5e2ce3f3273",
+    "e4f6ad92-45c8-49ed-a860-e2c0aeb1977a",
+    "eb705a57-d420-44dd-a49f-ca012a309258",
+    "f02f545c-58d7-44d1-8c39-e614b0d3f19b",
+    "f5e2f052-9aa0-4611-a9d0-d38e52e9ee55"
+   ]
+  },
+  {
+   "sectorId": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a",
+   "name": "MLCC",
+   "companyIds": [
+    "34c0fb3c-c469-4467-a21e-e463bbe9a195",
+    "3efbc7a4-549c-48c5-b12b-0ed8d06af72a",
+    "bd58b86d-395a-4dd4-bdfa-d7317cc9f45b"
+   ]
+  },
+  {
+   "sectorId": "f4361070-beb7-4836-964d-f03a1015c6cf",
+   "name": "피팅·밸브",
+   "companyIds": [
+    "0577cb43-72bb-4b2c-ab0f-a0fc6dd9ed75",
+    "0588b498-486d-47b9-85b1-09453f35f86b",
+    "2da2a206-9976-449a-9087-a413e44adee2"
+   ]
+  },
+  {
+   "sectorId": "f9c7bd33-67f0-4ee2-85fd-703493149efc",
+   "name": "실리콘 음극재",
+   "companyIds": [
+    "19c71a07-3422-48a4-83ad-a17ee0033314",
+    "35f0fa8a-7207-4e8a-b132-85e8dcb745bd"
+   ]
+  }
+ ]
+}

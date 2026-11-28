@@ -23,7 +23,7 @@ c=judoju-news-ai-processor-1
 sudo -n docker inspect --format 'image={{.Config.Image}} running={{.State.Running}} health={{if .State.Health}}{{.State.Health.Status}}{{end}} restarts={{.RestartCount}}' $c
 sudo -n docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $c | grep -E '^JUDOJU_AI_EXECUTE='
 sudo -n docker logs --since 15m $c 2>&1 | grep -oE '"event":"[A-Z_]+"|"state":"[A-Z_]+"|"reason":"[A-Z_]+"' | sort | uniq -c | tr -s ' ' | paste -sd ',' -
-sudo -n docker exec $c node -e "const s=JSON.parse(require('node:fs').readFileSync('/ai/status.json','utf8'));console.log(JSON.stringify({at:new Date(s.at).toISOString(),execute:s.execute,jobs:s.jobs,documents:s.documents,drafts:s.drafts,newsSignals:s.newsSignals.links,accessReviewHosts:s.accessReviewHosts.length,modelRuns:s.modelRuns,delivery:s.delivery??null}))"
+sudo -n docker exec $c node -e "const s=JSON.parse(require('node:fs').readFileSync('/ai/status.json','utf8'));console.log(JSON.stringify({at:new Date(s.at).toISOString(),execute:s.execute,jobs:s.jobs,documents:s.documents,drafts:s.drafts,newsSignals:s.newsSignals.links,accessReviewHosts:s.accessReviewHosts.length,modelRuns:s.modelRuns,delivery:s.delivery??null,market:s.sources?.market??null,sectorNews:s.sources?.gnews?{top:(s.sources.gnews.sectorTop24h??[]).length,macro24h:s.sources.gnews.macro24h??0}:null}))"
 sudo -n docker exec $c node -e "let p='off';try{const v=JSON.parse(require('node:fs').readFileSync('/run/config/push/push.json','utf8'));p=v.enabled===true?'on':'off'}catch{};console.log('PUSH='+p)" 2>/dev/null || echo PUSH=unknown
 '@
 if ($Command -eq 'status') { Invoke-Remote $statusScript; return }
@@ -51,13 +51,13 @@ sudo -n docker exec $c node -e "let p='off';try{const v=JSON.parse(require('node
   return
 }
 
-$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv data/real-source-hosts.json
+$dirty = git -C $repo status --porcelain -- workers/ai-processing packages/contracts/src workers/collectors/src data/dart-corp-codes.tsv data/real-source-hosts.json data/sector-queries.json data/sector-members.json data/stock-master.json
 if ($dirty) { throw 'AI runtime sources have uncommitted changes; commit first.' }
 $config = Join-Path $repo '.local-data\ai\config.json'; $key = Join-Path $repo '.local-data\ai\openai.key'; $dartKey = Join-Path $repo '.local-data\dart\opendart.key'; $gnewsKey = Join-Path $repo '.local-data\gnews\gnews.key'; $finlightKey = Join-Path $repo '.local-data\finlight\finlight.key'
 foreach ($file in $config, $key, $dartKey, $gnewsKey, $finlightKey) { if (-not (Test-Path $file)) { throw "Missing $file" } }
 $commit = (git -C $repo rev-parse --short HEAD).Trim()
 $stage = Join-Path $env:TEMP "judoju-ai-$commit"; Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue; New-Item -ItemType Directory $stage | Out-Null
-git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv data/real-source-hosts.json
+git -C $repo archive --format=tar -o (Join-Path $stage 'runtime.tar') HEAD workers/ai-processing/runtime workers/ai-processing/src workers/collectors/src packages/contracts/src data/dart-corp-codes.tsv data/real-source-hosts.json data/sector-queries.json data/sector-members.json data/stock-master.json
 if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
 # Publish stage 2A: the cloud intake client (node-postgres, pure JavaScript, exact version, no install scripts) is installed
 # here and added next to the runtime (workers/ai-processing/node_modules), so the image needs no network or build step.
@@ -103,6 +103,7 @@ services:
       - $base/secrets/finlight.key:/run/secrets/finlight.key:ro
       - $base/push:/run/config/push:ro
       - $base/intake:/run/secrets/ai-intake:ro
+      - $base/market:/run/market:ro
     tmpfs: [/tmp]
     healthcheck:
       test: ["CMD", "node", "-e", "const t=Number(require('node:fs').readFileSync('/ai/heartbeat','utf8')); if(!t||Date.now()-t>180000)process.exit(1)"]
@@ -118,7 +119,9 @@ volumes:
     external: true
     name: judoju-news-html-collector_candidates
 "@ | Set-Content "$stage\compose.yaml" -Encoding ascii
-$remote = (ssh.exe @ssh $server "install -d -m 700 $base $base/secrets $base/config $base/push $base/intake && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
+# Sector moves (docs/sector-news-plan.md §3.5): the container user node (1000:1000) reads market/ through the host owner
+# ubuntu, so the uid/gid must match; market/ is 0750.
+$remote = (ssh.exe @ssh $server "[ `$(id -u ubuntu):`$(id -g ubuntu) = 1000:1000 ] || { echo UBUNTU_UID_GID_NOT_1000; exit 7; }; install -d -m 700 $base $base/secrets $base/config $base/push $base/intake && install -d -m 750 $base/market && mktemp -d $base/release-$commit.XXXXXXXX").Trim()
 if ($remote -notmatch "^$([regex]::Escape($base))/release-$commit\.[A-Za-z0-9]{8}$") { throw "Unexpected remote dir: $remote" }
 scp.exe @ssh "$stage\runtime.tar" "$stage\pg.tar" "$stage\Dockerfile" "$stage\compose.yaml" "${server}:$remote/"
 if ($LASTEXITCODE -ne 0) { throw 'Upload failed' }

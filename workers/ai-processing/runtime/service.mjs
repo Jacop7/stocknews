@@ -9,7 +9,8 @@ import { BacklogStore } from './store.mjs';
 import { validateConfig } from './contracts.mjs';
 import { createOriginalReader, createOriginalTransport } from './original.mjs';
 import { createCompanyFeedDiscovery, startCompanyFeedLoop } from './company-feeds.mjs';
-import { createGnewsClient, startGnewsLoop } from './gnews.mjs';
+import { createGnewsClient, startGnewsLoop, loadSectorQueries } from './gnews.mjs';
+import { loadMarketData, readMarket } from './market.mjs';
 import { createFinlightClient, startFinlightLoop } from './finlight.mjs';
 import { createLinkResolver } from './resolver.mjs';
 import { createOpenAiModel } from './model.mjs';
@@ -26,7 +27,9 @@ const env = process.env;
 const paths = { db: env.JUDOJU_AI_DB ?? '/ai/processing.sqlite', config: env.JUDOJU_AI_CONFIG ?? '/ai/config.json',
   telegram: env.JUDOJU_TELEGRAM_DB ?? '/collector/telegram-links.sqlite', web: env.JUDOJU_WEB_DB ?? '/collector/collection.sqlite',
   key: env.JUDOJU_AI_KEY_FILE ?? '/run/secrets/openai.key', dartKey: env.JUDOJU_DART_KEY_FILE ?? '/run/secrets/opendart.key', gnewsKey: env.JUDOJU_GNEWS_KEY_FILE ?? '/run/secrets/gnews.key', finlightKey: env.JUDOJU_FINLIGHT_KEY_FILE ?? '/run/secrets/finlight.key',
-  corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url), heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
+  corpCodes: env.JUDOJU_DART_CORP_CODES ?? new URL('../../../data/dart-corp-codes.tsv', import.meta.url),
+  sectorQueries: new URL('../../../data/sector-queries.json', import.meta.url), sectorMembers: new URL('../../../data/sector-members.json', import.meta.url),
+  stockMaster: new URL('../../../data/stock-master.json', import.meta.url), sectorMoves: env.JUDOJU_SECTOR_MOVES ?? '/run/market/sector-moves.json', heartbeat: env.JUDOJU_AI_HEARTBEAT ?? '/ai/heartbeat', status: env.JUDOJU_AI_STATUS ?? '/ai/status.json' };
 const execute = env.JUDOJU_AI_EXECUTE === '1';
 const importEvery = 10 * 60_000, dartEvery = 30 * 60_000;
 
@@ -57,8 +60,15 @@ async function main() {
   const companyLoop = startCompanyFeedLoop({ discoverOne, loadConfig, importLinks: links => store.importLinks(links, Date.now()), log, signal: stop.signal, sleep: pause });
   // GNews Essential (2026-11-28): news discovery as signals only, every 15 minutes (<=300 requests a day).
   // Signals only, recorded straight into news_signals (never queued for reading); its own background loop.
-  const gnews = existsSync(paths.gnewsKey) ? createGnewsClient({ apiKey: readFileSync(paths.gnewsKey, 'utf8').trim(), db: store.db, signal: stop.signal }) : null;
-  const gnewsLoop = gnews ? startGnewsLoop({ client: gnews, record: entries => store.recordNewsSignals(entries, Date.now()), log, signal: stop.signal, sleep: pause }) : Promise.resolve();
+  // Sector news (docs/sector-news-plan.md §2): the query file and the market data files are used only when their bytes
+  // match the pinned hashes; otherwise sector search is off (headlines and themes go on) and the mode stays US.
+  const readText = file => { try { return readFileSync(file, 'utf8'); } catch { return null; } };
+  let sectorQueries = null; try { sectorQueries = loadSectorQueries(readText(paths.sectorQueries)); } catch { sectorQueries = null; }
+  let marketData = null; try { marketData = loadMarketData(readText(paths.sectorMembers) ?? '', readText(paths.stockMaster) ?? ''); } catch { marketData = null; }
+  log({ event: 'AI_SECTOR_NEWS', queries: sectorQueries ? sectorQueries.length : 0, marketData: Boolean(marketData) });
+  const gnews = existsSync(paths.gnewsKey) ? createGnewsClient({ apiKey: readFileSync(paths.gnewsKey, 'utf8').trim(), db: store.db, signal: stop.signal,
+    queries: sectorQueries, market: () => readMarket(paths.sectorMoves, marketData) }) : null;
+  const gnewsLoop = gnews ? startGnewsLoop({ client: gnews, record: (entries, topic) => store.recordNewsSignals(entries, Date.now(), topic), log, signal: stop.signal, sleep: pause }) : Promise.resolve();
   // Finlight Pro Light (2026-11-28): Korean news signals with tickers, every 10 minutes, its own background loop.
   const finlight = existsSync(paths.finlightKey) ? createFinlightClient({ apiKey: readFileSync(paths.finlightKey, 'utf8').trim(), db: store.db, signal: stop.signal }) : null;
   const finlightLoop = finlight ? startFinlightLoop({ client: finlight, record: entries => store.recordNewsSignals(entries, Date.now()), log, signal: stop.signal, sleep: pause }) : Promise.resolve();
@@ -98,7 +108,7 @@ async function main() {
       writeFileSync(paths.heartbeat, String(Date.now()));
       // Per-source status (24 hours), refreshed once a minute.
       if (Date.now() >= nextSources) {
-        try { sources = sourceStatus(store.db, Date.now()); } catch { sources = null; }
+        try { const m = readMarket(paths.sectorMoves, marketData); sources = { ...sourceStatus(store.db, Date.now()), market: { mode: m.mode, reason: m.reason, finishedAt: m.finishedAt ?? null, coverage: m.coverage ?? null, receivedAt: m.receivedAt ?? null } }; } catch { sources = null; }
         try { matches = matchStatus(store.db, Date.now()); } catch { matches = null; }
         nextSources = Date.now() + 60_000;
       }

@@ -1,0 +1,2045 @@
+{
+ "format": "STOCK_MASTER_V1",
+ "source": "OpenDART corpCode.xml",
+ "corpCodeXmlSha256": "5857799cb783b2d1f1a04e99c292e20709e884f489c1c4cd3d091203698ad694",
+ "dartCorpCodesSha256": "f67b5ccf5482f278583a3914ea3073ebd68de9a07d34795ae818e8a47f28b3b9",
+ "registrySha256": "160a969756bfd291c81dda390a3490f46ac60bc12eed262e1818e5ba40a03dc6",
+ "generatorSha256": "32e162dd9c4f89c992f646354df62892933abe592e496e3df7be3018f9838a84",
+ "companies": [
+  {
+   "companyId": "e4f6ad92-45c8-49ed-a860-e2c0aeb1977a",
+   "name": "유한양행",
+   "corpCode": "00145109",
+   "stockCode": "000100"
+  },
+  {
+   "companyId": "4c47105a-8bf3-4773-b9dc-26106c804dc4",
+   "name": "기아",
+   "corpCode": "00106641",
+   "stockCode": "000270"
+  },
+  {
+   "companyId": "a253501e-4f07-431b-a7c1-e4239889a7dc",
+   "name": "한화손해보험",
+   "corpCode": "00135917",
+   "stockCode": "000370"
+  },
+  {
+   "companyId": "f1fbc5b0-b3b8-47b4-b6e0-0da0db2fbe8b",
+   "name": "롯데손해보험",
+   "corpCode": "00113562",
+   "stockCode": "000400"
+  },
+  {
+   "companyId": "fd30d4a9-47a8-4197-a0b8-de6391348bce",
+   "name": "가온전선",
+   "corpCode": "00104768",
+   "stockCode": "000500"
+  },
+  {
+   "companyId": "d8c32e94-d5ef-480e-9012-ee4cdac5757d",
+   "name": "SK하이닉스",
+   "corpCode": "00164779",
+   "stockCode": "000660"
+  },
+  {
+   "companyId": "8776caf2-3254-4326-a548-3a980a166459",
+   "name": "현대건설",
+   "corpCode": "00164478",
+   "stockCode": "000720"
+  },
+  {
+   "companyId": "d6dad3a4-f202-439d-ae5a-f7624b240fd1",
+   "name": "삼성화재",
+   "corpCode": "00139214",
+   "stockCode": "000810"
+  },
+  {
+   "companyId": "578aa775-69cb-477a-b7c3-a0aa6660f9f1",
+   "name": "세아베스틸지주",
+   "corpCode": "00106669",
+   "stockCode": "001430"
+  },
+  {
+   "companyId": "b5da85b0-78b1-4330-b729-c5052f2a59d1",
+   "name": "대한전선",
+   "corpCode": "00113207",
+   "stockCode": "001440"
+  },
+  {
+   "companyId": "5c61b088-12b7-4175-a149-aa439655fa27",
+   "name": "현대해상",
+   "corpCode": "00164973",
+   "stockCode": "001450"
+  },
+  {
+   "companyId": "fb16b7e2-2fbd-45d0-9cab-31c32623b51a",
+   "name": "현대차증권",
+   "corpCode": "00137997",
+   "stockCode": "001500"
+  },
+  {
+   "companyId": "e81b4d2d-d0fb-4cb9-8e9f-ac7fd3cc9ac9",
+   "name": "SK증권",
+   "corpCode": "00131850",
+   "stockCode": "001510"
+  },
+  {
+   "companyId": "46c29833-88c0-4998-9042-3efff8a2cfc6",
+   "name": "대상",
+   "corpCode": "00121941",
+   "stockCode": "001680"
+  },
+  {
+   "companyId": "768cdd39-613d-4045-b6c8-36cb5d341d15",
+   "name": "신영증권",
+   "corpCode": "00136721",
+   "stockCode": "001720"
+  },
+  {
+   "companyId": "34c0fb3c-c469-4467-a21e-e463bbe9a195",
+   "name": "삼화콘덴서",
+   "corpCode": "00129350",
+   "stockCode": "001820"
+  },
+  {
+   "companyId": "a7bae5e5-cf9f-47d8-839d-65827623b876",
+   "name": "넥센타이어",
+   "corpCode": "00173874",
+   "stockCode": "002350"
+  },
+  {
+   "companyId": "7dc9aa5f-b78c-44de-a3ec-e805704cd169",
+   "name": "세아제강지주",
+   "corpCode": "00124197",
+   "stockCode": "003030"
+  },
+  {
+   "companyId": "9d7074c4-1501-4a89-bc96-66c70e3ea7f8",
+   "name": "삼양식품",
+   "corpCode": "00126955",
+   "stockCode": "003230"
+  },
+  {
+   "companyId": "2bfa8346-2b77-4eee-8273-dad9360bdad5",
+   "name": "흥아해운",
+   "corpCode": "00167208",
+   "stockCode": "003280"
+  },
+  {
+   "companyId": "ad2e2a2e-ddb4-42e0-b4a6-6cd9d770634b",
+   "name": "유안타증권",
+   "corpCode": "00117601",
+   "stockCode": "003470"
+  },
+  {
+   "companyId": "0034665c-a473-4302-862d-883a2da72456",
+   "name": "대한항공",
+   "corpCode": "00113526",
+   "stockCode": "003490"
+  },
+  {
+   "companyId": "712152e0-5b0b-4129-b3f0-23cf7cc4a353",
+   "name": "한화투자증권",
+   "corpCode": "00148610",
+   "stockCode": "003530"
+  },
+  {
+   "companyId": "943d7022-ef68-442a-9c54-d94d6a5fcc60",
+   "name": "대신증권",
+   "corpCode": "00110893",
+   "stockCode": "003540"
+  },
+  {
+   "companyId": "ae1ac35b-7a65-4b90-9e9b-5818be843a98",
+   "name": "SNT다이내믹스",
+   "corpCode": "00134477",
+   "stockCode": "003570"
+  },
+  {
+   "companyId": "35f0fa8a-7207-4e8a-b132-85e8dcb745bd",
+   "name": "포스코퓨처엠",
+   "corpCode": "00155276",
+   "stockCode": "003670"
+  },
+  {
+   "companyId": "1840e172-4d24-4bba-bf08-6c731b67bdfe",
+   "name": "코리안리",
+   "corpCode": "00113191",
+   "stockCode": "003690"
+  },
+  {
+   "companyId": "7725ff87-068e-41a7-bf63-c712f075da02",
+   "name": "현대제철",
+   "corpCode": "00145880",
+   "stockCode": "004020"
+  },
+  {
+   "companyId": "591de1a9-8c7a-49dd-8e6f-4ee3425dae4f",
+   "name": "신세계",
+   "corpCode": "00136378",
+   "stockCode": "004170"
+  },
+  {
+   "companyId": "4cca3c4b-97ac-4700-baeb-011030a8c110",
+   "name": "농심",
+   "corpCode": "00108241",
+   "stockCode": "004370"
+  },
+  {
+   "companyId": "dba7dfa3-e0ce-4c9c-81bd-51b1c5ed4e34",
+   "name": "빙그레",
+   "corpCode": "00124726",
+   "stockCode": "005180"
+  },
+  {
+   "companyId": "07fbbd3b-ec61-455a-8a57-5fff6a17bd98",
+   "name": "동진쎄미켐",
+   "corpCode": "00118804",
+   "stockCode": "005290"
+  },
+  {
+   "companyId": "85647535-24a3-4310-926e-a3921539b3a0",
+   "name": "롯데칠성음료",
+   "corpCode": "00120571",
+   "stockCode": "005300"
+  },
+  {
+   "companyId": "a11b4d8f-898c-4f8f-93ee-30aa862316b5",
+   "name": "현대차",
+   "corpCode": "00164742",
+   "stockCode": "005380"
+  },
+  {
+   "companyId": "4b660ea6-16d9-4574-94b0-4d23b0c33ffa",
+   "name": "POSCO홀딩스",
+   "corpCode": "00155319",
+   "stockCode": "005490"
+  },
+  {
+   "companyId": "33ca407f-b97a-49f4-9323-ace03f4e5fb9",
+   "name": "DB손해보험",
+   "corpCode": "00159102",
+   "stockCode": "005830"
+  },
+  {
+   "companyId": "9b4c08ab-d7c2-4627-bd19-595b81c906dc",
+   "name": "대한해운",
+   "corpCode": "00113535",
+   "stockCode": "005880"
+  },
+  {
+   "companyId": "280e7801-0d97-45cd-a006-7f50e85cd223",
+   "name": "삼성전자",
+   "corpCode": "00126380",
+   "stockCode": "005930"
+  },
+  {
+   "companyId": "91b9ff7a-7109-41a0-ad5b-6b4e1e8aa98e",
+   "name": "NH투자증권",
+   "corpCode": "00120182",
+   "stockCode": "005940"
+  },
+  {
+   "companyId": "09dcc205-8da9-45eb-9592-32e20850761d",
+   "name": "제주은행",
+   "corpCode": "00148832",
+   "stockCode": "006220"
+  },
+  {
+   "companyId": "b4487952-67ba-4e5d-ad0d-80104f6d0b0c",
+   "name": "LS",
+   "corpCode": "00105952",
+   "stockCode": "006260"
+  },
+  {
+   "companyId": "4271dd18-2575-479e-adc7-4787dcb74463",
+   "name": "대원전선",
+   "corpCode": "00260392",
+   "stockCode": "006340"
+  },
+  {
+   "companyId": "78435fb4-bf92-40c4-8d2c-971a623f16c0",
+   "name": "GS건설",
+   "corpCode": "00120030",
+   "stockCode": "006360"
+  },
+  {
+   "companyId": "3a464732-7876-47e0-ab70-f566b6f2fd48",
+   "name": "삼성SDI",
+   "corpCode": "00126362",
+   "stockCode": "006400"
+  },
+  {
+   "companyId": "0867a195-1a46-44d2-8c45-e9597be4c23e",
+   "name": "미래에셋증권",
+   "corpCode": "00111722",
+   "stockCode": "006800"
+  },
+  {
+   "companyId": "b5fb1441-5e20-4db4-b831-f755f6cdb5e0",
+   "name": "오뚜기",
+   "corpCode": "00141529",
+   "stockCode": "007310"
+  },
+  {
+   "companyId": "07e7255c-e849-4741-97a5-db9eaf845aa2",
+   "name": "이수페타시스",
+   "corpCode": "00107613",
+   "stockCode": "007660"
+  },
+  {
+   "companyId": "de807afb-50f7-495e-8439-6928cb469494",
+   "name": "코리아써키트",
+   "corpCode": "00152686",
+   "stockCode": "007810"
+  },
+  {
+   "companyId": "bcc02a18-714f-4634-8fec-c7245fe837be",
+   "name": "호텔신라",
+   "corpCode": "00165680",
+   "stockCode": "008770"
+  },
+  {
+   "companyId": "3efbc7a4-549c-48c5-b12b-0ed8d06af72a",
+   "name": "삼성전기",
+   "corpCode": "00126371",
+   "stockCode": "009150"
+  },
+  {
+   "companyId": "0bcdb8e5-fd11-49ab-92d4-d85ddc27e3a1",
+   "name": "한올바이오파마",
+   "corpCode": "00162586",
+   "stockCode": "009420"
+  },
+  {
+   "companyId": "8a0a7060-584b-446d-b6f2-1327ed1feb67",
+   "name": "HD한국조선해양",
+   "corpCode": "00164830",
+   "stockCode": "009540"
+  },
+  {
+   "companyId": "cde964f3-2966-49be-b2bb-82d22e073766",
+   "name": "한화솔루션",
+   "corpCode": "00162461",
+   "stockCode": "009830"
+  },
+  {
+   "companyId": "35fe3e8d-aedd-4855-b7f2-b8d5bf715600",
+   "name": "OCI홀딩스",
+   "corpCode": "00148896",
+   "stockCode": "010060"
+  },
+  {
+   "companyId": "7629572f-ab2d-4113-be9e-17f4f278bac8",
+   "name": "LS ELECTRIC",
+   "corpCode": "00105855",
+   "stockCode": "010120"
+  },
+  {
+   "companyId": "6817295c-da04-4fb5-ae1c-3b08651b82ae",
+   "name": "삼성중공업",
+   "corpCode": "00126478",
+   "stockCode": "010140"
+  },
+  {
+   "companyId": "2116aff6-6b62-43ad-b789-dfb883ee8ebc",
+   "name": "대한광통신",
+   "corpCode": "00113261",
+   "stockCode": "010170"
+  },
+  {
+   "companyId": "385abd10-9c57-43fd-ba55-bbfd1fa5113d",
+   "name": "LG이노텍",
+   "corpCode": "00105961",
+   "stockCode": "011070"
+  },
+  {
+   "companyId": "464d4096-6771-4e39-8bce-ed973ef085ba",
+   "name": "HMM",
+   "corpCode": "00164645",
+   "stockCode": "011200"
+  },
+  {
+   "companyId": "5f1da9a9-41ee-4da0-b8fb-2eb6c3d3b81a",
+   "name": "SKC",
+   "corpCode": "00139889",
+   "stockCode": "011790"
+  },
+  {
+   "companyId": "d46ec43d-0dce-49af-a956-3a771bd5e955",
+   "name": "현대모비스",
+   "corpCode": "00164788",
+   "stockCode": "012330"
+  },
+  {
+   "companyId": "912bac2c-bfc0-4427-9ffd-fb366a61eb34",
+   "name": "한화에어로스페이스",
+   "corpCode": "00126566",
+   "stockCode": "012450"
+  },
+  {
+   "companyId": "0588b498-486d-47b9-85b1-09453f35f86b",
+   "name": "하이록코리아",
+   "corpCode": "00165060",
+   "stockCode": "013030"
+  },
+  {
+   "companyId": "6f06b946-217d-4bcc-9cd8-2205c2e2140b",
+   "name": "한솔케미칼",
+   "corpCode": "00140955",
+   "stockCode": "014680"
+  },
+  {
+   "companyId": "c132681d-4a2c-4ba9-91df-458fc3cc1357",
+   "name": "대창단조",
+   "corpCode": "00112679",
+   "stockCode": "015230"
+  },
+  {
+   "companyId": "313eaa21-bdf0-427a-9320-e1181600817c",
+   "name": "삼성증권",
+   "corpCode": "00104856",
+   "stockCode": "016360"
+  },
+  {
+   "companyId": "f8569512-5302-4da8-b19c-f3f65c294237",
+   "name": "SK텔레콤",
+   "corpCode": "00159023",
+   "stockCode": "017670"
+  },
+  {
+   "companyId": "7f248df5-e58f-40ac-9547-00cc70d6ef57",
+   "name": "풀무원",
+   "corpCode": "00155355",
+   "stockCode": "017810"
+  },
+  {
+   "companyId": "72d1803a-6b3f-4f94-9846-9356f5ddd77b",
+   "name": "한국카본",
+   "corpCode": "00159795",
+   "stockCode": "017960"
+  },
+  {
+   "companyId": "8cb50aa5-16f8-4032-945c-65f0770b55d3",
+   "name": "아시아나항공",
+   "corpCode": "00138792",
+   "stockCode": "020560"
+  },
+  {
+   "companyId": "2758de19-78f4-4c33-b375-43de9c358c82",
+   "name": "기업은행",
+   "corpCode": "00149646",
+   "stockCode": "024110"
+  },
+  {
+   "companyId": "a4a79838-8f12-4a81-ab0d-c85fef72ec50",
+   "name": "미래산업",
+   "corpCode": "00197759",
+   "stockCode": "025560"
+  },
+  {
+   "companyId": "5054d7dc-5a80-4794-a1f9-074ea09e131b",
+   "name": "아난티",
+   "corpCode": "00161781",
+   "stockCode": "025980"
+  },
+  {
+   "companyId": "8fb95780-27fa-4f14-9cc9-0e8f45f93e58",
+   "name": "삼성물산",
+   "corpCode": "00149655",
+   "stockCode": "028260"
+  },
+  {
+   "companyId": "4ac6a05e-0be8-4676-a2b8-d125669c4e0a",
+   "name": "팬오션",
+   "corpCode": "00122737",
+   "stockCode": "028670"
+  },
+  {
+   "companyId": "dfddc28c-e43b-48dd-b5a9-eacf7befa8b3",
+   "name": "KT",
+   "corpCode": "00190321",
+   "stockCode": "030200"
+  },
+  {
+   "companyId": "0c3fa7ef-23eb-4b96-8bd6-87e4dad91e46",
+   "name": "원익홀딩스",
+   "corpCode": "00216647",
+   "stockCode": "030530"
+  },
+  {
+   "companyId": "8bed9014-91d3-4598-b8f5-006e0bd9250b",
+   "name": "교보증권",
+   "corpCode": "00113359",
+   "stockCode": "030610"
+  },
+  {
+   "companyId": "f02ce7d5-dd1b-40b1-9e7c-33b23df69362",
+   "name": "서울보증보험",
+   "corpCode": "00112998",
+   "stockCode": "031210"
+  },
+  {
+   "companyId": "71eb5ee1-76c4-42a7-bbaf-1200fca9fe95",
+   "name": "신세계인터내셔날",
+   "corpCode": "00234412",
+   "stockCode": "031430"
+  },
+  {
+   "companyId": "59ef4b43-7861-424b-a4ec-8b394d6825ec",
+   "name": "피에스케이홀딩스",
+   "corpCode": "00208444",
+   "stockCode": "031980"
+  },
+  {
+   "companyId": "236e364c-e2ad-4d0a-8436-7b66f3109bde",
+   "name": "롯데관광개발",
+   "corpCode": "00231372",
+   "stockCode": "032350"
+  },
+  {
+   "companyId": "f67e8a62-b790-4b8b-85d1-cdbdec8604a8",
+   "name": "LG유플러스",
+   "corpCode": "00231363",
+   "stockCode": "032640"
+  },
+  {
+   "companyId": "edda2462-5e76-4c4a-bff4-1eac329c4cc2",
+   "name": "우리기술",
+   "corpCode": "00231044",
+   "stockCode": "032820"
+  },
+  {
+   "companyId": "5a361941-b899-4fd9-b054-3d439206596b",
+   "name": "삼성생명",
+   "corpCode": "00126256",
+   "stockCode": "032830"
+  },
+  {
+   "companyId": "91113f6e-61d5-404a-be43-b2f145fda799",
+   "name": "제룡전기",
+   "corpCode": "00185356",
+   "stockCode": "033100"
+  },
+  {
+   "companyId": "dcf277a5-9a9d-4324-8beb-ba88849a3085",
+   "name": "동성화인텍",
+   "corpCode": "00231105",
+   "stockCode": "033500"
+  },
+  {
+   "companyId": "10fad434-b0ff-49b9-8338-0f03ffed1d7e",
+   "name": "네패스",
+   "corpCode": "00227333",
+   "stockCode": "033640"
+  },
+  {
+   "companyId": "5101e9d5-f1f4-4883-a749-7ffbc00d219a",
+   "name": "두산에너빌리티",
+   "corpCode": "00159616",
+   "stockCode": "034020"
+  },
+  {
+   "companyId": "180785dd-83b6-4e08-814e-2b45cd78911a",
+   "name": "파라다이스",
+   "corpCode": "00171265",
+   "stockCode": "034230"
+  },
+  {
+   "companyId": "fcd3776b-242c-4d2b-b28c-95653996a74b",
+   "name": "JYP Ent.",
+   "corpCode": "00258689",
+   "stockCode": "035900"
+  },
+  {
+   "companyId": "364d5f49-701a-415a-b73f-f3bb2bf99cae",
+   "name": "SFA반도체",
+   "corpCode": "00301246",
+   "stockCode": "036540"
+  },
+  {
+   "companyId": "761e24a6-2526-44e7-9128-dbe56b04e711",
+   "name": "NC",
+   "corpCode": "00261443",
+   "stockCode": "036570"
+  },
+  {
+   "companyId": "43e50d0f-ecc8-4a30-bab7-93a030e69589",
+   "name": "에프에스티",
+   "corpCode": "00223434",
+   "stockCode": "036810"
+  },
+  {
+   "companyId": "1b74b380-1d8d-4433-a59a-7489288d2628",
+   "name": "진성티이씨",
+   "corpCode": "00174208",
+   "stockCode": "036890"
+  },
+  {
+   "companyId": "f24f2cf2-7183-4d71-ad64-6cb977c8f9f7",
+   "name": "주성엔지니어링",
+   "corpCode": "00252135",
+   "stockCode": "036930"
+  },
+  {
+   "companyId": "2726a412-3c25-4ad3-a7c2-b028b471c0c5",
+   "name": "이오테크닉스",
+   "corpCode": "00246417",
+   "stockCode": "039030"
+  },
+  {
+   "companyId": "eb705a57-d420-44dd-a49f-ca012a309258",
+   "name": "오스코텍",
+   "corpCode": "00263654",
+   "stockCode": "039200"
+  },
+  {
+   "companyId": "0ded824c-b5a5-4b26-8248-cce8f490c855",
+   "name": "에스티아이",
+   "corpCode": "00298340",
+   "stockCode": "039440"
+  },
+  {
+   "companyId": "fea1d95a-0b95-4aa3-9ea4-291508dc66c8",
+   "name": "키움증권",
+   "corpCode": "00296290",
+   "stockCode": "039490"
+  },
+  {
+   "companyId": "07cb86dc-aa16-44c8-b9fd-15878740bb6d",
+   "name": "에스엠",
+   "corpCode": "00260930",
+   "stockCode": "041510"
+  },
+  {
+   "companyId": "f7793b11-349a-44c2-bb8e-23a526f9a503",
+   "name": "인바디",
+   "corpCode": "00269922",
+   "stockCode": "041830"
+  },
+  {
+   "companyId": "bee8ffac-2c4a-4b69-9a4c-3d95eff028dc",
+   "name": "비츠로테크",
+   "corpCode": "00103644",
+   "stockCode": "042370"
+  },
+  {
+   "companyId": "a629147b-f117-47fb-9e46-31c2d09594a6",
+   "name": "한스바이오메드",
+   "corpCode": "00349060",
+   "stockCode": "042520"
+  },
+  {
+   "companyId": "681a5707-9c4e-4015-a5b9-9ba1455967d9",
+   "name": "한화오션",
+   "corpCode": "00111704",
+   "stockCode": "042660"
+  },
+  {
+   "companyId": "c36aeb90-43db-44d8-84a9-bb3dbaf7d76f",
+   "name": "한미반도체",
+   "corpCode": "00161383",
+   "stockCode": "042700"
+  },
+  {
+   "companyId": "e9ad5d81-17d0-44e8-bb21-d5b69a18ca9d",
+   "name": "우리로",
+   "corpCode": "00296005",
+   "stockCode": "046970"
+  },
+  {
+   "companyId": "e9c8906e-7343-46c1-a911-bca9176f6fbb",
+   "name": "대우건설",
+   "corpCode": "00124540",
+   "stockCode": "047040"
+  },
+  {
+   "companyId": "9583a6a6-2cca-4b51-be2a-60c160c5d183",
+   "name": "한국항공우주",
+   "corpCode": "00309503",
+   "stockCode": "047810"
+  },
+  {
+   "companyId": "fa4d9547-80fe-4f65-be26-dcbd36f1af17",
+   "name": "캠시스",
+   "corpCode": "00330044",
+   "stockCode": "050110"
+  },
+  {
+   "companyId": "5ca472e5-fab4-4c25-8d97-d9abaef06176",
+   "name": "LG생활건강",
+   "corpCode": "00356370",
+   "stockCode": "051900"
+  },
+  {
+   "companyId": "bd58b86d-395a-4dd4-bdfa-d7317cc9f45b",
+   "name": "아모텍",
+   "corpCode": "00298447",
+   "stockCode": "052710"
+  },
+  {
+   "companyId": "b7c5eee4-83e9-4c96-8d3e-f853bd668c6e",
+   "name": "케이엔솔",
+   "corpCode": "00304076",
+   "stockCode": "053080"
+  },
+  {
+   "companyId": "c8d482e5-d792-49e7-b56a-a11c35afe94b",
+   "name": "프로텍",
+   "corpCode": "00325112",
+   "stockCode": "053610"
+  },
+  {
+   "companyId": "d3f13da4-4335-46a6-9f9c-f53a5e48ab46",
+   "name": "신한지주",
+   "corpCode": "00382199",
+   "stockCode": "055550"
+  },
+  {
+   "companyId": "e8df985b-f193-4a6b-8a0d-0ab0e5144539",
+   "name": "유진로봇",
+   "corpCode": "00234227",
+   "stockCode": "056080"
+  },
+  {
+   "companyId": "a73f9dea-a32e-4119-bcdd-eb5e9dc2ca7e",
+   "name": "리노공업",
+   "corpCode": "00369657",
+   "stockCode": "058470"
+  },
+  {
+   "companyId": "d85ce125-04d8-4a8c-a52d-b363f686ad2c",
+   "name": "에스피지",
+   "corpCode": "00220686",
+   "stockCode": "058610"
+  },
+  {
+   "companyId": "747711b4-236e-44fd-bb78-dcffa38bd9a7",
+   "name": "미코",
+   "corpCode": "00366942",
+   "stockCode": "059090"
+  },
+  {
+   "companyId": "a8413573-44d1-47fe-aeb9-c5493449138d",
+   "name": "아진엑스텍",
+   "corpCode": "00404288",
+   "stockCode": "059120"
+  },
+  {
+   "companyId": "5215a21a-4d6d-4b07-a05b-e0340ebe9cdd",
+   "name": "큐렉소",
+   "corpCode": "00356802",
+   "stockCode": "060280"
+  },
+  {
+   "companyId": "fa252c85-ec76-48f5-aa99-df648d38905f",
+   "name": "LS마린솔루션",
+   "corpCode": "00225742",
+   "stockCode": "060370"
+  },
+  {
+   "companyId": "faabe778-7da1-4f74-9318-7d14cce76934",
+   "name": "산일전기",
+   "corpCode": "00366438",
+   "stockCode": "062040"
+  },
+  {
+   "companyId": "90ae845d-e1fb-4307-bdfe-5d8b24021d6b",
+   "name": "한국첨단소재",
+   "corpCode": "00403766",
+   "stockCode": "062970"
+  },
+  {
+   "companyId": "6a329344-f039-43cb-8714-7e78ae7841c4",
+   "name": "인텍플러스",
+   "corpCode": "00479787",
+   "stockCode": "064290"
+  },
+  {
+   "companyId": "b507256f-0f2b-4cb2-992c-8ff12eb436b2",
+   "name": "현대로템",
+   "corpCode": "00302926",
+   "stockCode": "064350"
+  },
+  {
+   "companyId": "c2a48ef1-40ce-4a9b-ba2e-d11dc5a0e3a2",
+   "name": "티씨케이",
+   "corpCode": "00245472",
+   "stockCode": "064760"
+  },
+  {
+   "companyId": "805b6d71-5483-41c5-bdcc-02a36d3cfc17",
+   "name": "큐에스아이",
+   "corpCode": "00411446",
+   "stockCode": "066310"
+  },
+  {
+   "companyId": "19d78646-559f-42b7-b1f1-f2cea6c7f61b",
+   "name": "LG전자",
+   "corpCode": "00401731",
+   "stockCode": "066570"
+  },
+  {
+   "companyId": "6d7e2e64-bbac-4f7f-9cb3-82ed05f2d96f",
+   "name": "엘앤에프",
+   "corpCode": "00398701",
+   "stockCode": "066970"
+  },
+  {
+   "companyId": "7f134843-bd08-4091-a61e-403dd2ca2c01",
+   "name": "하나마이크론",
+   "corpCode": "00445054",
+   "stockCode": "067310"
+  },
+  {
+   "companyId": "398a8e96-585a-42e1-88f4-62d72e360d8a",
+   "name": "셀트리온",
+   "corpCode": "00413046",
+   "stockCode": "068270"
+  },
+  {
+   "companyId": "16c92e59-8531-4021-b943-021f3f5902b1",
+   "name": "빛과전자",
+   "corpCode": "00367482",
+   "stockCode": "069540"
+  },
+  {
+   "companyId": "25a931be-d84d-4dab-bfab-a16ffc4d1151",
+   "name": "현대백화점",
+   "corpCode": "00428251",
+   "stockCode": "069960"
+  },
+  {
+   "companyId": "d0d91149-e0e4-4743-a9f7-100cdab66e6b",
+   "name": "한국금융지주",
+   "corpCode": "00432102",
+   "stockCode": "071050"
+  },
+  {
+   "companyId": "ed1a21ff-260b-40df-a8e6-84a8d903afef",
+   "name": "HD현대마린엔진",
+   "corpCode": "00406046",
+   "stockCode": "071970"
+  },
+  {
+   "companyId": "3460cd09-fd78-42cd-9750-71370fe88897",
+   "name": "금호타이어",
+   "corpCode": "00481454",
+   "stockCode": "073240"
+  },
+  {
+   "companyId": "e73d2ec3-2e52-4b80-93cd-30346da444ec",
+   "name": "원익QnC",
+   "corpCode": "00468374",
+   "stockCode": "074600"
+  },
+  {
+   "companyId": "1595bee0-f3c0-46af-a381-b722132581ec",
+   "name": "STX엔진",
+   "corpCode": "00480455",
+   "stockCode": "077970"
+  },
+  {
+   "companyId": "2ea4c96b-5139-499d-8f80-c9b6d6efc5bc",
+   "name": "HB테크놀러지",
+   "corpCode": "00255275",
+   "stockCode": "078150"
+  },
+  {
+   "companyId": "19c71a07-3422-48a4-83ad-a17ee0033314",
+   "name": "대주전자재료",
+   "corpCode": "00177816",
+   "stockCode": "078600"
+  },
+  {
+   "companyId": "dc7eea20-7a18-434d-a294-35647689b630",
+   "name": "제우스",
+   "corpCode": "00442570",
+   "stockCode": "079370"
+  },
+  {
+   "companyId": "4b0a1981-29ae-4ac8-9790-c69f50c8e8ec",
+   "name": "LIG디펜스앤에어로스페이스",
+   "corpCode": "00503668",
+   "stockCode": "079550"
+  },
+  {
+   "companyId": "b7626f7f-4122-44b1-a618-91b52f2942ef",
+   "name": "제주반도체",
+   "corpCode": "00447487",
+   "stockCode": "080220"
+  },
+  {
+   "companyId": "7bebb162-59ec-400e-8201-a8790511653d",
+   "name": "오킨스전자",
+   "corpCode": "00543107",
+   "stockCode": "080580"
+  },
+  {
+   "companyId": "f0104318-8136-4e17-a7df-1f45cfd85cb9",
+   "name": "미스토홀딩스",
+   "corpCode": "00195229",
+   "stockCode": "081660"
+  },
+  {
+   "companyId": "250cc275-bee5-4919-a2b2-97e0b453f2a1",
+   "name": "한화엔진",
+   "corpCode": "00361008",
+   "stockCode": "082740"
+  },
+  {
+   "companyId": "5324e03c-6bd5-4881-a9da-682102cad83d",
+   "name": "GST",
+   "corpCode": "00540863",
+   "stockCode": "083450"
+  },
+  {
+   "companyId": "4a93f553-8315-4870-aca9-8417e3cc6892",
+   "name": "비에이치아이",
+   "corpCode": "00409788",
+   "stockCode": "083650"
+  },
+  {
+   "companyId": "2903b3f4-ab0e-4b6f-8595-1f8b166decd7",
+   "name": "유진테크",
+   "corpCode": "00531014",
+   "stockCode": "084370"
+  },
+  {
+   "companyId": "64513249-7524-4471-b737-a060e0c0a3af",
+   "name": "미래에셋생명",
+   "corpCode": "00112332",
+   "stockCode": "085620"
+  },
+  {
+   "companyId": "efa67291-b445-475b-9ead-3106b8db6f31",
+   "name": "유니테스트",
+   "corpCode": "00540447",
+   "stockCode": "086390"
+  },
+  {
+   "companyId": "2da2a206-9976-449a-9087-a413e44adee2",
+   "name": "비엠티",
+   "corpCode": "00524786",
+   "stockCode": "086670"
+  },
+  {
+   "companyId": "fc619a4d-c965-4ce0-9caf-0360f94743eb",
+   "name": "하나금융지주",
+   "corpCode": "00547583",
+   "stockCode": "086790"
+  },
+  {
+   "companyId": "0b47c2ad-ae13-482f-8782-c631a98f0281",
+   "name": "한화생명",
+   "corpCode": "00113058",
+   "stockCode": "088350"
+  },
+  {
+   "companyId": "fd47e5b6-d6b3-452a-859d-c50fb1f33557",
+   "name": "켐트로닉스",
+   "corpCode": "00371485",
+   "stockCode": "089010"
+  },
+  {
+   "companyId": "4aa4e87a-d1b6-4ad6-8291-8d79fb7ce37d",
+   "name": "테크윙",
+   "corpCode": "00535676",
+   "stockCode": "089030"
+  },
+  {
+   "companyId": "0e1dbba2-7c18-40ed-b20a-caebe1b3c321",
+   "name": "제주항공",
+   "corpCode": "00555874",
+   "stockCode": "089590"
+  },
+  {
+   "companyId": "90fc69a8-dd5b-47c5-b048-205b4e7f7e5e",
+   "name": "로보스타",
+   "corpCode": "00536523",
+   "stockCode": "090360"
+  },
+  {
+   "companyId": "10fc25be-fc84-4339-865a-ba87afbc57a1",
+   "name": "아모레퍼시픽",
+   "corpCode": "00583424",
+   "stockCode": "090430"
+  },
+  {
+   "companyId": "6acaecda-87b5-4ce9-9f97-c9b51f35a532",
+   "name": "휴림로봇",
+   "corpCode": "00540429",
+   "stockCode": "090710"
+  },
+  {
+   "companyId": "6503c413-a668-4f1d-8eb4-09af84e3da8f",
+   "name": "트리니티항공",
+   "corpCode": "00671376",
+   "stockCode": "091810"
+  },
+  {
+   "companyId": "24330750-1d5a-44c7-aa2a-b30197096b07",
+   "name": "서울바이오시스",
+   "corpCode": "00488402",
+   "stockCode": "092190"
+  },
+  {
+   "companyId": "5b3d5662-d53c-4779-91b6-9635ed2bf452",
+   "name": "엑시콘",
+   "corpCode": "00611736",
+   "stockCode": "092870"
+  },
+  {
+   "companyId": "5962d9e6-e905-4844-bc8e-1c5f1456a387",
+   "name": "후성",
+   "corpCode": "00595191",
+   "stockCode": "093370"
+  },
+  {
+   "companyId": "91fe95fe-c444-4b31-9fd1-b7aebea4291b",
+   "name": "ISC",
+   "corpCode": "00572905",
+   "stockCode": "095340"
+  },
+  {
+   "companyId": "d049c5b4-db60-4f9c-834d-b62090b6a464",
+   "name": "테스",
+   "corpCode": "00524421",
+   "stockCode": "095610"
+  },
+  {
+   "companyId": "030f3832-6791-4569-9da6-0cb2f2877e61",
+   "name": "HJ중공업",
+   "corpCode": "00633835",
+   "stockCode": "097230"
+  },
+  {
+   "companyId": "ba95d4f7-2691-4e16-a495-7df8cb1a9f1d",
+   "name": "엠씨넥스",
+   "corpCode": "00564562",
+   "stockCode": "097520"
+  },
+  {
+   "companyId": "77975a75-47b8-4b0b-8624-090404ce376a",
+   "name": "CJ제일제당",
+   "corpCode": "00635134",
+   "stockCode": "097950"
+  },
+  {
+   "companyId": "0487376d-85c9-474b-a9a5-67460e162319",
+   "name": "고영테크놀러지",
+   "corpCode": "00579999",
+   "stockCode": "098460"
+  },
+  {
+   "companyId": "bc618912-9efa-4653-b584-60d4bc36aa4e",
+   "name": "쎄트렉아이",
+   "corpCode": "00449254",
+   "stockCode": "099320"
+  },
+  {
+   "companyId": "596bee1f-9be5-41a3-965c-6de7d942158d",
+   "name": "SK오션플랜트",
+   "corpCode": "00480367",
+   "stockCode": "100090"
+  },
+  {
+   "companyId": "d448ac3e-d726-420d-b8ab-738d6471c140",
+   "name": "SNT에너지",
+   "corpCode": "00648721",
+   "stockCode": "100840"
+  },
+  {
+   "companyId": "ba38e60a-9e1f-4927-9768-1c47a77fda02",
+   "name": "월덱스",
+   "corpCode": "00580065",
+   "stockCode": "101160"
+  },
+  {
+   "companyId": "7febe3f6-9d11-4121-ad29-d6cca6f7702d",
+   "name": "에스앤에스텍",
+   "corpCode": "00411048",
+   "stockCode": "101490"
+  },
+  {
+   "companyId": "9c1cfc81-6597-41da-aedd-d0ff49b17a2d",
+   "name": "이엔에프테크놀로지",
+   "corpCode": "00530185",
+   "stockCode": "102710"
+  },
+  {
+   "companyId": "ea5146e2-8b4b-42dc-b23e-e00177b67aab",
+   "name": "일진전기",
+   "corpCode": "00683469",
+   "stockCode": "103590"
+  },
+  {
+   "companyId": "96d60a49-73b5-4b3a-858f-bcf759555ee1",
+   "name": "원익머트리얼즈",
+   "corpCode": "00623661",
+   "stockCode": "104830"
+  },
+  {
+   "companyId": "fb21c3e3-7a25-49c1-8966-255c9918e532",
+   "name": "KB금융",
+   "corpCode": "00688996",
+   "stockCode": "105560"
+  },
+  {
+   "companyId": "0577cb43-72bb-4b2c-ab0f-a0fc6dd9ed75",
+   "name": "디케이락",
+   "corpCode": "00533003",
+   "stockCode": "105740"
+  },
+  {
+   "companyId": "1fe83335-e82a-4b7c-9797-c796d3f0e3ba",
+   "name": "우진",
+   "corpCode": "00173944",
+   "stockCode": "105840"
+  },
+  {
+   "companyId": "beceb4c5-0334-4b88-ab29-3c2fdfa33c8b",
+   "name": "새빗켐",
+   "corpCode": "00862880",
+   "stockCode": "107600"
+  },
+  {
+   "companyId": "ae5dd2fd-c86a-48e6-b94f-1d6d629e7c03",
+   "name": "로보티즈",
+   "corpCode": "00946030",
+   "stockCode": "108490"
+  },
+  {
+   "companyId": "7c02aeb9-64fd-4a69-a289-82e73f6fcf5d",
+   "name": "디아이티",
+   "corpCode": "00576798",
+   "stockCode": "110990"
+  },
+  {
+   "companyId": "4df901ef-785e-4141-8fdd-584f7ce1617c",
+   "name": "영원무역",
+   "corpCode": "00776820",
+   "stockCode": "111770"
+  },
+  {
+   "companyId": "736ac657-2ce2-4bd8-97de-8aac9c5f9142",
+   "name": "와이씨켐",
+   "corpCode": "00619507",
+   "stockCode": "112290"
+  },
+  {
+   "companyId": "bc2e2f38-8c74-481d-b2e8-2347883da36b",
+   "name": "씨에스윈드",
+   "corpCode": "00670340",
+   "stockCode": "112610"
+  },
+  {
+   "companyId": "f01e4dd3-c750-49cc-868c-175840769e63",
+   "name": "GKL",
+   "corpCode": "00557508",
+   "stockCode": "114090"
+  },
+  {
+   "companyId": "2945e701-696e-46d1-9d12-769c3dd70dc9",
+   "name": "티로보틱스",
+   "corpCode": "00867098",
+   "stockCode": "117730"
+  },
+  {
+   "companyId": "d7d9fa7a-8ce6-4e58-86e6-564569aab008",
+   "name": "예스티",
+   "corpCode": "00530556",
+   "stockCode": "122640"
+  },
+  {
+   "companyId": "74a2679b-986e-4227-a843-78743f531017",
+   "name": "와이지엔터테인먼트",
+   "corpCode": "00613318",
+   "stockCode": "122870"
+  },
+  {
+   "companyId": "607c91f1-cb1e-4970-8cde-e6f5bd16f3fe",
+   "name": "비나텍",
+   "corpCode": "00563518",
+   "stockCode": "126340"
+  },
+  {
+   "companyId": "7e8966b5-b735-410c-a472-f28e52466e51",
+   "name": "한미약품",
+   "corpCode": "00828497",
+   "stockCode": "128940"
+  },
+  {
+   "companyId": "e2096f2c-4f46-4eaa-a9d2-e1b4db2d7d36",
+   "name": "티에스이",
+   "corpCode": "00372226",
+   "stockCode": "131290"
+  },
+  {
+   "companyId": "1c6d5802-7784-4b96-b7db-21fd247d8b43",
+   "name": "두산테스나",
+   "corpCode": "00563545",
+   "stockCode": "131970"
+  },
+  {
+   "companyId": "60f9caad-8251-4ac8-86cd-ddf5230dec98",
+   "name": "오이솔루션",
+   "corpCode": "00571483",
+   "stockCode": "138080"
+  },
+  {
+   "companyId": "d4198604-0d76-499f-b3db-537fce546391",
+   "name": "BNK금융지주",
+   "corpCode": "00858364",
+   "stockCode": "138930"
+  },
+  {
+   "companyId": "949c92a3-8609-4160-8b6a-9ef779b07bd0",
+   "name": "iM금융지주",
+   "corpCode": "00878915",
+   "stockCode": "139130"
+  },
+  {
+   "companyId": "332367b2-7d34-445a-831d-a1d04c43a4dd",
+   "name": "알에스오토메이션",
+   "corpCode": "00858124",
+   "stockCode": "140670"
+  },
+  {
+   "companyId": "92beab8c-82db-4fed-a97a-3ee77f53ec4d",
+   "name": "파크시스템스",
+   "corpCode": "00244747",
+   "stockCode": "140860"
+  },
+  {
+   "companyId": "f5e2f052-9aa0-4611-a9d0-d38e52e9ee55",
+   "name": "리가켐바이오",
+   "corpCode": "00842619",
+   "stockCode": "141080"
+  },
+  {
+   "companyId": "06935514-9dde-4881-9f2f-480546f45cf0",
+   "name": "휴젤",
+   "corpCode": "00888347",
+   "stockCode": "145020"
+  },
+  {
+   "companyId": "fc7e18ee-c97f-4460-b9ca-d7d46da2c539",
+   "name": "덴티움",
+   "corpCode": "00526599",
+   "stockCode": "145720"
+  },
+  {
+   "companyId": "8a218161-b650-42c6-84a1-b440d667f357",
+   "name": "하이젠알앤엠",
+   "corpCode": "00650771",
+   "stockCode": "160190"
+  },
+  {
+   "companyId": "a02354f2-33e5-4fb3-948a-6c6e265a9505",
+   "name": "한국타이어앤테크놀로지",
+   "corpCode": "00937324",
+   "stockCode": "161390"
+  },
+  {
+   "companyId": "1b43ac35-9d76-4d75-84f4-7e0ff8651631",
+   "name": "필옵틱스",
+   "corpCode": "00938721",
+   "stockCode": "161580"
+  },
+  {
+   "companyId": "79aac576-99e1-41df-a352-a6765efecbec",
+   "name": "한국콜마",
+   "corpCode": "00939331",
+   "stockCode": "161890"
+  },
+  {
+   "companyId": "ec71cce7-05ab-498b-a7a5-8c644cbe6f53",
+   "name": "하나머티리얼즈",
+   "corpCode": "00660750",
+   "stockCode": "166090"
+  },
+  {
+   "companyId": "b43daad9-656f-4f78-9888-9e199743853b",
+   "name": "펨트론",
+   "corpCode": "00957373",
+   "stockCode": "168360"
+  },
+  {
+   "companyId": "247e7ad0-1720-46fd-b66f-b8fb5ef614ed",
+   "name": "JB금융지주",
+   "corpCode": "00980122",
+   "stockCode": "175330"
+  },
+  {
+   "companyId": "29af2529-2e1a-473e-91d7-522ec3a1d2ec",
+   "name": "코미코",
+   "corpCode": "00997812",
+   "stockCode": "183300"
+  },
+  {
+   "companyId": "b3acb78a-e624-4222-a66e-38e19ce1dca3",
+   "name": "인텔리안테크",
+   "corpCode": "00664181",
+   "stockCode": "189300"
+  },
+  {
+   "companyId": "549c11a6-706e-4564-b189-60eeb43a2e7f",
+   "name": "나무가",
+   "corpCode": "00819374",
+   "stockCode": "190510"
+  },
+  {
+   "companyId": "98c9ba5b-a8d0-48dc-9efe-bcd602571cd3",
+   "name": "코스맥스",
+   "corpCode": "01009789",
+   "stockCode": "192820"
+  },
+  {
+   "companyId": "81450277-0d62-4031-8d85-2a3c7e126309",
+   "name": "알테오젠",
+   "corpCode": "00989619",
+   "stockCode": "196170"
+  },
+  {
+   "companyId": "70c45a91-6b7c-4018-ad1e-3ebac21af68c",
+   "name": "에이디테크놀로지",
+   "corpCode": "00657002",
+   "stockCode": "200710"
+  },
+  {
+   "companyId": "8d59f220-a66c-4865-8ee3-b54d0332243a",
+   "name": "제이앤티씨",
+   "corpCode": "00447575",
+   "stockCode": "204270"
+  },
+  {
+   "companyId": "4ed67ad8-85dd-47ec-80cc-94aee7c249e9",
+   "name": "삼성바이오로직스",
+   "corpCode": "00877059",
+   "stockCode": "207940"
+  },
+  {
+   "companyId": "645a6351-75b7-4a71-a9cc-9e4689110328",
+   "name": "디와이파워",
+   "corpCode": "01059605",
+   "stockCode": "210540"
+  },
+  {
+   "companyId": "2220e81c-2347-4221-9c1d-ebe44a154ce6",
+   "name": "인카금융서비스",
+   "corpCode": "01013694",
+   "stockCode": "211050"
+  },
+  {
+   "companyId": "3118eaa7-a51e-45bc-ae2c-0a61c7d6579f",
+   "name": "AP위성",
+   "corpCode": "00874803",
+   "stockCode": "211270"
+  },
+  {
+   "companyId": "d53807aa-3ee9-47d7-8722-8aec39a3322e",
+   "name": "클래시스",
+   "corpCode": "01061327",
+   "stockCode": "214150"
+  },
+  {
+   "companyId": "909c86f9-1557-4cad-8fa5-d7d8cc6951ba",
+   "name": "케어젠",
+   "corpCode": "00549891",
+   "stockCode": "214370"
+  },
+  {
+   "companyId": "a64de764-2b8b-4256-8956-464eadbf97a0",
+   "name": "아이쓰리시스템",
+   "corpCode": "00612489",
+   "stockCode": "214430"
+  },
+  {
+   "companyId": "b5289779-a473-4468-9f0a-824a896a64ef",
+   "name": "파마리서치",
+   "corpCode": "00970453",
+   "stockCode": "214450"
+  },
+  {
+   "companyId": "6a1eaa57-87df-46da-867d-a3a1e1d6a4fd",
+   "name": "RFHIC",
+   "corpCode": "01078178",
+   "stockCode": "218410"
+  },
+  {
+   "companyId": "e5fdb098-4659-4e1e-97b5-de05fdaa9fd3",
+   "name": "타이거일렉",
+   "corpCode": "00617314",
+   "stockCode": "219130"
+  },
+  {
+   "companyId": "db1680b9-190a-4348-8ed5-0dd1ca28e845",
+   "name": "바이옵트로",
+   "corpCode": "01037542",
+   "stockCode": "222160"
+  },
+  {
+   "companyId": "29599bce-ee45-4eee-8d52-46b4b3e23f3e",
+   "name": "심텍",
+   "corpCode": "01095722",
+   "stockCode": "222800"
+  },
+  {
+   "companyId": "b0555243-7599-4732-ae06-66885701b974",
+   "name": "올릭스",
+   "corpCode": "01113718",
+   "stockCode": "226950"
+  },
+  {
+   "companyId": "1e42c958-8af6-4f1b-a322-a73125cc9586",
+   "name": "LS에코에너지",
+   "corpCode": "01093007",
+   "stockCode": "229640"
+  },
+  {
+   "companyId": "4c639775-34cd-4152-ac60-65e826562c1f",
+   "name": "와이씨",
+   "corpCode": "01109539",
+   "stockCode": "232140"
+  },
+  {
+   "companyId": "46e671ec-951b-4f7d-bd91-704c35691545",
+   "name": "에스티팜",
+   "corpCode": "00871833",
+   "stockCode": "237690"
+  },
+  {
+   "companyId": "48e5589d-8782-4319-a6a6-093a151f86c5",
+   "name": "원익IPS",
+   "corpCode": "01135941",
+   "stockCode": "240810"
+  },
+  {
+   "companyId": "c0028857-6791-4c8e-852a-01244276eea2",
+   "name": "두산밥캣",
+   "corpCode": "01032486",
+   "stockCode": "241560"
+  },
+  {
+   "companyId": "9d2d86e7-626f-4178-8f9c-5a52310b3a4f",
+   "name": "코스메카코리아",
+   "corpCode": "00763473",
+   "stockCode": "241710"
+  },
+  {
+   "companyId": "2577c0e2-c374-41d2-9f51-4bcb4285c21a",
+   "name": "에코프로비엠",
+   "corpCode": "01160363",
+   "stockCode": "247540"
+  },
+  {
+   "companyId": "0b0491a7-dc75-4e24-b5ba-9bbb4d07e465",
+   "name": "넷마블",
+   "corpCode": "00904672",
+   "stockCode": "251270"
+  },
+  {
+   "companyId": "5df854f5-cb53-4c2e-99ed-055980fd2b91",
+   "name": "와이엠티",
+   "corpCode": "00602172",
+   "stockCode": "251370"
+  },
+  {
+   "companyId": "54ee7392-edb3-43dd-9794-fb649eeb2365",
+   "name": "펌텍코리아",
+   "corpCode": "00761059",
+   "stockCode": "251970"
+  },
+  {
+   "companyId": "a004dcdc-0dad-45b5-9b58-f518de88e38b",
+   "name": "샘씨엔에스",
+   "corpCode": "01199727",
+   "stockCode": "252990"
+  },
+  {
+   "companyId": "6958f6c4-c9c4-467f-a956-67f4b6ab6cf1",
+   "name": "네오셈",
+   "corpCode": "01170865",
+   "stockCode": "253590"
+  },
+  {
+   "companyId": "d1d662b8-9c0d-427e-808f-b5e9f23ae18b",
+   "name": "실리콘투",
+   "corpCode": "00982023",
+   "stockCode": "257720"
+  },
+  {
+   "companyId": "c075d5fd-73bd-422a-9154-b7d03c189973",
+   "name": "크래프톤",
+   "corpCode": "00760971",
+   "stockCode": "259960"
+  },
+  {
+   "companyId": "17211c8f-69fa-4ed7-a4cd-3cd75b7b5634",
+   "name": "펄어비스",
+   "corpCode": "01152470",
+   "stockCode": "263750"
+  },
+  {
+   "companyId": "837def83-f0fa-403b-9af3-3730afaae4ee",
+   "name": "AP시스템",
+   "corpCode": "01203808",
+   "stockCode": "265520"
+  },
+  {
+   "companyId": "2de31f87-de0b-4368-82d7-55efed5c0bce",
+   "name": "엔에프씨",
+   "corpCode": "01217829",
+   "stockCode": "265740"
+  },
+  {
+   "companyId": "189cbe91-e03a-44a6-8339-77818a315ea6",
+   "name": "HD현대일렉트릭",
+   "corpCode": "01205851",
+   "stockCode": "267260"
+  },
+  {
+   "companyId": "fea8f958-7858-4b64-bfef-2be90d373754",
+   "name": "HD현대건설기계",
+   "corpCode": "01205842",
+   "stockCode": "267270"
+  },
+  {
+   "companyId": "68c11726-6953-47bc-8d30-27375ad58b9f",
+   "name": "오리온",
+   "corpCode": "01238169",
+   "stockCode": "271560"
+  },
+  {
+   "companyId": "3de1048f-c4ac-4f66-923f-cc22362a9ec0",
+   "name": "케이엔제이",
+   "corpCode": "00769158",
+   "stockCode": "272110"
+  },
+  {
+   "companyId": "1cc76857-640f-414c-9f75-59e140ac703e",
+   "name": "한화시스템",
+   "corpCode": "00339391",
+   "stockCode": "272210"
+  },
+  {
+   "companyId": "1f8d01f7-f436-407d-8ae7-8a25f2080566",
+   "name": "진에어",
+   "corpCode": "00653024",
+   "stockCode": "272450"
+  },
+  {
+   "companyId": "9f0261a5-4c86-47f2-a524-1f09321ca4c2",
+   "name": "켄코아에어로스페이스",
+   "corpCode": "01158553",
+   "stockCode": "274090"
+  },
+  {
+   "companyId": "be223d56-0cc7-4af3-aa6a-75b57ac07668",
+   "name": "레인보우로보틱스",
+   "corpCode": "01261644",
+   "stockCode": "277810"
+  },
+  {
+   "companyId": "4b2c3ceb-09a4-49e6-afd3-e2adea51d0a5",
+   "name": "에이피알",
+   "corpCode": "01190568",
+   "stockCode": "278470"
+  },
+  {
+   "companyId": "3fbab2ab-27bd-49bc-8b7b-f0253e902bf1",
+   "name": "케이뱅크",
+   "corpCode": "01203312",
+   "stockCode": "279570"
+  },
+  {
+   "companyId": "da8c7e83-50b1-499d-97c0-0fdf6f7a6fd2",
+   "name": "롯데웰푸드",
+   "corpCode": "01258507",
+   "stockCode": "280360"
+  },
+  {
+   "companyId": "937b13b9-59a9-4434-b033-053cbb434dec",
+   "name": "레이크머티리얼즈",
+   "corpCode": "01255652",
+   "stockCode": "281740"
+  },
+  {
+   "companyId": "71fbf5e1-2225-4bfd-a19a-7e98d338f208",
+   "name": "케이씨텍",
+   "corpCode": "01261893",
+   "stockCode": "281820"
+  },
+  {
+   "companyId": "299664f5-0e38-4b82-869e-4c8791eca98d",
+   "name": "디케이티",
+   "corpCode": "01137903",
+   "stockCode": "290550"
+  },
+  {
+   "companyId": "782c1151-9b54-4aa6-b5a9-b60cfbb69c2d",
+   "name": "엘앤씨바이오",
+   "corpCode": "01181515",
+   "stockCode": "290650"
+  },
+  {
+   "companyId": "b4c7bf58-1578-45d8-982f-0fc8b716bdcd",
+   "name": "에이치브이엠",
+   "corpCode": "01011368",
+   "stockCode": "295310"
+  },
+  {
+   "companyId": "22435feb-c484-4aa1-b474-e66e144c0e92",
+   "name": "씨에스베어링",
+   "corpCode": "00765462",
+   "stockCode": "297090"
+  },
+  {
+   "companyId": "8f088d30-ec36-406b-93f1-8f331b0f0df3",
+   "name": "효성중공업",
+   "corpCode": "01316245",
+   "stockCode": "298040"
+  },
+  {
+   "companyId": "f02f545c-58d7-44d1-8c39-e614b0d3f19b",
+   "name": "에이비엘바이오",
+   "corpCode": "01256864",
+   "stockCode": "298380"
+  },
+  {
+   "companyId": "a7e3c48b-073d-4e94-a0bf-551b8bb5f3a9",
+   "name": "에어부산",
+   "corpCode": "00651901",
+   "stockCode": "298690"
+  },
+  {
+   "companyId": "6718c143-94de-453d-b841-03ca4fd754a5",
+   "name": "현대오토에버",
+   "corpCode": "00362441",
+   "stockCode": "307950"
+  },
+  {
+   "companyId": "55e324bd-81a7-4b21-ae41-f7ea5772cab8",
+   "name": "보로노이",
+   "corpCode": "01327746",
+   "stockCode": "310210"
+  },
+  {
+   "companyId": "3cfb9a95-cdea-4221-80c4-03b6126a2d1c",
+   "name": "우리금융지주",
+   "corpCode": "01350869",
+   "stockCode": "316140"
+  },
+  {
+   "companyId": "b595114e-2334-4970-b36d-f4ebbe0be96f",
+   "name": "덕산테코피아",
+   "corpCode": "01021666",
+   "stockCode": "317330"
+  },
+  {
+   "companyId": "5ab0152d-eac3-4b1d-8962-bb533bb82bcf",
+   "name": "현대무벡스",
+   "corpCode": "01358463",
+   "stockCode": "319400"
+  },
+  {
+   "companyId": "a3cccf46-948b-4418-8e2a-bbefda0915cb",
+   "name": "피에스케이",
+   "corpCode": "01365825",
+   "stockCode": "319660"
+  },
+  {
+   "companyId": "efa8aa35-f424-496e-a96e-a380c75fa8d2",
+   "name": "센서뷰",
+   "corpCode": "01593668",
+   "stockCode": "321370"
+  },
+  {
+   "companyId": "fb1580f2-37fa-4281-91c3-9b2651d97d34",
+   "name": "HD현대에너지솔루션",
+   "corpCode": "01199550",
+   "stockCode": "322000"
+  },
+  {
+   "companyId": "83e93a26-ccae-421c-abe6-9a4fbfe80905",
+   "name": "오로스테크놀로지",
+   "corpCode": "01016479",
+   "stockCode": "322310"
+  },
+  {
+   "companyId": "ff328494-d8db-4d45-8f57-9bda63bfc457",
+   "name": "태성",
+   "corpCode": "01366000",
+   "stockCode": "323280"
+  },
+  {
+   "companyId": "146b544b-4f16-4266-9930-eeb0d62ed27f",
+   "name": "카카오뱅크",
+   "corpCode": "01133217",
+   "stockCode": "323410"
+  },
+  {
+   "companyId": "bf00efcf-257e-4641-826d-26914ff8991d",
+   "name": "루닛",
+   "corpCode": "01397620",
+   "stockCode": "328130"
+  },
+  {
+   "companyId": "c5bad818-3671-4bb3-a1ab-6a5d28a5d671",
+   "name": "HD현대중공업",
+   "corpCode": "01390344",
+   "stockCode": "329180"
+  },
+  {
+   "companyId": "affe0188-f570-4ed9-b0b2-b20a642904e3",
+   "name": "네패스아크",
+   "corpCode": "01368354",
+   "stockCode": "330860"
+  },
+  {
+   "companyId": "89214042-7812-4f62-ab69-9ad3fb5f51f2",
+   "name": "두산퓨얼셀",
+   "corpCode": "01412725",
+   "stockCode": "336260"
+  },
+  {
+   "companyId": "b2ab9c43-8734-4835-bbaa-aab423ad750b",
+   "name": "뷰노",
+   "corpCode": "01344202",
+   "stockCode": "338220"
+  },
+  {
+   "companyId": "1288628a-69d2-45c5-aeac-e6e4447b452c",
+   "name": "디앤디파마텍",
+   "corpCode": "01376715",
+   "stockCode": "347850"
+  },
+  {
+   "companyId": "0be20414-b7cb-43b8-bcdb-75c9ae75d5d0",
+   "name": "넥스틴",
+   "corpCode": "01080252",
+   "stockCode": "348210"
+  },
+  {
+   "companyId": "7baa8b7e-5432-4514-ac66-4a91bae2934f",
+   "name": "뉴로메카",
+   "corpCode": "01336461",
+   "stockCode": "348340"
+  },
+  {
+   "companyId": "eb6a1a80-e82b-4504-9785-f90310dfb6fa",
+   "name": "하이브",
+   "corpCode": "01204056",
+   "stockCode": "352820"
+  },
+  {
+   "companyId": "6093e9e4-4890-4a1f-a7ac-f20129403b9d",
+   "name": "대덕전자",
+   "corpCode": "01478712",
+   "stockCode": "353200"
+  },
+  {
+   "companyId": "0dd74c7e-fb5e-4383-b921-9e9febd67949",
+   "name": "알멕",
+   "corpCode": "00229030",
+   "stockCode": "354320"
+  },
+  {
+   "companyId": "342f37c0-9760-436c-8d9a-337bfc67d213",
+   "name": "티엘비",
+   "corpCode": "00920379",
+   "stockCode": "356860"
+  },
+  {
+   "companyId": "50eaa7b1-a039-4332-aaf0-acdf8ae516e4",
+   "name": "아모센스",
+   "corpCode": "01012987",
+   "stockCode": "357580"
+  },
+  {
+   "companyId": "a70cfa53-fbea-42ef-8672-582d24c32b91",
+   "name": "솔브레인",
+   "corpCode": "01489648",
+   "stockCode": "357780"
+  },
+  {
+   "companyId": "1332563c-60fe-4a7a-a4e9-46d7e5f0505f",
+   "name": "지아이이노베이션",
+   "corpCode": "01351080",
+   "stockCode": "358570"
+  },
+  {
+   "companyId": "cf3d803c-5b5e-4e43-9178-4551b60dfdf8",
+   "name": "제노코",
+   "corpCode": "01014718",
+   "stockCode": "361390"
+  },
+  {
+   "companyId": "987872cd-5a22-438b-93ef-cb6a4dca5c21",
+   "name": "성일하이텍",
+   "corpCode": "01274329",
+   "stockCode": "365340"
+  },
+  {
+   "companyId": "5195829f-a42c-4393-b376-868056907c91",
+   "name": "파이버프로",
+   "corpCode": "01513440",
+   "stockCode": "368770"
+  },
+  {
+   "companyId": "e7f4a9dc-8f6a-4b6a-bfff-83505ab43e8e",
+   "name": "LG에너지솔루션",
+   "corpCode": "01515323",
+   "stockCode": "373220"
+  },
+  {
+   "companyId": "d7a2af4b-4d3d-47a1-8d58-80d9906d3162",
+   "name": "DL이앤씨",
+   "corpCode": "01524093",
+   "stockCode": "375500"
+  },
+  {
+   "companyId": "f9ec5db1-6cf8-4e83-a562-41eb37d91431",
+   "name": "옵티코어",
+   "corpCode": "01506990",
+   "stockCode": "380540"
+  },
+  {
+   "companyId": "4bd9473c-55a2-4dcc-bae2-d7fd45a98235",
+   "name": "F&F",
+   "corpCode": "01568413",
+   "stockCode": "383220"
+  },
+  {
+   "companyId": "f985f88d-8595-42ff-8512-74b45d7cd9bc",
+   "name": "유일로보틱스",
+   "corpCode": "01152586",
+   "stockCode": "388720"
+  },
+  {
+   "companyId": "f424d2b1-a224-4cd8-8772-7ff759d27548",
+   "name": "에스비비테크",
+   "corpCode": "00567897",
+   "stockCode": "389500"
+  },
+  {
+   "companyId": "102cd746-f2e5-48f5-87ae-41467b186ee0",
+   "name": "오픈엣지테크놀로지",
+   "corpCode": "01571107",
+   "stockCode": "394280"
+  },
+  {
+   "companyId": "4dd7065d-9796-48fa-8467-dd7434048dfe",
+   "name": "쓰리빌리언",
+   "corpCode": "01506617",
+   "stockCode": "394800"
+  },
+  {
+   "companyId": "d2f956bb-889a-43bc-ac6f-2cdb88d55ad4",
+   "name": "가온칩스",
+   "corpCode": "01364747",
+   "stockCode": "399720"
+  },
+  {
+   "companyId": "362b9f1f-0b72-4670-9c01-d08d1217f232",
+   "name": "HPSP",
+   "corpCode": "01288827",
+   "stockCode": "403870"
+  },
+  {
+   "companyId": "654c5ac1-9501-4bb3-8844-81fd30f3c5f8",
+   "name": "라온텍",
+   "corpCode": "00965512",
+   "stockCode": "418420"
+  },
+  {
+   "companyId": "ce43e437-9359-446e-98d0-d6b130da2607",
+   "name": "기가비스",
+   "corpCode": "00765569",
+   "stockCode": "420770"
+  },
+  {
+   "companyId": "2f49bcd3-4c37-46c5-8c06-8e1d2521510a",
+   "name": "티에프이",
+   "corpCode": "01035368",
+   "stockCode": "425420"
+  },
+  {
+   "companyId": "fbc9c7c7-8a38-4fb6-8ecb-6e6312f97e9f",
+   "name": "퀄리타스반도체",
+   "corpCode": "01584183",
+   "stockCode": "432720"
+  },
+  {
+   "companyId": "b099414b-fe98-483d-817b-dd277f88c7aa",
+   "name": "삼현",
+   "corpCode": "00262266",
+   "stockCode": "437730"
+  },
+  {
+   "companyId": "0d051168-9b94-4a4a-bc7b-0c4a718ec502",
+   "name": "대한조선",
+   "corpCode": "00182696",
+   "stockCode": "439260"
+  },
+  {
+   "companyId": "e2705a19-5470-4530-8bcf-1900b9464c1d",
+   "name": "파두",
+   "corpCode": "01292291",
+   "stockCode": "440110"
+  },
+  {
+   "companyId": "b9401a9e-e400-4978-bf79-23460816750f",
+   "name": "큐리옥스바이오시스템즈",
+   "corpCode": "01498974",
+   "stockCode": "445680"
+  },
+  {
+   "companyId": "c30143e3-8e9d-4fe7-88fa-30d1d85fdccc",
+   "name": "한국피아이엠",
+   "corpCode": "00765897",
+   "stockCode": "448900"
+  },
+  {
+   "companyId": "bddc914b-bf2e-4bcf-942c-4fe072cf13aa",
+   "name": "컨텍",
+   "corpCode": "01685251",
+   "stockCode": "451760"
+  },
+  {
+   "companyId": "1602bb73-136d-4db0-9da5-18da23af819a",
+   "name": "한선엔지니어링",
+   "corpCode": "00958451",
+   "stockCode": "452280"
+  },
+  {
+   "companyId": "15d86b6f-fdbe-4a2c-9dfb-aebd69dd11b3",
+   "name": "사피엔반도체",
+   "corpCode": "01676642",
+   "stockCode": "452430"
+  },
+  {
+   "companyId": "25371b3a-3578-479e-8c5a-7e2d87519c03",
+   "name": "두산로보틱스",
+   "corpCode": "01105153",
+   "stockCode": "454910"
+  },
+  {
+   "companyId": "c3206ebd-af3d-4f2b-b533-a5e2ce3f3273",
+   "name": "지투지바이오",
+   "corpCode": "01577952",
+   "stockCode": "456160"
+  },
+  {
+   "companyId": "fb50e2b2-a0ca-4092-b76c-ce7130d05c11",
+   "name": "이수스페셜티케미컬",
+   "corpCode": "01762569",
+   "stockCode": "457190"
+  },
+  {
+   "companyId": "ac0011aa-dfbc-4ffd-a63d-72d0fc454be3",
+   "name": "나우로보틱스",
+   "corpCode": "01594791",
+   "stockCode": "459510"
+  },
+  {
+   "companyId": "ae22595d-a134-43b0-afe1-d23671d691e7",
+   "name": "이노스페이스",
+   "corpCode": "01700587",
+   "stockCode": "462350"
+  },
+  {
+   "companyId": "c11d8a8e-02db-4f75-9519-7e042cc33a44",
+   "name": "시프트업",
+   "corpCode": "01384787",
+   "stockCode": "462870"
+  },
+  {
+   "companyId": "c60ad97b-f288-4172-baac-c63d42df2fc0",
+   "name": "클로봇",
+   "corpCode": "01784914",
+   "stockCode": "466100"
+  },
+  {
+   "companyId": "5546ee61-3fca-4391-8b3e-749c2f0d2a97",
+   "name": "프로티나",
+   "corpCode": "01688568",
+   "stockCode": "468530"
+  },
+  {
+   "companyId": "7ec28f74-d42b-4c58-9168-bb1bffba9864",
+   "name": "루미르",
+   "corpCode": "01636565",
+   "stockCode": "474170"
+  },
+  {
+   "companyId": "b5a9db74-d97e-4396-aa2b-8f2a186e346e",
+   "name": "SK이터닉스",
+   "corpCode": "01817081",
+   "stockCode": "475150"
+  },
+  {
+   "companyId": "444b659c-fb51-4701-ae40-24160e61009b",
+   "name": "토모큐브",
+   "corpCode": "01573336",
+   "stockCode": "475960"
+  },
+  {
+   "companyId": "232389ee-d4ac-4b79-b40a-d241d20fd84c",
+   "name": "알지노믹스",
+   "corpCode": "01596920",
+   "stockCode": "476830"
+  },
+  {
+   "companyId": "dbb4aa85-4375-4692-b7d1-b7a4be291af7",
+   "name": "달바글로벌",
+   "corpCode": "01649204",
+   "stockCode": "483650"
+  },
+  {
+   "companyId": "45966da5-16c0-4012-86ad-327a2a668ff8",
+   "name": "삼양컴텍",
+   "corpCode": "00141583",
+   "stockCode": "484590"
+  },
+  {
+   "companyId": "4f0385f8-5b1a-4ddb-b599-04e8a1bc03bf",
+   "name": "티엑스알로보틱스",
+   "corpCode": "01458161",
+   "stockCode": "484810"
+  },
+  {
+   "companyId": "65d56c19-5637-48ee-a88d-4ce893f2dbc2",
+   "name": "엠앤씨솔루션",
+   "corpCode": "01519790",
+   "stockCode": "484870"
+  },
+  {
+   "companyId": "2db58f1a-5389-43e2-8810-9f9313374163",
+   "name": "한화비전",
+   "corpCode": "01867758",
+   "stockCode": "489790"
+  },
+  {
+   "companyId": "b3620902-553e-41fc-bb15-f0ab6cfc54ed",
+   "name": "세미파이브",
+   "corpCode": "01627363",
+   "stockCode": "490470"
+  },
+  {
+   "companyId": "315a78f1-416d-439a-b8f5-d590fd7db219",
+   "name": "리브스메드",
+   "corpCode": "01385005",
+   "stockCode": "491000"
+  },
+  {
+   "companyId": "1c2c483a-b11b-495c-9bff-e6ac0a7853b8",
+   "name": "GS피앤엘",
+   "corpCode": "01882845",
+   "stockCode": "499790"
+  }
+ ],
+ "excluded": []
+}

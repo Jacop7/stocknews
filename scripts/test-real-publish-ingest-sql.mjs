@@ -189,7 +189,8 @@ while (queue.length) {
 const synthetic = rows.filter(r => seen.has(r.sig) && r.src.includes('SYNTHETIC')).map(r => r.sig).sort();
 const CLASSIFIED = {
   // Public article reads: SYNTHETIC only as sector-catalogue rules (fixture sectors and the legacy-sector flag).
-  'catalog_public_articles(bigint,uuid[],text,integer,timestamp with time zone,timestamp with time zone,uuid)': 'sector selectability and legacy flag',
+  // Migration 64: the seven-argument form delegates to the eight-argument macro-filter form, which holds the rules.
+  'catalog_public_articles(bigint,uuid[],text,integer,timestamp with time zone,timestamp with time zone,uuid,boolean)': 'sector selectability and legacy flag',
   'catalog_public_company(bigint,uuid,integer,timestamp with time zone,timestamp with time zone,uuid)': 'legacy-sector flag',
   'catalog_public_saved(bigint,uuid[])': 'legacy-sector flag',
   'catalog_public_search_news(bigint,text,integer,timestamp with time zone,timestamp with time zone,uuid)': 'sector keyword selectability and legacy flag',

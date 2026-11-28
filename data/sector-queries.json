@@ -1,0 +1,848 @@
+{
+ "format": "SECTOR_QUERIES_V1",
+ "sourceSha256": "5c86278ab12d16979a1f5fd7a100e15368db2450f1ebcf47e70aced66d84a5d2",
+ "registrySha256": "160a969756bfd291c81dda390a3490f46ac60bc12eed262e1818e5ba40a03dc6",
+ "parserSha256": "838fbebba79a0b64fc3f87270e07899576eb8490eb24d256834b7dc26bec602c",
+ "queries": [
+  {
+   "queryId": "01b46609-a6f7-4e56-991f-661270559631:ko",
+   "topic": "01b46609-a6f7-4e56-991f-661270559631",
+   "locale": "ko",
+   "name": "전기차",
+   "q": "\"전기차\" OR \"E-GMP\" OR \"전기차 판매\" OR \"전기차 보조금\""
+  },
+  {
+   "queryId": "01b46609-a6f7-4e56-991f-661270559631:en",
+   "topic": "01b46609-a6f7-4e56-991f-661270559631",
+   "locale": "en",
+   "name": "전기차",
+   "q": "\"Tesla\" OR \"Rivian\" OR \"Lucid\""
+  },
+  {
+   "queryId": "0d83ab39-bae6-43da-ac37-03306c6c9523:ko",
+   "topic": "0d83ab39-bae6-43da-ac37-03306c6c9523",
+   "locale": "ko",
+   "name": "항공",
+   "q": "\"항공 수요\" OR \"LCC\" OR \"FSC\" OR \"국제선\""
+  },
+  {
+   "queryId": "0d83ab39-bae6-43da-ac37-03306c6c9523:en",
+   "topic": "0d83ab39-bae6-43da-ac37-03306c6c9523",
+   "locale": "en",
+   "name": "항공",
+   "q": "\"Delta Air Lines\" OR \"United Airlines\" OR \"American Airlines\""
+  },
+  {
+   "queryId": "16d21442-b44a-4868-a9b7-96e930945683:ko",
+   "topic": "16d21442-b44a-4868-a9b7-96e930945683",
+   "locale": "ko",
+   "name": "조선",
+   "q": "\"조선 수주\" OR \"선박 엔진\" OR \"LNG 보냉재\" OR \"신조선가\""
+  },
+  {
+   "queryId": "16d21442-b44a-4868-a9b7-96e930945683:en",
+   "topic": "16d21442-b44a-4868-a9b7-96e930945683",
+   "locale": "en",
+   "name": "조선",
+   "q": "\"Huntington Ingalls\" OR \"General Dynamics\" OR \"Caterpillar\""
+  },
+  {
+   "queryId": "18571085-b70a-46a7-b92b-23eb207c4bd2:ko",
+   "topic": "18571085-b70a-46a7-b92b-23eb207c4bd2",
+   "locale": "ko",
+   "name": "철강",
+   "q": "\"철강\" OR \"열연\" OR \"냉연\" OR \"후판\""
+  },
+  {
+   "queryId": "18571085-b70a-46a7-b92b-23eb207c4bd2:en",
+   "topic": "18571085-b70a-46a7-b92b-23eb207c4bd2",
+   "locale": "en",
+   "name": "철강",
+   "q": "\"Nucor\" OR \"Steel Dynamics\" OR \"Cleveland-Cliffs\""
+  },
+  {
+   "queryId": "18e0efdb-0523-4328-8293-a665e85ffba8:ko",
+   "topic": "18e0efdb-0523-4328-8293-a665e85ffba8",
+   "locale": "ko",
+   "name": "건설",
+   "q": "\"건설주\" OR \"재건축\" OR \"재개발\" OR \"도시정비\""
+  },
+  {
+   "queryId": "18e0efdb-0523-4328-8293-a665e85ffba8:en",
+   "topic": "18e0efdb-0523-4328-8293-a665e85ffba8",
+   "locale": "en",
+   "name": "건설",
+   "q": "\"Fluor\" OR \"AECOM\" OR \"Jacobs Solutions\""
+  },
+  {
+   "queryId": "1c83dd0a-d862-461d-a942-eede63b8381b:ko",
+   "topic": "1c83dd0a-d862-461d-a942-eede63b8381b",
+   "locale": "ko",
+   "name": "반도체 OSAT",
+   "q": "\"OSAT\" OR \"웨이퍼 테스트\" OR \"패키지 테스트\" OR \"범핑\""
+  },
+  {
+   "queryId": "1c83dd0a-d862-461d-a942-eede63b8381b:en",
+   "topic": "1c83dd0a-d862-461d-a942-eede63b8381b",
+   "locale": "en",
+   "name": "반도체 OSAT",
+   "q": "\"Amkor Technology\" OR \"Intel\" OR \"IonQ\""
+  },
+  {
+   "queryId": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc:ko",
+   "topic": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc",
+   "locale": "ko",
+   "name": "의료 AI",
+   "q": "\"의료 AI\" OR \"AI 진단\" OR \"AI 영상진단\" OR \"암 진단\""
+  },
+  {
+   "queryId": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc:en",
+   "topic": "1dbd6b7c-dc4a-4004-9fb1-b6ff4b919cbc",
+   "locale": "en",
+   "name": "의료 AI",
+   "q": "\"Tempus AI\" OR \"GE HealthCare\" OR \"iRhythm\""
+  },
+  {
+   "queryId": "281578e0-01d6-4705-9e05-dfcf16f93851:ko",
+   "topic": "281578e0-01d6-4705-9e05-dfcf16f93851",
+   "locale": "ko",
+   "name": "태양광",
+   "q": "\"태양광\" OR \"태양광 셀\" OR \"태양광 모듈\" OR \"폴리실리콘\""
+  },
+  {
+   "queryId": "281578e0-01d6-4705-9e05-dfcf16f93851:en",
+   "topic": "281578e0-01d6-4705-9e05-dfcf16f93851",
+   "locale": "en",
+   "name": "태양광",
+   "q": "\"First Solar\" OR \"Enphase Energy\" OR \"Array Technologies\""
+  },
+  {
+   "queryId": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4:ko",
+   "topic": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4",
+   "locale": "ko",
+   "name": "건설 기계",
+   "q": "\"굴착기\" OR \"휠로더\" OR \"소형 굴착기\" OR \"스키드로더\""
+  },
+  {
+   "queryId": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4:en",
+   "topic": "29ac52f4-6a9c-483d-9586-53fb29fcfcd4",
+   "locale": "en",
+   "name": "건설 기계",
+   "q": "\"Caterpillar\" OR \"Deere\" OR \"Terex\""
+  },
+  {
+   "queryId": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df:ko",
+   "topic": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df",
+   "locale": "ko",
+   "name": "원자력 SMR",
+   "q": "\"원전 기자재\" OR \"원전 시공\" OR \"SMR 파운드리\" OR \"SMR EPC\""
+  },
+  {
+   "queryId": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df:en",
+   "topic": "2b5c9cce-3a04-4dd4-86a9-c8abce1359df",
+   "locale": "en",
+   "name": "원자력 SMR",
+   "q": "\"BWX Technologies\" OR \"GE Vernova\" OR \"Curtiss-Wright\""
+  },
+  {
+   "queryId": "2f0ad66c-1ae4-4a61-9787-3c1837714954:ko",
+   "topic": "2f0ad66c-1ae4-4a61-9787-3c1837714954",
+   "locale": "ko",
+   "name": "전고체 배터리",
+   "q": "\"전고체\" OR \"전고체 배터리\" OR \"황화리튬\" OR \"고체전해질\""
+  },
+  {
+   "queryId": "2f0ad66c-1ae4-4a61-9787-3c1837714954:en",
+   "topic": "2f0ad66c-1ae4-4a61-9787-3c1837714954",
+   "locale": "en",
+   "name": "전고체 배터리",
+   "q": "\"QuantumScape\" OR \"Solid Power\""
+  },
+  {
+   "queryId": "2f2d8094-6441-4728-a658-616e41e8da48:ko",
+   "topic": "2f2d8094-6441-4728-a658-616e41e8da48",
+   "locale": "ko",
+   "name": "식품",
+   "q": "\"K-푸드\" OR \"라면\" OR \"HMR\" OR \"간편식\""
+  },
+  {
+   "queryId": "2f2d8094-6441-4728-a658-616e41e8da48:en",
+   "topic": "2f2d8094-6441-4728-a658-616e41e8da48",
+   "locale": "en",
+   "name": "식품",
+   "q": "\"PepsiCo\" OR \"Coca-Cola\" OR \"Mondelez\""
+  },
+  {
+   "queryId": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0:ko",
+   "topic": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0",
+   "locale": "ko",
+   "name": "타이어",
+   "q": "\"타이어\" OR \"전기차 타이어\" OR \"고성능 타이어\" OR \"OE 타이어\""
+  },
+  {
+   "queryId": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0:en",
+   "topic": "313330a6-ea3e-4f90-94ed-d2fa1f7956e0",
+   "locale": "en",
+   "name": "타이어",
+   "q": "\"Goodyear\""
+  },
+  {
+   "queryId": "320d553d-a47d-4dae-8123-bf9e18a24cfd:ko",
+   "topic": "320d553d-a47d-4dae-8123-bf9e18a24cfd",
+   "locale": "ko",
+   "name": "해운",
+   "q": "\"해상운임\" OR \"SCFI\" OR \"BDI\" OR \"컨테이너 운임\""
+  },
+  {
+   "queryId": "320d553d-a47d-4dae-8123-bf9e18a24cfd:en",
+   "topic": "320d553d-a47d-4dae-8123-bf9e18a24cfd",
+   "locale": "en",
+   "name": "해운",
+   "q": "\"Matson\" OR \"Kirby\" OR \"International Seaways\""
+  },
+  {
+   "queryId": "34f59cc0-6e5e-4f13-8006-764e8953aa8c:ko",
+   "topic": "34f59cc0-6e5e-4f13-8006-764e8953aa8c",
+   "locale": "ko",
+   "name": "메모리 양산",
+   "q": "\"HBM\" OR \"HBM4\" OR \"HBM3E\" OR \"DRAM\""
+  },
+  {
+   "queryId": "34f59cc0-6e5e-4f13-8006-764e8953aa8c:en",
+   "topic": "34f59cc0-6e5e-4f13-8006-764e8953aa8c",
+   "locale": "en",
+   "name": "메모리 양산",
+   "q": "\"Micron\" OR \"Sandisk\" OR \"Everspin\""
+  },
+  {
+   "queryId": "354d75c4-c595-4393-a8d3-9ed02c4fae59:ko",
+   "topic": "354d75c4-c595-4393-a8d3-9ed02c4fae59",
+   "locale": "ko",
+   "name": "은행",
+   "q": "\"은행주\" OR \"NIM\" OR \"예대마진\" OR \"CET1\""
+  },
+  {
+   "queryId": "354d75c4-c595-4393-a8d3-9ed02c4fae59:en",
+   "topic": "354d75c4-c595-4393-a8d3-9ed02c4fae59",
+   "locale": "en",
+   "name": "은행",
+   "q": "\"JPMorgan Chase\" OR \"Bank of America\" OR \"Citigroup\""
+  },
+  {
+   "queryId": "4197c534-1948-4117-907b-29312ee6e195:ko",
+   "topic": "4197c534-1948-4117-907b-29312ee6e195",
+   "locale": "ko",
+   "name": "반도체 유리기판",
+   "q": "\"유리기판\" OR \"글라스 기판\" OR \"TGV\" OR \"유리 인터포저\""
+  },
+  {
+   "queryId": "4197c534-1948-4117-907b-29312ee6e195:en",
+   "topic": "4197c534-1948-4117-907b-29312ee6e195",
+   "locale": "en",
+   "name": "반도체 유리기판",
+   "q": "\"Corning\" OR \"Intel\" OR \"MKS\""
+  },
+  {
+   "queryId": "42530660-caf8-406c-93fb-ccbba5d8fc3c:ko",
+   "topic": "42530660-caf8-406c-93fb-ccbba5d8fc3c",
+   "locale": "ko",
+   "name": "반도체 후공정/패키징",
+   "q": "\"반도체 패키징\" OR \"TC 본더\" OR \"프로브카드\" OR \"2.5D 패키징\""
+  },
+  {
+   "queryId": "42530660-caf8-406c-93fb-ccbba5d8fc3c:en",
+   "topic": "42530660-caf8-406c-93fb-ccbba5d8fc3c",
+   "locale": "en",
+   "name": "반도체 후공정/패키징",
+   "q": "\"Teradyne\" OR \"Cohu\" OR \"Amkor Technology\""
+  },
+  {
+   "queryId": "439bad21-6907-4964-b31b-0baeb3cf7976:ko",
+   "topic": "439bad21-6907-4964-b31b-0baeb3cf7976",
+   "locale": "ko",
+   "name": "폐배터리",
+   "q": "\"폐배터리\" OR \"배터리 재활용\" OR \"블랙매스\" OR \"블랙파우더\""
+  },
+  {
+   "queryId": "439bad21-6907-4964-b31b-0baeb3cf7976:en",
+   "topic": "439bad21-6907-4964-b31b-0baeb3cf7976",
+   "locale": "en",
+   "name": "폐배터리",
+   "q": "\"American Battery Technology\" OR \"American Resources\" OR \"Aqua Metals\""
+  },
+  {
+   "queryId": "49b33ad0-91a7-4e70-8c97-3670714e6440:ko",
+   "topic": "49b33ad0-91a7-4e70-8c97-3670714e6440",
+   "locale": "ko",
+   "name": "통신",
+   "q": "\"통신3사\" OR \"5G\" OR \"ARPU\" OR \"번호이동\""
+  },
+  {
+   "queryId": "49b33ad0-91a7-4e70-8c97-3670714e6440:en",
+   "topic": "49b33ad0-91a7-4e70-8c97-3670714e6440",
+   "locale": "en",
+   "name": "통신",
+   "q": "\"Verizon\" OR \"AT&T\" OR \"T-Mobile US\""
+  },
+  {
+   "queryId": "4b19d710-98fa-4eb7-a92d-b7e977d7c383:ko",
+   "topic": "4b19d710-98fa-4eb7-a92d-b7e977d7c383",
+   "locale": "ko",
+   "name": "전기차 배터리",
+   "q": "\"전기차 배터리\" OR \"양극재\" OR \"46파이\" OR \"하이니켈\""
+  },
+  {
+   "queryId": "4b19d710-98fa-4eb7-a92d-b7e977d7c383:en",
+   "topic": "4b19d710-98fa-4eb7-a92d-b7e977d7c383",
+   "locale": "en",
+   "name": "전기차 배터리",
+   "q": "\"Tesla\" OR \"QuantumScape\" OR \"Solid Power\""
+  },
+  {
+   "queryId": "5600ad2d-66e3-44c2-885b-516ef3f92532:ko",
+   "topic": "5600ad2d-66e3-44c2-885b-516ef3f92532",
+   "locale": "ko",
+   "name": "반도체 전공정",
+   "q": "\"반도체 전공정\" OR \"증착\" OR \"식각\" OR \"반도체 세정\""
+  },
+  {
+   "queryId": "5600ad2d-66e3-44c2-885b-516ef3f92532:en",
+   "topic": "5600ad2d-66e3-44c2-885b-516ef3f92532",
+   "locale": "en",
+   "name": "반도체 전공정",
+   "q": "\"Applied Materials\" OR \"Lam Research\" OR \"KLA\""
+  },
+  {
+   "queryId": "59c54553-9e0b-4732-8716-2a7f6d7e512b:ko",
+   "topic": "59c54553-9e0b-4732-8716-2a7f6d7e512b",
+   "locale": "ko",
+   "name": "자율주행 sdv",
+   "q": "\"자율주행\" OR \"SDV\" OR \"ADAS\" OR \"차량용 OS\""
+  },
+  {
+   "queryId": "59c54553-9e0b-4732-8716-2a7f6d7e512b:en",
+   "topic": "59c54553-9e0b-4732-8716-2a7f6d7e512b",
+   "locale": "en",
+   "name": "자율주행 sdv",
+   "q": "\"NVIDIA\" OR \"Qualcomm\" OR \"Tesla\""
+  },
+  {
+   "queryId": "6a5e5359-2e61-48af-ad6f-7914a39cd236:ko",
+   "topic": "6a5e5359-2e61-48af-ad6f-7914a39cd236",
+   "locale": "ko",
+   "name": "반도체 기판",
+   "q": "\"반도체 기판\" OR \"FC-BGA\" OR \"FCBGA\" OR \"MLB\""
+  },
+  {
+   "queryId": "6a5e5359-2e61-48af-ad6f-7914a39cd236:en",
+   "topic": "6a5e5359-2e61-48af-ad6f-7914a39cd236",
+   "locale": "en",
+   "name": "반도체 기판",
+   "q": "\"TTM Technologies\" OR \"Amphenol\" OR \"MKS\""
+  },
+  {
+   "queryId": "71f00562-e557-4c9b-a32a-c80def1eb83b:ko",
+   "topic": "71f00562-e557-4c9b-a32a-c80def1eb83b",
+   "locale": "ko",
+   "name": "반도체 디자인하우스",
+   "q": "\"디자인하우스\" OR \"ASIC\" OR \"SoC\" OR \"테이프아웃\""
+  },
+  {
+   "queryId": "71f00562-e557-4c9b-a32a-c80def1eb83b:en",
+   "topic": "71f00562-e557-4c9b-a32a-c80def1eb83b",
+   "locale": "en",
+   "name": "반도체 디자인하우스",
+   "q": "\"Broadcom\" OR \"Marvell\" OR \"AMD\""
+  },
+  {
+   "queryId": "83b2d692-bc69-422f-a5be-6a62c46170fd:ko",
+   "topic": "83b2d692-bc69-422f-a5be-6a62c46170fd",
+   "locale": "ko",
+   "name": "전력",
+   "q": "\"변압기\" OR \"전력 케이블\" OR \"초고압 변압기\" OR \"초고압 케이블\""
+  },
+  {
+   "queryId": "83b2d692-bc69-422f-a5be-6a62c46170fd:en",
+   "topic": "83b2d692-bc69-422f-a5be-6a62c46170fd",
+   "locale": "en",
+   "name": "전력",
+   "q": "\"GE Vernova\" OR \"Hubbell\" OR \"Powell Industries\""
+  },
+  {
+   "queryId": "94344449-46f8-4f72-ab25-90086a1def1f:ko",
+   "topic": "94344449-46f8-4f72-ab25-90086a1def1f",
+   "locale": "ko",
+   "name": "패션/의류",
+   "q": "\"패션주\" OR \"의류 수출\" OR \"OEM 수주\" OR \"의류 관세\""
+  },
+  {
+   "queryId": "94344449-46f8-4f72-ab25-90086a1def1f:en",
+   "topic": "94344449-46f8-4f72-ab25-90086a1def1f",
+   "locale": "en",
+   "name": "패션/의류",
+   "q": "\"Nike\" OR \"VF\" OR \"Ralph Lauren\""
+  },
+  {
+   "queryId": "973e1638-6493-4399-8820-b54c697203bf:ko",
+   "topic": "973e1638-6493-4399-8820-b54c697203bf",
+   "locale": "ko",
+   "name": "휴머노이드 양산",
+   "q": "\"휴머노이드\" OR \"옵티머스\" OR \"이족보행\" OR \"로봇 양산\""
+  },
+  {
+   "queryId": "973e1638-6493-4399-8820-b54c697203bf:en",
+   "topic": "973e1638-6493-4399-8820-b54c697203bf",
+   "locale": "en",
+   "name": "휴머노이드 양산",
+   "q": "\"Tesla\" OR \"NVIDIA\" OR \"Qualcomm\""
+  },
+  {
+   "queryId": "98dfe4f3-0128-4713-b261-e11eb17bf7be:ko",
+   "topic": "98dfe4f3-0128-4713-b261-e11eb17bf7be",
+   "locale": "ko",
+   "name": "피부 미용",
+   "q": "\"피부미용\" OR \"PN\" OR \"PDRN\" OR \"필러\""
+  },
+  {
+   "queryId": "98dfe4f3-0128-4713-b261-e11eb17bf7be:en",
+   "topic": "98dfe4f3-0128-4713-b261-e11eb17bf7be",
+   "locale": "en",
+   "name": "피부 미용",
+   "q": "\"AbbVie\" OR \"Evolus\" OR \"Apyx Medical\""
+  },
+  {
+   "queryId": "9e5d766f-c1b6-48a4-a385-84154122499d:ko",
+   "topic": "9e5d766f-c1b6-48a4-a385-84154122499d",
+   "locale": "ko",
+   "name": "반도체 IP",
+   "q": "\"반도체 IP\" OR \"CXL\" OR \"NPU\" OR \"SerDes\""
+  },
+  {
+   "queryId": "9e5d766f-c1b6-48a4-a385-84154122499d:en",
+   "topic": "9e5d766f-c1b6-48a4-a385-84154122499d",
+   "locale": "en",
+   "name": "반도체 IP",
+   "q": "\"Synopsys\" OR \"Cadence\" OR \"Rambus\""
+  },
+  {
+   "queryId": "9ebef0b9-5586-47cc-8329-600230883f85:ko",
+   "topic": "9ebef0b9-5586-47cc-8329-600230883f85",
+   "locale": "ko",
+   "name": "스마트팩토리",
+   "q": "\"스마트팩토리\" OR \"협동로봇\" OR \"산업용 로봇\" OR \"물류로봇\""
+  },
+  {
+   "queryId": "9ebef0b9-5586-47cc-8329-600230883f85:en",
+   "topic": "9ebef0b9-5586-47cc-8329-600230883f85",
+   "locale": "en",
+   "name": "스마트팩토리",
+   "q": "\"Rockwell Automation\" OR \"Emerson\" OR \"Teradyne\""
+  },
+  {
+   "queryId": "9f654d9c-e904-4374-b007-21ea1dfdab17:ko",
+   "topic": "9f654d9c-e904-4374-b007-21ea1dfdab17",
+   "locale": "ko",
+   "name": "화장품",
+   "q": "\"K뷰티\" OR \"K-뷰티\" OR \"화장품 수출\" OR \"인디뷰티\""
+  },
+  {
+   "queryId": "9f654d9c-e904-4374-b007-21ea1dfdab17:en",
+   "topic": "9f654d9c-e904-4374-b007-21ea1dfdab17",
+   "locale": "en",
+   "name": "화장품",
+   "q": "\"Estée Lauder\" OR \"e.l.f. Beauty\" OR \"Coty\""
+  },
+  {
+   "queryId": "9f9a69ce-f932-4466-b1f3-5746e6364206:ko",
+   "topic": "9f9a69ce-f932-4466-b1f3-5746e6364206",
+   "locale": "ko",
+   "name": "SOFC",
+   "q": "\"SOFC\" OR \"고체산화물 연료전지\" OR \"연료전지 발전\" OR \"SOFC 스택\""
+  },
+  {
+   "queryId": "9f9a69ce-f932-4466-b1f3-5746e6364206:en",
+   "topic": "9f9a69ce-f932-4466-b1f3-5746e6364206",
+   "locale": "en",
+   "name": "SOFC",
+   "q": "\"Bloom Energy\""
+  },
+  {
+   "queryId": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df:ko",
+   "topic": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df",
+   "locale": "ko",
+   "name": "휴머노이드 액추에이터·핸드",
+   "q": "\"로봇손\" OR \"액추에이터\" OR \"로봇 핸드\" OR \"휴머노이드 액추에이터\""
+  },
+  {
+   "queryId": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df:en",
+   "topic": "9fc2f73a-d4e4-4f57-8f7f-6e993fd932df",
+   "locale": "en",
+   "name": "휴머노이드 액추에이터·핸드",
+   "q": "\"Tesla\" OR \"Novanta\" OR \"Moog\""
+  },
+  {
+   "queryId": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3:ko",
+   "topic": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3",
+   "locale": "ko",
+   "name": "우주 · 위성",
+   "q": "\"우주발사체\" OR \"저궤도 위성\" OR \"우주항공 소재\" OR \"누리호\""
+  },
+  {
+   "queryId": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3:en",
+   "topic": "a140d4a5-e494-41d9-9fd7-31bf2fb81eb3",
+   "locale": "en",
+   "name": "우주 · 위성",
+   "q": "\"Rocket Lab\" OR \"Boeing\" OR \"Lockheed Martin\""
+  },
+  {
+   "queryId": "a21f87fb-70d9-4994-bc58-5a17f8bd455e:ko",
+   "topic": "a21f87fb-70d9-4994-bc58-5a17f8bd455e",
+   "locale": "ko",
+   "name": "해상풍력",
+   "q": "\"해상풍력\" OR \"풍력타워\" OR \"하부구조물\" OR \"모노파일\""
+  },
+  {
+   "queryId": "a21f87fb-70d9-4994-bc58-5a17f8bd455e:en",
+   "topic": "a21f87fb-70d9-4994-bc58-5a17f8bd455e",
+   "locale": "en",
+   "name": "해상풍력",
+   "q": "\"GE Vernova\" OR \"American Superconductor\""
+  },
+  {
+   "queryId": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb:ko",
+   "topic": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb",
+   "locale": "ko",
+   "name": "반도체 노광공정(EUV)",
+   "q": "\"EUV\" OR \"ASML\" OR \"High-NA EUV\" OR \"포토레지스트\""
+  },
+  {
+   "queryId": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb:en",
+   "topic": "a9eac1f7-cdff-448b-8e30-9baab0a72fdb",
+   "locale": "en",
+   "name": "반도체 노광공정(EUV)",
+   "q": "\"Qnity\" OR \"Entegris\" OR \"KLA\""
+  },
+  {
+   "queryId": "ab431a79-1f0f-446c-9f46-bfc7442248c8:ko",
+   "topic": "ab431a79-1f0f-446c-9f46-bfc7442248c8",
+   "locale": "ko",
+   "name": "광통신",
+   "q": "\"광통신\" OR \"광트랜시버\" OR \"광모듈\" OR \"광케이블\""
+  },
+  {
+   "queryId": "ab431a79-1f0f-446c-9f46-bfc7442248c8:en",
+   "topic": "ab431a79-1f0f-446c-9f46-bfc7442248c8",
+   "locale": "en",
+   "name": "광통신",
+   "q": "\"Coherent\" OR \"Lumentum\" OR \"Applied Optoelectronics\""
+  },
+  {
+   "queryId": "adf919f7-d603-48e4-a15b-2431caf62bab:ko",
+   "topic": "adf919f7-d603-48e4-a15b-2431caf62bab",
+   "locale": "ko",
+   "name": "반도체 팹리스",
+   "q": "\"팹리스\" OR \"저전력 반도체\" OR \"저전력 메모리\" OR \"MCP\""
+  },
+  {
+   "queryId": "adf919f7-d603-48e4-a15b-2431caf62bab:en",
+   "topic": "adf919f7-d603-48e4-a15b-2431caf62bab",
+   "locale": "en",
+   "name": "반도체 팹리스",
+   "q": "\"NVIDIA\" OR \"AMD\" OR \"Broadcom\""
+  },
+  {
+   "queryId": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae:ko",
+   "topic": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae",
+   "locale": "ko",
+   "name": "보험",
+   "q": "\"보험주\" OR \"CSM\" OR \"손해율\" OR \"K-ICS\""
+  },
+  {
+   "queryId": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae:en",
+   "topic": "b404627d-e1aa-47f1-8d72-5a3d8fb1fcae",
+   "locale": "en",
+   "name": "보험",
+   "q": "\"Travelers\" OR \"Progressive\" OR \"Allstate\""
+  },
+  {
+   "queryId": "b415b865-80a0-4f2f-9ff3-7532206d3942:ko",
+   "topic": "b415b865-80a0-4f2f-9ff3-7532206d3942",
+   "locale": "ko",
+   "name": "액침냉각",
+   "q": "\"액침냉각\" OR \"immersion cooling\" OR \"액침\" OR \"냉각유\""
+  },
+  {
+   "queryId": "b415b865-80a0-4f2f-9ff3-7532206d3942:en",
+   "topic": "b415b865-80a0-4f2f-9ff3-7532206d3942",
+   "locale": "en",
+   "name": "액침냉각",
+   "q": "\"ExxonMobil\" OR \"Dow\" OR \"Chemours\""
+  },
+  {
+   "queryId": "b4ad7add-a37d-4737-936f-40aaede153dd:ko",
+   "topic": "b4ad7add-a37d-4737-936f-40aaede153dd",
+   "locale": "ko",
+   "name": "백화점",
+   "q": "\"백화점\" OR \"백화점 매출\" OR \"백화점 기존점\" OR \"명품 매출\""
+  },
+  {
+   "queryId": "b4ad7add-a37d-4737-936f-40aaede153dd:en",
+   "topic": "b4ad7add-a37d-4737-936f-40aaede153dd",
+   "locale": "en",
+   "name": "백화점",
+   "q": "\"Macy's\" OR \"Dillard's\" OR \"Kohl's\""
+  },
+  {
+   "queryId": "b523eeae-3297-4b00-87d7-d09a5dadafcd:ko",
+   "topic": "b523eeae-3297-4b00-87d7-d09a5dadafcd",
+   "locale": "ko",
+   "name": "휴머노이드 비젼/카메라",
+   "q": "\"로봇 비전\" OR \"로봇 카메라\" OR \"3D 카메라\" OR \"ToF\""
+  },
+  {
+   "queryId": "b523eeae-3297-4b00-87d7-d09a5dadafcd:en",
+   "topic": "b523eeae-3297-4b00-87d7-d09a5dadafcd",
+   "locale": "en",
+   "name": "휴머노이드 비젼/카메라",
+   "q": "\"Cognex\" OR \"Teledyne\" OR \"onsemi\""
+  },
+  {
+   "queryId": "d8ef2560-2219-4b71-a37d-156537833510:ko",
+   "topic": "d8ef2560-2219-4b71-a37d-156537833510",
+   "locale": "ko",
+   "name": "AI글래스",
+   "q": "\"AI 글래스\" OR \"AI 안경\" OR \"메타 안경\" OR \"마이크로디스플레이\""
+  },
+  {
+   "queryId": "d8ef2560-2219-4b71-a37d-156537833510:en",
+   "topic": "d8ef2560-2219-4b71-a37d-156537833510",
+   "locale": "en",
+   "name": "AI글래스",
+   "q": "\"Meta\" OR \"Snap\" OR \"Qualcomm\""
+  },
+  {
+   "queryId": "da96c41b-5f44-404d-b74e-5786cbf9678d:ko",
+   "topic": "da96c41b-5f44-404d-b74e-5786cbf9678d",
+   "locale": "ko",
+   "name": "게임",
+   "q": "\"게임 신작\" OR \"신작 출시\" OR \"게임 매출\" OR \"MAU\""
+  },
+  {
+   "queryId": "da96c41b-5f44-404d-b74e-5786cbf9678d:en",
+   "topic": "da96c41b-5f44-404d-b74e-5786cbf9678d",
+   "locale": "en",
+   "name": "게임",
+   "q": "\"Take-Two Interactive\" OR \"Roblox\" OR \"Microsoft\""
+  },
+  {
+   "queryId": "dac67c42-2e8d-4d7d-9920-74df9868c1ad:ko",
+   "topic": "dac67c42-2e8d-4d7d-9920-74df9868c1ad",
+   "locale": "ko",
+   "name": "방산",
+   "q": "\"방산\" OR \"방산 항공기\" OR \"유도무기\" OR \"전차\""
+  },
+  {
+   "queryId": "dac67c42-2e8d-4d7d-9920-74df9868c1ad:en",
+   "topic": "dac67c42-2e8d-4d7d-9920-74df9868c1ad",
+   "locale": "en",
+   "name": "방산",
+   "q": "\"General Dynamics\" OR \"Lockheed Martin\" OR \"Northrop Grumman\""
+  },
+  {
+   "queryId": "dadd2525-a51f-4933-9186-020f5fa441c7:ko",
+   "topic": "dadd2525-a51f-4933-9186-020f5fa441c7",
+   "locale": "ko",
+   "name": "ESS 배터리",
+   "q": "\"ESS\" OR \"ESS 배터리\" OR \"LFP\" OR \"LFP 배터리\""
+  },
+  {
+   "queryId": "dadd2525-a51f-4933-9186-020f5fa441c7:en",
+   "topic": "dadd2525-a51f-4933-9186-020f5fa441c7",
+   "locale": "en",
+   "name": "ESS 배터리",
+   "q": "\"Tesla\" OR \"Fluence Energy\" OR \"Eos Energy\""
+  },
+  {
+   "queryId": "e1c79ca5-f361-429f-8929-80afeac52f0f:ko",
+   "topic": "e1c79ca5-f361-429f-8929-80afeac52f0f",
+   "locale": "ko",
+   "name": "레저/숙박",
+   "q": "\"외국인 관광객\" OR \"중국인 관광객\" OR \"무비자\" OR \"객실점유율\""
+  },
+  {
+   "queryId": "e1c79ca5-f361-429f-8929-80afeac52f0f:en",
+   "topic": "e1c79ca5-f361-429f-8929-80afeac52f0f",
+   "locale": "en",
+   "name": "레저/숙박",
+   "q": "\"Marriott\" OR \"Hilton\" OR \"Hyatt\""
+  },
+  {
+   "queryId": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81:ko",
+   "topic": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81",
+   "locale": "ko",
+   "name": "엔터",
+   "q": "\"엔터주\" OR \"월드투어\" OR \"콘서트\" OR \"음반 판매\""
+  },
+  {
+   "queryId": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81:en",
+   "topic": "e3bd707e-6a95-4b7a-83fb-3bacf8acdb81",
+   "locale": "en",
+   "name": "엔터",
+   "q": "\"Warner Music Group\" OR \"Live Nation\" OR \"Reservoir Media\""
+  },
+  {
+   "queryId": "e44ccfeb-885d-41f5-9def-0713de2aeb6e:ko",
+   "topic": "e44ccfeb-885d-41f5-9def-0713de2aeb6e",
+   "locale": "ko",
+   "name": "의료기기",
+   "q": "\"의료기기\" OR \"수술로봇\" OR \"복강경 수술\" OR \"다관절 수술기구\""
+  },
+  {
+   "queryId": "e44ccfeb-885d-41f5-9def-0713de2aeb6e:en",
+   "topic": "e44ccfeb-885d-41f5-9def-0713de2aeb6e",
+   "locale": "en",
+   "name": "의료기기",
+   "q": "\"Intuitive Surgical\" OR \"Stryker\" OR \"Zimmer Biomet\""
+  },
+  {
+   "queryId": "ea661150-f49f-4dc2-9769-740e60ab63f0:ko",
+   "topic": "ea661150-f49f-4dc2-9769-740e60ab63f0",
+   "locale": "ko",
+   "name": "증권",
+   "q": "\"증권주\" OR \"거래대금\" OR \"브로커리지\" OR \"해외주식\""
+  },
+  {
+   "queryId": "ea661150-f49f-4dc2-9769-740e60ab63f0:en",
+   "topic": "ea661150-f49f-4dc2-9769-740e60ab63f0",
+   "locale": "en",
+   "name": "증권",
+   "q": "\"Morgan Stanley\" OR \"Goldman Sachs\" OR \"Charles Schwab\""
+  },
+  {
+   "queryId": "eda3b194-b258-4bc3-be82-e0ae70e27999:ko",
+   "topic": "eda3b194-b258-4bc3-be82-e0ae70e27999",
+   "locale": "ko",
+   "name": "파운드리",
+   "q": "\"파운드리\" OR \"GAA\" OR \"2나노\" OR \"3나노\""
+  },
+  {
+   "queryId": "eda3b194-b258-4bc3-be82-e0ae70e27999:en",
+   "topic": "eda3b194-b258-4bc3-be82-e0ae70e27999",
+   "locale": "en",
+   "name": "파운드리",
+   "q": "\"GlobalFoundries\" OR \"Intel\" OR \"IonQ\""
+  },
+  {
+   "queryId": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14:ko",
+   "topic": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14",
+   "locale": "ko",
+   "name": "바이오",
+   "q": "\"바이오\" OR \"ADC\" OR \"이중항체\" OR \"GLP-1\""
+  },
+  {
+   "queryId": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14:en",
+   "topic": "ef8c0dc8-1e9b-4021-b86b-f3144bfb2f14",
+   "locale": "en",
+   "name": "바이오",
+   "q": "\"Eli Lilly\" OR \"Regeneron\" OR \"Halozyme\""
+  },
+  {
+   "queryId": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a:ko",
+   "topic": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a",
+   "locale": "ko",
+   "name": "MLCC",
+   "q": "\"MLCC\" OR \"적층세라믹콘덴서\" OR \"적층세라믹커패시터\" OR \"서버용 MLCC\""
+  },
+  {
+   "queryId": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a:en",
+   "topic": "eff50f0b-c7c4-4020-bb17-24fe4aaaa67a",
+   "locale": "en",
+   "name": "MLCC",
+   "q": "\"Vishay\" OR \"Knowles\""
+  },
+  {
+   "queryId": "f4361070-beb7-4836-964d-f03a1015c6cf:ko",
+   "topic": "f4361070-beb7-4836-964d-f03a1015c6cf",
+   "locale": "ko",
+   "name": "피팅·밸브",
+   "q": "\"피팅\" OR \"밸브\" OR \"튜브 피팅\" OR \"계장용 밸브\""
+  },
+  {
+   "queryId": "f4361070-beb7-4836-964d-f03a1015c6cf:en",
+   "topic": "f4361070-beb7-4836-964d-f03a1015c6cf",
+   "locale": "en",
+   "name": "피팅·밸브",
+   "q": "\"Parker-Hannifin\" OR \"Emerson Electric\" OR \"Flowserve\""
+  },
+  {
+   "queryId": "f9c7bd33-67f0-4ee2-85fd-703493149efc:ko",
+   "topic": "f9c7bd33-67f0-4ee2-85fd-703493149efc",
+   "locale": "ko",
+   "name": "실리콘 음극재",
+   "q": "\"실리콘 음극재\" OR \"SiOx\" OR \"Si-C\" OR \"실리콘 산화물\""
+  },
+  {
+   "queryId": "f9c7bd33-67f0-4ee2-85fd-703493149efc:en",
+   "topic": "f9c7bd33-67f0-4ee2-85fd-703493149efc",
+   "locale": "en",
+   "name": "실리콘 음극재",
+   "q": "\"Enovix\" OR \"Amprius\" OR \"Solidion Technology\""
+  },
+  {
+   "queryId": "MACRO-1:ko",
+   "topic": "MACRO",
+   "locale": "ko",
+   "name": "MACRO",
+   "q": "\"금리\" OR \"환율\" OR \"연준\""
+  },
+  {
+   "queryId": "MACRO-2:ko",
+   "topic": "MACRO",
+   "locale": "ko",
+   "name": "MACRO",
+   "q": "\"관세\" OR \"수출규제\" OR \"무역분쟁\""
+  },
+  {
+   "queryId": "MACRO-3:ko",
+   "topic": "MACRO",
+   "locale": "ko",
+   "name": "MACRO",
+   "q": "\"중국 반도체\" OR \"중국 메모리\" OR \"중국 경기\""
+  },
+  {
+   "queryId": "MACRO-4:ko",
+   "topic": "MACRO",
+   "locale": "ko",
+   "name": "MACRO",
+   "q": "\"엔비디아\" OR \"젠슨 황\" OR \"빅테크\""
+  },
+  {
+   "queryId": "MACRO-1:en",
+   "topic": "MACRO",
+   "locale": "en",
+   "name": "MACRO",
+   "q": "\"Federal Reserve\" OR \"inflation\" OR \"interest rates\""
+  },
+  {
+   "queryId": "MACRO-2:en",
+   "topic": "MACRO",
+   "locale": "en",
+   "name": "MACRO",
+   "q": "\"tariff\" OR \"export controls\" OR \"trade war\""
+  },
+  {
+   "queryId": "MACRO-3:en",
+   "topic": "MACRO",
+   "locale": "en",
+   "name": "MACRO",
+   "q": "\"China economy\" OR \"China memory chips\" OR \"China semiconductors\""
+  },
+  {
+   "queryId": "MACRO-4:en",
+   "topic": "MACRO",
+   "locale": "en",
+   "name": "MACRO",
+   "q": "\"Nvidia\" OR \"Jensen Huang\" OR \"Big Tech\""
+  }
+ ]
+}

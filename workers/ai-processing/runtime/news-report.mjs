@@ -62,7 +62,10 @@ export function sourceStatus(db, now = Date.now()) {
   const sighted = where => one(`SELECT count(DISTINCT job_id) n FROM sightings WHERE last_seen>? AND ${where}`, since).n ?? 0;
   return {
     at: new Date(now).toISOString(),
-    gnews: { signals24h: signals('gnews'), requestsToday: one('SELECT used FROM gnews_ledger WHERE day=?', today).used ?? 0, outlets30d: one('SELECT count(*) n FROM news_outlets').n ?? 0 },
+    gnews: { signals24h: signals('gnews'), requestsToday: one('SELECT used FROM gnews_ledger WHERE day=?', today).used ?? 0, outlets30d: one('SELECT count(*) n FROM news_outlets').n ?? 0,
+      // Sector news: which searches found signals in 24 hours (top 10 sectors, macro total), counts only.
+      sectorTop24h: all("SELECT topic,count(DISTINCT url) n FROM news_signal_topics WHERE last_seen>? AND topic<>'MACRO' GROUP BY topic ORDER BY n DESC,topic LIMIT 10", since),
+      macro24h: one("SELECT count(DISTINCT url) n FROM news_signal_topics WHERE last_seen>? AND topic='MACRO'", since).n ?? 0 },
     finlight: { signals24h: signals('finlight'), requestsToday: one('SELECT used FROM finlight_ledger WHERE day=?', today).used ?? 0,
       withTickers24h: one(`SELECT count(*) n FROM news_signals WHERE first_seen>? AND sources LIKE '%"finlight:%' AND tickers IS NOT NULL`, since).n ?? 0 },
     dart: { filings24h: sighted("source_id='dart:list'"), stockCodes: one('SELECT count(*) n FROM dart_stocks').n ?? 0 },

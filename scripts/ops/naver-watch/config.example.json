@@ -1,0 +1,16 @@
+{
+  "windowTitle": "관심 종목",
+  "processNames": ["chrome", "msedge"],
+  "lists": [
+    { "name": "주도주뉴스", "expected": 100 },
+    { "name": "주도주뉴스2", "expected": 100 },
+    { "name": "주도주뉴스3", "expected": 100 },
+    { "name": "주도주뉴스4", "expected": 38 }
+  ],
+  "rowsPerScreen": 9,
+  "upload": {
+    "server": "ubuntu@52.79.247.25",
+    "key": "%LOCALAPPDATA%\\judoju\\naver-watch\\keys\\upload-ed25519",
+    "knownHosts": "%LOCALAPPDATA%\\judoju\\naver-watch\\keys\\known_hosts"
+  }
+}

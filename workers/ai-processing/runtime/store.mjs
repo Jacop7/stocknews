@@ -51,6 +51,10 @@ export class BacklogStore {
     if (!this.db.prepare('PRAGMA table_info(news_signals)').all().some(column => column.name === 'title')) this.db.exec('ALTER TABLE news_signals ADD COLUMN title TEXT');
     // Outlets GNews returned (registrable domain → last time), kept 30 days apart from the 7-day signals.
     this.db.exec('CREATE TABLE IF NOT EXISTS news_outlets(domain TEXT PRIMARY KEY,gnews_seen INTEGER NOT NULL) STRICT');
+    // Sector news: which search found a signal (many per URL), removed with the signal.
+    this.db.exec(`CREATE TABLE IF NOT EXISTS news_signal_topics(url TEXT NOT NULL REFERENCES news_signals(url) ON DELETE CASCADE,query_id TEXT NOT NULL,
+      topic TEXT NOT NULL,locale TEXT NOT NULL,first_seen INTEGER NOT NULL,last_seen INTEGER NOT NULL,PRIMARY KEY(url,query_id)) STRICT`);
+    this.db.exec('CREATE TABLE IF NOT EXISTS gnews_queries(query_id TEXT PRIMARY KEY,last_attempted INTEGER NOT NULL DEFAULT 0,last_succeeded INTEGER NOT NULL DEFAULT 0) STRICT');
     if (!this.db.prepare('SELECT 1 FROM news_outlets LIMIT 1').get()) {
       // First open after the upgrade: GNews signals already held (at most 7 days) seed the ledger.
       const put = this.db.prepare('INSERT INTO news_outlets VALUES (?,?) ON CONFLICT(domain) DO UPDATE SET gnews_seen=max(gnews_seen,excluded.gnews_seen)');
@@ -180,8 +184,11 @@ export class BacklogStore {
   // News-API discoveries (GNews, 2026-11-28) go straight to news signals: no job, no fetch path, no body, whatever
   // the destination host or the configuration. Title and publication time are kept; repeats refresh last_seen,
   // sources and expiry. Returns counts only.
-  recordNewsSignals(entries, now) {
+  // topic (sector news, docs/sector-news-plan.md §2.4): { queryId, topic, locale } of the search that found the entries;
+  // its provenance rows and the query's success time are written in the same transaction as the signals.
+  recordNewsSignals(entries, now, topic = null) {
     assert(Array.isArray(entries) && entries.length <= 1000, 'SIGNAL_LIMIT');
+    assert(topic === null || (/^[A-Za-z0-9-]+:(ko|en)$/.test(topic.queryId ?? '') && /^[A-Za-z0-9-]{1,60}$/.test(topic.topic ?? '') && ['ko', 'en'].includes(topic.locale)), 'SIGNAL_TOPIC_INVALID');
     let added = 0, updated = 0, rejected = 0;
     this.transaction(() => {
       for (const entry of entries) {
@@ -198,8 +205,11 @@ export class BacklogStore {
             Array.isArray(entry.tickers) && entry.tickers.length ? JSON.stringify(entry.tickers.filter(t => /^[A-Z0-9]{2,8}:[A-Za-z0-9.]{1,12}$/.test(t)).slice(0, 10)) : null);
         const outlet = outletDomain(host);
         if (outlet && entry.sourceId.startsWith('gnews:')) this.db.prepare('INSERT INTO news_outlets VALUES (?,?) ON CONFLICT(domain) DO UPDATE SET gnews_seen=max(gnews_seen,excluded.gnews_seen)').run(outlet, now);
+        if (topic) this.db.prepare(`INSERT INTO news_signal_topics VALUES (?,?,?,?,?,?) ON CONFLICT(url,query_id) DO UPDATE SET last_seen=max(last_seen,excluded.last_seen)`)
+          .run(url, topic.queryId, topic.topic, topic.locale, now, now);
         prior ? updated++ : added++;
       }
+      if (topic) this.db.prepare('INSERT INTO gnews_queries(query_id,last_succeeded) VALUES (?,?) ON CONFLICT(query_id) DO UPDATE SET last_succeeded=excluded.last_succeeded').run(topic.queryId, now);
     });
     return { added, updated, rejected };
   }

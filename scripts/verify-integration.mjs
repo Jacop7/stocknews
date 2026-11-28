@@ -28,6 +28,7 @@ const checks = [
     'tests/home-public-read.test.mjs',
     'tests/public-read-gateway.test.mjs',
     'tests/company-page-route.test.mjs',
+    'tests/catalog-macro-route.test.mjs',
     'tests/read-kind.test.mjs',
     'tests/admin-online.test.mjs',
     'tests/editor-state.test.mjs',
@@ -54,6 +55,10 @@ const checks = [
     'tests/evidence-match.test.mjs',
     'tests/ranking.test.mjs',
     'tests/ranking-pipeline.test.mjs',
+    'tests/gnews-sector.test.mjs',
+    'tests/market-moves.test.mjs',
+    'tests/naver-watch.test.mjs',
+    'tests/naver-watch-files.test.mjs',
   ]],
   ['Home ranking database smoke test', [
     '--experimental-strip-types', 'scripts/test-home-database-cadence.mjs', '--smoke',
@@ -65,6 +70,7 @@ const checks = [
   ['Real public read database test (migration 59)', ['scripts/test-real-public-read-sql.mjs']],
   ['Real publish intake and withdrawal database test (migrations 60-61)', ['scripts/test-real-publish-ingest-sql.mjs']],
   ['AI version adoption database test (migration 62)', ['scripts/test-ai-adoption-sql.mjs']],
+  ['Macro filter database and PostgREST test (migration 64)', ['scripts/test-catalog-macro-sql.mjs']],
   // Publish stage 2A: the cloud intake role on a scratch database (real login), the online admin core (22 functions).
   ['AI intake role test (CLOUD13 S3, scratch database)', ['scripts/test-ai-intake-sql.mjs']],
   ['Online admin core test (CLOUD11-online, 22 editor functions)', ['scripts/test-cloud11-online-core.mjs']],
