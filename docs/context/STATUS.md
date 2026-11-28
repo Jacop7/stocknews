@@ -12,6 +12,12 @@
 - 출처별 24시간 상태: status.json `sources`(배포 직후 GNews 255, Finlight 20(종목코드 11), DART 39, 기업 사이트 방문 101/367(FOUND 1·NO_RECENT 60·FAILED 21·NOT_REACHED 14·ROBOTS 5), 저장 링크 298).
 - 기업 피드 첫 순회는 진행 중. 점검 예약 작업 `judoju-company-feed-coverage`(2026-11-29 09:00 KST). GNews·Finlight 유지 판단 예약 `judoju-news-api-evaluation`(2026-12-02 10:00 KST).
 
+## 섹터 뉴스·매크로 필터 (2026-11-28, 처리기 `a23f3ed` 배포)
+
+- 처리기: 섹터·매크로 검색어 120개 로드, 시장 데이터 파일 신뢰 확인, 첫 회차 US 모드 6회 호출 117건(실패 0). 서버 `market/` 폴더 생성(0750). 시세 업로드는 아직 없음(MOVES_ABSENT → US 모드).
+- 매크로 필터: 로컬 DB 마이그레이션 64 적용·시험 통과(로컬 PostgREST로 옛·새 호출 모두 200). 앱 코드 반영. 클라우드 DB 미적용(매크로 선택 시 클라우드 조회는 다음 클라우드 묶음 적용 전까지 실패).
+- PC 캡처 도구(`scripts/ops/naver-watch/`): 코드·시험 완료, 설치·키 생성·서버 수신 스크립트 설치는 아직 안 함.
+
 ## 홈 순위 v2 R1 (2026-11-28, 처리기 `1afe4b4` 배포)
 
 - 새 초안부터 파급력 등급·근거 기관·실질 변화 시각이 `issues.ranking`에 저장되고 내보내기 최상위 `ranking`에 실린다(클라우드 매퍼는 제외).
