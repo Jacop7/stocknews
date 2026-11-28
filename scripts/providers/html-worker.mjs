@@ -459,7 +459,7 @@ async function main() {
   mkdirSync(directory, { recursive: true });
   const db = openCollectorStore(join(directory, 'collection.sqlite'));
   // Web news and report list pages (2026-11-28 owner decision: off for now). With JUDOJU_WEB_NEWS=0 the web cycle
-  // still runs (heartbeat, expiry) but no list page is requested; only operator-registered sources would remain.
+  // still runs (heartbeat, expiry) but with no web endpoint at all, so no page is requested (registered wires included).
   const webNews = process.env.JUDOJU_WEB_NEWS !== '0';
   const watch = webNews && process.env.JUDOJU_PUBLIC_WATCH === '1' ? createPublicWatch() : undefined;
   const metadata = webNews ? createPublicMetadata() : undefined;
@@ -473,7 +473,7 @@ async function main() {
   process.once('SIGINT', () => stopping.abort());
   const pause = ms => sleep(ms, undefined, { signal: stopping.signal }).catch(error => { if (!stopping.signal.aborted) throw error; });
   const tick = createCollectorScheduler({
-    collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), watch, metadata, loadDetailRegistry: loadRegistry, random: Math.random, pause }),
+    collectWeb: () => runCollectorCycle(db, { ...loadRegistry(), ...(webNews ? {} : { endpoints: [] }), watch, metadata, loadDetailRegistry: loadRegistry, random: Math.random, pause }),
     collectTelegram: telegramWatch && telegramDb && (async () => {
       await pause(betweenRequests(Math.random));
       return runTelegramPageCycle(telegramDb, { load: loadRegistry, watch: telegramWatch, random: Math.random });
